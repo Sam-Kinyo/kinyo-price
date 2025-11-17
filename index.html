@@ -51,28 +51,12 @@
       font-weight: 600;
       cursor: pointer;
     }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
     .card {
       margin-top: 20px;
       background: #fff;
       padding: 18px;
       border-radius: 10px;
       box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-    }
-    .row {
-      margin-bottom: 8px;
-      font-size: 15px;
-    }
-    .label {
-      font-weight: 600;
-      display: inline-block;
-      width: 160px;
-    }
-    a {
-      color: #2563eb;
     }
     table {
       width: 100%;
@@ -94,27 +78,26 @@
       background: #f9fafb;
       cursor: pointer;
     }
-    .hint {
-      font-size: 12px;
-      color: #888;
-      margin-top: 6px;
-    }
+    .row { margin-bottom: 8px; font-size: 15px; }
+    .label { font-weight: 600; display: inline-block; width: 160px; }
+    a { color: #2563eb; }
+    .hint { font-size: 12px; color: #888; margin-top: 6px; }
   </style>
 </head>
 <body>
   <h1>KINYO 商品查價系統</h1>
   <div class="subtitle">
-    輸入商品型號，可支援模糊查詢（前綴）。例如輸入「AWP」會列出所有 AWP 開頭的商品。
+    可搜尋：<b>商品型號 / 商品名稱</b>（模糊搜尋，支援片段字符）
   </div>
 
   <div class="search-box">
-    <label for="modelInput">商品型號：</label>
-    <input id="modelInput" placeholder="例如：AWP5712 或 AWP" />
+    <label for="modelInput">搜尋：</label>
+    <input id="modelInput" placeholder="輸入型號或商品名稱，例如：5712、風扇、無線" />
     <button id="searchBtn">查詢</button>
   </div>
 
   <div id="loading" class="card" style="display:none;">查詢中，請稍候…</div>
-  <div id="noResult" class="card" style="display:none;">查無此型號，請確認輸入是否正確。</div>
+  <div id="noResult" class="card" style="display:none;">查無符合的商品。</div>
 
   <!-- 多筆結果列表 -->
   <div id="list" class="card" style="display:none;">
@@ -124,46 +107,40 @@
     <table>
       <thead>
         <tr>
-          <th>商品型號</th>
-          <th>商品名稱</th>
-          <th>團購(直播)售價</th>
-          <th>末售價格</th>
-          <th>賣場價格</th>
+          <th>型號</th>
+          <th>名稱</th>
+          <th>直播價</th>
+          <th>末售</th>
+          <th>賣場</th>
         </tr>
       </thead>
       <tbody id="list-body"></tbody>
     </table>
-    <div class="hint">提示：點選任一列，即可在下方顯示完整詳細資訊。</div>
+    <div class="hint">點選任一列可查看完整資料。</div>
   </div>
 
-  <!-- 單筆詳細資料 -->
+  <!-- 詳細資料 -->
   <div id="result" class="card" style="display:none;">
     <h2 id="r-name"></h2>
-
     <div class="row"><span class="label">商品型號：</span><span id="r-model"></span></div>
     <div class="row"><span class="label">商品名稱：</span><span id="r-name2"></span></div>
     <div class="row"><span class="label">國際條碼：</span><span id="r-barcode"></span></div>
     <div class="row"><span class="label">箱入數：</span><span id="r-cartonQty"></span></div>
-
-    <div class="row"><span class="label">團購(直播)售價：</span><span id="r-groupPriceLive"></span></div>
+    <div class="row"><span class="label">直播售價：</span><span id="r-groupPriceLive"></span></div>
     <div class="row"><span class="label">末售價格：</span><span id="r-minPrice"></span></div>
     <div class="row"><span class="label">賣場價格：</span><span id="r-marketPrice"></span></div>
-
-    <div class="row"><span class="label">採購100個報價：</span><span id="r-quote100"></span></div>
-    <div class="row"><span class="label">採購300個報價：</span><span id="r-quote300"></span></div>
-    <div class="row"><span class="label">採購500個報價：</span><span id="r-quote500"></span></div>
-
+    <div class="row"><span class="label">採購100：</span><span id="r-quote100"></span></div>
+    <div class="row"><span class="label">採購300：</span><span id="r-quote300"></span></div>
+    <div class="row"><span class="label">採購500：</span><span id="r-quote500"></span></div>
     <div class="row"><span class="label">BSMI：</span><span id="r-bsmi"></span></div>
     <div class="row"><span class="label">NCC：</span><span id="r-ncc"></span></div>
-
     <div class="row">
-      <span class="label">官方商品頁：</span>
-      <a id="r-url" href="#" target="_blank">點我前往</a>
+      <span class="label">官方頁面：</span>
+      <a id="r-url" target="_blank">前往</a>
     </div>
   </div>
 
   <script type="module">
-    // 你的 Firebase 設定
     const firebaseConfig = {
       apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
       authDomain: "kinyo-price.firebaseapp.com",
@@ -178,23 +155,21 @@
     import {
       getFirestore,
       collection,
-      query,
-      where,
       getDocs
     } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    const modelInput = document.getElementById("modelInput");
-    const searchBtn = document.getElementById("searchBtn");
-
-    const resultCard = document.getElementById("result");
-    const noResultCard = document.getElementById("noResult");
-    const loadingCard = document.getElementById("loading");
+    // DOM 元件
+    const input = document.getElementById("modelInput");
+    const btn = document.getElementById("searchBtn");
+    const loading = document.getElementById("loading");
+    const noResult = document.getElementById("noResult");
     const listCard = document.getElementById("list");
-    const listCount = document.getElementById("list-count");
     const listBody = document.getElementById("list-body");
+    const listCount = document.getElementById("list-count");
+    const resultCard = document.getElementById("result");
 
     const rName = document.getElementById("r-name");
     const rName2 = document.getElementById("r-name2");
@@ -211,88 +186,85 @@
     const rNcc = document.getElementById("r-ncc");
     const rUrl = document.getElementById("r-url");
 
-    function showLoading(show) {
-      loadingCard.style.display = show ? "block" : "none";
-      searchBtn.disabled = show;
-    }
+    function showDetail(d) {
+      if (!d) return;
 
-    function showDetail(data) {
-      if (!data) {
-        resultCard.style.display = "none";
-        return;
-      }
+      rName.textContent = d.name ?? "";
+      rName2.textContent = d.name ?? "";
+      rModel.textContent = d.model ?? "";
+      rBarcode.textContent = d.barcode ?? "";
+      rCartonQty.textContent = d.cartonQty ?? "";
 
-      rName.textContent = data.name ?? "";
-      rName2.textContent = data.name ?? "";
-      rModel.textContent = data.model ?? "";
-      rBarcode.textContent = data.barcode ?? "";
-      rCartonQty.textContent = data.cartonQty ?? "";
+      rGroupPriceLive.textContent = d.groupPriceLive ?? "";
+      rMinPrice.textContent = d.minPrice ?? "";
+      rMarketPrice.textContent = d.marketPrice ?? "";
 
-      rGroupPriceLive.textContent = data.groupPriceLive ?? "";
-      rMinPrice.textContent = data.minPrice ?? "";
-      rMarketPrice.textContent = data.marketPrice ?? "";
+      rQuote100.textContent = d.quote100 ?? "";
+      rQuote300.textContent = d.quote300 ?? "";
+      rQuote500.textContent = d.quote500 ?? "";
 
-      rQuote100.textContent = data.quote100 ?? "";
-      rQuote300.textContent = data.quote300 ?? "";
-      rQuote500.textContent = data.quote500 ?? "";
+      rBsmi.textContent = d.bsmi ?? "";
+      rNcc.textContent = d.ncc ?? "";
 
-      rBsmi.textContent = data.bsmi ?? "";
-      rNcc.textContent = data.ncc ?? "";
-
-      if (data.productUrl) {
-        rUrl.href = data.productUrl;
-        rUrl.style.pointerEvents = "auto";
-        rUrl.style.opacity = "1";
+      if (d.productUrl) {
+        rUrl.href = d.productUrl;
+        rUrl.textContent = "前往";
       } else {
         rUrl.href = "#";
-        rUrl.style.pointerEvents = "none";
-        rUrl.style.opacity = "0.5";
+        rUrl.textContent = "";
       }
 
       resultCard.style.display = "block";
     }
 
     async function search() {
-      let model = modelInput.value.trim();
-      if (!model) return;
+      const keyword = input.value.trim();
+      if (!keyword) return;
 
-      model = model.toUpperCase();
+      const kwUpper = keyword.toUpperCase();
+      const kwLower = keyword.toLowerCase();
 
+      loading.style.display = "block";
+      noResult.style.display = "none";
       resultCard.style.display = "none";
-      noResultCard.style.display = "none";
       listCard.style.display = "none";
       listBody.innerHTML = "";
-      showLoading(true);
 
       try {
-        // 一律用前綴模糊搜尋 searchKey
-        const q = query(
-          collection(db, "Products"),
-          where("searchKey", ">=", model),
-          where("searchKey", "<=", model + "\uf8ff")
-        );
+        const snap = await getDocs(collection(db, "Products"));
+        const results = [];
 
-        const qsnap = await getDocs(q);
+        snap.forEach((docSnap) => {
+          const d = docSnap.data();
 
-        if (qsnap.empty) {
-          noResultCard.style.display = "block";
+          const model = (d.model || "").toUpperCase();
+          const name = (d.name || "").toLowerCase();
+
+          // 型號包含 OR 名稱包含
+          if (model.includes(kwUpper) || name.includes(kwLower)) {
+            results.push(d);
+          }
+        });
+
+        if (results.length === 0) {
+          noResult.style.display = "block";
           return;
         }
 
-        const results = [];
-        qsnap.forEach((docSnap) => {
-          results.push(docSnap.data());
-        });
+        // 排序
+        results.sort((a, b) =>
+          (a.model || "").localeCompare(b.model || "", "en")
+        );
 
-        // 如果只有一筆，直接顯示詳細
+        // 一筆 → 直接顯示
         if (results.length === 1) {
-          listCard.style.display = "none";
           showDetail(results[0]);
           return;
         }
 
-        // 多筆 → 列出列表，並預設顯示第一筆詳細
+        // 多筆 → 顯示清單
         listCount.textContent = results.length;
+
         results.forEach((item) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
@@ -302,24 +274,19 @@
             <td>${item.minPrice ?? ""}</td>
             <td>${item.marketPrice ?? ""}</td>
           `;
-          tr.addEventListener("click", () => {
-            showDetail(item);
-          });
+          tr.addEventListener("click", () => showDetail(item));
           listBody.appendChild(tr);
         });
 
         listCard.style.display = "block";
-        showDetail(results[0]);
-      } catch (err) {
-        console.error(err);
-        noResultCard.style.display = "block";
+        showDetail(results[0]); // 預設第一筆
       } finally {
-        showLoading(false);
+        loading.style.display = "none";
       }
     }
 
-    searchBtn.addEventListener("click", search);
-    modelInput.addEventListener("keydown", (e) => {
+    btn.addEventListener("click", search);
+    input.addEventListener("keydown", (e) => {
       if (e.key === "Enter") search();
     });
   </script>
