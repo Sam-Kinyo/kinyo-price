@@ -43,10 +43,7 @@
       width: 100%;
       box-sizing: border-box;
     }
-    label {
-      font-size: 14px;
-    }
-    .checkbox-group label {
+    .radio-group label {
       display: flex;
       align-items: center;
       gap: 6px;
@@ -99,49 +96,43 @@
       display: inline-block;
       width: 160px;
     }
-    .hint {
-      font-size: 12px;
-      color: #888;
-      margin-top: 6px;
-    }
     a {
       color: #2563eb;
     }
   </style>
 </head>
 <body>
-  <h1>KINYO 商品查價系統</h1>
-  <div class="subtitle">
-    支援：型號 / 名稱 模糊搜尋 + 起定量複選 + 預算區間搜尋
-  </div>
 
-  <!-- 搜尋區 -->
+  <h1>KINYO 商品查價系統</h1>
+  <div class="subtitle">支援：型號/名稱、起定量單選、預算區間篩選</div>
+
+  <!-- 搜尋條件區 -->
   <div class="search-box">
 
-    <div class="section-title">關鍵字搜尋（型號 / 名稱）</div>
-    <input id="keywordInput" type="text" placeholder="例如：5712、風扇、無線、AWP" />
+    <div class="section-title">關鍵字搜尋（可留空）</div>
+    <input id="keywordInput" type="text" placeholder="型號、名稱，例如：5712、風扇、無線…">
 
-    <div class="section-title">價格篩選（可複選）</div>
-    <div class="checkbox-group">
-      <label><input type="checkbox" id="chk100" value="100">起定量 100</label>
-      <label><input type="checkbox" id="chk300" value="300">起定量 300</label>
-      <label><input type="checkbox" id="chk500" value="500">起定量 500</label>
+    <div class="section-title">起定量（必選一項）</div>
+    <div class="radio-group">
+      <label><input type="radio" name="qty" value="100">起定量 100</label>
+      <label><input type="radio" name="qty" value="300">起定量 300</label>
+      <label><input type="radio" name="qty" value="500">起定量 500</label>
     </div>
 
-    <div class="section-title">預算區間（元）</div>
-    <label>最低價格：</label>
-    <input id="minPrice" type="number" placeholder="例如：300" />
-
-    <label style="margin-top:8px;">最高價格：</label>
-    <input id="maxPrice" type="number" placeholder="例如：400" />
+    <div class="section-title">預算範圍（必填，最低+最高）</div>
+    <input id="minPrice" type="number" placeholder="最低價格，例如：200">
+    <input id="maxPrice" style="margin-top:8px;" type="number" placeholder="最高價格，例如：400">
 
     <button id="searchBtn">搜尋</button>
   </div>
 
+  <!-- 載入 -->
   <div id="loading" class="card" style="display:none;">查詢中，請稍候…</div>
+
+  <!-- 查無 -->
   <div id="noResult" class="card" style="display:none;">查無符合的商品。</div>
 
-  <!-- 多筆結果 -->
+  <!-- 多筆列表 -->
   <div id="list" class="card" style="display:none;">
     <div>找到 <span id="list-count"></span> 筆商品：</div>
     <table>
@@ -156,7 +147,6 @@
       </thead>
       <tbody id="list-body"></tbody>
     </table>
-    <div class="hint">點選任一列可查看完整詳細資料。</div>
   </div>
 
   <!-- 詳細 -->
@@ -186,7 +176,7 @@
   </div>
 
   <script type="module">
-    /* --- Firebase 設定 --- */
+    /* Firebase */
     const firebaseConfig = {
       apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
       authDomain: "kinyo-price.firebaseapp.com",
@@ -198,20 +188,13 @@
     };
 
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-    import {
-      getFirestore,
-      collection,
-      getDocs
-    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    /* DOM 元件 */
+    /* DOM */
     const keywordInput = document.getElementById("keywordInput");
-    const chk100 = document.getElementById("chk100");
-    const chk300 = document.getElementById("chk300");
-    const chk500 = document.getElementById("chk500");
     const minPriceInput = document.getElementById("minPrice");
     const maxPriceInput = document.getElementById("maxPrice");
     const searchBtn = document.getElementById("searchBtn");
@@ -238,7 +221,6 @@
     const rNcc = document.getElementById("r-ncc");
     const rUrl = document.getElementById("r-url");
 
-    /* 顯示詳細資料 */
     function showDetail(d) {
       rName.textContent = d.name ?? "";
       rName2.textContent = d.name ?? "";
@@ -257,18 +239,11 @@
       rBsmi.textContent = d.bsmi ?? "";
       rNcc.textContent = d.ncc ?? "";
 
-      if (d.productUrl) {
-        rUrl.href = d.productUrl;
-        rUrl.textContent = "前往";
-      } else {
-        rUrl.href = "#";
-        rUrl.textContent = "";
-      }
-
+      rUrl.href = d.productUrl || "#";
+      rUrl.textContent = d.productUrl ? "前往" : "";
       resultCard.style.display = "block";
     }
 
-    /* 搜尋功能 */
     async function search() {
       const keyword = keywordInput.value.trim();
       const kwUpper = keyword.toUpperCase();
@@ -277,40 +252,28 @@
       const min = minPriceInput.value ? Number(minPriceInput.value) : null;
       const max = maxPriceInput.value ? Number(maxPriceInput.value) : null;
 
-      const choose100 = chk100.checked;
-      const choose300 = chk300.checked;
-      const choose500 = chk500.checked;
-
-      /* === ★ 事前檢查（符合你的 Q1/Q2 選項）★ === */
-
-      // 條件 1：是否至少一種搜尋條件？
-      const hasKeyword = keyword.length > 0;
-      const hasQty = choose100 || choose300 || choose500;
-      const hasFullBudget = (min !== null && max !== null);
-
-      if (!hasKeyword && !hasQty && !hasFullBudget) {
-        alert("請至少輸入關鍵字或設定價格篩選條件。");
+      /* 讀 radio */
+      const qty = document.querySelector('input[name="qty"]:checked');
+      if (!qty) {
+        alert("請選擇起定量。");
         return;
       }
+      const qtyVal = Number(qty.value);
 
-      // 條件 2：價格必須成對輸入（你的 Q2=C）
-      if ((min !== null && max === null) || (min === null && max !== null)) {
-        alert("請輸入完整的預算區間（最低與最高）。");
+      /* 預算必須完整 */
+      if (min === null || max === null) {
+        alert("請輸入完整的預算區間（最低 + 最高）。");
         return;
       }
-
-      // 條件 3：最高不可小於最低
-      if (min !== null && max !== null && max < min) {
+      if (max < min) {
         alert("最高價格必須大於或等於最低價格。");
         return;
       }
 
-      /* === ★ 開始搜尋 ★ === */
-
       loading.style.display = "block";
       noResult.style.display = "none";
-      resultCard.style.display = "none";
       listCard.style.display = "none";
+      resultCard.style.display = "none";
       listBody.innerHTML = "";
 
       try {
@@ -320,34 +283,25 @@
         snap.forEach(docSnap => {
           const d = docSnap.data();
 
-          /* --- 關鍵字（可空）--- */
+          /* 關鍵字（可空） */
           let matchKeyword = true;
-          if (hasKeyword) {
+          if (keyword) {
             const model = (d.model || "").toUpperCase();
             const name = (d.name || "").toLowerCase();
             matchKeyword = model.includes(kwUpper) || name.includes(kwLower);
           }
-
           if (!matchKeyword) return;
 
-          /* --- 價格篩選（OR）--- */
-          let matchPrice = true;
+          /* 選定欄位 */
+          let priceField = qtyVal === 100 ? "quote100"
+                         : qtyVal === 300 ? "quote300"
+                         : "quote500";
+          let price = d[priceField];
 
-          if (hasQty && hasFullBudget) {
-            matchPrice = false;
+          if (typeof price !== "number") return;
 
-            if (choose100 && typeof d.quote100 === "number") {
-              if (d.quote100 >= min && d.quote100 <= max) matchPrice = true;
-            }
-            if (choose300 && typeof d.quote300 === "number") {
-              if (d.quote300 >= min && d.quote300 <= max) matchPrice = true;
-            }
-            if (choose500 && typeof d.quote500 === "number") {
-              if (d.quote500 >= min && d.quote500 <= max) matchPrice = true;
-            }
-          }
-
-          if (!matchPrice) return;
+          /* 預算比對 */
+          if (price < min || price > max) return;
 
           results.push(d);
         });
@@ -357,26 +311,23 @@
           return;
         }
 
-        results.sort((a, b) =>
-          (a.model || "").localeCompare(b.model || "", "en")
-        );
+        results.sort((a, b) => (a.model || "").localeCompare(b.model || "", "en"));
 
         if (results.length === 1) {
           showDetail(results[0]);
           return;
         }
 
-        /* 多筆清單 */
         listCount.textContent = results.length;
 
         results.forEach(item => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td>${item.model ?? ""}</td>
-            <td>${item.name ?? ""}</td>
-            <td>${item.groupPriceLive ?? ""}</td>
-            <td>${item.minPrice ?? ""}</td>
-            <td>${item.marketPrice ?? ""}</td>
+            <td>${item.model}</td>
+            <td>${item.name}</td>
+            <td>${item.groupPriceLive}</td>
+            <td>${item.minPrice}</td>
+            <td>${item.marketPrice}</td>
           `;
           tr.addEventListener("click", () => showDetail(item));
           listBody.appendChild(tr);
@@ -385,9 +336,6 @@
         listCard.style.display = "block";
         showDetail(results[0]);
 
-      } catch (err) {
-        console.error(err);
-        noResult.style.display = "block";
       } finally {
         loading.style.display = "none";
       }
@@ -398,5 +346,6 @@
       if (e.key === "Enter") search();
     });
   </script>
+
 </body>
 </html>
