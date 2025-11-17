@@ -338,13 +338,21 @@
 
         results.forEach(item => {
           const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${item.model}</td>
-            <td>${item.name}</td>
-            <td>${item.groupPriceLive ? item.groupPriceLive + " 元" : ""}</td>
-            <td>${item.minPrice ? item.minPrice + " 元" : ""}</td>
-            <td>${item.marketPrice ? item.marketPrice + " 元" : ""}</td>
-          `;
+         tr.innerHTML = `
+  <td>${item.model}</td>
+  <td>
+    ${item.name}
+    <br>
+    <span style="color:#444; font-size:13px;">
+      ${item.quote100 ? `100：${item.quote100} 元` : ""}
+      ${item.minPrice ? `｜末：${item.minPrice} 元` : ""}
+      ${item.marketPrice ? `｜賣：${item.marketPrice} 元` : ""}
+    </span>
+  </td>
+  <td></td>
+  <td></td>
+  <td></td>
+`;
           tr.addEventListener("click", () => showDetail(item));
           listBody.appendChild(tr);
         });
