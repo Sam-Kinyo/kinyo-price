@@ -24,7 +24,7 @@
       margin-bottom: 20px;
     }
 
-    .search-row { margin-bottom: 10px; }
+    .search-row { margin-bottom: 12px; }
     label { font-weight: 600; }
     input, select {
       padding: 8px 12px;
@@ -42,6 +42,7 @@
       color: white;
       font-weight: 600;
       cursor: pointer;
+      width: 100%;
     }
 
     table {
@@ -79,7 +80,7 @@
 <body>
 
 <h1>KINYO 查價系統</h1>
-<div class="subtitle">輸入商品型號或名稱，或設定採購量與預算區間查詢。</div>
+<div class="subtitle">輸入商品型號或名稱，或使用起訂量與預算區間查詢。</div>
 
 <div class="search-box">
 
@@ -150,9 +151,8 @@
     const minP = document.getElementById("minPrice").value;
     const maxP = document.getElementById("maxPrice").value;
 
-    // 檢查：如果有選起訂量 → 必須完整價格區間
     if (qty && (!minP || !maxP)) {
-      alert("使用起訂量搜尋時，請輸入完整的價格範圍。");
+      alert("使用起訂量搜尋時，請輸入完整價格範圍。");
       return;
     }
 
@@ -163,10 +163,9 @@
 
     const snap = await getDocs(collection(db, "Products"));
     let list = [];
-
     snap.forEach(doc => list.push(doc.data()));
 
-    // 關鍵字搜尋（型號 or 名稱）
+    // 模糊搜尋 model + name
     if (kw) {
       list = list.filter(item =>
         (item.model && item.model.toLowerCase().includes(kw)) ||
@@ -174,7 +173,7 @@
       );
     }
 
-    // 起訂量價格搜尋
+    // 起訂量 + 預算區間搜尋
     if (qty && minP && maxP) {
       const field = qty === "100" ? "quote100" :
                     qty === "300" ? "quote300" : "quote500";
@@ -188,7 +187,7 @@
   }
 
 
-  // ======= 渲染搜尋結果 =======
+  // ======= 顯示搜尋結果 =======
   function renderResults(list) {
     const table = document.getElementById("resultTable");
     const body = document.getElementById("resultBody");
@@ -214,21 +213,21 @@
           <div style="font-size:13px; line-height:1.6;">
 
             <span class="price-tag" style="background:#dbeafe;">
-              100：
+              100個：
               <span style="color:#2563eb; font-weight:600;">
                 ${item.quote100 ? item.quote100 + " 元" : "-"}
               </span>
             </span>
 
             <span class="price-tag" style="background:#dcfce7;">
-              300：
+              300個：
               <span style="color:#16a34a; font-weight:600;">
                 ${item.quote300 ? item.quote300 + " 元" : "-"}
               </span>
             </span>
 
             <span class="price-tag" style="background:#ffedd5;">
-              500：
+              500個：
               <span style="color:#ea580c; font-weight:600;">
                 ${item.quote500 ? item.quote500 + " 元" : "-"}
               </span>
@@ -253,7 +252,7 @@
   }
 
 
-  // ======= 詳細資料卡 =======
+  // ======= 詳細資料 =======
   function showDetail(item) {
     const card = document.getElementById("detailCard");
     card.style.display = "block";
@@ -263,11 +262,14 @@
       <p>型號：${item.model}</p>
       <p>國際條碼：${item.barcode}</p>
       <p>箱入數：${item.cartonQty}</p>
+
+      <p>100個：${item.quote100} 元</p>
+      <p>300個：${item.quote300} 元</p>
+      <p>500個：${item.quote500} 元</p>
+
       <p>末售價格：${item.minPrice} 元</p>
       <p>賣場售價：${item.marketPrice} 元</p>
-      <p>100 個：${item.quote100} 元</p>
-      <p>300 個：${item.quote300} 元</p>
-      <p>500 個：${item.quote500} 元</p>
+
       <p><a href="${item.productUrl}" target="_blank">官方商品頁</a></p>
     `;
   }
