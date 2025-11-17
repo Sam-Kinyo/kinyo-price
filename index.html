@@ -22,41 +22,53 @@
       color: #666;
       margin-bottom: 20px;
     }
+    .section-title {
+      font-weight: 700;
+      margin-top: 20px;
+      margin-bottom: 10px;
+      font-size: 16px;
+    }
     .search-box {
       background: #fff;
       padding: 16px;
       border-radius: 10px;
       box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
+      margin-bottom: 20px;
+    }
+    input[type="text"], input[type="number"] {
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 100%;
+      box-sizing: border-box;
     }
     label {
-      font-weight: 600;
+      font-size: 14px;
     }
-    input {
-      flex: 1;
-      padding: 8px 12px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
+    .checkbox-group label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 4px 0;
       font-size: 14px;
     }
     button {
-      padding: 8px 18px;
+      padding: 10px 20px;
       border-radius: 999px;
       border: none;
       background: #111827;
       color: white;
       font-weight: 600;
       cursor: pointer;
+      margin-top: 10px;
     }
     .card {
-      margin-top: 20px;
       background: #fff;
       padding: 18px;
       border-radius: 10px;
       box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      margin-top: 20px;
     }
     table {
       width: 100%;
@@ -78,32 +90,64 @@
       background: #f9fafb;
       cursor: pointer;
     }
-    .row { margin-bottom: 8px; font-size: 15px; }
-    .label { font-weight: 600; display: inline-block; width: 160px; }
-    a { color: #2563eb; }
-    .hint { font-size: 12px; color: #888; margin-top: 6px; }
+    .row {
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+    .label {
+      font-weight: 600;
+      display: inline-block;
+      width: 160px;
+    }
+    .hint {
+      font-size: 12px;
+      color: #888;
+      margin-top: 6px;
+    }
+    a {
+      color: #2563eb;
+    }
   </style>
 </head>
 <body>
   <h1>KINYO 商品查價系統</h1>
   <div class="subtitle">
-    可搜尋：<b>商品型號 / 商品名稱</b>（模糊搜尋，支援片段字符）
+    支援 <b>型號 / 名稱模糊搜尋</b> + <b>起定量複選</b> + <b>預算區間搜尋</b><br>
+    適合直播、團購、採購使用
   </div>
 
+  <!-- 搜尋區 -->
   <div class="search-box">
-    <label for="modelInput">搜尋：</label>
-    <input id="modelInput" placeholder="輸入型號或商品名稱，例如：5712、風扇、無線" />
-    <button id="searchBtn">查詢</button>
+
+    <div class="section-title">關鍵字搜尋（型號 / 名稱）</div>
+    <input id="keywordInput" type="text" placeholder="例如：5712、風扇、無線、AWP" />
+
+    <div class="section-title">價格篩選（可複選）</div>
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="chk100" value="100">起定量 100</label>
+      <label><input type="checkbox" id="chk300" value="300">起定量 300</label>
+      <label><input type="checkbox" id="chk500" value="500">起定量 500</label>
+    </div>
+
+    <div class="section-title">預算區間（元）</div>
+    <label>最低價格：</label>
+    <input id="minPrice" type="number" placeholder="例如：300" />
+
+    <label style="margin-top:8px;">最高價格：</label>
+    <input id="maxPrice" type="number" placeholder="例如：400" />
+
+    <button id="searchBtn">搜尋</button>
   </div>
 
+  <!-- 載入中 -->
   <div id="loading" class="card" style="display:none;">查詢中，請稍候…</div>
+
+  <!-- 無結果 -->
   <div id="noResult" class="card" style="display:none;">查無符合的商品。</div>
 
-  <!-- 多筆結果列表 -->
+  <!-- 多筆結果 -->
   <div id="list" class="card" style="display:none;">
-    <div>
-      找到 <span id="list-count"></span> 筆商品：
-    </div>
+    <div>找到 <span id="list-count"></span> 筆商品：</div>
     <table>
       <thead>
         <tr>
@@ -116,24 +160,29 @@
       </thead>
       <tbody id="list-body"></tbody>
     </table>
-    <div class="hint">點選任一列可查看完整資料。</div>
+    <div class="hint">點選任一列可查看完整詳細資料。</div>
   </div>
 
-  <!-- 詳細資料 -->
+  <!-- 詳細內容 -->
   <div id="result" class="card" style="display:none;">
     <h2 id="r-name"></h2>
+
     <div class="row"><span class="label">商品型號：</span><span id="r-model"></span></div>
     <div class="row"><span class="label">商品名稱：</span><span id="r-name2"></span></div>
     <div class="row"><span class="label">國際條碼：</span><span id="r-barcode"></span></div>
     <div class="row"><span class="label">箱入數：</span><span id="r-cartonQty"></span></div>
+
     <div class="row"><span class="label">直播售價：</span><span id="r-groupPriceLive"></span></div>
     <div class="row"><span class="label">末售價格：</span><span id="r-minPrice"></span></div>
     <div class="row"><span class="label">賣場價格：</span><span id="r-marketPrice"></span></div>
-    <div class="row"><span class="label">採購100：</span><span id="r-quote100"></span></div>
-    <div class="row"><span class="label">採購300：</span><span id="r-quote300"></span></div>
-    <div class="row"><span class="label">採購500：</span><span id="r-quote500"></span></div>
+
+    <div class="row"><span class="label">採購 100：</span><span id="r-quote100"></span></div>
+    <div class="row"><span class="label">採購 300：</span><span id="r-quote300"></span></div>
+    <div class="row"><span class="label">採購 500：</span><span id="r-quote500"></span></div>
+
     <div class="row"><span class="label">BSMI：</span><span id="r-bsmi"></span></div>
     <div class="row"><span class="label">NCC：</span><span id="r-ncc"></span></div>
+
     <div class="row">
       <span class="label">官方頁面：</span>
       <a id="r-url" target="_blank">前往</a>
@@ -141,6 +190,7 @@
   </div>
 
   <script type="module">
+    /* --- Firebase 設定 --- */
     const firebaseConfig = {
       apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
       authDomain: "kinyo-price.firebaseapp.com",
@@ -161,9 +211,15 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // DOM 元件
-    const input = document.getElementById("modelInput");
-    const btn = document.getElementById("searchBtn");
+    /* --- DOM 元件 --- */
+    const keywordInput = document.getElementById("keywordInput");
+    const chk100 = document.getElementById("chk100");
+    const chk300 = document.getElementById("chk300");
+    const chk500 = document.getElementById("chk500");
+    const minPriceInput = document.getElementById("minPrice");
+    const maxPriceInput = document.getElementById("maxPrice");
+    const searchBtn = document.getElementById("searchBtn");
+
     const loading = document.getElementById("loading");
     const noResult = document.getElementById("noResult");
     const listCard = document.getElementById("list");
@@ -186,9 +242,8 @@
     const rNcc = document.getElementById("r-ncc");
     const rUrl = document.getElementById("r-url");
 
+    /* --- 顯示詳細資料 --- */
     function showDetail(d) {
-      if (!d) return;
-
       rName.textContent = d.name ?? "";
       rName2.textContent = d.name ?? "";
       rModel.textContent = d.model ?? "";
@@ -217,12 +272,18 @@
       resultCard.style.display = "block";
     }
 
+    /* --- 搜尋功能核心 --- */
     async function search() {
-      const keyword = input.value.trim();
-      if (!keyword) return;
-
+      const keyword = keywordInput.value.trim();
       const kwUpper = keyword.toUpperCase();
       const kwLower = keyword.toLowerCase();
+
+      const min = minPriceInput.value ? Number(minPriceInput.value) : null;
+      const max = maxPriceInput.value ? Number(maxPriceInput.value) : null;
+
+      const check100 = chk100.checked;
+      const check300 = chk300.checked;
+      const check500 = chk500.checked;
 
       loading.style.display = "block";
       noResult.style.display = "none";
@@ -234,16 +295,48 @@
         const snap = await getDocs(collection(db, "Products"));
         const results = [];
 
-        snap.forEach((docSnap) => {
+        snap.forEach(docSnap => {
           const d = docSnap.data();
 
-          const model = (d.model || "").toUpperCase();
-          const name = (d.name || "").toLowerCase();
+          /* --- 文字模糊搜尋：型號 或 名稱 --- */
+          let matchKeyword = true;
 
-          // 型號包含 OR 名稱包含
-          if (model.includes(kwUpper) || name.includes(kwLower)) {
-            results.push(d);
+          if (keyword) {
+            const model = (d.model || "").toUpperCase();
+            const name = (d.name || "").toLowerCase();
+            matchKeyword = model.includes(kwUpper) || name.includes(kwLower);
           }
+
+          if (!matchKeyword) return;
+
+          /* --- 價格篩選（OR） --- */
+          let matchPrice = true;
+
+          const selectedFields = [];
+          if (check100) selectedFields.push("quote100");
+          if (check300) selectedFields.push("quote300");
+          if (check500) selectedFields.push("quote500");
+
+          // 若有勾選條件
+          if (selectedFields.length > 0) {
+            matchPrice = false;
+
+            for (const field of selectedFields) {
+              const price = d[field];
+
+              if (typeof price === "number") {
+                if ((min === null || price >= min) &&
+                    (max === null || price <= max)) {
+                  matchPrice = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (!matchPrice) return;
+
+          results.push(d);
         });
 
         if (results.length === 0) {
@@ -251,21 +344,19 @@
           return;
         }
 
-        // 排序
         results.sort((a, b) =>
           (a.model || "").localeCompare(b.model || "", "en")
         );
 
-        // 一筆 → 直接顯示
         if (results.length === 1) {
           showDetail(results[0]);
           return;
         }
 
-        // 多筆 → 顯示清單
+        /* --- 多筆結果顯示 --- */
         listCount.textContent = results.length;
 
-        results.forEach((item) => {
+        results.forEach(item => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${item.model ?? ""}</td>
@@ -279,14 +370,19 @@
         });
 
         listCard.style.display = "block";
-        showDetail(results[0]); // 預設第一筆
+        showDetail(results[0]);
+
+      } catch (err) {
+        console.error(err);
+        noResult.style.display = "block";
       } finally {
         loading.style.display = "none";
       }
     }
 
-    btn.addEventListener("click", search);
-    input.addEventListener("keydown", (e) => {
+    searchBtn.addEventListener("click", search);
+
+    keywordInput.addEventListener("keydown", e => {
       if (e.key === "Enter") search();
     });
   </script>
