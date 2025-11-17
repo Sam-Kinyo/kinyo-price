@@ -112,8 +112,7 @@
 <body>
   <h1>KINYO 商品查價系統</h1>
   <div class="subtitle">
-    支援 <b>型號 / 名稱模糊搜尋</b> + <b>起定量複選</b> + <b>預算區間搜尋</b><br>
-    適合直播、團購、採購使用
+    支援：型號 / 名稱 模糊搜尋 + 起定量複選 + 預算區間搜尋
   </div>
 
   <!-- 搜尋區 -->
@@ -139,10 +138,7 @@
     <button id="searchBtn">搜尋</button>
   </div>
 
-  <!-- 載入中 -->
   <div id="loading" class="card" style="display:none;">查詢中，請稍候…</div>
-
-  <!-- 無結果 -->
   <div id="noResult" class="card" style="display:none;">查無符合的商品。</div>
 
   <!-- 多筆結果 -->
@@ -163,7 +159,7 @@
     <div class="hint">點選任一列可查看完整詳細資料。</div>
   </div>
 
-  <!-- 詳細內容 -->
+  <!-- 詳細 -->
   <div id="result" class="card" style="display:none;">
     <h2 id="r-name"></h2>
 
@@ -211,7 +207,7 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    /* --- DOM 元件 --- */
+    /* DOM 元件 */
     const keywordInput = document.getElementById("keywordInput");
     const chk100 = document.getElementById("chk100");
     const chk300 = document.getElementById("chk300");
@@ -242,7 +238,7 @@
     const rNcc = document.getElementById("r-ncc");
     const rUrl = document.getElementById("r-url");
 
-    /* --- 顯示詳細資料 --- */
+    /* 顯示詳細資料 */
     function showDetail(d) {
       rName.textContent = d.name ?? "";
       rName2.textContent = d.name ?? "";
@@ -272,7 +268,7 @@
       resultCard.style.display = "block";
     }
 
-    /* --- 搜尋功能核心 --- */
+    /* 搜尋功能 */
     async function search() {
       const keyword = keywordInput.value.trim();
       const kwUpper = keyword.toUpperCase();
@@ -281,9 +277,35 @@
       const min = minPriceInput.value ? Number(minPriceInput.value) : null;
       const max = maxPriceInput.value ? Number(maxPriceInput.value) : null;
 
-      const check100 = chk100.checked;
-      const check300 = chk300.checked;
-      const check500 = chk500.checked;
+      const choose100 = chk100.checked;
+      const choose300 = chk300.checked;
+      const choose500 = chk500.checked;
+
+      /* === ★ 事前檢查（符合你的 Q1/Q2 選項）★ === */
+
+      // 條件 1：是否至少一種搜尋條件？
+      const hasKeyword = keyword.length > 0;
+      const hasQty = choose100 || choose300 || choose500;
+      const hasFullBudget = (min !== null && max !== null);
+
+      if (!hasKeyword && !hasQty && !hasFullBudget) {
+        alert("請至少輸入關鍵字或設定價格篩選條件。");
+        return;
+      }
+
+      // 條件 2：價格必須成對輸入（你的 Q2=C）
+      if ((min !== null && max === null) || (min === null && max !== null)) {
+        alert("請輸入完整的預算區間（最低與最高）。");
+        return;
+      }
+
+      // 條件 3：最高不可小於最低
+      if (min !== null && max !== null && max < min) {
+        alert("最高價格必須大於或等於最低價格。");
+        return;
+      }
+
+      /* === ★ 開始搜尋 ★ === */
 
       loading.style.display = "block";
       noResult.style.display = "none";
@@ -298,10 +320,9 @@
         snap.forEach(docSnap => {
           const d = docSnap.data();
 
-          /* --- 文字模糊搜尋：型號 或 名稱 --- */
+          /* --- 關鍵字（可空）--- */
           let matchKeyword = true;
-
-          if (keyword) {
+          if (hasKeyword) {
             const model = (d.model || "").toUpperCase();
             const name = (d.name || "").toLowerCase();
             matchKeyword = model.includes(kwUpper) || name.includes(kwLower);
@@ -309,28 +330,20 @@
 
           if (!matchKeyword) return;
 
-          /* --- 價格篩選（OR） --- */
+          /* --- 價格篩選（OR）--- */
           let matchPrice = true;
 
-          const selectedFields = [];
-          if (check100) selectedFields.push("quote100");
-          if (check300) selectedFields.push("quote300");
-          if (check500) selectedFields.push("quote500");
-
-          // 若有勾選條件
-          if (selectedFields.length > 0) {
+          if (hasQty && hasFullBudget) {
             matchPrice = false;
 
-            for (const field of selectedFields) {
-              const price = d[field];
-
-              if (typeof price === "number") {
-                if ((min === null || price >= min) &&
-                    (max === null || price <= max)) {
-                  matchPrice = true;
-                  break;
-                }
-              }
+            if (choose100 && typeof d.quote100 === "number") {
+              if (d.quote100 >= min && d.quote100 <= max) matchPrice = true;
+            }
+            if (choose300 && typeof d.quote300 === "number") {
+              if (d.quote300 >= min && d.quote300 <= max) matchPrice = true;
+            }
+            if (choose500 && typeof d.quote500 === "number") {
+              if (d.quote500 >= min && d.quote500 <= max) matchPrice = true;
             }
           }
 
@@ -353,7 +366,7 @@
           return;
         }
 
-        /* --- 多筆結果顯示 --- */
+        /* 多筆清單 */
         listCount.textContent = results.length;
 
         results.forEach(item => {
@@ -381,7 +394,6 @@
     }
 
     searchBtn.addEventListener("click", search);
-
     keywordInput.addEventListener("keydown", e => {
       if (e.key === "Enter") search();
     });
