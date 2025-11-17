@@ -21,7 +21,7 @@
       padding: 16px;
       border-radius: 12px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      margin-bottom: 20px;
+      margin-bottom: 12px;
     }
 
     .search-row { margin-bottom: 12px; }
@@ -34,7 +34,7 @@
       box-sizing: border-box;
     }
 
-    button {
+    .btn-primary {
       padding: 10px 20px;
       border-radius: 999px;
       border: none;
@@ -44,18 +44,50 @@
       cursor: pointer;
       width: 100%;
     }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #111827;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-secondary:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 4px;
       background: white;
       border-radius: 10px;
       overflow: hidden;
     }
     th, td {
-      padding: 12px;
+      padding: 10px 8px;
       border-bottom: 1px solid #eee;
+      font-size: 14px;
+      vertical-align: top;
+    }
+    th {
+      background: #f9fafb;
+      text-align: left;
     }
     tr:hover { background: #f1f5f9; cursor: pointer; }
 
@@ -74,13 +106,18 @@
       border-radius:12px;
       box-shadow:0 2px 6px rgba(0,0,0,0.08);
       margin-top:20px;
+      font-size:14px;
+    }
+
+    @media (max-width: 640px) {
+      th, td { font-size: 13px; }
     }
   </style>
 </head>
 <body>
 
 <h1>KINYO 查價系統</h1>
-<div class="subtitle">輸入商品型號或名稱，或使用起訂量與預算區間查詢。</div>
+<div class="subtitle">輸入商品型號或名稱，或使用起訂量與預算區間查詢。可勾選多筆匯出 Excel 報價單。</div>
 
 <div class="search-box">
 
@@ -107,17 +144,23 @@
     </div>
   </div>
 
-  <button id="searchBtn">查詢</button>
+  <button id="searchBtn" class="btn-primary">查詢</button>
 </div>
 
+<div class="toolbar">
+  <button id="exportBtn" class="btn-secondary" disabled>匯出勾選 Excel</button>
+</div>
 
 <table id="resultTable" style="display:none;">
   <thead>
     <tr>
-      <th style="width:100px;">型號</th>
+      <th style="width:32px;">
+        <input type="checkbox" id="checkAll" />
+      </th>
+      <th style="width:90px;">型號</th>
       <th>商品資訊</th>
-      <th>末售</th>
-      <th>賣場</th>
+      <th style="width:80px;">末售</th>
+      <th style="width:80px;">賣場</th>
     </tr>
   </thead>
   <tbody id="resultBody"></tbody>
@@ -125,9 +168,12 @@
 
 <div id="detailCard"></div>
 
+<!-- SheetJS：用來在前端產生 Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-<!-- Firebase -->
+<!-- Firebase + 搜尋主程式 -->
 <script type="module">
+  // ===== Firebase 設定 =====
   const firebaseConfig = {
     apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
     authDomain: "kinyo-price.firebaseapp.com",
@@ -143,13 +189,25 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  let currentResultList = [];
 
-  // ======= 搜尋功能 =======
+  const keywordInput = document.getElementById("keyword");
+  const qtySelect = document.getElementById("qtySelect");
+  const minPriceInput = document.getElementById("minPrice");
+  const maxPriceInput = document.getElementById("maxPrice");
+  const searchBtn = document.getElementById("searchBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  const resultTable = document.getElementById("resultTable");
+  const resultBody = document.getElementById("resultBody");
+  const detailCard = document.getElementById("detailCard");
+  const checkAllBox = document.getElementById("checkAll");
+
+  // ===== 主搜尋 =====
   async function searchProducts() {
-    const kw = document.getElementById("keyword").value.trim().toLowerCase();
-    const qty = document.getElementById("qtySelect").value;
-    const minP = document.getElementById("minPrice").value;
-    const maxP = document.getElementById("maxPrice").value;
+    const kw = keywordInput.value.trim().toLowerCase();
+    const qty = qtySelect.value;
+    const minP = minPriceInput.value;
+    const maxP = maxPriceInput.value;
 
     if (qty && (!minP || !maxP)) {
       alert("使用起訂量搜尋時，請輸入完整價格範圍。");
@@ -161,120 +219,229 @@
       return;
     }
 
-    const snap = await getDocs(collection(db, "Products"));
-    let list = [];
-    snap.forEach(doc => list.push(doc.data()));
+    searchBtn.disabled = true;
+    searchBtn.textContent = "查詢中…";
 
-    // 模糊搜尋 model + name
-    if (kw) {
-      list = list.filter(item =>
-        (item.model && item.model.toLowerCase().includes(kw)) ||
-        (item.name && item.name.toLowerCase().includes(kw))
-      );
+    try {
+      const snap = await getDocs(collection(db, "Products"));
+      let list = [];
+      snap.forEach(doc => list.push(doc.data()));
+
+      // 模糊搜尋（model + name）
+      if (kw) {
+        list = list.filter(item =>
+          (item.model && item.model.toLowerCase().includes(kw)) ||
+          (item.name && item.name.toLowerCase().includes(kw))
+        );
+      }
+
+      // 起訂量 + 預算區間
+      if (qty && minP && maxP) {
+        const field = qty === "100"
+          ? "quote100"
+          : qty === "300"
+          ? "quote300"
+          : "quote500";
+
+        list = list.filter(item =>
+          item[field] >= Number(minP) &&
+          item[field] <= Number(maxP)
+        );
+      }
+
+      currentResultList = list;
+      renderResults(list);
+    } catch (e) {
+      console.error(e);
+      alert("查詢發生錯誤");
+    } finally {
+      searchBtn.disabled = false;
+      searchBtn.textContent = "查詢";
     }
-
-    // 起訂量 + 預算區間搜尋
-    if (qty && minP && maxP) {
-      const field = qty === "100" ? "quote100" :
-                    qty === "300" ? "quote300" : "quote500";
-
-      list = list.filter(item =>
-        item[field] >= Number(minP) && item[field] <= Number(maxP)
-      );
-    }
-
-    renderResults(list);
   }
 
-
-  // ======= 顯示搜尋結果 =======
+  // ===== 渲染搜尋結果 =====
   function renderResults(list) {
-    const table = document.getElementById("resultTable");
-    const body = document.getElementById("resultBody");
+    resultBody.innerHTML = "";
+    detailCard.style.display = "none";
+    checkAllBox.checked = false;
 
-    body.innerHTML = "";
     if (list.length === 0) {
-      table.style.display = "none";
+      resultTable.style.display = "none";
+      exportBtn.disabled = true;
       alert("查無符合商品");
       return;
     }
 
-    table.style.display = "table";
+    resultTable.style.display = "table";
+    exportBtn.disabled = false;
 
     list.forEach(item => {
       const tr = document.createElement("tr");
 
       tr.innerHTML = `
+        <td>
+          <input type="checkbox" class="row-check" data-model="${item.model}" />
+        </td>
+
         <td>${item.model}</td>
 
         <td>
-          <div style="font-weight:600; margin-bottom:4px;">${item.name}</div>
+          <div style="font-weight:600; margin-bottom:4px;">
+            ${item.name}
+          </div>
 
           <div style="font-size:13px; line-height:1.6;">
-
             <span class="price-tag" style="background:#dbeafe;">
               100個：
               <span style="color:#2563eb; font-weight:600;">
-                ${item.quote100 ? item.quote100 + " 元" : "-"}
+                ${item.quote100 != null ? item.quote100 + " 元" : "-"}
               </span>
             </span>
 
             <span class="price-tag" style="background:#dcfce7;">
               300個：
               <span style="color:#16a34a; font-weight:600;">
-                ${item.quote300 ? item.quote300 + " 元" : "-"}
+                ${item.quote300 != null ? item.quote300 + " 元" : "-"}
               </span>
             </span>
 
             <span class="price-tag" style="background:#ffedd5;">
               500個：
               <span style="color:#ea580c; font-weight:600;">
-                ${item.quote500 ? item.quote500 + " 元" : "-"}
+                ${item.quote500 != null ? item.quote500 + " 元" : "-"}
               </span>
             </span>
-
           </div>
         </td>
 
         <td style="text-align:right;">
-          ${item.minPrice ? item.minPrice + " 元" : "-"}
+          ${item.minPrice != null ? item.minPrice + " 元" : "-"}
         </td>
 
         <td style="text-align:right;">
-          ${item.marketPrice ? item.marketPrice + " 元" : "-"}
+          ${item.marketPrice != null ? item.marketPrice + " 元" : "-"}
         </td>
       `;
 
-      tr.onclick = () => showDetail(item);
+      tr.addEventListener("click", (e) => {
+        if (e.target.classList.contains("row-check")) return;
+        showDetail(item);
+      });
 
-      body.appendChild(tr);
+      resultBody.appendChild(tr);
+    });
+
+    bindCheckAll();
+  }
+
+  function bindCheckAll() {
+    const rowChecks = document.querySelectorAll(".row-check");
+
+    checkAllBox.addEventListener("change", () => {
+      rowChecks.forEach(chk => chk.checked = checkAllBox.checked);
+    });
+
+    rowChecks.forEach(chk => {
+      chk.addEventListener("change", () => {
+        const all = document.querySelectorAll(".row-check");
+        const checked = document.querySelectorAll(".row-check:checked");
+        checkAllBox.checked = (all.length === checked.length);
+      });
     });
   }
 
-
-  // ======= 詳細資料 =======
+  // ===== 詳細頁 =====
   function showDetail(item) {
-    const card = document.getElementById("detailCard");
-    card.style.display = "block";
+    detailCard.style.display = "block";
 
-    card.innerHTML = `
-      <h2>${item.name}</h2>
-      <p>型號：${item.model}</p>
+    detailCard.innerHTML = `
+      <h2 style="margin-top:0;">${item.name}</h2>
+
+      <p>商品型號：${item.model}</p>
       <p>國際條碼：${item.barcode}</p>
       <p>箱入數：${item.cartonQty}</p>
 
-      <p>100個：${item.quote100} 元</p>
-      <p>300個：${item.quote300} 元</p>
-      <p>500個：${item.quote500} 元</p>
+      <p>採購100個報價：${item.quote100} 元</p>
+      <p>採購300個報價：${item.quote300} 元</p>
+      <p>採購500個報價：${item.quote500} 元</p>
 
       <p>末售價格：${item.minPrice} 元</p>
-      <p>賣場售價：${item.marketPrice} 元</p>
+      <p>賣場價格：${item.marketPrice} 元</p>
 
-      <p><a href="${item.productUrl}" target="_blank">官方商品頁</a></p>
+      <p>BSMI：${item.bsmi}</p>
+      <p>NCC：${item.ncc}</p>
+
+      <p>
+        商品對應網站：
+        ${item.productUrl
+          ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>`
+          : "-"
+        }
+      </p>
     `;
   }
 
-  document.getElementById("searchBtn").onclick = searchProducts;
+  // ===== 匯出 Excel =====
+  function exportSelectedExcel() {
+    const checkedBoxes = document.querySelectorAll(".row-check:checked");
+
+    if (checkedBoxes.length === 0) {
+      alert("請勾選要匯出的商品");
+      return;
+    }
+
+    const selectedModels = Array.from(checkedBoxes).map(chk =>
+      chk.getAttribute("data-model")
+    );
+
+    const rows = [];
+
+    // ===== Excel 第一列中文標題 =====
+    rows.push([
+      "商品型號",
+      "商品名稱",
+      "箱入數",
+      "採購100個報價",
+      "末售價格",
+      "賣場價格",
+      "商品對應網站"
+    ]);
+
+    selectedModels.forEach(model => {
+      const item = currentResultList.find(x => x.model === model);
+      if (!item) return;
+
+      rows.push([
+        item.model || "",
+        item.name || "",
+        item.cartonQty || "",
+        item.quote100 != null ? item.quote100 : "",
+        item.minPrice != null ? item.minPrice : "",
+        item.marketPrice != null ? item.marketPrice : "",
+        item.productUrl || ""
+      ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "報價");
+
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+
+    XLSX.writeFile(wb, `KINYO_勾選商品_${y}${m}${d}.xlsx`);
+  }
+
+  // ===== 綁定事件 =====
+  searchBtn.addEventListener("click", searchProducts);
+  exportBtn.addEventListener("click", exportSelectedExcel);
+
+  keywordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") searchProducts();
+  });
 </script>
 
 </body>
