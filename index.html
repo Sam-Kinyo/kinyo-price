@@ -2,280 +2,579 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>KINYO 查價系統</title>
+  <title>KINYO 商品查價系統</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="KINYO 商品查價系統：輸入商品型號即可查詢完整商品資訊與各種價格。">
 
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      max-width: 900px;
+      max-width: 1100px;
       margin: 40px auto;
       padding: 0 16px;
       background: #f5f5f5;
     }
-    h1 { margin-bottom: 4px; }
-    .subtitle { color: #666; margin-bottom: 20px; }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 20px;
+    }
+
+    /* 主版面：桌機為左右兩欄，手機自動變上下排列 */
+    .layout {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    .left-panel {
+      flex: 2;
+      min-width: 0;
+    }
+
+    .right-panel {
+      flex: 1.4;
+      min-width: 260px;
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        flex-direction: column;
+      }
+      .right-panel {
+        min-width: 0;
+      }
+    }
 
     .search-box {
       background: #fff;
       padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      margin-bottom: 20px;
+      border-radius: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
     }
 
-    .search-row { margin-bottom: 12px; }
-    label { font-weight: 600; }
-    input, select {
+    label {
+      font-weight: 600;
+    }
+
+    input {
+      flex: 1;
+      min-width: 160px;
       padding: 8px 12px;
-      border-radius: 8px;
+      border-radius: 6px;
       border: 1px solid #ccc;
-      width: 100%;
-      box-sizing: border-box;
+      font-size: 14px;
     }
 
     button {
-      padding: 10px 20px;
+      padding: 8px 18px;
       border-radius: 999px;
       border: none;
       background: #111827;
       color: white;
       font-weight: 600;
       cursor: pointer;
-      width: 100%;
+      font-size: 14px;
+      white-space: nowrap;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-      background: white;
+    button:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .btn-secondary {
+      background: #6b7280;
+    }
+
+    .btn-danger {
+      background: #b91c1c;
+    }
+
+    .card {
+      margin-top: 8px;
+      background: #fff;
+      padding: 18px;
       border-radius: 10px;
-      overflow: hidden;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.08);
     }
-    th, td {
-      padding: 12px;
-      border-bottom: 1px solid #eee;
-    }
-    tr:hover { background: #f1f5f9; cursor: pointer; }
 
-    .price-tag {
+    .row {
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    .label {
       font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 6px;
-      margin-right: 6px;
       display: inline-block;
+      width: 160px;
     }
 
-    #detailCard {
-      display:none;
-      background:white;
-      padding:20px;
-      border-radius:12px;
-      box-shadow:0 2px 6px rgba(0,0,0,0.08);
-      margin-top:20px;
+    a {
+      color: #2563eb;
+    }
+
+    /* 清單樣式 */
+    .list-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .list-count {
+      font-size: 13px;
+      color: #666;
+    }
+
+    .list-container {
+      border-top: 1px solid #e5e7eb;
+      margin-top: 8px;
+      padding-top: 8px;
+      max-height: 380px;
+      overflow-y: auto;
+    }
+
+    .list-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 8px 0;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .list-main {
+      min-width: 0;
+    }
+
+    .list-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 2px;
+    }
+
+    .list-sub {
+      font-size: 12px;
+      color: #6b7280;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 220px;
+    }
+
+    .list-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .list-remove-btn {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: none;
+      background: #ef4444;
+      color: white;
+      font-size: 12px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .list-empty {
+      font-size: 13px;
+      color: #9ca3af;
+      padding: 6px 0;
     }
   </style>
 </head>
 <body>
+  <h1>KINYO 商品查價系統</h1>
+  <div class="subtitle">輸入商品型號後，系統會顯示完整商品資訊與各種價格，並可將多筆結果加入清單後一次匯出為 Excel。</div>
 
-<h1>KINYO 查價系統</h1>
-<div class="subtitle">輸入商品型號或名稱，或使用起訂量與預算區間查詢。</div>
+  <div class="layout">
+    <!-- 左側：查詢 + 單筆結果 -->
+    <div class="left-panel">
+      <div class="search-box">
+        <label for="modelInput">商品型號：</label>
+        <input id="modelInput" placeholder="例如：AWP5712W" />
+        <button id="searchBtn">查詢</button>
+      </div>
 
-<div class="search-box">
+      <div id="loading" class="card" style="display:none;">查詢中，請稍候…</div>
+      <div id="noResult" class="card" style="display:none;">查無此型號，請確認輸入是否正確。</div>
 
-  <div class="search-row">
-    <label>關鍵字搜尋（型號 / 名稱）：</label>
-    <input id="keyword" placeholder="如：CL528 / 除毛球機" />
-  </div>
+      <div id="result" class="card" style="display:none;">
+        <h2 id="r-name"></h2>
 
-  <div class="search-row">
-    <label>選擇起訂量：</label>
-    <select id="qtySelect">
-      <option value="">不使用起訂量</option>
-      <option value="100">100 個</option>
-      <option value="300">300 個</option>
-      <option value="500">500 個</option>
-    </select>
-  </div>
+        <div class="row"><span class="label">商品型號：</span><span id="r-model"></span></div>
+        <div class="row"><span class="label">商品名稱：</span><span id="r-name2"></span></div>
+        <div class="row"><span class="label">國際條碼：</span><span id="r-barcode"></span></div>
+        <div class="row"><span class="label">箱入數：</span><span id="r-cartonQty"></span></div>
 
-  <div class="search-row">
-    <label>預算區間：</label>
-    <div style="display:flex; gap:6px;">
-      <input id="minPrice" type="number" placeholder="最低金額" />
-      <input id="maxPrice" type="number" placeholder="最高金額" />
+        <div class="row"><span class="label">團購(直播)售價：</span><span id="r-groupPriceLive"></span></div>
+        <div class="row"><span class="label">末售價格：</span><span id="r-minPrice"></span></div>
+        <div class="row"><span class="label">賣場價格：</span><span id="r-marketPrice"></span></div>
+
+        <div class="row"><span class="label">採購100個報價：</span><span id="r-quote100"></span></div>
+        <div class="row"><span class="label">採購300個報價：</span><span id="r-quote300"></span></div>
+        <div class="row"><span class="label">採購500個報價：</span><span id="r-quote500"></span></div>
+
+        <div class="row"><span class="label">BSMI：</span><span id="r-bsmi"></span></div>
+        <div class="row"><span class="label">NCC：</span><span id="r-ncc"></span></div>
+
+        <div class="row">
+          <span class="label">官方商品頁：</span>
+          <a id="r-url" href="#" target="_blank">點我前往</a>
+        </div>
+
+        <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button id="addToListBtn">加入清單</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右側：多筆清單 + 匯出 -->
+    <div class="right-panel">
+      <div id="listCard" class="card" style="display:none;">
+        <div class="list-header">
+          <div>
+            <strong>已加入清單</strong>
+            <div class="list-count">目前共有 <span id="listCount">0</span> 筆商品</div>
+          </div>
+        </div>
+
+        <div id="listContainer" class="list-container">
+          <!-- 動態插入清單項目 -->
+        </div>
+
+        <div class="list-actions">
+          <button id="exportListBtn">匯出清單為 Excel</button>
+          <button id="clearListBtn" class="btn-secondary">清空清單</button>
+        </div>
+      </div>
     </div>
   </div>
 
-  <button id="searchBtn">查詢</button>
-</div>
+  <!-- Excel 產生工具：SheetJS（必須在 module script 前載入，讓 XLSX 成為全域物件） -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+  <!-- Firebase + 主邏輯 -->
+  <script type="module">
+    // Firebase 設定（你的專案）
+    const firebaseConfig = {
+      apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+      authDomain: "kinyo-price.firebaseapp.com",
+      projectId: "kinyo-price",
+      storageBucket: "kinyo-price.firebasestorage.app",
+      messagingSenderId: "122464645678",
+      appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf",
+      measurementId: "G-R0PWMZNSJH"
+    };
 
-<table id="resultTable" style="display:none;">
-  <thead>
-    <tr>
-      <th style="width:100px;">型號</th>
-      <th>商品資訊</th>
-      <th>末售</th>
-      <th>賣場</th>
-    </tr>
-  </thead>
-  <tbody id="resultBody"></tbody>
-</table>
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+    import {
+      getFirestore,
+      getDoc,
+      doc,
+      collection,
+      query,
+      where,
+      getDocs
+    } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
 
-<div id="detailCard"></div>
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
+    // DOM 元素
+    const modelInput = document.getElementById("modelInput");
+    const searchBtn = document.getElementById("searchBtn");
 
-<!-- Firebase -->
-<script type="module">
-  const firebaseConfig = {
-    apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
-    authDomain: "kinyo-price.firebaseapp.com",
-    projectId: "kinyo-price",
-    storageBucket: "kinyo-price.firebasestorage.app",
-    messagingSenderId: "122464645678",
-    appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf",
-  };
+    const resultCard = document.getElementById("result");
+    const noResultCard = document.getElementById("noResult");
+    const loadingCard = document.getElementById("loading");
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+    const rName = document.getElementById("r-name");
+    const rName2 = document.getElementById("r-name2");
+    const rModel = document.getElementById("r-model");
+    const rBarcode = document.getElementById("r-barcode");
+    const rCartonQty = document.getElementById("r-cartonQty");
+    const rGroupPriceLive = document.getElementById("r-groupPriceLive");
+    const rMinPrice = document.getElementById("r-minPrice");
+    const rMarketPrice = document.getElementById("r-marketPrice");
+    const rQuote100 = document.getElementById("r-quote100");
+    const rQuote300 = document.getElementById("r-quote300");
+    const rQuote500 = document.getElementById("r-quote500");
+    const rBsmi = document.getElementById("r-bsmi");
+    const rNcc = document.getElementById("r-ncc");
+    const rUrl = document.getElementById("r-url");
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
+    const addToListBtn = document.getElementById("addToListBtn");
+    const listCard = document.getElementById("listCard");
+    const listContainer = document.getElementById("listContainer");
+    const listCountSpan = document.getElementById("listCount");
+    const exportListBtn = document.getElementById("exportListBtn");
+    const clearListBtn = document.getElementById("clearListBtn");
 
+    // 狀態：最後一次查詢的商品資料 + 多筆清單
+    let lastProductData = null;
+    let savedProducts = [];
 
-  // ======= 搜尋功能 =======
-  async function searchProducts() {
-    const kw = document.getElementById("keyword").value.trim().toLowerCase();
-    const qty = document.getElementById("qtySelect").value;
-    const minP = document.getElementById("minPrice").value;
-    const maxP = document.getElementById("maxPrice").value;
-
-    if (qty && (!minP || !maxP)) {
-      alert("使用起訂量搜尋時，請輸入完整價格範圍。");
-      return;
+    // 顯示 / 隱藏「查詢中」
+    function showLoading(show) {
+      loadingCard.style.display = show ? "block" : "none";
+      searchBtn.disabled = show;
     }
 
-    if (minP && maxP && Number(maxP) < Number(minP)) {
-      alert("最高金額必須大於最低金額。");
-      return;
+    // 重新整理右側清單畫面
+    function renderList() {
+      if (savedProducts.length === 0) {
+        listCard.style.display = "none";
+        listContainer.innerHTML = "";
+        listCountSpan.textContent = "0";
+        return;
+      }
+
+      listCard.style.display = "block";
+      listCountSpan.textContent = String(savedProducts.length);
+
+      listContainer.innerHTML = "";
+      savedProducts.forEach((p, index) => {
+        const item = document.createElement("div");
+        item.className = "list-item";
+
+        const main = document.createElement("div");
+        main.className = "list-main";
+
+        const title = document.createElement("div");
+        title.className = "list-title";
+        title.textContent = `${p.model || ""} - ${p.name || ""}`;
+
+        const sub = document.createElement("div");
+        sub.className = "list-sub";
+        sub.textContent =
+          `條碼: ${p.barcode || "－"} / 末售: ${p.minPrice || "－"} / 採購100: ${p.quote100 || "－"}`;
+
+        main.appendChild(title);
+        main.appendChild(sub);
+
+        const removeBtn = document.createElement("button");
+        removeBtn.className = "list-remove-btn";
+        removeBtn.textContent = "移除";
+        removeBtn.dataset.index = String(index);
+
+        item.appendChild(main);
+        item.appendChild(removeBtn);
+
+        listContainer.appendChild(item);
+      });
     }
 
-    const snap = await getDocs(collection(db, "Products"));
-    let list = [];
-    snap.forEach(doc => list.push(doc.data()));
+    // 查詢商品主流程
+    async function search() {
+      let model = modelInput.value.trim();
+      if (!model) return;
 
-    // 模糊搜尋 model + name
-    if (kw) {
-      list = list.filter(item =>
-        (item.model && item.model.toLowerCase().includes(kw)) ||
-        (item.name && item.name.toLowerCase().includes(kw))
-      );
+      model = model.toUpperCase(); // 自動轉大寫
+
+      resultCard.style.display = "none";
+      noResultCard.style.display = "none";
+      showLoading(true);
+      lastProductData = null;
+
+      try {
+        let snap = await getDoc(doc(db, "Products", model));
+        let data = null;
+
+        if (snap.exists()) {
+          data = snap.data();
+        } else {
+          const q = query(
+            collection(db, "Products"),
+            where("searchKey", ">=", model),
+            where("searchKey", "<=", model + "\uf8ff")
+          );
+          const qsnap = await getDocs(q);
+          if (!qsnap.empty) {
+            snap = qsnap.docs[0];
+            data = snap.data();
+          }
+        }
+
+        if (!data) {
+          noResultCard.style.display = "block";
+          return;
+        }
+
+        // 顯示結果
+        rName.textContent = data.name ?? "";
+        rName2.textContent = data.name ?? "";
+        rModel.textContent = data.model ?? "";
+        rBarcode.textContent = data.barcode ?? "";
+        rCartonQty.textContent = data.cartonQty ?? "";
+
+        rGroupPriceLive.textContent = data.groupPriceLive ?? "";
+        rMinPrice.textContent = data.minPrice ?? "";
+        rMarketPrice.textContent = data.marketPrice ?? "";
+
+        rQuote100.textContent = data.quote100 ?? "";
+        rQuote300.textContent = data.quote300 ?? "";
+        rQuote500.textContent = data.quote500 ?? "";
+
+        rBsmi.textContent = data.bsmi ?? "";
+        rNcc.textContent = data.ncc ?? "";
+
+        const productUrl = data.productUrl || "";
+        if (productUrl) {
+          rUrl.href = productUrl;
+          rUrl.style.pointerEvents = "auto";
+          rUrl.style.opacity = "1";
+        } else {
+          rUrl.href = "#";
+          rUrl.style.pointerEvents = "none";
+          rUrl.style.opacity = "0.5";
+        }
+
+        // 保留最後查詢的完整資料，用於加入清單 / 匯出
+        lastProductData = {
+          model: data.model ?? "",
+          name: data.name ?? "",
+          barcode: data.barcode ?? "",
+          cartonQty: data.cartonQty ?? "",
+          groupPriceLive: data.groupPriceLive ?? "",
+          minPrice: data.minPrice ?? "",
+          marketPrice: data.marketPrice ?? "",
+          quote100: data.quote100 ?? "",
+          quote300: data.quote300 ?? "",
+          quote500: data.quote500 ?? "",
+          bsmi: data.bsmi ?? "",
+          ncc: data.ncc ?? "",
+          productUrl: productUrl
+        };
+
+        resultCard.style.display = "block";
+      } catch (err) {
+        console.error(err);
+        noResultCard.style.display = "block";
+      } finally {
+        showLoading(false);
+      }
     }
 
-    // 起訂量 + 預算區間搜尋
-    if (qty && minP && maxP) {
-      const field = qty === "100" ? "quote100" :
-                    qty === "300" ? "quote300" : "quote500";
+    // 事件：搜尋按鈕
+    searchBtn.addEventListener("click", search);
 
-      list = list.filter(item =>
-        item[field] >= Number(minP) && item[field] <= Number(maxP)
-      );
-    }
-
-    renderResults(list);
-  }
-
-
-  // ======= 顯示搜尋結果 =======
-  function renderResults(list) {
-    const table = document.getElementById("resultTable");
-    const body = document.getElementById("resultBody");
-
-    body.innerHTML = "";
-    if (list.length === 0) {
-      table.style.display = "none";
-      alert("查無符合商品");
-      return;
-    }
-
-    table.style.display = "table";
-
-    list.forEach(item => {
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${item.model}</td>
-
-        <td>
-          <div style="font-weight:600; margin-bottom:4px;">${item.name}</div>
-
-          <div style="font-size:13px; line-height:1.6;">
-
-            <span class="price-tag" style="background:#dbeafe;">
-              100個：
-              <span style="color:#2563eb; font-weight:600;">
-                ${item.quote100 ? item.quote100 + " 元" : "-"}
-              </span>
-            </span>
-
-            <span class="price-tag" style="background:#dcfce7;">
-              300個：
-              <span style="color:#16a34a; font-weight:600;">
-                ${item.quote300 ? item.quote300 + " 元" : "-"}
-              </span>
-            </span>
-
-            <span class="price-tag" style="background:#ffedd5;">
-              500個：
-              <span style="color:#ea580c; font-weight:600;">
-                ${item.quote500 ? item.quote500 + " 元" : "-"}
-              </span>
-            </span>
-
-          </div>
-        </td>
-
-        <td style="text-align:right;">
-          ${item.minPrice ? item.minPrice + " 元" : "-"}
-        </td>
-
-        <td style="text-align:right;">
-          ${item.marketPrice ? item.marketPrice + " 元" : "-"}
-        </td>
-      `;
-
-      tr.onclick = () => showDetail(item);
-
-      body.appendChild(tr);
+    // 事件：Enter 搜尋
+    modelInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") search();
     });
-  }
 
+    // 事件：加入清單
+    addToListBtn.addEventListener("click", () => {
+      if (!lastProductData || !lastProductData.model) {
+        alert("請先成功查詢一筆商品，再加入清單。");
+        return;
+      }
 
-  // ======= 詳細資料 =======
-  function showDetail(item) {
-    const card = document.getElementById("detailCard");
-    card.style.display = "block";
+      // 避免同一型號重複加入（如果你要允許重複，可移除這段）
+      const exists = savedProducts.some(p => p.model === lastProductData.model);
+      if (exists) {
+        alert("此商品已在清單中。");
+        return;
+      }
 
-    card.innerHTML = `
-      <h2>${item.name}</h2>
-      <p>型號：${item.model}</p>
-      <p>國際條碼：${item.barcode}</p>
-      <p>箱入數：${item.cartonQty}</p>
+      savedProducts.push({ ...lastProductData });
+      renderList();
+    });
 
-      <p>100個：${item.quote100} 元</p>
-      <p>300個：${item.quote300} 元</p>
-      <p>500個：${item.quote500} 元</p>
+    // 事件：清單內移除單筆（事件委派）
+    listContainer.addEventListener("click", (e) => {
+      const target = e.target;
+      if (target instanceof HTMLElement && target.classList.contains("list-remove-btn")) {
+        const index = Number(target.dataset.index ?? "-1");
+        if (index >= 0 && index < savedProducts.length) {
+          savedProducts.splice(index, 1);
+          renderList();
+        }
+      }
+    });
 
-      <p>末售價格：${item.minPrice} 元</p>
-      <p>賣場售價：${item.marketPrice} 元</p>
+    // 事件：清空清單
+    clearListBtn.addEventListener("click", () => {
+      if (savedProducts.length === 0) {
+        alert("目前清單是空的。");
+        return;
+      }
+      if (!confirm("確定要清空清單中的所有商品嗎？")) return;
+      savedProducts = [];
+      renderList();
+    });
 
-      <p><a href="${item.productUrl}" target="_blank">官方商品頁</a></p>
-    `;
-  }
+    // 事件：匯出清單為 Excel（匯出所有欄位）
+    exportListBtn.addEventListener("click", () => {
+      if (!window.XLSX) {
+        alert("Excel 匯出工具尚未載入，請重新整理頁面再試一次。");
+        return;
+      }
 
-  document.getElementById("searchBtn").onclick = searchProducts;
-</script>
+      if (savedProducts.length === 0) {
+        alert("目前清單是空的，請先加入至少一筆商品。");
+        return;
+      }
 
+      // 欄位對應：Excel 欄位名稱（中文） → 實際資料欄位 key
+      const columns = [
+        { key: "model", label: "商品型號" },
+        { key: "name", label: "商品名稱" },
+        { key: "barcode", label: "國際條碼" },
+        { key: "cartonQty", label: "箱入數" },
+        { key: "groupPriceLive", label: "團購(直播)售價" },
+        { key: "minPrice", label: "末售價格" },
+        { key: "marketPrice", label: "賣場價格" },
+        { key: "quote100", label: "採購100個報價" },
+        { key: "quote300", label: "採購300個報價" },
+        { key: "quote500", label: "採購500個報價" },
+        { key: "bsmi", label: "BSMI" },
+        { key: "ncc", label: "NCC" },
+        { key: "productUrl", label: "官方商品頁" }
+      ];
+
+      // 轉成適合 SheetJS 的 JSON 陣列，每列是 { "商品型號": "...", "商品名稱": "..." , ... }
+      const rows = savedProducts.map(p => {
+        const row = {};
+        columns.forEach(col => {
+          row[col.label] = p[col.key] ?? "";
+        });
+        return row;
+      });
+
+      const worksheet = XLSX.utils.json_to_sheet(rows);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "KINYO-Products");
+
+      // 檔名：KINYO_Multi_Export_YYYYMMDD.xlsx
+      const now = new Date();
+      const y = now.getFullYear();
+      const m = String(now.getMonth() + 1).padStart(2, "0");
+      const d = String(now.getDate()).padStart(2, "0");
+      const filename = `KINYO_Multi_Export_${y}${m}${d}.xlsx`;
+
+      XLSX.writeFile(workbook, filename);
+    });
+  </script>
 </body>
 </html>
