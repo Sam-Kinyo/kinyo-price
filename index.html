@@ -338,20 +338,72 @@
 
         results.forEach(item => {
           const tr = document.createElement("tr");
-         tr.innerHTML = `
+        tr.innerHTML = `
   <td>${item.model}</td>
+
   <td>
-    ${item.name}
-    <br>
-    <span style="color:#444; font-size:13px;">
-      ${item.quote100 ? `100：${item.quote100} 元` : ""}
-      ${item.minPrice ? `｜末：${item.minPrice} 元` : ""}
-      ${item.marketPrice ? `｜賣：${item.marketPrice} 元` : ""}
-    </span>
+    <div style="font-weight:600; margin-bottom:4px;">${item.name}</div>
+
+    <div style="font-size:13px; line-height:1.6;">
+
+      <!-- 100 個 -->
+      <span style="
+        font-weight:600;
+        background:#dbeafe;
+        padding:2px 6px;
+        border-radius:6px;
+        margin-right:6px;
+        display:inline-block;
+      ">
+        100：
+        <span style="color:#2563eb;">
+          ${item.quote100 ? item.quote100 + " 元" : "-"}
+        </span>
+      </span>
+
+      <!-- 300 個 -->
+      <span style="
+        font-weight:600;
+        background:#dcfce7;
+        padding:2px 6px;
+        border-radius:6px;
+        margin-right:6px;
+        display:inline-block;
+      ">
+        300：
+        <span style="color:#16a34a;">
+          ${item.quote300 ? item.quote300 + " 元" : "-"}
+        </span>
+      </span>
+
+      <!-- 500 個 -->
+      <span style="
+        font-weight:600;
+        background:#ffedd5;
+        padding:2px 6px;
+        border-radius:6px;
+        display:inline-block;
+      ">
+        500：
+        <span style="color:#ea580c;">
+          ${item.quote500 ? item.quote500 + " 元" : "-"}
+        </span>
+      </span>
+
+    </div>
   </td>
+
+  <td style="text-align:right; white-space:nowrap;">
+    <div style="font-size:14px;">末售：${item.minPrice ? item.minPrice + " 元" : "-"}</div>
+  </td>
+
+  <td style="text-align:right; white-space:nowrap;">
+    <div style="font-size:14px;">賣場：${item.marketPrice ? item.marketPrice + " 元" : "-"}</div>
+  </td>
+
   <td></td>
-  <td></td>
-  <td></td>
+`;
+
 `;
           tr.addEventListener("click", () => showDetail(item));
           listBody.appendChild(tr);
