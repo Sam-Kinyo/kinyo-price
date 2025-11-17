@@ -104,35 +104,35 @@
 <body>
 
   <h1>KINYO 商品查價系統</h1>
-  <div class="subtitle">支援：型號/名稱、起定量單選、預算區間篩選</div>
+  <div class="subtitle">支援：型號/名稱搜尋、起定量 + 預算篩選</div>
 
-  <!-- 搜尋條件區 -->
+  <!-- 搜尋條件 -->
   <div class="search-box">
 
     <div class="section-title">關鍵字搜尋（可留空）</div>
     <input id="keywordInput" type="text" placeholder="型號、名稱，例如：5712、風扇、無線…">
 
-    <div class="section-title">起定量（必選一項）</div>
+    <div class="section-title">起定量（選擇後即啟用價格搜尋模式）</div>
     <div class="radio-group">
       <label><input type="radio" name="qty" value="100">起定量 100</label>
       <label><input type="radio" name="qty" value="300">起定量 300</label>
       <label><input type="radio" name="qty" value="500">起定量 500</label>
     </div>
 
-    <div class="section-title">預算範圍（必填，最低+最高）</div>
+    <div class="section-title">預算範圍（最低 + 最高）</div>
     <input id="minPrice" type="number" placeholder="最低價格，例如：200">
     <input id="maxPrice" style="margin-top:8px;" type="number" placeholder="最高價格，例如：400">
 
     <button id="searchBtn">搜尋</button>
   </div>
 
-  <!-- 載入 -->
+  <!-- 載入中 -->
   <div id="loading" class="card" style="display:none;">查詢中，請稍候…</div>
 
-  <!-- 查無 -->
+  <!-- 查無結果 -->
   <div id="noResult" class="card" style="display:none;">查無符合的商品。</div>
 
-  <!-- 多筆列表 -->
+  <!-- 列表結果 -->
   <div id="list" class="card" style="display:none;">
     <div>找到 <span id="list-count"></span> 筆商品：</div>
     <table>
@@ -149,7 +149,7 @@
     </table>
   </div>
 
-  <!-- 詳細 -->
+  <!-- 詳細資料 -->
   <div id="result" class="card" style="display:none;">
     <h2 id="r-name"></h2>
 
@@ -176,7 +176,6 @@
   </div>
 
   <script type="module">
-    /* Firebase */
     const firebaseConfig = {
       apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
       authDomain: "kinyo-price.firebaseapp.com",
@@ -193,7 +192,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    /* DOM */
     const keywordInput = document.getElementById("keywordInput");
     const minPriceInput = document.getElementById("minPrice");
     const maxPriceInput = document.getElementById("maxPrice");
@@ -221,29 +219,32 @@
     const rNcc = document.getElementById("r-ncc");
     const rUrl = document.getElementById("r-url");
 
+    /* 顯示詳細資料 */
     function showDetail(d) {
-      rName.textContent = d.name ?? "";
-      rName2.textContent = d.name ?? "";
-      rModel.textContent = d.model ?? "";
-      rBarcode.textContent = d.barcode ?? "";
-      rCartonQty.textContent = d.cartonQty ?? "";
+      rName.textContent = d.name || "";
+      rName2.textContent = d.name || "";
+      rModel.textContent = d.model || "";
+      rBarcode.textContent = d.barcode || "";
+      rCartonQty.textContent = d.cartonQty || "";
 
-      rGroupPriceLive.textContent = d.groupPriceLive ?? "";
-      rMinPrice.textContent = d.minPrice ?? "";
-      rMarketPrice.textContent = d.marketPrice ?? "";
+      rGroupPriceLive.textContent = d.groupPriceLive ? d.groupPriceLive + " 元" : "";
+      rMinPrice.textContent = d.minPrice ? d.minPrice + " 元" : "";
+      rMarketPrice.textContent = d.marketPrice ? d.marketPrice + " 元" : "";
 
-      rQuote100.textContent = d.quote100 ?? "";
-      rQuote300.textContent = d.quote300 ?? "";
-      rQuote500.textContent = d.quote500 ?? "";
+      rQuote100.textContent = d.quote100 ? d.quote100 + " 元" : "";
+      rQuote300.textContent = d.quote300 ? d.quote300 + " 元" : "";
+      rQuote500.textContent = d.quote500 ? d.quote500 + " 元" : "";
 
-      rBsmi.textContent = d.bsmi ?? "";
-      rNcc.textContent = d.ncc ?? "";
+      rBsmi.textContent = d.bsmi || "";
+      rNcc.textContent = d.ncc || "";
 
       rUrl.href = d.productUrl || "#";
       rUrl.textContent = d.productUrl ? "前往" : "";
+
       resultCard.style.display = "block";
     }
 
+    /* 搜尋 */
     async function search() {
       const keyword = keywordInput.value.trim();
       const kwUpper = keyword.toUpperCase();
@@ -252,22 +253,26 @@
       const min = minPriceInput.value ? Number(minPriceInput.value) : null;
       const max = maxPriceInput.value ? Number(maxPriceInput.value) : null;
 
-      /* 讀 radio */
-      const qty = document.querySelector('input[name="qty"]:checked');
-      if (!qty) {
-        alert("請選擇起定量。");
-        return;
-      }
-      const qtyVal = Number(qty.value);
+      const qtyRadio = document.querySelector('input[name="qty"]:checked');
+      const hasQty = !!qtyRadio;
 
-      /* 預算必須完整 */
-      if (min === null || max === null) {
-        alert("請輸入完整的預算區間（最低 + 最高）。");
-        return;
-      }
-      if (max < min) {
-        alert("最高價格必須大於或等於最低價格。");
-        return;
+      /* 模式 1：純關鍵字搜尋（最彈性） */
+      const modeKeywordOnly = keyword && !hasQty && (min === null && max === null);
+
+      /* 模式 2：必須填完整起定量 + 預算 */
+      if (!modeKeywordOnly) {
+        if (!hasQty) {
+          alert("請選擇起定量。");
+          return;
+        }
+        if (min === null || max === null) {
+          alert("請輸入完整的預算區間（最低 + 最高）。");
+          return;
+        }
+        if (max < min) {
+          alert("最高價格必須大於或等於最低價格。");
+          return;
+        }
       }
 
       loading.style.display = "block";
@@ -283,7 +288,7 @@
         snap.forEach(docSnap => {
           const d = docSnap.data();
 
-          /* 關鍵字（可空） */
+          /* 關鍵字比對（model / name） */
           let matchKeyword = true;
           if (keyword) {
             const model = (d.model || "").toUpperCase();
@@ -292,15 +297,23 @@
           }
           if (!matchKeyword) return;
 
-          /* 選定欄位 */
-          let priceField = qtyVal === 100 ? "quote100"
-                         : qtyVal === 300 ? "quote300"
-                         : "quote500";
-          let price = d[priceField];
+          /* 模式 1：純關鍵字 */
+          if (modeKeywordOnly) {
+            results.push(d);
+            return;
+          }
+
+          /* 模式 2：起定量 + 預算 */
+          const qty = Number(qtyRadio.value);
+          const priceField = qty === 100
+            ? "quote100"
+            : qty === 300
+            ? "quote300"
+            : "quote500";
+
+          const price = d[priceField];
 
           if (typeof price !== "number") return;
-
-          /* 預算比對 */
           if (price < min || price > max) return;
 
           results.push(d);
@@ -311,13 +324,16 @@
           return;
         }
 
+        /* 排序 */
         results.sort((a, b) => (a.model || "").localeCompare(b.model || "", "en"));
 
+        /* 單筆 → 顯示詳細資料 */
         if (results.length === 1) {
           showDetail(results[0]);
           return;
         }
 
+        /* 多筆 → 顯示列表 */
         listCount.textContent = results.length;
 
         results.forEach(item => {
@@ -325,9 +341,9 @@
           tr.innerHTML = `
             <td>${item.model}</td>
             <td>${item.name}</td>
-            <td>${item.groupPriceLive}</td>
-            <td>${item.minPrice}</td>
-            <td>${item.marketPrice}</td>
+            <td>${item.groupPriceLive ? item.groupPriceLive + " 元" : ""}</td>
+            <td>${item.minPrice ? item.minPrice + " 元" : ""}</td>
+            <td>${item.marketPrice ? item.marketPrice + " 元" : ""}</td>
           `;
           tr.addEventListener("click", () => showDetail(item));
           listBody.appendChild(tr);
