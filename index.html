@@ -2,295 +2,397 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>KINYO 耐嘉 查價系統</title>
+  <title>KINYO 查價系統</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       max-width: 900px;
-      margin: 30px auto;
+      margin: 40px auto;
       padding: 0 16px;
       background: #f5f5f5;
     }
-    h1 { margin-bottom: 8px; }
+    h1 { margin-bottom: 4px; }
     .subtitle { color: #666; margin-bottom: 20px; }
 
-    /* 搜尋區 */
     .search-box {
       background: #fff;
       padding: 16px;
       border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      margin-bottom: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      margin-bottom: 12px;
     }
+
+    .search-row { margin-bottom: 12px; }
+    label { font-weight: 600; }
     input, select {
-      padding: 8px;
+      padding: 8px 12px;
       border-radius: 8px;
       border: 1px solid #ccc;
       width: 100%;
-      margin-top: 8px;
+      box-sizing: border-box;
     }
-    .moq-options label {
-      margin-right: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-    button {
+
+    .btn-primary {
       padding: 10px 20px;
       border-radius: 999px;
       border: none;
-      cursor: pointer;
       background: #111827;
-      color: #fff;
+      color: white;
       font-weight: 600;
-      margin-top: 12px;
+      cursor: pointer;
       width: 100%;
     }
 
-    /* 搜尋結果列表 */
-    .item {
+    .btn-secondary {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
       background: #fff;
-      padding: 16px;
+      color: #111827;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+      vertical-align: top;
+    }
+    th {
+      background: #f9fafb;
+      text-align: left;
+    }
+
+    .product-img {
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+    }
+
+    .detail-img {
+      width: 260px;
       border-radius: 12px;
       margin-bottom: 12px;
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      border: 1px solid #ddd;
     }
-    .item img {
-      width: 90px;
-      height: 90px;
-      object-fit: contain;
-      background: #fafafa;
-      border-radius: 8px;
-    }
-    .item-title {
-      font-size: 16px;
-      font-weight: 700;
-    }
-    .tags { margin-top: 4px; }
-    .tag {
-      padding: 2px 8px;
+
+    .price-tag {
+      font-weight: 600;
+      padding: 2px 6px;
       border-radius: 6px;
-      font-size: 12px;
-      margin-right: 4px;
-      font-weight: 700;
+      margin-right: 6px;
       display: inline-block;
     }
-    .t50 { background:#e0f0ff; color:#005bbb; }
-    .t100 { background:#e0f7ff; color:#0088cc; }
-    .t300 { background:#e8ffe0; color:#3a8f00; }
-    .t500 { background:#fff0d9; color:#cc7700; }
-    .t1000 { background:#ffe6ee; color:#cc0055; }
 
-    .price-right {
-      font-size: 14px;
-      color: #444;
-      margin-top: 4px;
-      text-align: right;
-    }
-
-    .export-box {
-      margin-top: 16px;
-      text-align: right;
-    }
-    .export-btn {
-      background: #2563eb;
-      color: #fff;
-      padding: 8px 16px;
-      border-radius: 8px;
-      cursor:pointer;
-      font-weight:600;
+    #detailCard {
+      display:none;
+      background:white;
+      padding:20px;
+      border-radius:12px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.08);
+      margin-top:20px;
+      font-size:14px;
     }
   </style>
 </head>
-
 <body>
 
-<h1>KINYO 耐嘉 查價系統</h1>
-<div class="subtitle">支援模糊搜尋、起訂量、價格區間、匯出 Excel</div>
+<h1>KINYO 查價系統</h1>
+<div class="subtitle">輸入商品型號或名稱，並可勾選多筆匯出 Excel 報價單。</div>
 
-<!-- 搜尋區 -->
 <div class="search-box">
-
-  <label>關鍵字搜尋（型號 / 名稱）</label>
-  <input id="keywordInput" type="text" placeholder="例如：CL528 / 除毛球機" />
-
-  <label style="margin-top:16px;">選擇起訂量（必填才能使用價格區間）</label>
-  <div class="moq-options">
-    <label><input type="radio" name="moq" value="50"> 50</label>
-    <label><input type="radio" name="moq" value="100"> 100</label>
-    <label><input type="radio" name="moq" value="300"> 300</label>
-    <label><input type="radio" name="moq" value="500"> 500</label>
-    <label><input type="radio" name="moq" value="1000"> 1000</label>
+  <div class="search-row">
+    <label>關鍵字搜尋（型號 / 名稱）：</label>
+    <input id="keyword" placeholder="如：CL528 / 除毛球機" />
   </div>
 
-  <label style="margin-top:16px;">價格區間（含稅）</label>
-  <input id="minBudget" type="number" placeholder="最低價格" />
-  <input id="maxBudget" type="number" placeholder="最高價格" />
+  <div class="search-row">
+    <label>選擇起訂量：</label>
+    <select id="qtySelect">
+      <option value="">不使用起訂量</option>
+      <option value="100">100 個</option>
+      <option value="300">300 個</option>
+      <option value="500">500 個</option>
+    </select>
+  </div>
 
-  <button id="searchBtn">搜尋</button>
+  <div class="search-row">
+    <label>預算區間：</label>
+    <div style="display:flex; gap:6px;">
+      <input id="minPrice" type="number" placeholder="最低金額" />
+      <input id="maxPrice" type="number" placeholder="最高金額" />
+    </div>
+  </div>
+
+  <button id="searchBtn" class="btn-primary">查詢</button>
 </div>
 
-<div class="export-box">
-  <span class="export-btn" id="exportBtn">匯出勾選商品 Excel</span>
+<div class="toolbar">
+  <button id="exportBtn" class="btn-secondary" disabled>匯出勾選 Excel</button>
 </div>
 
-<!-- 搜尋結果 -->
-<div id="resultList"></div>
+<table id="resultTable" style="display:none;">
+  <thead>
+    <tr>
+      <th style="width:32px;">
+        <input type="checkbox" id="checkAll" />
+      </th>
+      <th style="width:80px;">圖片</th>
+      <th style="width:90px;">型號</th>
+      <th>商品資訊</th>
+      <th style="width:80px;">末售</th>
+      <th style="width:80px;">賣場</th>
+    </tr>
+  </thead>
+  <tbody id="resultBody"></tbody>
+</table>
 
-<!-- Firebase -->
+<div id="detailCard"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <script type="module">
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID",
+    apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+    authDomain: "kinyo-price.firebaseapp.com",
+    projectId: "kinyo-price",
+    storageBucket: "kinyo-price.firebasestorage.app",
+    messagingSenderId: "122464645678",
+    appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf",
   };
 
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-  import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/+esm";
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
+  let currentResultList = [];
+
+  const keywordInput = document.getElementById("keyword");
+  const qtySelect = document.getElementById("qtySelect");
+  const minPriceInput = document.getElementById("minPrice");
+  const maxPriceInput = document.getElementById("maxPrice");
   const searchBtn = document.getElementById("searchBtn");
-  const resultList = document.getElementById("resultList");
+  const exportBtn = document.getElementById("exportBtn");
+  const resultBody = document.getElementById("resultBody");
+  const resultTable = document.getElementById("resultTable");
+  const detailCard = document.getElementById("detailCard");
+  const checkAllBox = document.getElementById("checkAll");
 
-  let allProducts = [];
+  // ===== 搜尋 =====
+  async function searchProducts() {
+    const kw = keywordInput.value.trim().toLowerCase();
+    const qty = qtySelect.value;
+    const minP = minPriceInput.value;
+    const maxP = maxPriceInput.value;
 
-  // 初始取得所有商品
-  async function loadProducts() {
     const snap = await getDocs(collection(db, "Products"));
-    allProducts = snap.docs.map(doc => doc.data());
-    console.log("載入商品數量：", allProducts.length);
-  }
+    let list = [];
+    snap.forEach(doc => list.push(doc.data()));
 
-  await loadProducts();
-
-  // 搜尋按鈕
-  searchBtn.addEventListener("click", doSearch);
-
-  function doSearch() {
-    const keyword = document.getElementById("keywordInput").value.trim().toUpperCase();
-    const minBudget = Number(document.getElementById("minBudget").value || 0);
-    const maxBudget = Number(document.getElementById("maxBudget").value || 0);
-    const moqRadio = document.querySelector("input[name='moq']:checked");
-    const moq = moqRadio ? Number(moqRadio.value) : null;
-
-    resultList.innerHTML = "";
-
-    // ★ 若使用價格區間 → 必須選起訂量
-    if ((minBudget || maxBudget) && !moq) {
-      alert("請先選擇起訂量，再使用價格區間搜尋。");
-      return;
+    // 模糊搜尋
+    if (kw) {
+      list = list.filter(item =>
+        (item.model && item.model.toLowerCase().includes(kw)) ||
+        (item.name && item.name.toLowerCase().includes(kw))
+      );
     }
 
-    let moqField = null;
-    if (moq === 50) moqField = "quote50";
-    if (moq === 100) moqField = "quote100";
-    if (moq === 300) moqField = "quote300";
-    if (moq === 500) moqField = "quote500";
-    if (moq === 1000) moqField = "quote1000";
+    // 起訂量 + 預算
+    if (qty && minP && maxP) {
+      const field = qty === "100" ? "quote100" :
+                    qty === "300" ? "quote300" : "quote500";
 
-    const results = allProducts.filter(p => {
-      let ok = true;
+      list = list.filter(item =>
+        item[field] >= Number(minP) &&
+        item[field] <= Number(maxP)
+      );
+    }
 
-      // 關鍵字搜尋
-      if (keyword) {
-        if (!p.searchKey?.includes(keyword)) ok = false;
-      }
-
-      // 價格區間判斷
-      if (moqField) {
-        const price = Number(p[moqField] || 0);
-        if (minBudget && price < minBudget) ok = false;
-        if (maxBudget && price > maxBudget) ok = false;
-      }
-
-      return ok;
-    });
-
-    renderResults(results);
+    currentResultList = list;
+    renderResults(list);
   }
 
-  // 顯示搜尋結果
+  // ===== 渲染清單 =====
   function renderResults(list) {
-    if (!list.length) {
-      resultList.innerHTML = "<div>查無商品</div>";
+    resultBody.innerHTML = "";
+    detailCard.style.display = "none";
+    checkAllBox.checked = false;
+
+    if (list.length === 0) {
+      resultTable.style.display = "none";
+      exportBtn.disabled = true;
+      alert("查無符合商品");
       return;
     }
 
-    resultList.innerHTML = "";
+    resultTable.style.display = "table";
+    exportBtn.disabled = false;
 
-    list.forEach(p => {
-      const item = document.createElement("div");
-      item.className = "item";
+    list.forEach(item => {
+      const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
 
-      const imgUrl = p.imageUrl || "https://via.placeholder.com/90x90?text=No+Image";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>
+          <input type="checkbox" class="row-check" data-model="${item.model}" />
+        </td>
 
-      item.innerHTML = `
-        <input type="checkbox" class="export-check" data-model="${p.model}">
-        <img src="${imgUrl}">
-        
-        <div style="flex:1;">
-          <div class="item-title">${p.name}</div>
+        <td>
+          <img src="${img}" class="product-img" />
+        </td>
 
-          <div class="tags">
-            ${p.quote50 ? `<span class="tag t50">50：${p.quote50}元</span>` : ""}
-            ${p.quote100 ? `<span class="tag t100">100：${p.quote100}元</span>` : ""}
-            ${p.quote300 ? `<span class="tag t300">300：${p.quote300}元</span>` : ""}
-            ${p.quote500 ? `<span class="tag t500">500：${p.quote500}元</span>` : ""}
-            ${p.quote1000 ? `<span class="tag t1000">1000：${p.quote1000}元</span>` : ""}
+        <td>${item.model}</td>
+
+        <td>
+          <div style="font-weight:600; margin-bottom:4px;">${item.name}</div>
+
+          <div style="font-size:13px; line-height:1.6;">
+            <span class="price-tag" style="background:#dbeafe;">
+              100個：<span style="color:#2563eb;font-weight:600;">
+                ${item.quote100} 元
+              </span>
+            </span>
+            <span class="price-tag" style="background:#dcfce7;">
+              300個：<span style="color:#16a34a;font-weight:600;">
+                ${item.quote300} 元
+              </span>
+            </span>
+            <span class="price-tag" style="background:#ffedd5;">
+              500個：<span style="color:#ea580c;font-weight:600;">
+                ${item.quote500} 元
+              </span>
+            </span>
           </div>
+        </td>
 
-          <div class="price-right">
-            末售：${p.minPrice} 元<br>
-            賣場：${p.marketPrice} 元
-          </div>
-        </div>
+        <td style="text-align:right;">${item.minPrice} 元</td>
+        <td style="text-align:right;">${item.marketPrice} 元</td>
       `;
 
-      resultList.appendChild(item);
+      tr.addEventListener("click", (e) => {
+        if (e.target.classList.contains("row-check") || e.target.tagName === "IMG") return;
+        showDetail(item);
+      });
+
+      resultBody.appendChild(tr);
+    });
+
+    bindCheckAll();
+  }
+
+  function bindCheckAll() {
+    const rowChecks = document.querySelectorAll(".row-check");
+
+    checkAllBox.addEventListener("change", () => {
+      rowChecks.forEach(chk => chk.checked = checkAllBox.checked);
+    });
+
+    rowChecks.forEach(chk => {
+      chk.addEventListener("change", () => {
+        const all = document.querySelectorAll(".row-check");
+        const checked = document.querySelectorAll(".row-check:checked");
+        checkAllBox.checked = (all.length === checked.length);
+      });
     });
   }
 
-  // 匯出 Excel
-  document.getElementById("exportBtn").addEventListener("click", () => {
-    const checked = [...document.querySelectorAll(".export-check:checked")];
-    if (!checked.length) {
-      alert("請先勾選商品！");
+  // ===== 詳細頁 =====
+  function showDetail(item) {
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+
+    detailCard.style.display = "block";
+
+    detailCard.innerHTML = `
+      <img src="${img}" class="detail-img" />
+
+      <h2>${item.name}</h2>
+      <p>商品型號：${item.model}</p>
+      <p>國際條碼：${item.barcode}</p>
+      <p>箱入數：${item.cartonQty}</p>
+
+      <h3>價格資訊</h3>
+      <p>100 個：${item.quote100} 元</p>
+      <p>300 個：${item.quote300} 元</p>
+      <p>500 個：${item.quote500} 元</p>
+      <p>末售價格：${item.minPrice} 元</p>
+      <p>賣場售價：${item.marketPrice} 元</p>
+
+      <h3>認證資訊</h3>
+      <p>BSMI：${item.bsmi}</p>
+      <p>NCC：${item.ncc}</p>
+
+      <h3>商品網址</h3>
+      <p>
+        ${item.productUrl
+          ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>`
+          : "-"
+        }
+      </p>
+    `;
+  }
+
+  // ===== 匯出 Excel =====
+  function exportSelectedExcel() {
+    const checkedBoxes = document.querySelectorAll(".row-check:checked");
+    if (checkedBoxes.length === 0) {
+      alert("請先勾選要匯出的商品");
       return;
     }
 
-    const exportList = [];
-    checked.forEach(c => {
-      const model = c.dataset.model;
-      const p = allProducts.find(x => x.model === model);
-      if (p) {
-        exportList.push({
-          商品型號: p.model,
-          商品名稱: p.name,
-          箱入數: p.cartonQty,
-          採購100: p.quote100,
-          末售價: p.minPrice,
-          賣場價: p.marketPrice,
-          網站: p.productUrl
-        });
-      }
+    const selectedModels = Array.from(checkedBoxes).map(chk => chk.getAttribute("data-model"));
+
+    const rows = [];
+    rows.push([
+      "商品型號",
+      "商品名稱",
+      "箱入數",
+      "採購100個報價",
+      "末售價格",
+      "賣場價格",
+      "商品對應網站"
+    ]);
+
+    selectedModels.forEach(model => {
+      const item = currentResultList.find(p => p.model === model);
+      if (!item) return;
+
+      rows.push([
+        item.model,
+        item.name,
+        item.cartonQty,
+        item.quote100,
+        item.minPrice,
+        item.marketPrice,
+        item.productUrl
+      ]);
     });
 
-    const ws = XLSX.utils.json_to_sheet(exportList);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Export");
-    XLSX.writeFile(wb, "匯出商品.xlsx");
-  });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "報價");
 
+    XLSX.writeFile(wb, "KINYO_勾選商品.xlsx");
+  }
+
+  searchBtn.addEventListener("click", searchProducts);
+  exportBtn.addEventListener("click", exportSelectedExcel);
+  keywordInput.addEventListener("keydown", e => { if (e.key === "Enter") searchProducts(); });
 </script>
+
 </body>
 </html>
