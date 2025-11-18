@@ -82,13 +82,6 @@
       border: 1px solid #ddd;
     }
 
-    .detail-img {
-      width: 260px;
-      border-radius: 12px;
-      margin-bottom: 12px;
-      border: 1px solid #ddd;
-    }
-
     .price-tag {
       font-weight: 600;
       padding: 2px 6px;
@@ -106,6 +99,12 @@
       margin-top:20px;
       font-size:14px;
     }
+
+    .tag50  { background:#dbeafe; color:#1e40af; }
+    .tag100 { background:#e0f2fe; color:#0369a1; }
+    .tag300 { background:#dcfce7; color:#15803d; }
+    .tag500 { background:#ffedd5; color:#ea580c; }
+    .tag1000{ background:#fee2e2; color:#b91c1c; }
   </style>
 </head>
 <body>
@@ -123,14 +122,16 @@
     <label>選擇起訂量：</label>
     <select id="qtySelect">
       <option value="">不使用起訂量</option>
+      <option value="50">50 個</option>
       <option value="100">100 個</option>
       <option value="300">300 個</option>
       <option value="500">500 個</option>
+      <option value="1000">1000 個</option>
     </select>
   </div>
 
   <div class="search-row">
-    <label>預算區間：</label>
+    <label>預算區間（需先選起訂量）：</label>
     <div style="display:flex; gap:6px;">
       <input id="minPrice" type="number" placeholder="最低金額" />
       <input id="maxPrice" type="number" placeholder="最高金額" />
@@ -147,9 +148,7 @@
 <table id="resultTable" style="display:none;">
   <thead>
     <tr>
-      <th style="width:32px;">
-        <input type="checkbox" id="checkAll" />
-      </th>
+      <th style="width:32px;"><input type="checkbox" id="checkAll" /></th>
       <th style="width:80px;">圖片</th>
       <th style="width:90px;">型號</th>
       <th>商品資訊</th>
@@ -204,7 +203,6 @@
     let list = [];
     snap.forEach(doc => list.push(doc.data()));
 
-    // 模糊搜尋
     if (kw) {
       list = list.filter(item =>
         (item.model && item.model.toLowerCase().includes(kw)) ||
@@ -212,10 +210,15 @@
       );
     }
 
-    // 起訂量 + 預算
     if (qty && minP && maxP) {
-      const field = qty === "100" ? "quote100" :
-                    qty === "300" ? "quote300" : "quote500";
+      const mapping = {
+        "50": "quote50",
+        "100": "quote100",
+        "300": "quote300",
+        "500": "quote500",
+        "1000": "quote1000"
+      };
+      const field = mapping[qty];
 
       list = list.filter(item =>
         item[field] >= Number(minP) &&
@@ -248,35 +251,19 @@
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>
-          <input type="checkbox" class="row-check" data-model="${item.model}" />
-        </td>
-
-        <td>
-          <img src="${img}" class="product-img" />
-        </td>
-
+        <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
+        <td><img src="${img}" class="product-img" /></td>
         <td>${item.model}</td>
 
         <td>
           <div style="font-weight:600; margin-bottom:4px;">${item.name}</div>
 
           <div style="font-size:13px; line-height:1.6;">
-            <span class="price-tag" style="background:#dbeafe;">
-              100個：<span style="color:#2563eb;font-weight:600;">
-                ${item.quote100} 元
-              </span>
-            </span>
-            <span class="price-tag" style="background:#dcfce7;">
-              300個：<span style="color:#16a34a;font-weight:600;">
-                ${item.quote300} 元
-              </span>
-            </span>
-            <span class="price-tag" style="background:#ffedd5;">
-              500個：<span style="color:#ea580c;font-weight:600;">
-                ${item.quote500} 元
-              </span>
-            </span>
+            <span class="price-tag tag50">50個：${item.quote50} 元</span>
+            <span class="price-tag tag100">100個：${item.quote100} 元</span>
+            <span class="price-tag tag300">300個：${item.quote300} 元</span>
+            <span class="price-tag tag500">500個：${item.quote500} 元</span>
+            <span class="price-tag tag1000">1000個：${item.quote1000} 元</span>
           </div>
         </td>
 
@@ -318,7 +305,7 @@
     detailCard.style.display = "block";
 
     detailCard.innerHTML = `
-      <img src="${img}" class="detail-img" />
+      <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
 
       <h2>${item.name}</h2>
       <p>商品型號：${item.model}</p>
@@ -326,9 +313,11 @@
       <p>箱入數：${item.cartonQty}</p>
 
       <h3>價格資訊</h3>
+      <p>50 個：${item.quote50} 元</p>
       <p>100 個：${item.quote100} 元</p>
       <p>300 個：${item.quote300} 元</p>
       <p>500 個：${item.quote500} 元</p>
+      <p>1000 個：${item.quote1000} 元</p>
       <p>末售價格：${item.minPrice} 元</p>
       <p>賣場售價：${item.marketPrice} 元</p>
 
@@ -337,16 +326,11 @@
       <p>NCC：${item.ncc}</p>
 
       <h3>商品網址</h3>
-      <p>
-        ${item.productUrl
-          ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>`
-          : "-"
-        }
-      </p>
+      <p>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` : "-"}</p>
     `;
   }
 
-  // ===== 匯出 Excel =====
+  // ===== 匯出 Excel（版本 A） =====
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
     if (checkedBoxes.length === 0) {
