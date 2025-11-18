@@ -105,14 +105,26 @@
     .tag300 { background:#dcfce7; color:#15803d; }
     .tag500 { background:#ffedd5; color:#ea580c; }
     .tag1000{ background:#fee2e2; color:#b91c1c; }
+
+    /* 手機 UI 優化 */
+    @media (max-width: 600px) {
+      .search-box { padding: 12px; }
+      .search-row label { font-size: 14px; }
+      input, select { font-size: 14px; padding: 6px 10px; }
+      .product-img { width: 55px; height: 55px; }
+      table th, table td { padding: 6px; font-size: 13px; }
+      #detailCard { font-size: 13px; padding: 14px; }
+      .btn-primary, .btn-secondary { padding: 8px 12px; font-size: 14px; }
+    }
   </style>
 </head>
 <body>
 
 <h1>KINYO 查價系統</h1>
-<div class="subtitle">輸入商品型號或名稱，並可勾選多筆匯出 Excel 報價單。</div>
+<div class="subtitle">輸入商品型號或名稱，可依起訂量與預算查詢並匯出 Excel。</div>
 
 <div class="search-box">
+
   <div class="search-row">
     <label>關鍵字搜尋（型號 / 名稱）：</label>
     <input id="keyword" placeholder="如：CL528 / 除毛球機" />
@@ -139,9 +151,20 @@
   </div>
 
   <button id="searchBtn" class="btn-primary">查詢</button>
+  <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
+
 </div>
 
-<div class="toolbar">
+<!-- 工具列：排序 + 匯出 -->
+<div class="toolbar" style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
+  <select id="sortSelect" class="btn-secondary" style="flex:1;">
+    <option value="">不排序</option>
+    <option value="minPriceAsc">末售：低 → 高</option>
+    <option value="minPriceDesc">末售：高 → 低</option>
+    <option value="marketAsc">賣場：低 → 高</option>
+    <option value="marketDesc">賣場：高 → 低</option>
+  </select>
+
   <button id="exportBtn" class="btn-secondary" disabled>匯出勾選 Excel</button>
 </div>
 
@@ -186,11 +209,25 @@
   const minPriceInput = document.getElementById("minPrice");
   const maxPriceInput = document.getElementById("maxPrice");
   const searchBtn = document.getElementById("searchBtn");
+  const clearBtn = document.getElementById("clearBtn");
   const exportBtn = document.getElementById("exportBtn");
   const resultBody = document.getElementById("resultBody");
   const resultTable = document.getElementById("resultTable");
   const detailCard = document.getElementById("detailCard");
   const checkAllBox = document.getElementById("checkAll");
+  const sortSelect = document.getElementById("sortSelect");
+
+  // ===== 排序邏輯 =====
+  function applySorting(list) {
+    const opt = sortSelect.value;
+
+    if (opt === "minPriceAsc")  return list.sort((a,b)=>a.minPrice - b.minPrice);
+    if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
+    if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
+    if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
+
+    return list;
+  }
 
   // ===== 搜尋 =====
   async function searchProducts() {
@@ -199,10 +236,23 @@
     const minP = minPriceInput.value;
     const maxP = maxPriceInput.value;
 
+    // 錯誤 1：沒有選起訂量 + 填預算
+    if (!qty && (minP || maxP)) {
+      alert("請先選擇起訂量，才能使用預算區間搜尋");
+      return;
+    }
+
+    // 錯誤 2：選起訂量 + 預算不完整
+    if (qty && (!minP || !maxP)) {
+      alert("請輸入完整的預算區間（最低 + 最高金額）");
+      return;
+    }
+
     const snap = await getDocs(collection(db, "Products"));
     let list = [];
     snap.forEach(doc => list.push(doc.data()));
 
+    // 模糊搜尋
     if (kw) {
       list = list.filter(item =>
         (item.model && item.model.toLowerCase().includes(kw)) ||
@@ -210,6 +260,7 @@
       );
     }
 
+    // 起訂量 + 預算搜尋
     if (qty && minP && maxP) {
       const mapping = {
         "50": "quote50",
@@ -226,9 +277,26 @@
       );
     }
 
+    // 套用排序
+    list = applySorting(list);
+
     currentResultList = list;
     renderResults(list);
   }
+
+  // ===== 清除搜尋 =====
+  clearBtn.addEventListener("click", () => {
+    keywordInput.value = "";
+    qtySelect.value = "";
+    minPriceInput.value = "";
+    maxPriceInput.value = "";
+    sortSelect.value = "";
+
+    resultTable.style.display = "none";
+    resultBody.innerHTML = "";
+    detailCard.style.display = "none";
+    exportBtn.disabled = true;
+  });
 
   // ===== 渲染清單 =====
   function renderResults(list) {
@@ -301,7 +369,6 @@
   // ===== 詳細頁 =====
   function showDetail(item) {
     const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-
     detailCard.style.display = "block";
 
     detailCard.innerHTML = `
@@ -330,7 +397,7 @@
     `;
   }
 
-  // ===== 匯出 Excel（版本 A） =====
+  // ===== 匯出 Excel（版本 A）=====
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
     if (checkedBoxes.length === 0) {
@@ -373,9 +440,23 @@
     XLSX.writeFile(wb, "KINYO_勾選商品.xlsx");
   }
 
+  // ===== 事件綁定 =====
   searchBtn.addEventListener("click", searchProducts);
   exportBtn.addEventListener("click", exportSelectedExcel);
-  keywordInput.addEventListener("keydown", e => { if (e.key === "Enter") searchProducts(); });
+  sortSelect.addEventListener("change", ()=>{
+    if (currentResultList.length > 0) {
+      const sorted = applySorting([...currentResultList]);
+      renderResults(sorted);
+    }
+  });
+
+  // Enter 自動搜尋
+  [keywordInput, qtySelect, minPriceInput, maxPriceInput].forEach(el => {
+    el.addEventListener("keydown", e => {
+      if (e.key === "Enter") searchProducts();
+    });
+  });
+
 </script>
 
 </body>
