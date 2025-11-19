@@ -2,107 +2,803 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
+  <title>KINYO 查價系統</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>KINYO 查價系統登入</title>
 
   <style>
     body {
-      background:#f3f4f6;
-      font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      max-width: 980px;
+      margin: 40px auto;
+      padding: 0 16px 40px;
+      background: #f5f5f5;
+    }
+
+    h1 { margin-bottom: 4px; }
+    .subtitle { color: #666; margin-bottom: 16px; }
+
+    /* 頂部使用者列（只顯示帳號與登出） */
+    .top-bar {
       display:flex;
-      justify-content:center;
+      justify-content: flex-end;
       align-items:center;
-      height:100vh;
-      margin:0;
+      font-size: 13px;
+      color:#374151;
+      margin-bottom: 10px;
+      gap: 8px;
     }
-    .card {
-      width:320px;
-      padding:24px;
+    .user-badge {
+      padding:4px 10px;
+      border-radius:999px;
+      background:#e5e7eb;
+    }
+    .logout-btn {
+      padding:4px 10px;
+      border-radius:999px;
+      border:1px solid #d1d5db;
       background:white;
-      border-radius:12px;
-      box-shadow:0 4px 12px rgba(0,0,0,0.12);
-    }
-    h2 {
-      text-align:center;
-      margin-bottom:20px;
-    }
-    input {
-      width:100%;
-      padding:10px;
-      margin-bottom:12px;
-      border-radius:8px;
-      border:1px solid #ccc;
-      box-sizing:border-box;
-      font-size:14px;
-    }
-    button {
-      width:100%;
-      padding:12px;
-      background:#111827;
-      color:white;
-      border-radius:8px;
-      border:none;
       cursor:pointer;
+      font-size:12px;
+    }
+
+    .search-box {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      margin-bottom: 12px;
+    }
+    .search-row { margin-bottom: 12px; }
+    label { font-weight: 600; display:block; margin-bottom:4px; }
+
+    input, select {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    .btn-primary {
+      padding: 10px 20px;
+      border-radius: 999px;
+      border: none;
+      background: #111827;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #111827;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 4px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    th, td {
+      padding: 10px 8px;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+      vertical-align: top;
+    }
+    th {
+      background: #f9fafb;
+      text-align: left;
+    }
+
+    .product-img {
+      width: 70px;
+      height: 70px;
+      border-radius: 8px;
+      object-fit: cover;
+      border: 1px solid #ddd;
+    }
+
+    .price-tag {
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 6px;
+      margin-right: 6px;
+      margin-bottom: 4px;
+      display: inline-block;
+      font-size: 12px;
+    }
+    .tag50  { background:#dbeafe; color:#1e40af; }
+    .tag100 { background:#e0f2fe; color:#0369a1; }
+    .tag300 { background:#dcfce7; color:#15803d; }
+    .tag500 { background:#ffedd5; color:#ea580c; }
+    .tag1000{ background:#fee2e2; color:#b91c1c; }
+
+    /* 電腦版右側懸浮詳細資訊卡片 */
+    #detailCard {
+      position: fixed;
+      right: 20px;
+      top: 120px;
+      width: 320px;
+      max-height: 78vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+      display: none;
+      font-size: 14px;
+      z-index: 999;
+    }
+
+    /* 手機版 Bottom Sheet 遮罩與面板 */
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 900;
+    }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 70vh; /* 你選 A：約 70% 高度 */
+      background: #ffffff;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.22s ease-out;
+    }
+    .sheet.open {
+      transform: translateY(0%);
+    }
+    .sheet-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 16px 6px;
+      border-bottom:1px solid #e5e7eb;
+    }
+    .sheet-title {
+      font-size:15px;
       font-weight:600;
+    }
+    .sheet-close {
+      font-size:22px;
+      line-height:1;
+      border:none;
+      background:transparent;
+      cursor:pointer;
+    }
+    .sheet-content {
+      padding:12px 16px 16px;
+      overflow-y:auto;
       font-size:14px;
+    }
+
+    .hidden {
+      display:none !important;
+    }
+
+    /* RWD 調整 */
+    @media (max-width: 900px) {
+      body {
+        max-width: 100%;
+        margin: 16px auto 32px;
+      }
+      /* 手機版不使用右側懸浮卡片 */
+      #detailCard {
+        display:none !important;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .search-box { padding: 12px; }
+      input, select { font-size: 14px; padding: 6px 10px; }
+      .product-img { width: 55px; height: 55px; }
+      table th, table td { padding: 6px; font-size: 13px; }
+      .btn-primary, .btn-secondary { padding: 8px 12px; }
     }
   </style>
 </head>
 
 <body>
 
-<div class="card">
-  <h2>KINYO 查價系統</h2>
-
-  <input id="account" type="text" placeholder="帳號（例如：kinyo001）" />
-  <input id="password" type="password" placeholder="密碼" />
-  <button id="loginBtn">登入</button>
+<!-- 頂部使用者列 -->
+<div class="top-bar">
+  <span id="userInfo" class="user-badge">未登入</span>
+  <button id="logoutBtn" class="logout-btn" style="display:none;">登出</button>
 </div>
+
+<h1>KINYO 查價系統</h1>
+<div class="subtitle">需登入後方可查價，並依帳號等級顯示不同採購價格（末售／賣場所有等級皆可見）。</div>
+
+<!-- 搜尋區塊 -->
+<div class="search-box">
+  <div class="search-row">
+    <label>關鍵字搜尋（型號 / 名稱）：</label>
+    <input id="keyword" placeholder="如：CL528 / 除毛球機" />
+  </div>
+
+  <div class="search-row">
+    <label>選擇起訂量：</label>
+    <!-- 內容由 JS 根據 userLevel 動態產生 -->
+    <select id="qtySelect"></select>
+  </div>
+
+  <div class="search-row">
+    <label>預算區間（需先選起訂量）：</label>
+    <div style="display:flex; gap:6px;">
+      <input id="minPrice" type="number" placeholder="最低金額" />
+      <input id="maxPrice" type="number" placeholder="最高金額" />
+    </div>
+  </div>
+
+  <button id="searchBtn" class="btn-primary">查詢</button>
+  <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
+</div>
+
+<!-- 工具列：排序 + 匯出 -->
+<div class="toolbar" style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
+  <select id="sortSelect" class="btn-secondary" style="flex:1;">
+    <option value="">不排序</option>
+    <option value="minPriceAsc">末售：低 → 高</option>
+    <option value="minPriceDesc">末售：高 → 低</option>
+    <option value="marketAsc">賣場：低 → 高</option>
+    <option value="marketDesc">賣場：高 → 低</option>
+  </select>
+
+  <button id="exportBtn" class="btn-secondary" disabled>匯出勾選 Excel</button>
+</div>
+
+<!-- 結果表格 -->
+<table id="resultTable" style="display:none;">
+  <thead>
+    <tr>
+      <th style="width:32px;"><input type="checkbox" id="checkAll" /></th>
+      <th style="width:80px;">圖片</th>
+      <th style="width:100px;">主型號</th>
+      <th>商品資訊</th>
+      <th style="width:80px;">末售</th>
+      <th style="width:80px;">賣場</th>
+    </tr>
+  </thead>
+  <tbody id="resultBody"></tbody>
+</table>
+
+<!-- 電腦版右側懸浮詳細資訊卡片 -->
+<div id="detailCard"></div>
+
+<!-- 手機版 Bottom Sheet -->
+<div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
+<div id="mobileDetailSheet" class="sheet hidden">
+  <div class="sheet-header">
+    <span class="sheet-title">商品資訊</span>
+    <button id="sheetCloseBtn" class="sheet-close">×</button>
+  </div>
+  <div class="sheet-content" id="sheetContent"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+  import {
+    getFirestore, collection, getDocs, doc, getDoc
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
+  import {
+    getAuth, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
   const firebaseConfig = {
-    apiKey:"AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
-    authDomain:"kinyo-price.firebaseapp.com",
-    projectId:"kinyo-price"
+    apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+    authDomain: "kinyo-price.firebaseapp.com",
+    projectId: "kinyo-price",
+    storageBucket: "kinyo-price.firebasestorage.app",
+    messagingSenderId: "122464645678",
+    appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
   };
 
   const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
   const auth = getAuth(app);
 
-  const accInput = document.getElementById("account");
-  const pwdInput = document.getElementById("password");
-  const loginBtn = document.getElementById("loginBtn");
+  // 狀態
+  let productCache = null;
+  let currentResultList = [];
+  let userLevel = 1;
+  let currentUserEmail = "";
 
-  async function doLogin() {
-    const acc = accInput.value.trim();
-    const pwd = pwdInput.value.trim();
+  // DOM 參照
+  const keywordInput   = document.getElementById("keyword");
+  const qtySelect      = document.getElementById("qtySelect");
+  const minPriceInput  = document.getElementById("minPrice");
+  const maxPriceInput  = document.getElementById("maxPrice");
+  const searchBtn      = document.getElementById("searchBtn");
+  const clearBtn       = document.getElementById("clearBtn");
+  const exportBtn      = document.getElementById("exportBtn");
+  const resultBody     = document.getElementById("resultBody");
+  const resultTable    = document.getElementById("resultTable");
+  const detailCard     = document.getElementById("detailCard");
+  const checkAllBox    = document.getElementById("checkAll");
+  const sortSelect     = document.getElementById("sortSelect");
 
-    if (!acc || !pwd) {
-      alert("請輸入帳號與密碼");
+  const userInfoSpan   = document.getElementById("userInfo");
+  const logoutBtn      = document.getElementById("logoutBtn");
+
+  const sheetBackdrop  = document.getElementById("sheetBackdrop");
+  const mobileSheet    = document.getElementById("mobileDetailSheet");
+  const sheetContent   = document.getElementById("sheetContent");
+  const sheetCloseBtn  = document.getElementById("sheetCloseBtn");
+
+  // 顏色代碼映射
+  const colorMap = {
+    R: "紅", RD: "紅",
+    PK: "粉", P: "粉",
+    BL: "藍", BU: "藍",
+    B: "藍/黑", BK: "黑", K: "黑",
+    W: "白", WH: "白", WT: "白",
+    G: "綠", GN: "綠",
+    O: "橘", OR: "橘",
+    Y: "黃", YE: "黃"
+  };
+
+  // 強制需登入
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.href = "login.html";
       return;
     }
 
-    // 自動補上 @kinyo.com
-    const email = acc.toLowerCase() + "@kinyo.com";
+    currentUserEmail = user.email || "";
+    const shortAccount = currentUserEmail.replace(/@.*/, "");
 
     try {
-      await signInWithEmailAndPassword(auth, email, pwd);
-      window.location.href = "index.html";
-    } catch (err) {
-      console.error(err);
-      alert("登入失敗：帳號或密碼不正確");
+      const userDocRef = doc(db, "Users", currentUserEmail.toLowerCase());
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        userLevel = data.level || 1;
+      } else {
+        userLevel = 1;
+        alert("此帳號尚未設定權限，暫以 Level 1 顯示。");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("讀取使用者權限失敗，暫以 Level 1 顯示。");
+      userLevel = 1;
+    }
+
+    // 顯示頂部使用者資訊（不顯示 Level）
+    userInfoSpan.textContent = `登入帳號：${shortAccount}`;
+    logoutBtn.style.display = "inline-block";
+
+    // 根據 Level 設定起訂量選單
+    setupQtySelectByLevel();
+  });
+
+  function setupQtySelectByLevel() {
+    // 清空
+    qtySelect.innerHTML = "";
+    // 不使用起訂量
+    const optNone = document.createElement("option");
+    optNone.value = "";
+    optNone.textContent = "不使用起訂量";
+    qtySelect.appendChild(optNone);
+
+    const addOption = (val, label) => {
+      const opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = label;
+      qtySelect.appendChild(opt);
+    };
+
+    if (userLevel >= 1) {
+      addOption("50", "50 個");
+    }
+    if (userLevel >= 2) {
+      addOption("100", "100 個");
+      addOption("300", "300 個");
+    }
+    if (userLevel >= 3) {
+      addOption("500", "500 個");
+      addOption("1000", "1000 個");
     }
   }
 
-  loginBtn.addEventListener("click", doLogin);
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await signOut(auth);
+      window.location.href = "login.html";
+    } catch (e) {
+      console.error(e);
+      alert("登出失敗，請稍後再試");
+    }
+  });
 
-  // Enter 直接登入
-  [accInput, pwdInput].forEach(el => {
+  function applySorting(list) {
+    const opt = sortSelect.value;
+    if (opt === "minPriceAsc")  return list.sort((a,b)=>a.minPrice - b.minPrice);
+    if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
+    if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
+    if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
+    return list;
+  }
+
+  async function searchProducts() {
+    const kw   = keywordInput.value.trim().toLowerCase();
+    const qty  = qtySelect.value;
+    const minP = minPriceInput.value;
+    const maxP = maxPriceInput.value;
+
+    if (!qty && (minP || maxP)) {
+      alert("請先選擇起訂量，才能使用預算區間搜尋");
+      return;
+    }
+    if (qty && (!minP || !maxP)) {
+      alert("請輸入完整的預算區間（最低 + 最高金額）");
+      return;
+    }
+
+    let list = [];
+    if (!productCache) {
+      const snap = await getDocs(collection(db, "Products"));
+      productCache = [];
+      snap.forEach(docSnap => productCache.push(docSnap.data()));
+    }
+    list = [...productCache];
+
+    // 模糊搜尋
+    if (kw) {
+      const k = kw.toLowerCase();
+      list = list.filter(item =>
+        (item.model && item.model.toLowerCase().includes(k)) ||
+        (item.name && item.name.toLowerCase().includes(k))
+      );
+    }
+
+    // 起訂量 + 預算
+    if (qty && minP && maxP) {
+      const mapping = {
+        "50":"quote50","100":"quote100","300":"quote300",
+        "500":"quote500","1000":"quote1000"
+      };
+      const field = mapping[qty];
+
+      list = list.filter(item =>
+        item[field] >= Number(minP) &&
+        item[field] <= Number(maxP)
+      );
+    }
+
+    // 合併同主型號（最後一段英文視為顏色碼）
+    const grouped = {};
+    list.forEach(item => {
+      const main = item.model.replace(/[-_ ]?[A-Za-z]+$/, ""); // 主型號
+      if (!grouped[main]) grouped[main] = [];
+      grouped[main].push(item);
+    });
+
+    list = Object.keys(grouped).map(main => {
+      const items = grouped[main];
+      const first = items[0];
+
+      const colorCodes = items
+        .map(i => {
+          const m = i.model.match(/[-_ ]?([A-Za-z]+)$/);
+          return m ? m[1].toUpperCase() : "";
+        })
+        .filter(c => c);
+
+      const uniqueCodes = [...new Set(colorCodes)];
+
+      const displayColors = uniqueCodes.map(code => {
+        const cname = colorMap[code] || "";
+        return cname ? `${code}（${cname}）` : code;
+      }).join(" / ");
+
+      return {
+        ...first,
+        mainModel: items.length > 1 ? `${main}（多色）` : main,
+        colorList: displayColors || "-"
+      };
+    });
+
+    list = applySorting(list);
+
+    currentResultList = list;
+    renderResults(list);
+  }
+
+  clearBtn.addEventListener("click", () => {
+    keywordInput.value = "";
+    qtySelect.value    = "";
+    minPriceInput.value= "";
+    maxPriceInput.value= "";
+    sortSelect.value   = "";
+
+    resultBody.innerHTML = "";
+    resultTable.style.display = "none";
+    detailCard.style.display  = "none";
+    closeSheet();
+    exportBtn.disabled = true;
+  });
+
+  function renderResults(list) {
+    resultBody.innerHTML = "";
+    detailCard.style.display = "none";
+    closeSheet();
+    if (checkAllBox) checkAllBox.checked = false;
+
+    if (list.length === 0) {
+      resultTable.style.display = "none";
+      exportBtn.disabled = true;
+      alert("查無符合商品");
+      return;
+    }
+
+    resultTable.style.display = "table";
+    exportBtn.disabled = false;
+
+    list.forEach(item => {
+      const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
+      const tr  = document.createElement("tr");
+
+      // 依 level 產生價錢區塊
+      let priceHtml = "";
+
+      // Level 1: 只顯示 50
+      if (userLevel >= 1) {
+        priceHtml += `<span class="price-tag tag50">50個：${item.quote50} 元</span>`;
+      }
+      // Level 2: 額外顯示 100 / 300
+      if (userLevel >= 2) {
+        priceHtml += `<span class="price-tag tag100">100個：${item.quote100} 元</span>`;
+        priceHtml += `<span class="price-tag tag300">300個：${item.quote300} 元</span>`;
+      }
+      // Level 3: 額外顯示 500 / 1000
+      if (userLevel >= 3) {
+        priceHtml += `<span class="price-tag tag500">500個：${item.quote500} 元</span>`;
+        priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
+      }
+
+      tr.innerHTML = `
+        <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
+        <td><img src="${img}" class="product-img" /></td>
+        <td>${item.mainModel}</td>
+        <td>
+          <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
+          <div style="font-size:13px;line-height:1.6;margin-bottom:4px;">
+            ${priceHtml}
+          </div>
+          <div style="font-size:13px;color:#444;">
+            顏色：${item.colorList}
+          </div>
+        </td>
+        <td style="text-align:right;">${item.minPrice} 元</td>
+        <td style="text-align:right;">${item.marketPrice} 元</td>
+      `;
+
+      const isDesktop = window.innerWidth > 900;
+
+      if (isDesktop) {
+        // 桌機：hover / click 顯示右側卡片
+        tr.addEventListener("mouseenter", () => {
+          showDetailDesktop(item);
+        });
+        tr.addEventListener("click", (e) => {
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          showDetailDesktop(item);
+        });
+      } else {
+        // 手機：點擊顯示 Bottom Sheet
+        tr.addEventListener("click", (e) => {
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          showDetailMobile(item);
+        });
+      }
+
+      resultBody.appendChild(tr);
+    });
+
+    bindCheckAll();
+  }
+
+  function bindCheckAll() {
+    const rowChecks = document.querySelectorAll(".row-check");
+    if (!checkAllBox) return;
+
+    checkAllBox.addEventListener("change", () => {
+      rowChecks.forEach(chk => chk.checked = checkAllBox.checked);
+    });
+
+    rowChecks.forEach(chk => {
+      chk.addEventListener("change", () => {
+        const all = document.querySelectorAll(".row-check");
+        const checked = document.querySelectorAll(".row-check:checked");
+        checkAllBox.checked = (all.length === checked.length);
+      });
+    });
+  }
+
+  // 桌機版詳細資訊：右側卡片
+  function showDetailDesktop(item) {
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+
+    let priceBlock = "";
+    if (userLevel >= 1) {
+      priceBlock += `<p>50 個：${item.quote50} 元</p>`;
+    }
+    if (userLevel >= 2) {
+      priceBlock += `<p>100 個：${item.quote100} 元</p>`;
+      priceBlock += `<p>300 個：${item.quote300} 元</p>`;
+    }
+    if (userLevel >= 3) {
+      priceBlock += `<p>500 個：${item.quote500} 元</p>`;
+      priceBlock += `<p>1000 個：${item.quote1000} 元</p>`;
+    }
+
+    detailCard.style.display = "block";
+    detailCard.innerHTML = `
+      <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
+      <h2 style="margin:4px 0 8px;">${item.name}</h2>
+      <p style="margin:2px 0;">商品型號：${item.model}</p>
+      <p style="margin:2px 0;">主型號：${item.mainModel}</p>
+      <p style="margin:2px 0;">國際條碼：${item.barcode || "-"}</p>
+      <p style="margin:2px 0;">箱入數：${item.cartonQty || "-"}</p>
+
+      <h3 style="margin-top:12px;">價格資訊</h3>
+      ${priceBlock || "<p>此等級無採購價顯示</p>"}
+      <p>末售價格：${item.minPrice} 元</p>
+      <p>賣場售價：${item.marketPrice} 元</p>
+
+      <h3 style="margin-top:12px;">顏色資訊</h3>
+      <p>${item.colorList || "-"}</p>
+
+      <h3 style="margin-top:12px;">認證資訊</h3>
+      <p>BSMI：${item.bsmi || "-"}</p>
+      <p>NCC：${item.ncc || "-"}</p>
+
+      <h3 style="margin-top:12px;">商品網址</h3>
+      <p>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` : "-"}</p>
+    `;
+  }
+
+  // 手機版詳細資訊：Bottom Sheet
+  function showDetailMobile(item) {
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+
+    let priceBlock = "";
+    if (userLevel >= 1) {
+      priceBlock += `<p>50 個：${item.quote50} 元</p>`;
+    }
+    if (userLevel >= 2) {
+      priceBlock += `<p>100 個：${item.quote100} 元</p>`;
+      priceBlock += `<p>300 個：${item.quote300} 元</p>`;
+    }
+    if (userLevel >= 3) {
+      priceBlock += `<p>500 個：${item.quote500} 元</p>`;
+      priceBlock += `<p>1000 個：${item.quote1000} 元</p>`;
+    }
+
+    sheetContent.innerHTML = `
+      <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
+      <h2 style="margin:4px 0 8px;font-size:16px;">${item.name}</h2>
+      <p style="margin:2px 0;">商品型號：${item.model}</p>
+      <p style="margin:2px 0;">主型號：${item.mainModel}</p>
+      <p style="margin:2px 0;">國際條碼：${item.barcode || "-"}</p>
+      <p style="margin:2px 0;">箱入數：${item.cartonQty || "-"}</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">價格資訊</h3>
+      ${priceBlock || "<p>此等級無採購價顯示</p>"}
+      <p>末售價格：${item.minPrice} 元</p>
+      <p>賣場售價：${item.marketPrice} 元</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">顏色資訊</h3>
+      <p>${item.colorList || "-"}</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">認證資訊</h3>
+      <p>BSMI：${item.bsmi || "-"}</p>
+      <p>NCC：${item.ncc || "-"}</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">商品網址</h3>
+      <p>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` : "-"}</p>
+    `;
+
+    openSheet();
+  }
+
+  function openSheet() {
+    sheetBackdrop.classList.remove("hidden");
+    mobileSheet.classList.remove("hidden");
+    // 觸發動畫
+    requestAnimationFrame(() => {
+      mobileSheet.classList.add("open");
+    });
+  }
+
+  function closeSheet() {
+    sheetBackdrop.classList.add("hidden");
+    mobileSheet.classList.remove("open");
+    // 等動畫結束後再隱藏
+    setTimeout(() => {
+      if (!mobileSheet.classList.contains("open")) {
+        mobileSheet.classList.add("hidden");
+      }
+    }, 220);
+  }
+
+  sheetBackdrop.addEventListener("click", closeSheet);
+  sheetCloseBtn.addEventListener("click", closeSheet);
+
+  function exportSelectedExcel() {
+    const checkedBoxes = document.querySelectorAll(".row-check:checked");
+    if (checkedBoxes.length === 0) {
+      alert("請先勾選要匯出的商品");
+      return;
+    }
+
+    const selectedModels = Array.from(checkedBoxes).map(chk => chk.getAttribute("data-model"));
+
+    const rows = [
+      ["商品型號", "主型號", "商品名稱", "顏色列表", "箱入數", "採購50", "採購100", "採購300", "採購500", "採購1000", "末售", "賣場", "商品連結"]
+    ];
+
+    selectedModels.forEach(model => {
+      const item = currentResultList.find(p => p.model === model);
+      if (!item) return;
+
+      rows.push([
+        item.model,
+        item.mainModel,
+        item.name,
+        item.colorList,
+        item.cartonQty,
+        item.quote50,
+        item.quote100,
+        item.quote300,
+        item.quote500,
+        item.quote1000,
+        item.minPrice,
+        item.marketPrice,
+        item.productUrl
+      ]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "報價");
+
+    XLSX.writeFile(wb, "KINYO_勾選商品.xlsx");
+  }
+
+  searchBtn.addEventListener("click", searchProducts);
+  exportBtn.addEventListener("click", exportSelectedExcel);
+
+  sortSelect.addEventListener("change", () => {
+    if (currentResultList.length > 0) {
+      const sorted = applySorting([...currentResultList]);
+      renderResults(sorted);
+    }
+  });
+
+  [keywordInput, qtySelect, minPriceInput, maxPriceInput].forEach(el => {
     el.addEventListener("keydown", e => {
-      if (e.key === "Enter") doLogin();
+      if (e.key === "Enter") searchProducts();
     });
   });
 </script>
