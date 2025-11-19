@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KINYO 查價系統登入</title>
+
+  <style>
+    body {
+      background:#f3f4f6;
+      font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      margin:0;
+    }
+    .card {
+      width:320px;
+      padding:24px;
+      background:white;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.12);
+    }
+    h2 {
+      text-align:center;
+      margin-bottom:20px;
+    }
+    input {
+      width:100%;
+      padding:10px;
+      margin-bottom:12px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      box-sizing:border-box;
+      font-size:14px;
+    }
+    button {
+      width:100%;
+      padding:12px;
+      background:#111827;
+      color:white;
+      border-radius:8px;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+      font-size:14px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="card">
+  <h2>KINYO 查價系統</h2>
+
+  <input id="account" type="text" placeholder="帳號（例如：kinyo001）" />
+  <input id="password" type="password" placeholder="密碼" />
+  <button id="loginBtn">登入</button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey:"AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+    authDomain:"kinyo-price.firebaseapp.com",
+    projectId:"kinyo-price"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const accInput = document.getElementById("account");
+  const pwdInput = document.getElementById("password");
+  const loginBtn = document.getElementById("loginBtn");
+
+  async function doLogin() {
+    const acc = accInput.value.trim();
+    const pwd = pwdInput.value.trim();
+
+    if (!acc || !pwd) {
+      alert("請輸入帳號與密碼");
+      return;
+    }
+
+    // 自動補上 @kinyo.com
+    const email = acc.toLowerCase() + "@kinyo.com";
+
+    try {
+      await signInWithEmailAndPassword(auth, email, pwd);
+      window.location.href = "index.html";
+    } catch (err) {
+      console.error(err);
+      alert("登入失敗：帳號或密碼不正確");
+    }
+  }
+
+  loginBtn.addEventListener("click", doLogin);
+
+  // Enter 直接登入
+  [accInput, pwdInput].forEach(el => {
+    el.addEventListener("keydown", e => {
+      if (e.key === "Enter") doLogin();
+    });
+  });
+</script>
+
+</body>
+</html>
