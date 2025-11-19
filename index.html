@@ -17,7 +17,7 @@
     h1 { margin-bottom: 4px; }
     .subtitle { color: #666; margin-bottom: 16px; }
 
-    /* 頂部使用者列 */
+    /* 頂部使用者列（只顯示帳號與登出） */
     .top-bar {
       display:flex;
       justify-content: flex-end;
@@ -32,15 +32,6 @@
       border-radius:999px;
       background:#e5e7eb;
     }
-    .level-badge {
-      padding:4px 8px;
-      border-radius:999px;
-      font-weight:600;
-      font-size:12px;
-    }
-    .level-1 { background:#dbeafe; color:#1d4ed8; }
-    .level-2 { background:#dcfce7; color:#15803d; }
-    .level-3 { background:#fee2e2; color:#b91c1c; }
     .logout-btn {
       padding:4px 10px;
       border-radius:999px;
@@ -58,7 +49,7 @@
       margin-bottom: 12px;
     }
     .search-row { margin-bottom: 12px; }
-    label { font-weight: 600; }
+    label { font-weight: 600; display:block; margin-bottom:4px; }
 
     input, select {
       padding: 8px 12px;
@@ -133,7 +124,7 @@
     .tag500 { background:#ffedd5; color:#ea580c; }
     .tag1000{ background:#fee2e2; color:#b91c1c; }
 
-    /* 右側 hover 詳細資訊（桌機） */
+    /* 電腦版右側懸浮詳細資訊卡片 */
     #detailCard {
       position: fixed;
       right: 20px;
@@ -150,24 +141,68 @@
       z-index: 999;
     }
 
+    /* 手機版 Bottom Sheet 遮罩與面板 */
+    .sheet-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 900;
+    }
+    .sheet {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 70vh; /* 你選 A：約 70% 高度 */
+      background: #ffffff;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.22s ease-out;
+    }
+    .sheet.open {
+      transform: translateY(0%);
+    }
+    .sheet-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      padding:10px 16px 6px;
+      border-bottom:1px solid #e5e7eb;
+    }
+    .sheet-title {
+      font-size:15px;
+      font-weight:600;
+    }
+    .sheet-close {
+      font-size:22px;
+      line-height:1;
+      border:none;
+      background:transparent;
+      cursor:pointer;
+    }
+    .sheet-content {
+      padding:12px 16px 16px;
+      overflow-y:auto;
+      font-size:14px;
+    }
+
+    .hidden {
+      display:none !important;
+    }
+
+    /* RWD 調整 */
     @media (max-width: 900px) {
       body {
         max-width: 100%;
         margin: 16px auto 32px;
       }
+      /* 手機版不使用右側懸浮卡片 */
       #detailCard {
-        position: static;
-        width: 100%;
-        max-height: none;
-        margin-top: 12px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-        font-size: 13px;
-        padding: 14px;
-      }
-      .top-bar {
-        justify-content:flex-start;
-        margin-bottom: 8px;
-        flex-wrap: wrap;
+        display:none !important;
       }
     }
 
@@ -183,15 +218,16 @@
 
 <body>
 
+<!-- 頂部使用者列 -->
 <div class="top-bar">
   <span id="userInfo" class="user-badge">未登入</span>
-  <span id="userLevelBadge" class="level-badge level-1" style="display:none;"></span>
   <button id="logoutBtn" class="logout-btn" style="display:none;">登出</button>
 </div>
 
 <h1>KINYO 查價系統</h1>
-<div class="subtitle">需登入方可查價。依帳號等級顯示不同採購價，末售與賣場價所有等級皆可見。</div>
+<div class="subtitle">需登入後方可查價，並依帳號等級顯示不同採購價格（末售／賣場所有等級皆可見）。</div>
 
+<!-- 搜尋區塊 -->
 <div class="search-box">
   <div class="search-row">
     <label>關鍵字搜尋（型號 / 名稱）：</label>
@@ -200,14 +236,8 @@
 
   <div class="search-row">
     <label>選擇起訂量：</label>
-    <select id="qtySelect">
-      <option value="">不使用起訂量</option>
-      <option value="50">50 個</option>
-      <option value="100">100 個</option>
-      <option value="300">300 個</option>
-      <option value="500">500 個</option>
-      <option value="1000">1000 個</option>
-    </select>
+    <!-- 內容由 JS 根據 userLevel 動態產生 -->
+    <select id="qtySelect"></select>
   </div>
 
   <div class="search-row">
@@ -222,6 +252,7 @@
   <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </div>
 
+<!-- 工具列：排序 + 匯出 -->
 <div class="toolbar" style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
   <select id="sortSelect" class="btn-secondary" style="flex:1;">
     <option value="">不排序</option>
@@ -234,6 +265,7 @@
   <button id="exportBtn" class="btn-secondary" disabled>匯出勾選 Excel</button>
 </div>
 
+<!-- 結果表格 -->
 <table id="resultTable" style="display:none;">
   <thead>
     <tr>
@@ -248,7 +280,18 @@
   <tbody id="resultBody"></tbody>
 </table>
 
+<!-- 電腦版右側懸浮詳細資訊卡片 -->
 <div id="detailCard"></div>
+
+<!-- 手機版 Bottom Sheet -->
+<div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
+<div id="mobileDetailSheet" class="sheet hidden">
+  <div class="sheet-header">
+    <span class="sheet-title">商品資訊</span>
+    <button id="sheetCloseBtn" class="sheet-close">×</button>
+  </div>
+  <div class="sheet-content" id="sheetContent"></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -280,6 +323,7 @@
   let userLevel = 1;
   let currentUserEmail = "";
 
+  // DOM 參照
   const keywordInput   = document.getElementById("keyword");
   const qtySelect      = document.getElementById("qtySelect");
   const minPriceInput  = document.getElementById("minPrice");
@@ -294,8 +338,12 @@
   const sortSelect     = document.getElementById("sortSelect");
 
   const userInfoSpan   = document.getElementById("userInfo");
-  const userLevelBadge = document.getElementById("userLevelBadge");
   const logoutBtn      = document.getElementById("logoutBtn");
+
+  const sheetBackdrop  = document.getElementById("sheetBackdrop");
+  const mobileSheet    = document.getElementById("mobileDetailSheet");
+  const sheetContent   = document.getElementById("sheetContent");
+  const sheetCloseBtn  = document.getElementById("sheetCloseBtn");
 
   // 顏色代碼映射
   const colorMap = {
@@ -309,7 +357,7 @@
     Y: "黃", YE: "黃"
   };
 
-  // 監聽登入狀態
+  // 強制需登入
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       window.location.href = "login.html";
@@ -335,21 +383,42 @@
       userLevel = 1;
     }
 
-    // 顯示頂部使用者資訊
+    // 顯示頂部使用者資訊（不顯示 Level）
     userInfoSpan.textContent = `登入帳號：${shortAccount}`;
-    userLevelBadge.style.display = "inline-block";
-    if (userLevel === 1) {
-      userLevelBadge.textContent = "Level 1（50 價格）";
-      userLevelBadge.className = "level-badge level-1";
-    } else if (userLevel === 2) {
-      userLevelBadge.textContent = "Level 2（50/100/300）";
-      userLevelBadge.className = "level-badge level-2";
-    } else {
-      userLevelBadge.textContent = "Level 3（全部價格）";
-      userLevelBadge.className = "level-badge level-3";
-    }
     logoutBtn.style.display = "inline-block";
+
+    // 根據 Level 設定起訂量選單
+    setupQtySelectByLevel();
   });
+
+  function setupQtySelectByLevel() {
+    // 清空
+    qtySelect.innerHTML = "";
+    // 不使用起訂量
+    const optNone = document.createElement("option");
+    optNone.value = "";
+    optNone.textContent = "不使用起訂量";
+    qtySelect.appendChild(optNone);
+
+    const addOption = (val, label) => {
+      const opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = label;
+      qtySelect.appendChild(opt);
+    };
+
+    if (userLevel >= 1) {
+      addOption("50", "50 個");
+    }
+    if (userLevel >= 2) {
+      addOption("100", "100 個");
+      addOption("300", "300 個");
+    }
+    if (userLevel >= 3) {
+      addOption("500", "500 個");
+      addOption("1000", "1000 個");
+    }
+  }
 
   logoutBtn.addEventListener("click", async () => {
     try {
@@ -377,11 +446,11 @@
     const maxP = maxPriceInput.value;
 
     if (!qty && (minP || maxP)) {
-      alert("請先選擇起訂量");
+      alert("請先選擇起訂量，才能使用預算區間搜尋");
       return;
     }
     if (qty && (!minP || !maxP)) {
-      alert("預算區間需完整");
+      alert("請輸入完整的預算區間（最低 + 最高金額）");
       return;
     }
 
@@ -465,13 +534,15 @@
     resultBody.innerHTML = "";
     resultTable.style.display = "none";
     detailCard.style.display  = "none";
+    closeSheet();
     exportBtn.disabled = true;
   });
 
   function renderResults(list) {
     resultBody.innerHTML = "";
     detailCard.style.display = "none";
-    checkAllBox.checked = false;
+    closeSheet();
+    if (checkAllBox) checkAllBox.checked = false;
 
     if (list.length === 0) {
       resultTable.style.display = "none";
@@ -522,18 +593,24 @@
         <td style="text-align:right;">${item.marketPrice} 元</td>
       `;
 
-      // 滑鼠移入顯示詳細（桌機）
-      tr.addEventListener("mouseenter", () => {
-        if (window.innerWidth > 900) {
-          showDetail(item);
-        }
-      });
+      const isDesktop = window.innerWidth > 900;
 
-      // 手機 / 點擊顯示詳細
-      tr.addEventListener("click", (e) => {
-        if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
-        showDetail(item);
-      });
+      if (isDesktop) {
+        // 桌機：hover / click 顯示右側卡片
+        tr.addEventListener("mouseenter", () => {
+          showDetailDesktop(item);
+        });
+        tr.addEventListener("click", (e) => {
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          showDetailDesktop(item);
+        });
+      } else {
+        // 手機：點擊顯示 Bottom Sheet
+        tr.addEventListener("click", (e) => {
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          showDetailMobile(item);
+        });
+      }
 
       resultBody.appendChild(tr);
     });
@@ -543,6 +620,7 @@
 
   function bindCheckAll() {
     const rowChecks = document.querySelectorAll(".row-check");
+    if (!checkAllBox) return;
 
     checkAllBox.addEventListener("change", () => {
       rowChecks.forEach(chk => chk.checked = checkAllBox.checked);
@@ -557,7 +635,8 @@
     });
   }
 
-  function showDetail(item) {
+  // 桌機版詳細資訊：右側卡片
+  function showDetailDesktop(item) {
     const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
 
     let priceBlock = "";
@@ -598,6 +677,73 @@
       <p>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` : "-"}</p>
     `;
   }
+
+  // 手機版詳細資訊：Bottom Sheet
+  function showDetailMobile(item) {
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+
+    let priceBlock = "";
+    if (userLevel >= 1) {
+      priceBlock += `<p>50 個：${item.quote50} 元</p>`;
+    }
+    if (userLevel >= 2) {
+      priceBlock += `<p>100 個：${item.quote100} 元</p>`;
+      priceBlock += `<p>300 個：${item.quote300} 元</p>`;
+    }
+    if (userLevel >= 3) {
+      priceBlock += `<p>500 個：${item.quote500} 元</p>`;
+      priceBlock += `<p>1000 個：${item.quote1000} 元</p>`;
+    }
+
+    sheetContent.innerHTML = `
+      <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
+      <h2 style="margin:4px 0 8px;font-size:16px;">${item.name}</h2>
+      <p style="margin:2px 0;">商品型號：${item.model}</p>
+      <p style="margin:2px 0;">主型號：${item.mainModel}</p>
+      <p style="margin:2px 0;">國際條碼：${item.barcode || "-"}</p>
+      <p style="margin:2px 0;">箱入數：${item.cartonQty || "-"}</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">價格資訊</h3>
+      ${priceBlock || "<p>此等級無採購價顯示</p>"}
+      <p>末售價格：${item.minPrice} 元</p>
+      <p>賣場售價：${item.marketPrice} 元</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">顏色資訊</h3>
+      <p>${item.colorList || "-"}</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">認證資訊</h3>
+      <p>BSMI：${item.bsmi || "-"}</p>
+      <p>NCC：${item.ncc || "-"}</p>
+
+      <h3 style="margin-top:12px;font-size:14px;">商品網址</h3>
+      <p>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` : "-"}</p>
+    `;
+
+    openSheet();
+  }
+
+  function openSheet() {
+    sheetBackdrop.classList.remove("hidden");
+    mobileSheet.classList.remove("hidden");
+    // 觸發動畫
+    requestAnimationFrame(() => {
+      mobileSheet.classList.add("open");
+    });
+  }
+
+  function closeSheet() {
+    sheetBackdrop.classList.add("hidden");
+    mobileSheet.classList.remove("open");
+    // 等動畫結束後再隱藏
+    setTimeout(() => {
+      if (!mobileSheet.classList.contains("open")) {
+        mobileSheet.classList.add("hidden");
+      }
+    }, 220);
+  }
+
+  sheetBackdrop.addEventListener("click", closeSheet);
+  sheetCloseBtn.addEventListener("click", closeSheet);
 
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
