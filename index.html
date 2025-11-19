@@ -745,69 +745,12 @@
   sheetBackdrop.addEventListener("click", closeSheet);
   sheetCloseBtn.addEventListener("click", closeSheet);
 
-  
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
     if (checkedBoxes.length === 0) {
       alert("請先勾選要匯出的商品");
       return;
     }
-
-    const selectedModels = Array.from(checkedBoxes).map(chk =>
-      chk.getAttribute("data-model")
-    );
-
-    const baseHeader = [
-      "商品型號","主型號","商品名稱","顏色列表","箱入數","商品連結"
-    ];
-
-    let priceHeader = [];
-    if (userLevel === 1) {
-      priceHeader = ["50個","末售","賣場"];
-    } else if (userLevel === 2) {
-      priceHeader = ["50個","100個","300個","末售","賣場"];
-    } else if (userLevel === 3) {
-      priceHeader = ["50個","100個","300個","500個","1000個","末售","賣場"];
-    }
-
-    const header = [...baseHeader, ...priceHeader];
-    const rows = [header];
-
-    selectedModels.forEach(model => {
-      const item = currentResultList.find(p => p.model === model);
-      if (!item) return;
-
-      const baseRow = [
-        item.model,
-        item.mainModel,
-        item.name,
-        item.colorList,
-        item.cartonQty,
-        item.productUrl
-      ];
-
-      let priceRow = [];
-      if (userLevel === 1) {
-        priceRow = [item.quote50, item.minPrice, item.marketPrice];
-      } else if (userLevel === 2) {
-        priceRow = [item.quote50, item.quote100, item.quote300, item.minPrice, item.marketPrice];
-      } else if (userLevel === 3) {
-        priceRow = [
-          item.quote50, item.quote100, item.quote300,
-          item.quote500, item.quote1000,
-          item.minPrice, item.marketPrice
-        ];
-      }
-
-      rows.push([...baseRow, ...priceRow]);
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, "報價");
-    XLSX.writeFile(wb, "KINYO_勾選商品.xlsx");
-  }
-
 
     const selectedModels = Array.from(checkedBoxes).map(chk => chk.getAttribute("data-model"));
 
