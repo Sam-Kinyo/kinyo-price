@@ -2,127 +2,108 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>KINYO 查價系統登入</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>KINYO 查價系統登入</title>
+
   <style>
     body {
-      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 0;
+      background:#f3f4f6;
+      font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      height:100vh;
+      margin:0;
     }
-    .login-container {
-      max-width: 360px;
-      margin: 80px auto;
-      background: white;
-      padding: 24px;
-      border-radius: 12px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    .card {
+      width:320px;
+      padding:24px;
+      background:white;
+      border-radius:12px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.12);
     }
     h2 {
-      text-align: center;
-      margin-bottom: 20px;
-      font-weight: 700;
-    }
-    label {
-      font-weight: 600;
-      display: block;
-      margin-bottom: 6px;
+      text-align:center;
+      margin-bottom:20px;
     }
     input {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      box-sizing: border-box;
-      margin-bottom: 16px;
-      font-size: 15px;
+      width:100%;
+      padding:10px;
+      margin-bottom:12px;
+      border-radius:8px;
+      border:1px solid #ccc;
+      box-sizing:border-box;
+      font-size:14px;
     }
     button {
-      width: 100%;
-      padding: 10px;
-      border-radius: 999px;
-      border: none;
-      background: #111827;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    .error-msg {
-      color: #b91c1c;
-      margin-top: 10px;
-      font-size: 14px;
-      text-align: center;
+      width:100%;
+      padding:12px;
+      background:#111827;
+      color:white;
+      border-radius:8px;
+      border:none;
+      cursor:pointer;
+      font-weight:600;
+      font-size:14px;
     }
   </style>
 </head>
+
 <body>
 
-<div class="login-container">
+<div class="card">
   <h2>KINYO 查價系統</h2>
 
-  <label>帳號（不用 @mail）</label>
-  <input id="accountInput" placeholder="例如：kinyo001" />
-
-  <label>密碼</label>
-  <input id="passwordInput" type="password" placeholder="輸入密碼" />
-
+  <input id="account" type="text" placeholder="帳號（例如：kinyo001）" />
+  <input id="password" type="password" placeholder="密碼" />
   <button id="loginBtn">登入</button>
-
-  <div id="errorMsg" class="error-msg"></div>
 </div>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  import {
-    getAuth, signInWithEmailAndPassword, onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
   const firebaseConfig = {
-    apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
-    authDomain: "kinyo-price.firebaseapp.com",
-    projectId: "kinyo-price",
-    storageBucket: "kinyo-price.firebasestorage.app",
-    messagingSenderId: "122464645678",
-    appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
+    apiKey:"AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+    authDomain:"kinyo-price.firebaseapp.com",
+    projectId:"kinyo-price"
   };
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
+  const accInput = document.getElementById("account");
+  const pwdInput = document.getElementById("password");
   const loginBtn = document.getElementById("loginBtn");
-  const accountInput = document.getElementById("accountInput");
-  const passwordInput = document.getElementById("passwordInput");
-  const errorMsg = document.getElementById("errorMsg");
 
-  // 避免 redirect loop 的關鍵：登入頁面不會自動跳走
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      // 已登入 → 前往 index.html（只會發生一次）
-      window.location.href = "index.html";
-    }
-  });
+  async function doLogin() {
+    const acc = accInput.value.trim();
+    const pwd = pwdInput.value.trim();
 
-  loginBtn.addEventListener("click", async () => {
-    const account = accountInput.value.trim();
-    const password = passwordInput.value;
-
-    if (!account || !password) {
-      errorMsg.textContent = "請輸入帳號與密碼。";
+    if (!acc || !pwd) {
+      alert("請輸入帳號與密碼");
       return;
     }
 
-    // Firebase Email 需要 @，這裡自動補上
-    const email = account + "@kinyo.com";
+    // 自動補上 @kinyo.com
+    const email = acc.toLowerCase() + "@kinyo.com";
 
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      errorMsg.textContent = "";
+      await signInWithEmailAndPassword(auth, email, pwd);
+      window.location.href = "index.html";
     } catch (err) {
       console.error(err);
-      errorMsg.textContent = "帳號或密碼錯誤。";
+      alert("登入失敗：帳號或密碼不正確");
     }
+  }
+
+  loginBtn.addEventListener("click", doLogin);
+
+  // Enter 直接登入
+  [accInput, pwdInput].forEach(el => {
+    el.addEventListener("keydown", e => {
+      if (e.key === "Enter") doLogin();
+    });
   });
 </script>
 
