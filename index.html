@@ -117,6 +117,7 @@
       margin-bottom: 4px;
       display: inline-block;
       font-size: 12px;
+      white-space: nowrap;
     }
     .tag50  { background:#dbeafe; color:#1e40af; }
     .tag100 { background:#e0f2fe; color:#0369a1; }
@@ -140,7 +141,6 @@
       font-size: 14px;
       z-index: 999;
     }
-
     /* 手機版 Bottom Sheet 遮罩與面板 */
     .sheet-backdrop {
       position: fixed;
@@ -153,7 +153,7 @@
       left: 0;
       right: 0;
       bottom: 0;
-      height: 70vh; /* 你選 A：約 70% 高度 */
+      height: 70vh;
       background: #ffffff;
       border-radius: 16px 16px 0 0;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
@@ -194,18 +194,18 @@
       display:none !important;
     }
 
-    /* RWD 調整 */
+    /* RWD — 手機不使用右側卡片 */
     @media (max-width: 900px) {
       body {
         max-width: 100%;
         margin: 16px auto 32px;
       }
-      /* 手機版不使用右側懸浮卡片 */
       #detailCard {
         display:none !important;
       }
     }
 
+    /* RWD — 手機字體縮小 */
     @media (max-width: 600px) {
       .search-box { padding: 12px; }
       input, select { font-size: 14px; padding: 6px 10px; }
@@ -213,6 +213,25 @@
       table th, table td { padding: 6px; font-size: 13px; }
       .btn-primary, .btn-secondary { padding: 8px 12px; }
     }
+
+    /* 手機版價格：固定 3 欄 Grid */
+    @media (max-width: 600px) {
+      .price-tag-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px 6px;
+        margin-bottom: 4px;
+      }
+      .price-tag {
+        display: block;
+        text-align: center;
+        padding: 4px 2px;
+        font-size: 11.5px;
+        border-radius: 5px;
+        white-space: nowrap;
+      }
+    }
+
   </style>
 </head>
 
@@ -236,7 +255,6 @@
 
   <div class="search-row">
     <label>選擇起訂量：</label>
-    <!-- 內容由 JS 根據 userLevel 動態產生 -->
     <select id="qtySelect"></select>
   </div>
 
@@ -252,7 +270,7 @@
   <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </div>
 
-<!-- 工具列：排序 + 匯出 -->
+<!-- 工具列 -->
 <div class="toolbar" style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
   <select id="sortSelect" class="btn-secondary" style="flex:1;">
     <option value="">不排序</option>
@@ -280,10 +298,10 @@
   <tbody id="resultBody"></tbody>
 </table>
 
-<!-- 電腦版右側懸浮詳細資訊卡片 -->
+<!-- 桌機詳細資訊 -->
 <div id="detailCard"></div>
 
-<!-- 手機版 Bottom Sheet -->
+<!-- 手機 Bottom Sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
 <div id="mobileDetailSheet" class="sheet hidden">
   <div class="sheet-header">
@@ -292,7 +310,6 @@
   </div>
   <div class="sheet-content" id="sheetContent"></div>
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
@@ -357,7 +374,7 @@
     Y: "黃", YE: "黃"
   };
 
-  // 強制需登入
+  // 使用者登入狀態
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       window.location.href = "login.html";
@@ -383,18 +400,15 @@
       userLevel = 1;
     }
 
-    // 顯示頂部使用者資訊（不顯示 Level）
     userInfoSpan.textContent = `登入帳號：${shortAccount}`;
     logoutBtn.style.display = "inline-block";
 
-    // 根據 Level 設定起訂量選單
     setupQtySelectByLevel();
   });
 
   function setupQtySelectByLevel() {
-    // 清空
     qtySelect.innerHTML = "";
-    // 不使用起訂量
+
     const optNone = document.createElement("option");
     optNone.value = "";
     optNone.textContent = "不使用起訂量";
@@ -407,9 +421,7 @@
       qtySelect.appendChild(opt);
     };
 
-    if (userLevel >= 1) {
-      addOption("50", "50 個");
-    }
+    if (userLevel >= 1) addOption("50", "50 個");
     if (userLevel >= 2) {
       addOption("100", "100 個");
       addOption("300", "300 個");
@@ -438,7 +450,6 @@
     if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
     return list;
   }
-
   async function searchProducts() {
     const kw   = keywordInput.value.trim().toLowerCase();
     const qty  = qtySelect.value;
@@ -455,14 +466,16 @@
     }
 
     let list = [];
+
     if (!productCache) {
       const snap = await getDocs(collection(db, "Products"));
       productCache = [];
       snap.forEach(docSnap => productCache.push(docSnap.data()));
     }
+
     list = [...productCache];
 
-    // 模糊搜尋
+    /* 模糊搜尋 */
     if (kw) {
       const k = kw.toLowerCase();
       list = list.filter(item =>
@@ -471,7 +484,7 @@
       );
     }
 
-    // 起訂量 + 預算
+    /* 起訂量 + 預算 */
     if (qty && minP && maxP) {
       const mapping = {
         "50":"quote50","100":"quote100","300":"quote300",
@@ -485,10 +498,10 @@
       );
     }
 
-    // 合併同主型號（最後一段英文視為顏色碼）
+    /* 合併同主型號（最後英文視為顏色碼） */
     const grouped = {};
     list.forEach(item => {
-      const main = item.model.replace(/[-_ ]?[A-Za-z]+$/, ""); // 主型號
+      const main = item.model.replace(/[-_ ]?[A-Za-z]+$/, "");
       if (!grouped[main]) grouped[main] = [];
       grouped[main].push(item);
     });
@@ -506,10 +519,12 @@
 
       const uniqueCodes = [...new Set(colorCodes)];
 
-      const displayColors = uniqueCodes.map(code => {
-        const cname = colorMap[code] || "";
-        return cname ? `${code}（${cname}）` : code;
-      }).join(" / ");
+      const displayColors = uniqueCodes
+        .map(code => {
+          const cname = colorMap[code] || "";
+          return cname ? `${code}（${cname}）` : code;
+        })
+        .join(" / ");
 
       return {
         ...first,
@@ -558,33 +573,34 @@
       const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
       const tr  = document.createElement("tr");
 
-      // 依 level 產生價錢區塊
+      /* 產生價格區塊 HTML */
       let priceHtml = "";
 
-      // Level 1: 只顯示 50
       if (userLevel >= 1) {
         priceHtml += `<span class="price-tag tag50">50個：${item.quote50} 元</span>`;
       }
-      // Level 2: 額外顯示 100 / 300
       if (userLevel >= 2) {
         priceHtml += `<span class="price-tag tag100">100個：${item.quote100} 元</span>`;
         priceHtml += `<span class="price-tag tag300">300個：${item.quote300} 元</span>`;
       }
-      // Level 3: 額外顯示 500 / 1000
       if (userLevel >= 3) {
         priceHtml += `<span class="price-tag tag500">500個：${item.quote500} 元</span>`;
         priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
       }
 
+      /* ★★★ 新版：手機 3 欄 Grid（price-tag-container） ★★★ */
       tr.innerHTML = `
         <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
         <td><img src="${img}" class="product-img" /></td>
         <td>${item.mainModel}</td>
         <td>
           <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
-          <div style="font-size:13px;line-height:1.6;margin-bottom:4px;">
+
+          <!-- 價格區塊（已支援手機 3 欄 Grid） -->
+          <div class="price-tag-container" style="font-size:13px;line-height:1.6;margin-bottom:4px;">
             ${priceHtml}
           </div>
+
           <div style="font-size:13px;color:#444;">
             顏色：${item.colorList}
           </div>
@@ -596,16 +612,14 @@
       const isDesktop = window.innerWidth > 900;
 
       if (isDesktop) {
-        // 桌機：hover / click 顯示右側卡片
-        tr.addEventListener("mouseenter", () => {
-          showDetailDesktop(item);
-        });
+        /* 桌機：hover / click 顯示卡片 */
+        tr.addEventListener("mouseenter", () => showDetailDesktop(item));
         tr.addEventListener("click", (e) => {
           if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
           showDetailDesktop(item);
         });
       } else {
-        // 手機：點擊顯示 Bottom Sheet
+        /* 手機：點擊顯示 bottom sheet */
         tr.addEventListener("click", (e) => {
           if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
           showDetailMobile(item);
@@ -617,7 +631,6 @@
 
     bindCheckAll();
   }
-
   function bindCheckAll() {
     const rowChecks = document.querySelectorAll(".row-check");
     if (!checkAllBox) return;
@@ -635,115 +648,112 @@
     });
   }
 
-  // 桌機版詳細資訊：右側卡片
+  /* 桌機版詳細資訊卡片 */
   function showDetailDesktop(item) {
-  const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
 
-  let priceBlock = "";
-  if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
-  if (userLevel >= 2) {
-    priceBlock += `<div>100 個：${item.quote100} 元</div>`;
-    priceBlock += `<div>300 個：${item.quote300} 元</div>`;
-  }
-  if (userLevel >= 3) {
-    priceBlock += `<div>500 個：${item.quote500} 元</div>`;
-    priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
-  }
+    let priceBlock = "";
+    if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
+    if (userLevel >= 2) {
+      priceBlock += `<div>100 個：${item.quote100} 元</div>`;
+      priceBlock += `<div>300 個：${item.quote300} 元</div>`;
+    }
+    if (userLevel >= 3) {
+      priceBlock += `<div>500 個：${item.quote500} 元</div>`;
+      priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
+    }
 
-  detailCard.style.display = "block";
-  detailCard.innerHTML = `
-    <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
-    <h2 style="margin:4px 0 12px;">${item.name}</h2>
+    detailCard.style.display = "block";
+    detailCard.innerHTML = `
+      <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
+      <h2 style="margin:4px 0 12px;">${item.name}</h2>
 
-    <!-- 兩欄 Grid -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;line-height:1.5;">
-      <div><strong>商品型號</strong><br>${item.model}</div>
-      <div><strong>主型號</strong><br>${item.mainModel}</div>
+      <!-- 兩欄 Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;line-height:1.5;">
+        <div><strong>商品型號</strong><br>${item.model}</div>
+        <div><strong>主型號</strong><br>${item.mainModel}</div>
 
-      <div><strong>國際條碼</strong><br>${item.barcode || "-"}</div>
-      <div><strong>箱入數</strong><br>${item.cartonQty || "-"}</div>
+        <div><strong>國際條碼</strong><br>${item.barcode || "-"}</div>
+        <div><strong>箱入數</strong><br>${item.cartonQty || "-"}</div>
 
-      <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
-      <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
+        <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
+        <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
 
-      <div><strong>商品網址</strong><br>
-        ${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}
+        <div><strong>商品網址</strong><br>
+          ${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}
+        </div>
+
+        <div><strong>顏色</strong><br>${item.colorList || "-"}</div>
       </div>
 
-      <div><strong>顏色</strong><br>${item.colorList || "-"}</div>
-    </div>
-
-    <h3 style="margin-top:18px;">採購價格</h3>
-    <div style="margin-left:4px;line-height:1.6;">
-      ${priceBlock || "<div>此帳號無採購價可見</div>"}
-    </div>
-
-    <h3 style="margin-top:18px;">商品特色</h3>
-    <div style="white-space:pre-line;">${item.features || "-"}</div>
-
-    <h3 style="margin-top:18px;">商品規格</h3>
-    <div style="white-space:pre-line;">${item.specs || "-"}</div>
-  `;
-}
-
-
-  // 手機版詳細資訊：Bottom Sheet
- function showDetailMobile(item) {
-  const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-
-  let priceBlock = "";
-  if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
-  if (userLevel >= 2) {
-    priceBlock += `<div>100 個：${item.quote100} 元</div>`;
-    priceBlock += `<div>300 個：${item.quote300} 元</div>`;
-  }
-  if (userLevel >= 3) {
-    priceBlock += `<div>500 個：${item.quote500} 元</div>`;
-    priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
-  }
-
-  sheetContent.innerHTML = `
-    <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
-    <h2 style="margin:4px 0 12px;font-size:17px;">${item.name}</h2>
-
-    <!-- 兩欄 Grid -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.5;">
-      <div><strong>商品型號</strong><br>${item.model}</div>
-      <div><strong>主型號</strong><br>${item.mainModel}</div>
-
-      <div><strong>國際條碼</strong><br>${item.barcode || "-"}</div>
-      <div><strong>箱入數</strong><br>${item.cartonQty || "-"}</div>
-
-      <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
-      <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
-
-      <div><strong>商品網址</strong><br>
-        ${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}
+      <h3 style="margin-top:18px;">採購價格</h3>
+      <div style="margin-left:4px;line-height:1.6;">
+        ${priceBlock || "<div>此帳號無採購價可見</div>"}
       </div>
 
-      <div><strong>顏色</strong><br>${item.colorList || "-"}</div>
-    </div>
+      <h3 style="margin-top:18px;">商品特色</h3>
+      <div style="white-space:pre-line;">${item.features || "-"}</div>
 
-    <h3 style="margin-top:18px;font-size:15px;">採購價格</h3>
-    <div style="line-height:1.6;margin-left:4px;">
-      ${priceBlock || "<div>此帳號無採購價可見</div>"}
-    </div>
+      <h3 style="margin-top:18px;">商品規格</h3>
+      <div style="white-space:pre-line;">${item.specs || "-"}</div>
+    `;
+  }
 
-    <h3 style="margin-top:18px;font-size:15px;">商品特色</h3>
-    <div style="white-space:pre-line;">${item.features || "-"}</div>
+  /* 手機版詳細資訊 */
+  function showDetailMobile(item) {
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
 
-    <h3 style="margin-top:18px;font-size:15px;">商品規格</h3>
-    <div style="white-space:pre-line;">${item.specs || "-"}</div>
-  `;
+    let priceBlock = "";
+    if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
+    if (userLevel >= 2) {
+      priceBlock += `<div>100 個：${item.quote100} 元</div>`;
+      priceBlock += `<div>300 個：${item.quote300} 元</div>`;
+    }
+    if (userLevel >= 3) {
+      priceBlock += `<div>500 個：${item.quote500} 元</div>`;
+      priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
+    }
 
-  openSheet();
-}
+    sheetContent.innerHTML = `
+      <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
+      <h2 style="margin:4px 0 12px;font-size:17px;">${item.name}</h2>
 
+      <!-- 兩欄 Grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.5;">
+        <div><strong>商品型號</strong><br>${item.model}</div>
+        <div><strong>主型號</strong><br>${item.mainModel}</div>
 
+        <div><strong>國際條碼</strong><br>${item.barcode || "-"}</div>
+        <div><strong>箱入數</strong><br>${item.cartonQty || "-"}</div>
+
+        <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
+        <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
+
+        <div><strong>商品網址</strong><br>
+          ${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}
+        </div>
+
+        <div><strong>顏色</strong><br>${item.colorList || "-"}</div>
+      </div>
+
+      <h3 style="margin-top:18px;font-size:15px;">採購價格</h3>
+      <div style="line-height:1.6;margin-left:4px;">
+        ${priceBlock || "<div>此帳號無採購價可見</div>"}
+      </div>
+
+      <h3 style="margin-top:18px;font-size:15px;">商品特色</h3>
+      <div style="white-space:pre-line;">${item.features || "-"}</div>
+
+      <h3 style="margin-top:18px;font-size:15px;">商品規格</h3>
+      <div style="white-space:pre-line;">${item.specs || "-"}</div>
+    `;
+
+    openSheet();
+  }
   function openSheet() {
     sheetBackdrop.classList.remove("hidden");
     mobileSheet.classList.remove("hidden");
-    // 觸發動畫
+
     requestAnimationFrame(() => {
       mobileSheet.classList.add("open");
     });
@@ -752,7 +762,7 @@
   function closeSheet() {
     sheetBackdrop.classList.add("hidden");
     mobileSheet.classList.remove("open");
-    // 等動畫結束後再隱藏
+
     setTimeout(() => {
       if (!mobileSheet.classList.contains("open")) {
         mobileSheet.classList.add("hidden");
@@ -763,88 +773,84 @@
   sheetBackdrop.addEventListener("click", closeSheet);
   sheetCloseBtn.addEventListener("click", closeSheet);
 
+
+  /* 匯出 Excel */
   function exportSelectedExcel() {
-  const checkedBoxes = document.querySelectorAll(".row-check:checked");
-  if (checkedBoxes.length === 0) {
-    alert("請先勾選要匯出的商品");
-    return;
-  }
-
-  const selectedModels = Array.from(checkedBoxes).map(chk =>
-    chk.getAttribute("data-model")
-  );
-
-  // 所有等級都能匯出的基本欄位
-  const baseHeader = [
-    "商品型號",
-    "主型號",
-    "商品名稱",
-    "顏色列表",
-    "箱入數",
-    "商品連結"
-  ];
-
-  // 根據等級決定價格欄位
-  let priceHeader = [];
-  if (userLevel === 1) {
-    priceHeader = ["50個", "末售", "賣場"];
-  } else if (userLevel === 2) {
-    priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
-  } else if (userLevel === 3) {
-    priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
-  }
-
-  const finalHeader = [...baseHeader, ...priceHeader];
-  const rows = [finalHeader];
-
-  selectedModels.forEach(model => {
-    const item = currentResultList.find(p => p.model === model);
-    if (!item) return;
-
-    // 基本
-    const baseRow = [
-      item.model,
-      item.mainModel,
-      item.name,
-      item.colorList,
-      item.cartonQty,
-      item.productUrl
-    ];
-
-    // 價格依層級輸出
-    let priceRow = [];
-    if (userLevel === 1) {
-      priceRow = [item.quote50, item.minPrice, item.marketPrice];
-    } else if (userLevel === 2) {
-      priceRow = [
-        item.quote50,
-        item.quote100,
-        item.quote300,
-        item.minPrice,
-        item.marketPrice
-      ];
-    } else if (userLevel === 3) {
-      priceRow = [
-        item.quote50,
-        item.quote100,
-        item.quote300,
-        item.quote500,
-        item.quote1000,
-        item.minPrice,
-        item.marketPrice
-      ];
+    const checkedBoxes = document.querySelectorAll(".row-check:checked");
+    if (checkedBoxes.length === 0) {
+      alert("請先勾選要匯出的商品");
+      return;
     }
 
-    rows.push([...baseRow, ...priceRow]);
-  });
+    const selectedModels = Array.from(checkedBoxes).map(chk =>
+      chk.getAttribute("data-model")
+    );
 
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "報價");
-  XLSX.writeFile(wb, "KINYO_勾選商品.xlsx");
-}
+    const baseHeader = [
+      "商品型號",
+      "主型號",
+      "商品名稱",
+      "顏色列表",
+      "箱入數",
+      "商品連結"
+    ];
 
+    let priceHeader = [];
+    if (userLevel === 1) {
+      priceHeader = ["50個", "末售", "賣場"];
+    } else if (userLevel === 2) {
+      priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
+    } else if (userLevel === 3) {
+      priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
+    }
 
+    const finalHeader = [...baseHeader, ...priceHeader];
+    const rows = [finalHeader];
+
+    selectedModels.forEach(model => {
+      const item = currentResultList.find(p => p.model === model);
+      if (!item) return;
+
+      const baseRow = [
+        item.model,
+        item.mainModel,
+        item.name,
+        item.colorList,
+        item.cartonQty,
+        item.productUrl
+      ];
+
+      let priceRow = [];
+      if (userLevel === 1) {
+        priceRow = [item.quote50, item.minPrice, item.marketPrice];
+      } else if (userLevel === 2) {
+        priceRow = [
+          item.quote50,
+          item.quote100,
+          item.quote300,
+          item.minPrice,
+          item.marketPrice
+        ];
+      } else if (userLevel === 3) {
+        priceRow = [
+          item.quote50,
+          item.quote100,
+          item.quote300,
+          item.quote500,
+          item.quote1000,
+          item.minPrice,
+          item.marketPrice
+        ];
+      }
+
+      rows.push([...baseRow, ...priceRow]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "報價");
+    XLSX.writeFile(wb, "KINYO_勾選商品.xlsx");
+  }
   searchBtn.addEventListener("click", searchProducts);
   exportBtn.addEventListener("click", exportSelectedExcel);
 
@@ -860,6 +866,7 @@
       if (e.key === "Enter") searchProducts();
     });
   });
+
 </script>
 
 </body>
