@@ -608,6 +608,10 @@
           <div style="font-size:13px;color:#444;">
             顏色：${item.colorList}
           </div>
+<!-- ★ 在這裡加入 LINE 分享按鈕 ★ -->
+<button class="btn-secondary line-share-btn" data-model="${item.model}" 
+  style="margin-top:6px;padding:4px 10px;font-size:12px;">
+  複製 LINE 分享
 <!-- 毛利計算器（UI2） -->
 <div class="profit-box" style="margin-top:6px;font-size:12px;">
   <div style="display:flex; gap:6px; margin-bottom:4px;">
@@ -717,6 +721,10 @@
 
       <h3 style="margin-top:18px;">商品規格</h3>
       <div style="white-space:pre-line;">${item.specs || "-"}</div>
+      <!-- ★ 這裡加 LINE 分享按鈕（桌機版） ★ -->
+<button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:16px;">
+  複製 LINE 分享
+</button>
       <h3 style="margin-top:18px;">毛利試算</h3>
 
 <div style="font-size:14px;margin-top:4px;">
@@ -784,6 +792,10 @@
 
       <h3 style="margin-top:18px;font-size:15px;">商品規格</h3>
       <div style="white-space:pre-line;">${item.specs || "-"}</div>
+      <!-- ★ 加在這裡（手機） ★ -->
+<button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:16px;width:100%;">
+  複製 LINE 分享
+</button>
     `;
 
     openSheet();
@@ -937,6 +949,38 @@ document.addEventListener("input", function(e) {
     barFill.style.background = "#4ade80";
   }
 });
+
+  // LINE 分享功能
+document.addEventListener("click", function(e) {
+  if (!e.target.classList.contains("line-share-btn")) return;
+
+  const model = e.target.getAttribute("data-model");
+  const item = currentResultList.find(p => p.model === model);
+  if (!item) return;
+
+  // 根據用戶等級取成本
+  let costText = "";
+
+  if (userLevel >= 1) costText += `50個：${item.quote50}元`;
+  if (userLevel >= 2) {
+    costText += ` / 100個：${item.quote100}元`;
+    costText += ` / 300個：${item.quote300}元`;
+  }
+  if (userLevel >= 3) {
+    costText += ` / 500個：${item.quote500}元`;
+    costText += ` / 1000個：${item.quote1000}元`;
+  }
+
+  const text =
+`【${item.model}】${item.name}
+${costText}
+商品連結：${item.productUrl || "無"}`;
+
+  navigator.clipboard.writeText(text)
+    .then(()=> alert("已複製，可直接貼到 LINE"))
+    .catch(()=> alert("無法複製，請手動長按複製"));
+});
+
 
 
 </script>
