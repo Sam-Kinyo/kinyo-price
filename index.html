@@ -577,43 +577,21 @@
       }
 
       tr.innerHTML = `
-  <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
-  <td><img src="${img}" class="product-img" /></td>
-  <td>${item.mainModel}</td>
-  <td>
-    <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
-
-    <!-- ★★★ 這裡是新版：手機 3 欄價格 Grid ★★★ -->
-    <div class="price-tag-container" style="font-size:13px;line-height:1.6;margin-bottom:4px;">
-      ${priceHtml}
-    </div>
-
-    <div style="font-size:13px;color:#444;">
-      顏色：${item.colorList}
-    </div>
-  </td>
-  <td style="text-align:right;">${item.minPrice} 元</td>
-  <td style="text-align:right;">${item.marketPrice} 元</td>
-`;
-/* 手機版價格：3 欄固定 Grid */
-@media (max-width: 600px) {
-  .price-tag-container {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px 6px;
-    margin-bottom: 4px;
-  }
-
-  .price-tag {
-    display: block;
-    text-align: center;
-    padding: 4px 2px;
-    font-size: 11.5px;
-    border-radius: 5px;
-    white-space: nowrap;
-  }
-}
-
+        <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
+        <td><img src="${img}" class="product-img" /></td>
+        <td>${item.mainModel}</td>
+        <td>
+          <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
+          <div style="font-size:13px;line-height:1.6;margin-bottom:4px;">
+            ${priceHtml}
+          </div>
+          <div style="font-size:13px;color:#444;">
+            顏色：${item.colorList}
+          </div>
+        </td>
+        <td style="text-align:right;">${item.minPrice} 元</td>
+        <td style="text-align:right;">${item.marketPrice} 元</td>
+      `;
 
       const isDesktop = window.innerWidth > 900;
 
