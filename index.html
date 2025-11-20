@@ -604,6 +604,23 @@
           <div style="font-size:13px;color:#444;">
             顏色：${item.colorList}
           </div>
+<!-- 毛利計算器（UI2） -->
+<div class="profit-box" style="margin-top:6px;font-size:12px;">
+  <div style="display:flex; gap:6px; margin-bottom:4px;">
+    <input type="number" placeholder="成本" class="cost-input" style="flex:1;padding:4px 6px;">
+    <input type="number" placeholder="售價" class="sell-input" style="flex:1;padding:4px 6px;">
+  </div>
+
+  <div style="display:flex; gap:6px; margin-bottom:4px;">
+    <input type="number" placeholder="數量" class="qty-input" style="flex:1;padding:4px 6px;">
+    <div class="profit-result" style="flex:1;padding-top:4px;">毛利：-</div>
+  </div>
+
+  <div class="profit-bar" style="height:6px;background:#eee;border-radius:4px;overflow:hidden;">
+    <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+  </div>
+</div>
+          
         </td>
         <td style="text-align:right;">${item.minPrice} 元</td>
         <td style="text-align:right;">${item.marketPrice} 元</td>
@@ -696,6 +713,23 @@
 
       <h3 style="margin-top:18px;">商品規格</h3>
       <div style="white-space:pre-line;">${item.specs || "-"}</div>
+      <h3 style="margin-top:18px;">毛利試算</h3>
+
+<div style="font-size:14px;margin-top:4px;">
+  <div style="display:flex; gap:8px; margin-bottom:6px;">
+    <input type="number" placeholder="成本" class="cost-input" style="flex:1;padding:6px 8px;">
+    <input type="number" placeholder="售價" class="sell-input" style="flex:1;padding:6px 8px;">
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:6px;">
+    <input type="number" placeholder="數量" class="qty-input" style="flex:1;padding:6px 8px;">
+    <div class="profit-result" style="flex:1;padding-top:8px;">毛利：-</div>
+  </div>
+
+  <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+    <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+  </div>
+</div>
     `;
   }
 
@@ -866,6 +900,40 @@
       if (e.key === "Enter") searchProducts();
     });
   });
+
+  // 毛利計算綁定（搜尋結果 + 詳細頁）
+document.addEventListener("input", function(e) {
+  const row = e.target.closest(".profit-box, .sheet-content, #detailCard");
+  if (!row) return;
+
+  const cost = Number(row.querySelector(".cost-input")?.value || 0);
+  const sell = Number(row.querySelector(".sell-input")?.value || 0);
+  const qty  = Number(row.querySelector(".qty-input")?.value || 1);
+
+  const resultEl = row.querySelector(".profit-result");
+  const barFill  = row.querySelector(".profit-bar-fill");
+
+  if (!resultEl || !barFill) return;
+
+  if (cost > 0 && sell > 0) {
+    const profit = (sell - cost) * qty;
+    const margin = (sell - cost) / sell;
+    const marginPct = Math.round(margin * 100);
+
+    resultEl.innerHTML = `毛利：${profit} 元（${marginPct}%）`;
+
+    // 毛利條顏色（紅 → 黃 → 綠）
+    const pct = Math.max(0, Math.min(100, marginPct));
+    barFill.style.width = pct + "%";
+    barFill.style.background = `hsl(${pct}, 70%, 50%)`;
+
+  } else {
+    resultEl.innerHTML = "毛利：-";
+    barFill.style.width = "0%";
+    barFill.style.background = "#4ade80";
+  }
+});
+
 
 </script>
 
