@@ -636,91 +636,129 @@
   }
 
   // 桌機版詳細資訊：右側卡片
-  function showDetailDesktop(item) {
+ function showDetail(item) {
     const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-
-    let priceBlock = "";
-    if (userLevel >= 1) {
-      priceBlock += `<p>50 個：${item.quote50} 元</p>`;
-    }
-    if (userLevel >= 2) {
-      priceBlock += `<p>100 個：${item.quote100} 元</p>`;
-      priceBlock += `<p>300 個：${item.quote300} 元</p>`;
-    }
-    if (userLevel >= 3) {
-      priceBlock += `<p>500 個：${item.quote500} 元</p>`;
-      priceBlock += `<p>1000 個：${item.quote1000} 元</p>`;
-    }
-
     detailCard.style.display = "block";
+
     detailCard.innerHTML = `
-      <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
-      <h2 style="margin:4px 0 8px;">${item.name}</h2>
-      <p style="margin:2px 0;">商品型號：${item.model}</p>
-      <p style="margin:2px 0;">主型號：${item.mainModel}</p>
-      <p style="margin:2px 0;">國際條碼：${item.barcode || "-"}</p>
-      <p style="margin:2px 0;">箱入數：${item.cartonQty || "-"}</p>
+      <img src="${img}" style="width:240px;border-radius:12px;margin-bottom:16px;border:1px solid #ddd;" />
 
-      <h3 style="margin-top:12px;">價格資訊</h3>
-      ${priceBlock || "<p>此等級無採購價顯示</p>"}
-      <p>末售價格：${item.minPrice} 元</p>
-      <p>賣場售價：${item.marketPrice} 元</p>
+      <h2 style="margin-bottom:12px;">${item.name}</h2>
 
-      <h3 style="margin-top:12px;">顏色資訊</h3>
-      <p>${item.colorList || "-"}</p>
+      <p><strong>商品型號：</strong> ${item.model}</p>
+      <p><strong>國際條碼：</strong> ${item.barcode}</p>
+      <p><strong>箱入數：</strong> ${item.cartonQty}</p>
 
-      <h3 style="margin-top:12px;">認證資訊</h3>
-      <p>BSMI：${item.bsmi || "-"}</p>
-      <p>NCC：${item.ncc || "-"}</p>
+      <p><strong>商品網址：</strong> 
+        ${item.productUrl 
+            ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` 
+            : "－"}
+      </p>
 
-      <h3 style="margin-top:12px;">商品網址</h3>
-      <p>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` : "-"}</p>
+      <h3 style="margin-top:18px;">價格資訊</h3>
+
+      <!-- 價格資訊兩行排列 -->
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+
+        <span class="price-tag tag50">50 個：${item.quote50}</span>
+        <span class="price-tag tag100">100 個：${item.quote100}</span>
+
+        <span class="price-tag tag300">300 個：${item.quote300}</span>
+        <span class="price-tag tag500">500 個：${item.quote500}</span>
+
+        <span class="price-tag tag1000">1000 個：${item.quote1000}</span>
+        <span class="price-tag" style="background:#e5e7eb;color:#111827;">末售：${item.minPrice}</span>
+
+        <span class="price-tag" style="background:#e5e7eb;color:#111827;">賣場：${item.marketPrice}</span>
+      </div>
+
+      <h3 style="margin-top:20px;">商品特色</h3>
+      <pre style="
+          white-space: pre-wrap;
+          background:#f9fafb;
+          padding:12px;
+          border-radius:8px;
+          border:1px solid #eee;
+          font-size:14px;
+      ">${item.features ? item.features : "－"}</pre>
+
+      <h3 style="margin-top:20px;">商品規格</h3>
+      <pre style="
+          white-space: pre-wrap;
+          background:#f9fafb;
+          padding:12px;
+          border-radius:8px;
+          border:1px solid #eee;
+          font-size:14px;
+      ">${item.specs ? item.specs : "－"}</pre>
     `;
-  }
+}
 
   // 手機版詳細資訊：Bottom Sheet
-  function showDetailMobile(item) {
-    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+  function showMobileDetail(item) {
 
-    let priceBlock = "";
-    if (userLevel >= 1) {
-      priceBlock += `<p>50 個：${item.quote50} 元</p>`;
-    }
-    if (userLevel >= 2) {
-      priceBlock += `<p>100 個：${item.quote100} 元</p>`;
-      priceBlock += `<p>300 個：${item.quote300} 元</p>`;
-    }
-    if (userLevel >= 3) {
-      priceBlock += `<p>500 個：${item.quote500} 元</p>`;
-      priceBlock += `<p>1000 個：${item.quote1000} 元</p>`;
-    }
+    mobileDetail.style.display = "block";
+    mobileDetail.innerHTML = `
+      <div style="padding:16px;">
 
-    sheetContent.innerHTML = `
-      <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
-      <h2 style="margin:4px 0 8px;font-size:16px;">${item.name}</h2>
-      <p style="margin:2px 0;">商品型號：${item.model}</p>
-      <p style="margin:2px 0;">主型號：${item.mainModel}</p>
-      <p style="margin:2px 0;">國際條碼：${item.barcode || "-"}</p>
-      <p style="margin:2px 0;">箱入數：${item.cartonQty || "-"}</p>
+        <img src="${item.imageUrl || "https://placehold.co/300x300?text=No+Image"}" 
+             style="width:100%; max-width:260px; display:block; margin:0 auto 16px; border-radius:12px; border:1px solid #ddd;" />
 
-      <h3 style="margin-top:12px;font-size:14px;">價格資訊</h3>
-      ${priceBlock || "<p>此等級無採購價顯示</p>"}
-      <p>末售價格：${item.minPrice} 元</p>
-      <p>賣場售價：${item.marketPrice} 元</p>
+        <h2 style="margin-bottom:12px; font-size:20px; text-align:center;">${item.name}</h2>
 
-      <h3 style="margin-top:12px;font-size:14px;">顏色資訊</h3>
-      <p>${item.colorList || "-"}</p>
+        <p><strong>商品型號：</strong> ${item.model}</p>
+        <p><strong>國際條碼：</strong> ${item.barcode}</p>
+        <p><strong>箱入數：</strong> ${item.cartonQty}</p>
 
-      <h3 style="margin-top:12px;font-size:14px;">認證資訊</h3>
-      <p>BSMI：${item.bsmi || "-"}</p>
-      <p>NCC：${item.ncc || "-"}</p>
+        <p style="margin-top:6px;"><strong>商品網址：</strong> 
+          ${item.productUrl 
+             ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` 
+             : "－"}
+        </p>
 
-      <h3 style="margin-top:12px;font-size:14px;">商品網址</h3>
-      <p>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">${item.productUrl}</a>` : "-"}</p>
+        <h3 style="margin-top:18px;">價格資訊</h3>
+
+        <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+          <span class="price-tag tag50">50 個：${item.quote50}</span>
+          <span class="price-tag tag100">100 個：${item.quote100}</span>
+
+          <span class="price-tag tag300">300 個：${item.quote300}</span>
+          <span class="price-tag tag500">500 個：${item.quote500}</span>
+
+          <span class="price-tag tag1000">1000 個：${item.quote1000}</span>
+
+          <span class="price-tag" style="background:#e5e7eb;color:#111827;">末售：${item.minPrice}</span>
+          <span class="price-tag" style="background:#e5e7eb;color:#111827;">賣場：${item.marketPrice}</span>
+        </div>
+
+        <h3 style="margin-top:20px;">商品特色</h3>
+        <pre style="
+            white-space: pre-wrap;
+            background:#f9fafb;
+            padding:12px;
+            border-radius:8px;
+            border:1px solid #eee;
+            font-size:14px;
+        ">${item.features ? item.features : "－"}</pre>
+
+        <h3 style="margin-top:20px;">商品規格</h3>
+        <pre style="
+            white-space: pre-wrap;
+            background:#f9fafb;
+            padding:12px;
+            border-radius:8px;
+            border:1px solid #eee;
+            font-size:14px;
+        ">${item.specs ? item.specs : "－"}</pre>
+
+        <button onclick="closeMobileDetail()" 
+            style="margin-top:20px; width:100%; padding:12px; background:#111827; color:white; border:none; border-radius:8px;">
+            關閉
+        </button>
+
+      </div>
     `;
-
-    openSheet();
-  }
+}
 
   function openSheet() {
     sheetBackdrop.classList.remove("hidden");
