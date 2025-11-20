@@ -278,6 +278,8 @@
     <option value="minPriceDesc">末售：高 → 低</option>
     <option value="marketAsc">賣場：低 → 高</option>
     <option value="marketDesc">賣場：高 → 低</option>
+    <option value="alphaAsc">主型號：A → Z</option>
+<option value="alphaDesc">主型號：Z → A</option>
   </select>
 
   <button id="exportBtn" class="btn-secondary" disabled>匯出勾選 Excel</button>
@@ -448,6 +450,8 @@
     if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
     if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
     if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
+     if (opt === "alphaAsc")  return list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
+    if (opt === "alphaDesc") return list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
     return list;
   }
   async function searchProducts() {
