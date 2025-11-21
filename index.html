@@ -100,7 +100,7 @@
       text-align: left;
     }
 
-    /* ★ 圖片放大至 120px */
+    /* ★ 圖片放大設定 */
     .product-img {
       width: 120px;
       height: 120px;
@@ -207,7 +207,7 @@
       .search-box { padding: 12px; }
       input, select { font-size: 14px; padding: 6px 10px; }
       
-      /* 手機版圖片 90px */
+      /* ★ 手機版圖片大小 */
       .product-img { width: 90px; height: 90px; }
       
       table th, table td { padding: 6px; font-size: 13px; }
@@ -215,7 +215,7 @@
       
       .price-tag-container{
         display:grid;
-        grid-template-columns: repeat(2, 1fr); /* 手機改為兩欄 */
+        grid-template-columns: repeat(2, 1fr);
         gap:6px;
         font-size:12px !important;
         line-height:1.4 !important;
@@ -317,7 +317,7 @@
   </div>
 
 <script type="module">
-  /* ★★★ 關鍵修復：改回穩定的 10.13.0 版本 ★★★ */
+  /* ★★★ 這裡補回了您的金鑰，並使用穩定版 SDK ★★★ */
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
   import {
     getAuth, onAuthStateChanged, signOut
@@ -327,7 +327,6 @@
   } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
   import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 
-  /* ★★★ 這裡補回了您原本正確的 Key ★★★ */
   const firebaseConfig = {
     apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
     authDomain: "kinyo-price.firebaseapp.com",
@@ -336,6 +335,7 @@
     messagingSenderId: "122464645678",
     appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
   };
+  
   const app  = initializeApp(firebaseConfig);
   const auth = getAuth(app);
   const db   = getFirestore(app);
@@ -373,7 +373,7 @@
     R:"紅", B:"藍", G:"綠", BK:"黑", WH:"白", PK:"粉", Y:"黃", OR:"橘"
   };
 
-  // ★ 新增工具：取得目前選擇數量的成本價
+  // ★ 工具：根據選擇起訂量，取得對應成本
   function getSelectedCostInfo(item) {
     const selectedQty = qtySelect.value; 
     let cost = item.quote50; // 預設為 50 個的價格
@@ -402,7 +402,6 @@
     }
     currentUserEmail = user.email || "";
     
-    // 簡單的權限讀取邏輯
     try {
       const userDocRef = doc(db, "Users", currentUserEmail.toLowerCase());
       const userDoc = await getDoc(userDocRef);
@@ -576,7 +575,7 @@
         priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
       }
 
-      // ★ 修改點：自動填入成本邏輯
+      // ★ 智慧填入成本
       const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
 
       tr.innerHTML = `
@@ -882,7 +881,7 @@
 
       if (selectedQty) {
         const costKey = `quote${selectedQty}`; 
-        const costVal = item[costKey] || item.quote50; // Fallback to quote50
+        const costVal = item[costKey] || item.quote50; // Fallback to quote50 if specific qty price is missing
         priceRow = [costVal, item.minPrice, item.marketPrice];
       } else {
         if (userLevel === 1) {
