@@ -951,7 +951,7 @@ document.addEventListener("input", function(e) {
   }
 });
 
-  // LINE 分享功能
+ // LINE 分享功能 (美化版)
 document.addEventListener("click", function(e) {
   if (!e.target.classList.contains("line-share-btn")) return;
 
@@ -959,26 +959,30 @@ document.addEventListener("click", function(e) {
   const item = currentResultList.find(p => p.model === model);
   if (!item) return;
 
-  // 根據用戶等級取成本
+  // 根據用戶等級取成本字串
   let costText = "";
-
-  if (userLevel >= 1) costText += `50個：${item.quote50}元`;
+  if (userLevel >= 1) costText += `• 50個：${item.quote50} 元`;
   if (userLevel >= 2) {
-    costText += ` / 100個：${item.quote100}元`;
-    costText += ` / 300個：${item.quote300}元`;
+    costText += `\n• 100個：${item.quote100} 元`;
+    costText += `\n• 300個：${item.quote300} 元`;
   }
   if (userLevel >= 3) {
-    costText += ` / 500個：${item.quote500}元`;
-    costText += ` / 1000個：${item.quote1000}元`;
+    costText += `\n• 500個：${item.quote500} 元`;
+    costText += `\n• 1000個：${item.quote1000} 元`;
   }
 
+  // 加入 Emoji 與分隔線
   const text =
-`【${item.model}】${item.name}
+`🔥 【${item.model}】${item.name}
+💰 賣場售價：${item.marketPrice} 元
+--------------------------
+📦 您的採購價格：
 ${costText}
-商品連結：${item.productUrl || "無"}`;
+
+🔗 商品連結：${item.productUrl || "無"}`;
 
   navigator.clipboard.writeText(text)
-    .then(()=> alert("已複製，可直接貼到 LINE"))
+    .then(()=> alert("✅ 已複製！請直接貼上 LINE 對話框"))
     .catch(()=> alert("無法複製，請手動長按複製"));
 });
 
