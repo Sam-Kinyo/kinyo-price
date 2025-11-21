@@ -770,94 +770,36 @@
   // Search Products
   // ----------------------
   async function searchProducts() {
-  if (!productCache) await preloadProducts();
+    const kw = keywordInput.value.trim();
+    if (!kw) { alert("請輸入關鍵字"); return; }
 
-  let kw = keywordInput.value.trim().toLowerCase();
-  let selectedQty = qtySelect.value;
+    if (!productCache) await preloadProducts();
 
-  const rawMin = minPriceInput.value.trim();
-  const rawMax = maxPriceInput.value.trim();
-
-  // ----------------------------------------
-  // A. 無 Keyword、無起訂量 → 不搜尋（避免全資料庫噴出來）
-  // ----------------------------------------
-  if (!kw && !selectedQty) {
-    alert("請至少輸入關鍵字，或選擇起訂量搭配預算區間搜尋");
-    return;
-  }
-
-  // ----------------------------------------
-  // 1. 多關鍵字 + 模糊比對 + 型號斷詞
-  // ----------------------------------------
-  function expandKeyword(k) {
-    let set = new Set();
-    set.add(k);
-    set.add(k.replace(/-/g, "")); // CL-528 → CL528
-    set.add(k.replace(/[^a-zA-Z0-9]/g, "")); // 混雜符號清除
-
-    const letters = k.replace(/[^a-zA-Z]/g, "");
-    const numbers = k.replace(/[^0-9]/g, "");
-    if (letters) set.add(letters);
-    if (numbers) set.add(numbers);
-
-    return Array.from(set);
-  }
-
-  let keywords = kw.split(/\s+/).filter(k => k.length > 0);
-  let expandedKeywords = [];
-  keywords.forEach(k => expandedKeywords.push(...expandKeyword(k.toLowerCase())));
-
-  // ----------------------------------------
-  // 2. 關鍵字搜尋（永遠可用）
-  // ----------------------------------------
-  let list = productCache.filter(item => {
-    const fields = [
-      (item.model || "").toLowerCase(),
-      (item.mainModel || "").toLowerCase(),
-      (item.name || "").toLowerCase()
-    ];
-
-    return expandedKeywords.some(k =>
-      fields.some(f => f.includes(k))
-    );
-  });
-
-  // ----------------------------------------
-  // 3. 起訂量 + 預算搜尋（你的新規則）
-  // ----------------------------------------
-  if (selectedQty) {
-
-    // 3-1 預算必須至少填「一個」
-    if (!rawMin && !rawMax) {
-      alert("已選擇起訂量，請至少輸入『最低預算』或『最高預算』其中一個");
-      return;
-    }
-
-    // 找出該起訂量所有商品成本範圍
-    const key = "quote" + selectedQty;
-    const allCosts = list.map(x => Number(x[key] || x.quote50));
-
-    const minDB = Math.min(...allCosts);
-    const maxDB = Math.max(...allCosts);
-
-    // 3-2 自動補另一邊
-    const minP = rawMin ? Number(rawMin) : minDB;
-    const maxP = rawMax ? Number(rawMax) : maxDB;
-
-    // 3-3 過濾成本區間
-    list = list.filter(item => {
-      const cost = Number(item[key] || item.quote50);
-      return cost >= minP && cost <= maxP;
+    let list = productCache.filter(item => {
+      const m = (item.model || "").toLowerCase();
+      const mm = (item.mainModel || "").toLowerCase();
+      const n = (item.name || "").toLowerCase();
+      const k = kw.toLowerCase();
+      return m.includes(k) || mm.includes(k) || n.includes(k);
     });
-  }
 
-  // ----------------------------------------
-  // 4. 排序 + 輸出
-  // ----------------------------------------
-  list = applySorting(list);
-  currentResultList = list;
-  renderResults(list);
-}
+    const selectedQty = qtySelect.value;
+    const minP = Number(minPriceInput.value) || 50;
+    const maxP = Number(maxPriceInput.value) || 1000000;
+
+    list = list.filter(item => {
+      let cost = item.quote50;
+      if (selectedQty) {
+        const key = "quote" + selectedQty;
+        cost = item[key] || cost;
+      }
+      return Number(cost) >= minP && Number(cost) <= maxP;
+    });
+
+    const sorted = applySorting(list);
+    currentResultList = sorted;
+    renderResults(sorted);
+  }
 
   // ----------------------
   // Excel Export (selected)
