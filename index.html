@@ -237,16 +237,14 @@
 
 <body>
 
-<!-- 頂部使用者列 -->
 <div class="top-bar">
   <span id="userInfo" class="user-badge">未登入</span>
   <button id="logoutBtn" class="logout-btn" style="display:none;">登出</button>
 </div>
 
 <h1>KINYO 查價系統</h1>
-<div class="subtitle">需登入後方可查價，並依帳號等級顯示不同採購價格（末售／賣場所有等級皆可見）。</div>
+<div class="subtitle">需登入後方可查價，並依帳號等級顯示不同採購價格。</div>
 
-<!-- 搜尋區塊 -->
 <div class="search-box">
   <div class="search-row">
     <label>關鍵字搜尋（型號 / 名稱）：</label>
@@ -270,7 +268,6 @@
   <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </div>
 
-<!-- 工具列 -->
 <div class="toolbar" style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
   <select id="sortSelect" class="btn-secondary" style="flex:1;">
     <option value="">不排序</option>
@@ -279,13 +276,12 @@
     <option value="marketAsc">賣場：低 → 高</option>
     <option value="marketDesc">賣場：高 → 低</option>
     <option value="alphaAsc">主型號：A → Z</option>
-<option value="alphaDesc">主型號：Z → A</option>
+    <option value="alphaDesc">主型號：Z → A</option>
   </select>
 
   <button id="exportBtn" class="btn-secondary" disabled>匯出勾選 Excel</button>
 </div>
 
-<!-- 結果表格 -->
 <table id="resultTable" style="display:none;">
   <thead>
     <tr>
@@ -300,10 +296,8 @@
   <tbody id="resultBody"></tbody>
 </table>
 
-<!-- 桌機詳細資訊 -->
 <div id="detailCard"></div>
 
-<!-- 手機 Bottom Sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
 <div id="mobileDetailSheet" class="sheet hidden">
   <div class="sheet-header">
@@ -450,8 +444,8 @@
     if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
     if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
     if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
-     if (opt === "alphaAsc")  return list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
-    if (opt === "alphaDesc") return list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
+    if (opt === "alphaAsc")   return list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
+    if (opt === "alphaDesc")  return list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
     return list;
   }
   async function searchProducts() {
@@ -502,7 +496,7 @@
       );
     }
 
-    /* 合併同主型號（最後英文視為顏色碼） */
+    /* 合併同主型號 */
     const grouped = {};
     list.forEach(item => {
       const main = item.model.replace(/[-_ ]?[A-Za-z]+$/, "");
@@ -566,7 +560,7 @@
     if (list.length === 0) {
       resultTable.style.display = "none";
       exportBtn.disabled = true;
-      alert("查無符合商品");
+      // alert("查無符合商品"); // 改為不彈出視窗
       return;
     }
 
@@ -595,12 +589,11 @@
       /* ★★★ 新版：手機 3 欄 Grid（price-tag-container） ★★★ */
       tr.innerHTML = `
         <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
-        <td><img src="${img}" class="product-img" /></td>
+        <td><img src="${img}" class="product-img" loading="lazy" /></td>
         <td>${item.mainModel}</td>
         <td>
           <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
 
-          <!-- 價格區塊（已支援手機 3 欄 Grid） -->
           <div class="price-tag-container" style="font-size:13px;line-height:1.6;margin-bottom:4px;">
             ${priceHtml}
           </div>
@@ -608,28 +601,29 @@
           <div style="font-size:13px;color:#444;">
             顏色：${item.colorList}
           </div>
-<!-- ★ 在這裡加入 LINE 分享按鈕 ★ -->
-<button class="line-share-btn" data-model="${item.model}" 
-  style="margin-top:6px;padding:6px 12px;font-size:12px;
-  background:#06C755;color:#fff;border:none;border-radius:6px;">
-  複製 LINE 分享
-<!-- 毛利計算器（UI2） -->
-<div class="profit-box" style="margin-top:6px;font-size:12px;">
-  <div style="display:flex; gap:6px; margin-bottom:4px;">
-    <input type="number" placeholder="成本" class="cost-input" style="flex:1;padding:4px 6px;">
-    <input type="number" placeholder="售價" class="sell-input" style="flex:1;padding:4px 6px;">
-  </div>
-
-  <div style="display:flex; gap:6px; margin-bottom:4px;">
-    <input type="number" placeholder="數量" class="qty-input" style="flex:1;padding:4px 6px;">
-    <div class="profit-result" style="flex:1;padding-top:4px;">毛利：-</div>
-  </div>
-
-  <div class="profit-bar" style="height:6px;background:#eee;border-radius:4px;overflow:hidden;">
-    <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
-  </div>
-</div>
           
+          <button class="line-share-btn" data-model="${item.model}" 
+            style="margin-top:6px;padding:6px 12px;font-size:12px;
+            background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+            複製 LINE 分享
+          </button>
+
+          <div class="profit-box" style="margin-top:6px;font-size:12px;">
+            <div style="display:flex; gap:6px; margin-bottom:4px;">
+              <input type="number" placeholder="成本" value="${item.quote50}" class="cost-input" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;">
+              <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;">
+            </div>
+
+            <div style="display:flex; gap:6px; margin-bottom:4px;">
+              <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;">
+              <div class="profit-result" style="flex:1;padding-top:4px;">點擊試算</div>
+            </div>
+
+            <div class="profit-bar" style="height:6px;background:#eee;border-radius:4px;overflow:hidden;">
+              <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+            </div>
+          </div>
+           
         </td>
         <td style="text-align:right;">${item.minPrice} 元</td>
         <td style="text-align:right;">${item.marketPrice} 元</td>
@@ -641,13 +635,13 @@
         /* 桌機：hover / click 顯示卡片 */
         tr.addEventListener("mouseenter", () => showDetailDesktop(item));
         tr.addEventListener("click", (e) => {
-          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
           showDetailDesktop(item);
         });
       } else {
         /* 手機：點擊顯示 bottom sheet */
         tr.addEventListener("click", (e) => {
-          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
           showDetailMobile(item);
         });
       }
@@ -657,6 +651,7 @@
 
     bindCheckAll();
   }
+
   function bindCheckAll() {
     const rowChecks = document.querySelectorAll(".row-check");
     if (!checkAllBox) return;
@@ -694,7 +689,6 @@
       <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
       <h2 style="margin:4px 0 12px;">${item.name}</h2>
 
-      <!-- 兩欄 Grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;line-height:1.5;">
         <div><strong>商品型號</strong><br>${item.model}</div>
         <div><strong>主型號</strong><br>${item.mainModel}</div>
@@ -722,27 +716,27 @@
 
       <h3 style="margin-top:18px;">商品規格</h3>
       <div style="white-space:pre-line;">${item.specs || "-"}</div>
-      <!-- ★ 這裡加 LINE 分享按鈕（桌機版） ★ -->
-<button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:16px;">
-  複製 LINE 分享
-</button>
+      
+      <button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:16px;">
+        複製 LINE 分享
+      </button>
+
       <h3 style="margin-top:18px;">毛利試算</h3>
+      <div style="font-size:14px;margin-top:4px;">
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="成本" value="${item.quote50}" class="cost-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
+          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
+        </div>
 
-<div style="font-size:14px;margin-top:4px;">
-  <div style="display:flex; gap:8px; margin-bottom:6px;">
-    <input type="number" placeholder="成本" class="cost-input" style="flex:1;padding:6px 8px;">
-    <input type="number" placeholder="售價" class="sell-input" style="flex:1;padding:6px 8px;">
-  </div>
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
+          <div class="profit-result" style="flex:1;padding-top:8px;">點擊試算</div>
+        </div>
 
-  <div style="display:flex; gap:8px; margin-bottom:6px;">
-    <input type="number" placeholder="數量" class="qty-input" style="flex:1;padding:6px 8px;">
-    <div class="profit-result" style="flex:1;padding-top:8px;">毛利：-</div>
-  </div>
-
-  <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
-    <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
-  </div>
-</div>
+        <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+          <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+        </div>
+      </div>
     `;
   }
 
@@ -765,7 +759,6 @@
       <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
       <h2 style="margin:4px 0 12px;font-size:17px;">${item.name}</h2>
 
-      <!-- 兩欄 Grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.5;">
         <div><strong>商品型號</strong><br>${item.model}</div>
         <div><strong>主型號</strong><br>${item.mainModel}</div>
@@ -793,10 +786,27 @@
 
       <h3 style="margin-top:18px;font-size:15px;">商品規格</h3>
       <div style="white-space:pre-line;">${item.specs || "-"}</div>
-      <!-- ★ 加在這裡（手機） ★ -->
-<button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:16px;width:100%;">
-  複製 LINE 分享
-</button>
+
+      <h3 style="margin-top:18px;font-size:15px;">毛利試算</h3>
+      <div style="font-size:14px;margin-top:4px;margin-bottom:16px;">
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="成本" value="${item.quote50}" class="cost-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+        </div>
+        
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <div class="profit-result" style="flex:1;padding-top:8px;color:#555;">點擊試算</div>
+        </div>
+        
+        <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+          <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+        </div>
+      </div>
+
+      <button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:6px;width:100%;">
+        複製 LINE 分享
+      </button>
     `;
 
     openSheet();
@@ -919,60 +929,67 @@
   });
 
   // 毛利計算綁定（搜尋結果 + 詳細頁）
-document.addEventListener("input", function(e) {
-  const row = e.target.closest(".profit-box, .sheet-content, #detailCard");
-  if (!row) return;
+  document.addEventListener("input", function(e) {
+    const row = e.target.closest(".profit-box, .sheet-content, #detailCard");
+    if (!row) return;
 
-  const cost = Number(row.querySelector(".cost-input")?.value || 0);
-  const sell = Number(row.querySelector(".sell-input")?.value || 0);
-  const qty  = Number(row.querySelector(".qty-input")?.value || 1);
+    const cost = Number(row.querySelector(".cost-input")?.value || 0);
+    const sell = Number(row.querySelector(".sell-input")?.value || 0);
+    const qty  = Number(row.querySelector(".qty-input")?.value || 1);
 
-  const resultEl = row.querySelector(".profit-result");
-  const barFill  = row.querySelector(".profit-bar-fill");
+    const resultEl = row.querySelector(".profit-result");
+    const barFill  = row.querySelector(".profit-bar-fill");
 
-  if (!resultEl || !barFill) return;
+    if (!resultEl || !barFill) return;
 
-  if (cost > 0 && sell > 0) {
-    const profit = (sell - cost) * qty;
-    const margin = (sell - cost) / sell;
-    const marginPct = Math.round(margin * 100);
+    if (cost > 0 && sell > 0) {
+      const profit = (sell - cost) * qty;
+      const margin = (sell - cost) / sell;
+      const marginPct = Math.round(margin * 100);
 
-    resultEl.innerHTML = `毛利：${profit} 元（${marginPct}%）`;
+      resultEl.innerHTML = `毛利：${profit} 元（${marginPct}%）`;
 
-    // 毛利條顏色（紅 → 黃 → 綠）
-    const pct = Math.max(0, Math.min(100, marginPct));
-    barFill.style.width = pct + "%";
-    barFill.style.background = `hsl(${pct}, 70%, 50%)`;
+      // 毛利條顏色（紅 → 黃 → 綠）
+      const pct = Math.max(0, Math.min(100, marginPct));
+      barFill.style.width = pct + "%";
+      barFill.style.background = `hsl(${pct}, 70%, 50%)`;
 
-  } else {
-    resultEl.innerHTML = "毛利：-";
-    barFill.style.width = "0%";
-    barFill.style.background = "#4ade80";
-  }
-});
+    } else {
+      resultEl.innerHTML = "毛利：-";
+      barFill.style.width = "0%";
+      barFill.style.background = "#4ade80";
+    }
+  });
+  
+  // 點擊輸入框自動選取內容，方便修改
+  document.addEventListener("click", function(e) {
+     if(e.target.tagName === "INPUT" && e.target.type === "number") {
+         e.target.select();
+     }
+  });
 
- // LINE 分享功能 (美化版)
-document.addEventListener("click", function(e) {
-  if (!e.target.classList.contains("line-share-btn")) return;
+  // LINE 分享功能 (美化版)
+  document.addEventListener("click", function(e) {
+    if (!e.target.classList.contains("line-share-btn")) return;
 
-  const model = e.target.getAttribute("data-model");
-  const item = currentResultList.find(p => p.model === model);
-  if (!item) return;
+    const model = e.target.getAttribute("data-model");
+    const item = currentResultList.find(p => p.model === model);
+    if (!item) return;
 
-  // 根據用戶等級取成本字串
-  let costText = "";
-  if (userLevel >= 1) costText += `• 50個：${item.quote50} 元`;
-  if (userLevel >= 2) {
-    costText += `\n• 100個：${item.quote100} 元`;
-    costText += `\n• 300個：${item.quote300} 元`;
-  }
-  if (userLevel >= 3) {
-    costText += `\n• 500個：${item.quote500} 元`;
-    costText += `\n• 1000個：${item.quote1000} 元`;
-  }
+    // 根據用戶等級取成本字串
+    let costText = "";
+    if (userLevel >= 1) costText += `• 50個：${item.quote50} 元`;
+    if (userLevel >= 2) {
+      costText += `\n• 100個：${item.quote100} 元`;
+      costText += `\n• 300個：${item.quote300} 元`;
+    }
+    if (userLevel >= 3) {
+      costText += `\n• 500個：${item.quote500} 元`;
+      costText += `\n• 1000個：${item.quote1000} 元`;
+    }
 
-  // 加入 Emoji 與分隔線
-  const text =
+    // 加入 Emoji 與分隔線
+    const text =
 `🔥 【${item.model}】${item.name}
 💰 賣場售價：${item.marketPrice} 元
 --------------------------
@@ -981,12 +998,10 @@ ${costText}
 
 🔗 商品連結：${item.productUrl || "無"}`;
 
-  navigator.clipboard.writeText(text)
-    .then(()=> alert("✅ 已複製！請直接貼上 LINE 對話框"))
-    .catch(()=> alert("無法複製，請手動長按複製"));
-});
-
-
+    navigator.clipboard.writeText(text)
+      .then(()=> alert("✅ 已複製！請直接貼上 LINE 對話框"))
+      .catch(()=> alert("無法複製，請手動長按複製"));
+  });
 
 </script>
 
