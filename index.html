@@ -10,7 +10,7 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       max-width: 980px;
       margin: 40px auto;
-      padding: 0 16px 80px; /* 底部留白給懸浮按鈕 */
+      padding: 0 16px 40px;
       background: #f5f5f5;
     }
 
@@ -81,21 +81,6 @@
       cursor: pointer;
     }
 
-    .btn-outline-add {
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: 1px solid #2563eb;
-      background: #eff6ff;
-      color: #2563eb;
-      font-size: 12px;
-      cursor: pointer;
-      margin-top: 6px;
-      font-weight: 600;
-    }
-    .btn-outline-add:hover {
-      background: #dbeafe;
-    }
-
     table {
       width: 100%;
       border-collapse: collapse;
@@ -161,18 +146,18 @@
       position: fixed;
       inset: 0;
       background: rgba(0,0,0,0.45);
-      z-index: 1000;
+      z-index: 900;
     }
     .sheet {
       position: fixed;
       left: 0;
       right: 0;
       bottom: 0;
-      height: 75vh; /* 稍微加高 */
+      height: 70vh;
       background: #ffffff;
       border-radius: 16px 16px 0 0;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
-      z-index: 1001;
+      z-index: 1000;
       display: flex;
       flex-direction: column;
       transform: translateY(100%);
@@ -209,55 +194,6 @@
       display:none !important;
     }
 
-    /* 懸浮購物車按鈕 */
-    .fab-cart {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      width: 60px;
-      height: 60px;
-      background: #111827;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      cursor: pointer;
-      z-index: 990;
-      transition: transform 0.2s;
-    }
-    .fab-cart:active { transform: scale(0.95); }
-    .fab-badge {
-      position: absolute;
-      top: -4px;
-      right: -4px;
-      background: #ef4444;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid white;
-    }
-
-    /* 報價單列表樣式 */
-    .quote-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 0;
-      border-bottom: 1px solid #eee;
-    }
-    .quote-info { font-size: 14px; }
-    .quote-price { font-weight: 600; color: #2563eb; }
-    .quote-del { color: #999; cursor: pointer; padding: 4px; }
-    .quote-del:hover { color: #ef4444; }
-
     /* RWD */
     @media (max-width: 900px) {
       body {
@@ -275,6 +211,9 @@
       .product-img { width: 55px; height: 55px; }
       table th, table td { padding: 6px; font-size: 13px; }
       .btn-primary, .btn-secondary { padding: 8px 12px; }
+    }
+
+    @media (max-width: 600px) {
       .price-tag-container {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -365,30 +304,6 @@
   <div class="sheet-content" id="sheetContent"></div>
 </div>
 
-<div id="quoteSheet" class="sheet hidden">
-  <div class="sheet-header">
-    <span class="sheet-title">📋 報價單預覽</span>
-    <button id="quoteCloseBtn" class="sheet-close">×</button>
-  </div>
-  <div class="sheet-content" style="display:flex;flex-direction:column;height:100%;">
-    <div id="quoteListBody" style="flex:1;overflow-y:auto;">
-      </div>
-    <div style="border-top:1px solid #eee; padding-top:12px; margin-top:10px;">
-      <div style="display:flex;justify-content:space-between;font-weight:bold;font-size:16px;margin-bottom:12px;">
-        <span>總計金額</span>
-        <span id="quoteTotal">$0</span>
-      </div>
-      <button id="copyQuoteBtn" class="btn-primary" style="width:100%;">複製整張報價單 (LINE)</button>
-      <button id="clearQuoteBtn" class="btn-secondary" style="width:100%;margin-top:8px;color:#ef4444;border-color:#ef4444;">清空報價單</button>
-    </div>
-  </div>
-</div>
-
-<div id="fabCart" class="fab-cart" style="display:none;">
-  <span style="font-size:24px;">📝</span>
-  <div id="cartCount" class="fab-badge">0</div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
@@ -417,9 +332,6 @@
   let currentResultList = [];
   let userLevel = 1;
   let currentUserEmail = "";
-  
-  // ★ 報價單陣列
-  let quoteList = [];
 
   const keywordInput   = document.getElementById("keyword");
   const qtySelect      = document.getElementById("qtySelect");
@@ -435,22 +347,10 @@
   const sortSelect     = document.getElementById("sortSelect");
   const userInfoSpan   = document.getElementById("userInfo");
   const logoutBtn      = document.getElementById("logoutBtn");
-  
-  // Sheets
   const sheetBackdrop  = document.getElementById("sheetBackdrop");
   const mobileSheet    = document.getElementById("mobileDetailSheet");
   const sheetContent   = document.getElementById("sheetContent");
   const sheetCloseBtn  = document.getElementById("sheetCloseBtn");
-  const quoteSheet     = document.getElementById("quoteSheet");
-  const quoteCloseBtn  = document.getElementById("quoteCloseBtn");
-  const quoteListBody  = document.getElementById("quoteListBody");
-  const quoteTotalEl   = document.getElementById("quoteTotal");
-  const copyQuoteBtn   = document.getElementById("copyQuoteBtn");
-  const clearQuoteBtn  = document.getElementById("clearQuoteBtn");
-  
-  // Fab
-  const fabCart        = document.getElementById("fabCart");
-  const cartCount      = document.getElementById("cartCount");
 
   const colorMap = {
     R: "紅", RD: "紅",
@@ -465,7 +365,9 @@
 
   // 取得目前選擇的起訂量對應的成本價與欄位名稱
   function getSelectedCostInfo(item) {
-    const selectedQty = qtySelect.value; 
+    const selectedQty = qtySelect.value; // e.g. "50", "300" or ""
+    
+    // 預設：若沒選或找不到，用 50 個的價格
     let cost = item.quote50;
     let label = "50個";
 
@@ -482,6 +384,7 @@
       cost = item.quote1000;
       label = "1000個";
     }
+    
     return { cost, label, qty: selectedQty };
   }
 
@@ -511,7 +414,6 @@
     userInfoSpan.textContent = `登入帳號：${shortAccount}`;
     logoutBtn.style.display = "inline-block";
     setupQtySelectByLevel();
-    fabCart.style.display = "flex"; // 登入後顯示購物車按鈕
   });
 
   function setupQtySelectByLevel() {
@@ -671,6 +573,7 @@
       const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
       const tr  = document.createElement("tr");
 
+      // 價格顯示區塊（列表）
       let priceHtml = "";
       if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${item.quote50} 元</span>`;
       if (userLevel >= 2) {
@@ -682,6 +585,7 @@
         priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
       }
 
+      // ★ 決定毛利計算機的預設成本
       const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
 
       tr.innerHTML = `
@@ -695,16 +599,11 @@
           </div>
           <div style="font-size:13px;color:#444;">顏色：${item.colorList}</div>
           
-          <div style="display:flex; gap:6px;">
-            <button class="line-share-btn" data-model="${item.model}" 
-              style="margin-top:6px;padding:6px 12px;font-size:12px;
-              background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">
-              複製 LINE
-            </button>
-            <button class="btn-outline-add add-quote-btn" data-model="${item.model}">
-              ➕ 加入報價單
-            </button>
-          </div>
+          <button class="line-share-btn" data-model="${item.model}" 
+            style="margin-top:6px;padding:6px 12px;font-size:12px;
+            background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">
+            複製 LINE 分享
+          </button>
 
           <div class="profit-box" style="margin-top:6px;font-size:12px;">
             <div style="display:flex; gap:6px; margin-bottom:4px;">
@@ -770,6 +669,7 @@
       priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
     }
 
+    // ★ 動態成本
     const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
 
     detailCard.style.display = "block";
@@ -779,6 +679,8 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;line-height:1.5;">
         <div><strong>商品型號</strong><br>${item.model}</div>
         <div><strong>主型號</strong><br>${item.mainModel}</div>
+        <div><strong>國際條碼</strong><br>${item.barcode || "-"}</div>
+        <div><strong>箱入數</strong><br>${item.cartonQty || "-"}</div>
         <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
         <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
         <div><strong>商品網址</strong><br>
@@ -788,11 +690,11 @@
       </div>
       <h3 style="margin-top:18px;">採購價格</h3>
       <div style="margin-left:4px;line-height:1.6;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
-      
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">複製 LINE 分享</button>
-        <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;margin-top:0;">➕ 加入報價單</button>
-      </div>
+      <h3 style="margin-top:18px;">商品特色</h3>
+      <div style="white-space:pre-line;">${item.features || "-"}</div>
+      <h3 style="margin-top:18px;">商品規格</h3>
+      <div style="white-space:pre-line;">${item.specs || "-"}</div>
+      <button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:16px;">複製 LINE 分享</button>
 
       <h3 style="margin-top:18px;">毛利試算</h3>
       <div style="font-size:14px;margin-top:4px;">
@@ -824,6 +726,7 @@
       priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
     }
 
+    // ★ 動態成本
     const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
 
     sheetContent.innerHTML = `
@@ -832,15 +735,22 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.5;">
         <div><strong>商品型號</strong><br>${item.model}</div>
         <div><strong>主型號</strong><br>${item.mainModel}</div>
+        <div><strong>國際條碼</strong><br>${item.barcode || "-"}</div>
+        <div><strong>箱入數</strong><br>${item.cartonQty || "-"}</div>
         <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
         <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
         <div><strong>商品網址</strong><br>
           ${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}
         </div>
+        <div><strong>顏色</strong><br>${item.colorList || "-"}</div>
       </div>
       <h3 style="margin-top:18px;font-size:15px;">採購價格</h3>
       <div style="line-height:1.6;margin-left:4px;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
-      
+      <h3 style="margin-top:18px;font-size:15px;">商品特色</h3>
+      <div style="white-space:pre-line;">${item.features || "-"}</div>
+      <h3 style="margin-top:18px;font-size:15px;">商品規格</h3>
+      <div style="white-space:pre-line;">${item.specs || "-"}</div>
+
       <h3 style="margin-top:18px;font-size:15px;">毛利試算</h3>
       <div style="font-size:14px;margin-top:4px;margin-bottom:16px;">
         <div style="display:flex; gap:8px; margin-bottom:6px;">
@@ -855,188 +765,96 @@
           <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
         </div>
       </div>
-
-      <div style="display:flex; gap:10px; margin-top:6px;">
-        <button class="btn-primary line-share-btn" data-model="${item.model}" style="width:100%;">複製 LINE 分享</button>
-        <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="width:100%;margin-top:0;">➕ 加入報價單</button>
-      </div>
+      <button class="btn-primary line-share-btn" data-model="${item.model}" style="margin-top:6px;width:100%;">複製 LINE 分享</button>
     `;
-    openMobileSheet();
+    openSheet();
   }
 
-  function openMobileSheet() {
+  function openSheet() {
     sheetBackdrop.classList.remove("hidden");
     mobileSheet.classList.remove("hidden");
     requestAnimationFrame(() => mobileSheet.classList.add("open"));
   }
-  function closeMobileSheet() {
+
+  function closeSheet() {
+    sheetBackdrop.classList.add("hidden");
     mobileSheet.classList.remove("open");
-    setTimeout(() => { if(!mobileSheet.classList.contains("open")) mobileSheet.classList.add("hidden"); if(quoteSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }, 220);
+    setTimeout(() => {
+      if (!mobileSheet.classList.contains("open")) mobileSheet.classList.add("hidden");
+    }, 220);
   }
 
-  // ★ 報價單 Sheet 操作
-  function openQuoteSheet() {
-    sheetBackdrop.classList.remove("hidden");
-    quoteSheet.classList.remove("hidden");
-    requestAnimationFrame(() => quoteSheet.classList.add("open"));
-    renderQuoteList();
-  }
-  function closeQuoteSheet() {
-    quoteSheet.classList.remove("open");
-    setTimeout(() => { if(!quoteSheet.classList.contains("open")) quoteSheet.classList.add("hidden"); if(mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }, 220);
-  }
+  sheetBackdrop.addEventListener("click", closeSheet);
+  sheetCloseBtn.addEventListener("click", closeSheet);
 
-  sheetBackdrop.addEventListener("click", () => { closeMobileSheet(); closeQuoteSheet(); });
-  sheetCloseBtn.addEventListener("click", closeMobileSheet);
-  quoteCloseBtn.addEventListener("click", closeQuoteSheet);
-  fabCart.addEventListener("click", openQuoteSheet);
-
-  // ★ 加入報價單邏輯
-  document.addEventListener("click", function(e) {
-    if (e.target.classList.contains("add-quote-btn")) {
-      const model = e.target.getAttribute("data-model");
-      const item = currentResultList.find(p => p.model === model);
-      if (!item) return;
-
-      const { cost, label } = getSelectedCostInfo(item);
-      
-      quoteList.push({
-        model: item.model,
-        name: item.name,
-        price: cost,
-        qtyLabel: label,
-        count: 1 // 預設1個，這裡可以讓用戶修改
-      });
-      
-      updateCartCount();
-      alert(`已加入報價單！\n目前採用 ${label} 價格：$${cost}`);
-    }
-  });
-
-  function updateCartCount() {
-    cartCount.textContent = quoteList.length;
-    if (quoteList.length > 0) {
-      fabCart.classList.add("bounce");
-      setTimeout(()=>fabCart.classList.remove("bounce"), 300);
-    }
-  }
-
-  function renderQuoteList() {
-    quoteListBody.innerHTML = "";
-    let total = 0;
-
-    if (quoteList.length === 0) {
-      quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的<br>請先從列表加入商品</div>`;
-      quoteTotalEl.textContent = "$0";
-      return;
-    }
-
-    quoteList.forEach((qItem, idx) => {
-      const subtotal = qItem.price * qItem.count;
-      total += subtotal;
-
-      const div = document.createElement("div");
-      div.className = "quote-item";
-      div.innerHTML = `
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:15px;">${qItem.name}</div>
-          <div class="quote-info" style="color:#666;">${qItem.model} | <span style="background:#eee;padding:1px 4px;border-radius:4px;font-size:12px;">${qItem.qtyLabel}</span></div>
-        </div>
-        <div style="text-align:right;margin-right:12px;">
-          <div class="quote-price">$${qItem.price}</div>
-          <div style="font-size:12px;color:#888;">x ${qItem.count}</div>
-        </div>
-        <div class="quote-del" data-idx="${idx}">🗑️</div>
-      `;
-      quoteListBody.appendChild(div);
-    });
-
-    quoteTotalEl.textContent = "$" + total.toLocaleString();
-
-    // 綁定刪除按鈕
-    document.querySelectorAll(".quote-del").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const idx = e.target.getAttribute("data-idx");
-        quoteList.splice(idx, 1);
-        renderQuoteList();
-        updateCartCount();
-      });
-    });
-  }
-
-  clearQuoteBtn.addEventListener("click", () => {
-    if (confirm("確定要清空報價單嗎？")) {
-      quoteList = [];
-      renderQuoteList();
-      updateCartCount();
-      closeQuoteSheet();
-    }
-  });
-
-  copyQuoteBtn.addEventListener("click", () => {
-    if (quoteList.length === 0) return;
-
-    let text = "📋 KINYO 商品報價單\n----------------------\n";
-    let total = 0;
-    
-    quoteList.forEach((item, i) => {
-      const sub = item.price * item.count;
-      total += sub;
-      text += `${i+1}. 【${item.model}】${item.name}\n`;
-      text += `   規格：${item.qtyLabel} | 單價：$${item.price}\n`;
-    });
-    
-    text += "----------------------\n";
-    text += `💰 總計金額：$${total.toLocaleString()}`;
-
-    navigator.clipboard.writeText(text)
-      .then(() => alert("✅ 報價單已複製！"))
-      .catch(() => alert("複製失敗，請手動複製"));
-  });
-
-
-  // ★ 匯出 Excel 邏輯 (與之前相同)
+  // ★ 匯出 Excel 邏輯修改
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
     if (checkedBoxes.length === 0) {
       alert("請先勾選要匯出的商品");
       return;
     }
-    const selectedModels = Array.from(checkedBoxes).map(chk => chk.getAttribute("data-model"));
+
+    const selectedModels = Array.from(checkedBoxes).map(chk =>
+      chk.getAttribute("data-model")
+    );
+
     const baseHeader = ["商品型號", "主型號", "商品名稱", "顏色列表", "箱入數", "商品連結"];
+
+    // ★ 動態決定價格欄位
     let priceHeader = [];
-    const selectedQty = qtySelect.value;
+    const selectedQty = qtySelect.value; // 取得目前選的數量
+
     if (selectedQty) {
+      // 如果有選起訂量 (如 300)，只匯出那一欄 + 末售 + 賣場
       priceHeader = [`${selectedQty}個`, "末售", "賣場"];
     } else {
-      if (userLevel === 1) priceHeader = ["50個", "末售", "賣場"];
-      else if (userLevel === 2) priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
-      else if (userLevel === 3) priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
+      // 沒選起訂量，維持全匯出
+      if (userLevel === 1) {
+        priceHeader = ["50個", "末售", "賣場"];
+      } else if (userLevel === 2) {
+        priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
+      } else if (userLevel === 3) {
+        priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
+      }
     }
+
     const finalHeader = [...baseHeader, ...priceHeader];
     const rows = [finalHeader];
 
     selectedModels.forEach(model => {
       const item = currentResultList.find(p => p.model === model);
       if (!item) return;
-      const baseRow = [item.model, item.mainModel, item.name, item.colorList, item.cartonQty, item.productUrl];
+
+      const baseRow = [
+        item.model, item.mainModel, item.name, item.colorList, item.cartonQty, item.productUrl
+      ];
+
       let priceRow = [];
       if (selectedQty) {
+        // 單一報價匯出模式
         let cost = 0;
         if (selectedQty === "50") cost = item.quote50;
         else if (selectedQty === "100") cost = item.quote100;
         else if (selectedQty === "300") cost = item.quote300;
         else if (selectedQty === "500") cost = item.quote500;
         else if (selectedQty === "1000") cost = item.quote1000;
-        else cost = item.quote50;
+        else cost = item.quote50; // Fallback
+
         priceRow = [cost, item.minPrice, item.marketPrice];
       } else {
-        if (userLevel === 1) priceRow = [item.quote50, item.minPrice, item.marketPrice];
-        else if (userLevel === 2) priceRow = [item.quote50, item.quote100, item.quote300, item.minPrice, item.marketPrice];
-        else if (userLevel === 3) priceRow = [item.quote50, item.quote100, item.quote300, item.quote500, item.quote1000, item.minPrice, item.marketPrice];
+        // 全報價匯出模式
+        if (userLevel === 1) {
+          priceRow = [item.quote50, item.minPrice, item.marketPrice];
+        } else if (userLevel === 2) {
+          priceRow = [item.quote50, item.quote100, item.quote300, item.minPrice, item.marketPrice];
+        } else if (userLevel === 3) {
+          priceRow = [item.quote50, item.quote100, item.quote300, item.quote500, item.quote1000, item.minPrice, item.marketPrice];
+        }
       }
       rows.push([...baseRow, ...priceRow]);
     });
+
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "報價");
