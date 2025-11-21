@@ -708,7 +708,7 @@
       tr.innerHTML = `
         <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
         <td><img src="${img}" class="product-img" /></td>
-        <td>${item.mainModel}</td>
+        <td>${item.mainModel || item.main_model || item.main || "-"}</td>
         <td>
           <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
           <div class="price-tag-container" style="font-size:13px;line-height:1.6;margin-bottom:4px;">${priceHtml}</div>
