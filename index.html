@@ -373,6 +373,27 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
   let currentResultList = [];
   let userLevel = 1;
   let currentUserEmail = "";
+  // ★ 新增這個函式：根據選擇的起訂量，取得對應成本
+  function getSelectedCostInfo(item) {
+    const selectedQty = qtySelect.value; 
+    let cost = item.quote50; // 預設成本
+    let label = "50個";
+
+    if (selectedQty === "100" && userLevel >= 2) {
+      cost = item.quote100;
+      label = "100個";
+    } else if (selectedQty === "300" && userLevel >= 2) {
+      cost = item.quote300;
+      label = "300個";
+    } else if (selectedQty === "500" && userLevel >= 3) {
+      cost = item.quote500;
+      label = "500個";
+    } else if (selectedQty === "1000" && userLevel >= 3) {
+      cost = item.quote1000;
+      label = "1000個";
+    }
+    return { cost, label };
+  }
 
   // DOM 參照
   const keywordInput   = document.getElementById("keyword");
@@ -599,7 +620,7 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
     if (list.length === 0) {
       resultTable.style.display = "none";
       exportBtn.disabled = true;
-    copyQuoteBtn.disabled = true;
+      copyQuoteBtn.disabled = true;
       alert("查無符合商品");
       return;
     }
@@ -614,10 +635,7 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
 
       /* 產生價格區塊 HTML */
       let priceHtml = "";
-
-      if (userLevel >= 1) {
-        priceHtml += `<span class="price-tag tag50">50個：${item.quote50} 元</span>`;
-      }
+      if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${item.quote50} 元</span>`;
       if (userLevel >= 2) {
         priceHtml += `<span class="price-tag tag100">100個：${item.quote100} 元</span>`;
         priceHtml += `<span class="price-tag tag300">300個：${item.quote300} 元</span>`;
@@ -626,6 +644,71 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
         priceHtml += `<span class="price-tag tag500">500個：${item.quote500} 元</span>`;
         priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
       }
+
+      // ★ 呼叫剛寫好的函式，取得預設成本
+      const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
+
+      tr.innerHTML = `
+        <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
+        <td><img src="${img}" class="product-img" /></td>
+        <td>${item.mainModel}</td>
+        <td>
+          <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
+
+          <div class="price-tag-container" style="font-size:13px;line-height:1.6;margin-bottom:4px;">
+            ${priceHtml}
+          </div>
+
+          <div style="font-size:13px;color:#444;">
+            顏色：${item.colorList}
+          </div>
+
+          <button class="line-share-btn" data-model="${item.model}" 
+            style="margin-top:6px;padding:6px 12px;font-size:12px;
+            background:#06C755;color:#fff;border:none;border-radius:6px;">
+            複製 LINE 分享
+          </button>
+
+          <div class="profit-box" style="margin-top:6px;font-size:12px;">
+            <div style="display:flex; gap:6px; margin-bottom:4px;">
+              <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:4px 6px;">
+              <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:4px 6px;">
+            </div>
+
+            <div style="display:flex; gap:6px; margin-bottom:4px;">
+              <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:4px 6px;">
+              <div class="profit-result" style="flex:1;padding-top:4px;color:#666;">點擊試算 (預設:${costLabel})</div>
+            </div>
+
+            <div class="profit-bar" style="height:6px;background:#eee;border-radius:4px;overflow:hidden;">
+              <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+            </div>
+          </div>
+          
+        </td>
+        <td style="text-align:right;">${item.minPrice} 元</td>
+        <td style="text-align:right;">${item.marketPrice} 元</td>
+      `;
+
+      const isDesktop = window.innerWidth > 900;
+      if (isDesktop) {
+        tr.addEventListener("mouseenter", () => showDetailDesktop(item));
+        tr.addEventListener("click", (e) => {
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          showDetailDesktop(item);
+        });
+      } else {
+        tr.addEventListener("click", (e) => {
+          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
+          showDetailMobile(item);
+        });
+      }
+
+      resultBody.appendChild(tr);
+    });
+
+    bindCheckAll();
+  }
 
       /* ★★★ 新版：手機 3 欄 Grid（price-tag-container） ★★★ */
       tr.innerHTML = `
