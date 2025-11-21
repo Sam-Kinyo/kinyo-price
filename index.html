@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>KINYO 查價系統</title>
+  <title>KINYO 查價系統 (V1.1)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -80,6 +80,7 @@
       cursor: pointer;
     }
 
+    /* 加入報價單按鈕 */
     .btn-outline-add {
       padding: 6px 12px;
       border-radius: 6px;
@@ -115,6 +116,7 @@
       text-align: left;
     }
 
+    /* 圖片放大設定 */
     .product-img {
       width: 120px;
       height: 120px;
@@ -140,6 +142,7 @@
     .tag500 { background:#ffedd5; color:#ea580c; }
     .tag1000{ background:#fee2e2; color:#b91c1c; }
 
+    /* 電腦版詳細卡片 */
     #detailCard {
       position: fixed;
       right: 20px;
@@ -156,6 +159,7 @@
       z-index: 999;
     }
 
+    /* 手機版 bottom sheet */
     .sheet-backdrop {
       position: fixed;
       inset: 0;
@@ -203,6 +207,7 @@
 
     .hidden { display:none !important; }
 
+    /* 懸浮購物車按鈕 */
     .fab-cart {
       position: fixed;
       bottom: 30px;
@@ -243,6 +248,7 @@
       50% { transform: scale(1.2); }
     }
 
+    /* 報價單列表樣式 */
     .quote-item {
       display: flex;
       justify-content: space-between;
@@ -255,12 +261,15 @@
     .quote-del { color: #999; cursor: pointer; padding: 8px; font-size: 16px; }
     .quote-del:hover { color: #ef4444; }
 
+    /* RWD */
     @media (max-width: 900px) {
       body {
         max-width: 100%;
         margin: 16px auto 32px;
       }
-      #detailCard { display:none !important; }
+      #detailCard {
+        display:none !important;
+      }
     }
 
     @media (max-width: 600px) {
@@ -269,6 +278,7 @@
       .product-img { width: 90px; height: 90px; }
       table th, table td { padding: 8px 6px; font-size: 13px; }
       .btn-primary, .btn-secondary { padding: 8px 12px; }
+      
       .price-tag-container{
         display:grid;
         grid-template-columns: repeat(2, 1fr);
@@ -440,13 +450,47 @@
     R:"紅", B:"藍", G:"綠", BK:"黑", WH:"白", PK:"粉", Y:"黃", OR:"橘"
   };
 
-  // ★ 關鍵修正：先把函式定義好，避免找不到 (closeSheet is not defined)
-  function openSheet() {
-    sheetBackdrop.classList.remove("hidden");
-    mobileSheet.classList.remove("hidden");
-    requestAnimationFrame(() => mobileSheet.classList.add("open"));
+  // ★ 工具：即時算毛利 (共用邏輯)
+  function updateRowProfit(container) {
+    const cost = Number(container.querySelector(".cost-input")?.value || 0);
+    const sell = Number(container.querySelector(".sell-input")?.value || 0);
+    const qty  = Number(container.querySelector(".qty-input")?.value || 1);
+    const resultEl = container.querySelector(".profit-result");
+    const barFill  = container.querySelector(".profit-bar-fill");
+
+    if (!resultEl || !barFill) return;
+
+    if (cost > 0 && sell > 0) {
+      const profit = (sell - cost) * qty;
+      const margin = (sell - cost) / sell;
+      const marginPct = Math.round(margin * 100);
+      
+      // 文字顯示：負毛利紅字
+      if (profit < 0) {
+          resultEl.innerHTML = `<span style="color:red;font-weight:bold;">虧損：$${profit} (${marginPct}%)</span>`;
+      } else {
+          resultEl.innerHTML = `毛利：$${profit} (${marginPct}%)`;
+      }
+
+      // 顏色條邏輯
+      let pct = Math.max(0, Math.min(100, marginPct));
+      if (profit < 0) {
+          barFill.style.width = "100%";
+          barFill.style.background = "#ef4444"; 
+      } else {
+          barFill.style.width = pct + "%";
+          if(marginPct < 10) barFill.style.background = "#fbbf24";
+          else if(marginPct < 20) barFill.style.background = "#a3e635";
+          else barFill.style.background = "#22c55e";
+      }
+    } else {
+      resultEl.innerHTML = "毛利：-";
+      barFill.style.width = "0%";
+      barFill.style.background = "#eee";
+    }
   }
 
+  // ★ 工具：關閉視窗
   function closeSheet() {
     sheetBackdrop.classList.add("hidden");
     mobileSheet.classList.remove("open");
@@ -454,14 +498,6 @@
       if (!mobileSheet.classList.contains("open")) mobileSheet.classList.add("hidden");
     }, 220);
   }
-
-  function openQuoteSheet() {
-    sheetBackdrop.classList.remove("hidden");
-    quoteSheet.classList.remove("hidden");
-    requestAnimationFrame(() => quoteSheet.classList.add("open"));
-    renderQuoteList();
-  }
-
   function closeQuoteSheet() {
     quoteSheet.classList.remove("open");
     setTimeout(() => {
@@ -470,6 +506,7 @@
     }, 220);
   }
 
+  // ★ 工具：取得成本
   function getSelectedCostInfo(item) {
     const selectedQty = qtySelect.value; 
     let cost = item.quote50; 
@@ -651,6 +688,7 @@
         priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
       }
 
+      // ★ 智慧填入成本
       const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
 
       tr.innerHTML = `
@@ -704,6 +742,11 @@
           showDetailMobile(item);
         });
       }
+      
+      // ★★★ 關鍵修改：創建完後立刻算一次毛利 (讓畫面直接顯示結果) ★★★
+      const pb = tr.querySelector(".profit-box");
+      if (pb) updateRowProfit(pb);
+
       resultBody.appendChild(tr);
     });
     bindCheckAll();
@@ -743,7 +786,6 @@
         <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
         <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
         <div><strong>商品網址</strong><br>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}</div>
-        <div><strong>顏色</strong><br>${item.colorList || "-"}</div>
       </div>
       <h3 style="margin-top:18px;">採購價格</h3>
       <div style="margin-left:4px;line-height:1.6;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
@@ -754,7 +796,7 @@
       </div>
 
       <h3 style="margin-top:18px;">毛利試算</h3>
-      <div style="font-size:14px;margin-top:4px;">
+      <div class="profit-box" style="font-size:14px;margin-top:4px;">
         <div style="display:flex; gap:8px; margin-bottom:6px;">
           <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
           <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
@@ -768,6 +810,9 @@
         </div>
       </div>
     `;
+    // 這裡也加上自動計算
+    const pb = detailCard.querySelector(".profit-box");
+    if(pb) updateRowProfit(pb);
   }
 
   function showDetailMobile(item) {
@@ -793,7 +838,7 @@
       <div style="line-height:1.6;margin-left:4px;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
       
       <h3 style="margin-top:18px;">毛利試算</h3>
-      <div style="font-size:14px;margin-top:4px;margin-bottom:16px;">
+      <div class="profit-box" style="font-size:14px;margin-top:4px;margin-bottom:16px;">
         <div style="display:flex; gap:8px; margin-bottom:6px;">
           <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
           <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
@@ -811,6 +856,9 @@
         <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="width:100%;margin-top:0;">➕ 加入報價單</button>
       </div>
     `;
+    // 手機版也自動算
+    const pb = sheetContent.querySelector(".profit-box");
+    if(pb) updateRowProfit(pb);
     openSheet();
   }
 
@@ -896,9 +944,7 @@
     });
     text += "----------------------\n";
     text += `💰 總計金額：$${total.toLocaleString()}`;
-    navigator.clipboard.writeText(text)
-      .then(() => alert("✅ 報價單已複製！"))
-      .catch(() => alert("複製失敗"));
+    navigator.clipboard.writeText(text).then(() => alert("✅ 報價單已複製！")).catch(() => alert("複製失敗"));
   });
 
   function exportSelectedExcel() {
@@ -950,35 +996,12 @@
     el.addEventListener("keydown", e => { if (e.key === "Enter") searchProducts(); });
   });
 
+  // 綁定輸入事件 (即時重算)
   document.addEventListener("input", function(e) {
-    const row = e.target.closest(".profit-box, .sheet-content, #detailCard");
-    if (!row) return;
-    const cost = Number(row.querySelector(".cost-input")?.value || 0);
-    const sell = Number(row.querySelector(".sell-input")?.value || 0);
-    const qty  = Number(row.querySelector(".qty-input")?.value || 1);
-    const resultEl = row.querySelector(".profit-result");
-    const barFill  = row.querySelector(".profit-bar-fill");
-    if (!resultEl || !barFill) return;
-    if (cost > 0 && sell > 0) {
-      const profit = (sell - cost) * qty;
-      const margin = (sell - cost) / sell;
-      const marginPct = Math.round(margin * 100);
-      if (profit < 0) { resultEl.innerHTML = `<span style="color:red;font-weight:bold;">虧損：$${profit} (${marginPct}%)</span>`; } 
-      else { resultEl.innerHTML = `毛利：$${profit} (${marginPct}%)`; }
-      let pct = Math.max(0, Math.min(100, marginPct));
-      if (profit < 0) { barFill.style.width = "100%"; barFill.style.background = "#ef4444"; } 
-      else {
-          barFill.style.width = pct + "%";
-          if(marginPct < 10) barFill.style.background = "#fbbf24";
-          else if(marginPct < 20) barFill.style.background = "#a3e635";
-          else barFill.style.background = "#22c55e";
-      }
-    } else {
-      resultEl.innerHTML = "毛利：-";
-      barFill.style.width = "0%";
-      barFill.style.background = "#eee";
-    }
+    const row = e.target.closest(".profit-box");
+    if (row) updateRowProfit(row);
   });
+
   document.addEventListener("click", function(e) {
      if(e.target.tagName === "INPUT" && e.target.type === "number") { e.target.select(); }
   });
