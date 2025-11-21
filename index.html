@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>KINYO 查價系統 (最終整合版)</title>
+  <title>KINYO 查價系統（版本3 強化最終版）</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -13,124 +13,63 @@
       padding: 0 16px 100px;
       background: #f5f5f5;
     }
-
     h1 { margin-bottom: 4px; }
     .subtitle { color: #666; margin-bottom: 16px; }
 
     .top-bar {
-      display:flex;
-      justify-content: flex-end;
-      align-items:center;
-      font-size: 13px;
-      color:#374151;
-      margin-bottom: 10px;
-      gap: 8px;
+      display:flex; justify-content:flex-end; align-items:center;
+      font-size:13px; color:#374151; margin-bottom:10px; gap:8px;
     }
-    .user-badge {
-      padding:4px 10px;
-      border-radius:999px;
-      background:#e5e7eb;
-    }
+    .user-badge { padding:4px 10px; border-radius:999px; background:#e5e7eb; }
     .logout-btn {
-      padding:4px 10px;
-      border-radius:999px;
-      border:1px solid #d1d5db;
-      background:white;
-      cursor:pointer;
-      font-size:12px;
+      padding:4px 10px; border-radius:999px; border:1px solid #d1d5db;
+      background:white; cursor:pointer; font-size:12px;
     }
 
     .search-box {
-      background: #fff;
-      padding: 16px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      margin-bottom: 12px;
+      background:#fff; padding:16px; border-radius:12px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.06);
+      margin-bottom:12px;
     }
-    .search-row { margin-bottom: 12px; }
-    label { font-weight: 600; display:block; margin-bottom:4px; }
+    .search-row { margin-bottom:12px; }
+    label { font-weight:600; display:block; margin-bottom:4px; }
 
     input, select {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      width: 100%;
-      box-sizing: border-box;
-      font-size: 14px;
+      padding:8px 12px; border-radius:8px; border:1px solid #ccc; width:100%;
+      box-sizing:border-box; font-size:14px;
     }
 
     .btn-primary {
-      padding: 10px 20px;
-      border-radius: 999px;
-      border: none;
-      background: #111827;
-      color: white;
-      font-weight: 600;
-      cursor: pointer;
-      width: 100%;
+      padding:10px 20px; border-radius:999px; border:none; background:#111827;
+      color:#fff; font-weight:600; cursor:pointer; width:100%;
     }
-
     .btn-secondary {
-      padding: 8px 16px;
-      border-radius: 999px;
-      border: 1px solid #e5e7eb;
-      background: #fff;
-      color: #111827;
-      font-size: 14px;
-      cursor: pointer;
+      padding:8px 16px; border-radius:999px; border:1px solid #e5e7eb; background:#fff;
+      color:#111827; font-size:14px; cursor:pointer;
     }
-
     .btn-outline-add {
-      padding: 6px 12px;
-      border-radius: 6px;
-      border: 1px solid #2563eb;
-      background: #eff6ff;
-      color: #2563eb;
-      font-size: 12px;
-      cursor: pointer;
-      margin-top: 6px;
-      font-weight: 600;
+      padding:6px 12px; border-radius:6px; border:1px solid #2563eb; background:#eff6ff;
+      color:#2563eb; font-size:12px; cursor:pointer; margin-top:6px; font-weight:600;
     }
-    .btn-outline-add:hover { background: #dbeafe; }
+    .btn-outline-add:hover { background:#dbeafe; }
 
     table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 4px;
-      background: white;
-      border-radius: 10px;
-      overflow: hidden;
+      width:100%; border-collapse:collapse; margin-top:4px; background:white;
+      border-radius:10px; overflow:hidden;
     }
-
     th, td {
-      padding: 12px 10px;
-      border-bottom: 1px solid #eee;
-      font-size: 14px;
-      vertical-align: top;
+      padding:12px 10px; border-bottom:1px solid #eee; font-size:14px; vertical-align:top;
     }
-    th {
-      background: #f9fafb;
-      text-align: left;
-    }
+    th { background:#f9fafb; text-align:left; }
 
     .product-img {
-      width: 120px;
-      height: 120px;
-      border-radius: 8px;
-      object-fit: cover;
-      border: 1px solid #ddd;
-      background: #fff;
+      width:120px; height:120px; border-radius:8px; object-fit:cover;
+      border:1px solid #ddd; background:#fff;
     }
 
     .price-tag {
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 6px;
-      margin-right: 6px;
-      margin-bottom: 4px;
-      display: inline-block;
-      font-size: 12px;
-      white-space: nowrap;
+      font-weight:600; padding:2px 6px; border-radius:6px; margin-right:6px; margin-bottom:4px;
+      display:inline-block; font-size:12px; white-space:nowrap;
     }
     .tag50  { background:#dbeafe; color:#1e40af; }
     .tag100 { background:#e0f2fe; color:#0369a1; }
@@ -139,143 +78,72 @@
     .tag1000{ background:#fee2e2; color:#b91c1c; }
 
     #detailCard {
-      position: fixed;
-      right: 20px;
-      top: 120px;
-      width: 320px;
-      max-height: 78vh;
-      overflow-y: auto;
-      background: white;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.12);
-      display: none;
-      font-size: 14px;
-      z-index: 999;
+      position:fixed; right:20px; top:120px; width:320px; max-height:78vh; overflow-y:auto;
+      background:white; border-radius:12px; padding:20px;
+      box-shadow:0 2px 10px rgba(0,0,0,0.12); display:none; font-size:14px; z-index:999;
     }
 
-    .sheet-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.45);
-      z-index: 1000;
-    }
+    .sheet-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; }
     .sheet {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: 80vh;
-      background: #ffffff;
-      border-radius: 16px 16px 0 0;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
-      z-index: 1001;
-      display: flex;
-      flex-direction: column;
-      transform: translateY(100%);
-      transition: transform 0.22s ease-out;
+      position:fixed; left:0; right:0; bottom:0; height:80vh; background:#fff;
+      border-radius:16px 16px 0 0; box-shadow:0 -2px 10px rgba(0,0,0,0.18);
+      z-index:1001; display:flex; flex-direction:column;
+      transform:translateY(100%); transition:transform 0.22s ease-out;
     }
-    .sheet.open { transform: translateY(0%); }
+    .sheet.open { transform:translateY(0%); }
 
     .sheet-header {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:12px 16px 8px;
-      border-bottom:1px solid #e5e7eb;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px 8px; border-bottom:1px solid #e5e7eb;
     }
     .sheet-title { font-size:16px; font-weight:600; }
     .sheet-close {
-      font-size:24px;
-      line-height:1;
-      border:none;
-      background:transparent;
-      cursor:pointer;
-      padding: 0 8px;
+      font-size:24px; line-height:1; border:none; background:transparent; cursor:pointer; padding:0 8px;
     }
-    .sheet-content {
-      padding:16px;
-      overflow-y:auto;
-      font-size:15px;
-    }
+    .sheet-content { padding:16px; overflow-y:auto; font-size:15px; }
 
     .hidden { display:none !important; }
 
     .fab-cart {
-      position: fixed;
-      bottom: 30px;
-      right: 24px;
-      width: 64px;
-      height: 64px;
-      background: #111827;
-      color: white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      cursor: pointer;
-      z-index: 990;
-      transition: transform 0.2s;
+      position:fixed; bottom:30px; right:24px; width:64px; height:64px; background:#111827; color:white;
+      border-radius:50%; display:flex; align-items:center; justify-content:center;
+      box-shadow:0 4px 15px rgba(0,0,0,0.3); cursor:pointer; z-index:990; transition:transform 0.2s;
     }
-    .fab-cart:active { transform: scale(0.95); }
+    .fab-cart:active { transform:scale(0.95); }
     .fab-badge {
-      position: absolute;
-      top: -2px;
-      right: -2px;
-      background: #ef4444;
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 2px solid white;
+      position:absolute; top:-2px; right:-2px; background:#ef4444; color:white; font-size:12px; font-weight:bold;
+      width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+      border:2px solid white;
     }
-    .bounce { animation: bounce 0.3s ease-in-out; }
+    .bounce { animation:bounce 0.3s ease-in-out; }
     @keyframes bounce {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.2); }
+      0%,100%{transform:scale(1);} 50%{transform:scale(1.2);}
     }
 
     .quote-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid #eee;
+      display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid #eee;
     }
-    .quote-info { font-size: 14px; }
-    .quote-price { font-weight: 600; color: #2563eb; }
-    .quote-del { color: #999; cursor: pointer; padding: 8px; font-size: 16px; }
-    .quote-del:hover { color: #ef4444; }
+    .quote-info { font-size:14px; }
+    .quote-price { font-weight:600; color:#2563eb; }
+    .quote-del { color:#999; cursor:pointer; padding:8px; font-size:16px; }
+    .quote-del:hover { color:#ef4444; }
 
-    @media (max-width: 900px) {
-      body { max-width: 100%; margin: 16px auto 32px; }
+    @media (max-width:900px) {
+      body { max-width:100%; margin:16px auto 32px; }
       #detailCard { display:none !important; }
     }
-
-    @media (max-width: 600px) {
-      .search-box { padding: 12px; }
-      input, select { font-size: 14px; padding: 8px; }
-      .product-img { width: 90px; height: 90px; }
-      table th, table td { padding: 8px 6px; font-size: 13px; }
-      .btn-primary, .btn-secondary { padding: 8px 12px; }
+    @media (max-width:600px) {
+      .search-box{padding:12px;}
+      input, select{font-size:14px; padding:8px;}
+      .product-img{width:90px; height:90px;}
+      table th, table td{padding:8px 6px; font-size:13px;}
+      .btn-primary, .btn-secondary{padding:8px 12px;}
 
       .price-tag-container{
-        display:grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap:4px 6px;
-        margin-bottom:4px;
+        display:grid; grid-template-columns:repeat(2,1fr); gap:4px 6px; margin-bottom:4px;
       }
       .price-tag{
-        width:100%;
-        text-align:center;
-        margin:0;
-        padding:2px 4px;
+        width:100%; text-align:center; margin:0; padding:2px 4px;
       }
     }
   </style>
@@ -293,20 +161,20 @@
 
 <div class="search-box">
   <div class="search-row">
-    <label>關鍵字搜尋（型號 / 名稱）：</label>
-    <input id="keyword" placeholder="如：CL528 / 除毛球機" />
+    <label>關鍵字搜尋（型號 / 名稱，可多關鍵字用空白分隔）：</label>
+    <input id="keyword" placeholder="如：CL528 白 除毛" />
   </div>
 
   <div class="search-row">
-    <label>選擇起訂量：</label>
+    <label>選擇起訂量（進階搜尋用）：</label>
     <select id="qtySelect"></select>
   </div>
 
   <div class="search-row">
-    <label>預算區間（需先選起訂量，未填將自動預設 50 ~ 100萬）：</label>
+    <label>預算區間（選起訂量後，至少填一個；另一個會自動補齊）：</label>
     <div style="display:flex; gap:6px;">
-      <input id="minPrice" type="number" placeholder="最低金額 (預設 50)" />
-      <input id="maxPrice" type="number" placeholder="最高金額 (預設 100萬)" />
+      <input id="minPrice" type="number" placeholder="最低預算" />
+      <input id="maxPrice" type="number" placeholder="最高預算" />
     </div>
   </div>
 
@@ -324,7 +192,6 @@
     <option value="alphaAsc">主型號：A → Z</option>
     <option value="alphaDesc">主型號：Z → A</option>
   </select>
-
   <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
 </div>
 
@@ -367,7 +234,10 @@
         <span id="quoteTotal">$0</span>
       </div>
       <button id="copyQuoteBtn" class="btn-primary" style="width:100%;">複製整張報價單 (LINE)</button>
-      <button id="clearQuoteBtn" class="btn-secondary" style="width:100%;margin-top:8px;color:#ef4444;border-color:#ef4444;">清空報價單</button>
+      <button id="clearQuoteBtn" class="btn-secondary"
+        style="width:100%;margin-top:8px;color:#ef4444;border-color:#ef4444;">
+        清空報價單
+      </button>
     </div>
   </div>
 </div>
@@ -384,9 +254,9 @@
   import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-  // ----------------------
-  // Firebase Config
-  // ----------------------
+  // =========================
+  // 0. Firebase Init
+  // =========================
   const firebaseConfig = {
     apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
     authDomain: "kinyo-price.firebaseapp.com",
@@ -396,22 +266,22 @@
     appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+  const app  = initializeApp(firebaseConfig);
+  const db   = getFirestore(app);
   const auth = getAuth(app);
 
-  // ----------------------
-  // Global State
-  // ----------------------
+  // =========================
+  // 1. Global State
+  // =========================
   let productCache = null;
   let currentResultList = [];
   let userLevel = 1;
   let currentUserEmail = "";
   let quoteList = [];
 
-  // ----------------------
-  // DOM
-  // ----------------------
+  // =========================
+  // 2. DOM
+  // =========================
   const keywordInput = document.getElementById("keyword");
   const qtySelect = document.getElementById("qtySelect");
   const minPriceInput = document.getElementById("minPrice");
@@ -441,45 +311,23 @@
   const fabCart = document.getElementById("fabCart");
   const cartCount = document.getElementById("cartCount");
 
-  // ----------------------
-  // UI Sheet helpers
-  // ----------------------
-  function openSheet() {
-    sheetBackdrop.classList.remove("hidden");
-    mobileSheet.classList.remove("hidden");
-    requestAnimationFrame(() => mobileSheet.classList.add("open"));
-  }
+  // =========================
+  // 3. Helpers (Data)
+  // =========================
 
-  function closeSheet() {
-    mobileSheet.classList.remove("open");
-    setTimeout(() => {
-      if (!mobileSheet.classList.contains("open")) {
-        mobileSheet.classList.add("hidden");
-        if (quoteSheet.classList.contains("hidden")) {
-          sheetBackdrop.classList.add("hidden");
-        }
+  // A) 主型號推導（方案A）
+  function getMainModel(model) {
+    if (!model) return "-";
+    const colorCodes = ["BK","WH","PK","OR","BL","R","B","G","Y","W"];
+    for (const code of colorCodes) {
+      if (model.toUpperCase().endsWith(code)) {
+        return model.slice(0, model.length - code.length);
       }
-    }, 220);
+    }
+    return model;
   }
 
-  function openQuoteSheet() {
-    sheetBackdrop.classList.remove("hidden");
-    quoteSheet.classList.remove("hidden");
-    requestAnimationFrame(() => quoteSheet.classList.add("open"));
-    renderQuoteList();
-  }
-
-  function closeQuoteSheet() {
-    quoteSheet.classList.remove("open");
-    setTimeout(() => {
-      if (!quoteSheet.classList.contains("open")) quoteSheet.classList.add("hidden");
-      if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
-    }, 220);
-  }
-
-  // ----------------------
-  // Qty Select by Level
-  // ----------------------
+  // B) 依等級決定可用起訂量
   function setupQtySelectByLevel() {
     qtySelect.innerHTML = "";
     const optNone = document.createElement("option");
@@ -491,15 +339,36 @@
       opt.value = v; opt.textContent = t;
       qtySelect.appendChild(opt);
     };
-
     if (userLevel >= 1) addOption("50", "50 個");
     if (userLevel >= 2) { addOption("100", "100 個"); addOption("300", "300 個"); }
     if (userLevel >= 3) { addOption("500", "500 個"); addOption("1000", "1000 個"); }
   }
 
-  // ----------------------
-  // Preload Products
-  // ----------------------
+  // C) 依起訂量取得預設成本
+  function getSelectedCostInfo(item) {
+    const selectedQty = qtySelect.value;
+    let cost = item.quote50;
+    let label = "50個";
+    if (selectedQty === "100" && userLevel >= 2) { cost = item.quote100; label = "100個"; }
+    else if (selectedQty === "300" && userLevel >= 2) { cost = item.quote300; label = "300個"; }
+    else if (selectedQty === "500" && userLevel >= 3) { cost = item.quote500; label = "500個"; }
+    else if (selectedQty === "1000" && userLevel >= 3) { cost = item.quote1000; label = "1000個"; }
+    return { cost, label };
+  }
+
+  // D) 排序
+  function applySorting(list) {
+    const opt = sortSelect.value;
+    if (opt === "minPriceAsc")  return list.sort((a,b)=>a.minPrice - b.minPrice);
+    if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
+    if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
+    if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
+    if (opt === "alphaAsc")     return list.sort((a,b)=> getMainModel(a.model).localeCompare(getMainModel(b.model)));
+    if (opt === "alphaDesc")    return list.sort((a,b)=> getMainModel(b.model).localeCompare(getMainModel(a.model)));
+    return list;
+  }
+
+  // E) 預載 Products
   async function preloadProducts() {
     try {
       const snap = await getDocs(collection(db, "Products"));
@@ -512,113 +381,118 @@
     }
   }
 
-  // ----------------------
-  // Get selected cost info
-  // ----------------------
-  function getSelectedCostInfo(item) {
+  // F) 關鍵字擴充（多關鍵字 + 斷詞 + 模糊）
+  function expandKeyword(k) {
+    const set = new Set();
+    set.add(k);
+    set.add(k.replace(/-/g, ""));               // CL-528 -> CL528
+    set.add(k.replace(/[^a-zA-Z0-9]/g, ""));    // 去符號
+
+    const letters = k.replace(/[^a-zA-Z]/g, "");
+    const numbers = k.replace(/[^0-9]/g, "");
+    if (letters) set.add(letters);
+    if (numbers) set.add(numbers);
+
+    return Array.from(set).filter(x => x.length > 0);
+  }
+
+  // =========================
+  // 4. Search Engine (A/B)
+  // =========================
+  async function searchProducts() {
+    if (!productCache) await preloadProducts();
+
+    const kwRaw = keywordInput.value.trim().toLowerCase();
     const selectedQty = qtySelect.value;
-    let cost = item.quote50;
-    let label = "50個";
 
-    if (selectedQty === "100" && userLevel >= 2) { cost = item.quote100; label = "100個"; }
-    else if (selectedQty === "300" && userLevel >= 2) { cost = item.quote300; label = "300個"; }
-    else if (selectedQty === "500" && userLevel >= 3) { cost = item.quote500; label = "500個"; }
-    else if (selectedQty === "1000" && userLevel >= 3) { cost = item.quote1000; label = "1000個"; }
+    const rawMin = minPriceInput.value.trim();
+    const rawMax = maxPriceInput.value.trim();
 
-    return { cost, label };
-  }
-
-  // ----------------------
-  // Profit calculator per box
-  // ----------------------
-  function updateRowProfit(container) {
-    const cost = Number(container.querySelector(".cost-input")?.value || 0);
-    const sell = Number(container.querySelector(".sell-input")?.value || 0);
-    const qty  = Number(container.querySelector(".qty-input")?.value || 1);
-    const resultEl = container.querySelector(".profit-result");
-    const barFill  = container.querySelector(".profit-bar-fill");
-    if (!resultEl || !barFill) return;
-
-    if (cost > 0 && sell > 0) {
-      const profit = (sell - cost) * qty;
-      const margin = (sell - cost) / sell;
-      const marginPct = Math.round(margin * 100);
-
-      if (profit < 0) {
-        resultEl.innerHTML = `<span style="color:red;font-weight:bold;">虧損：$${profit} (${marginPct}%)</span>`;
-        barFill.style.width = "100%";
-        barFill.style.background = "#ef4444";
-      } else {
-        resultEl.innerHTML = `毛利：$${profit} (${marginPct}%)`;
-        let pct = Math.max(0, Math.min(100, marginPct));
-        barFill.style.width = pct + "%";
-        if (marginPct < 10) barFill.style.background = "#fbbf24";
-        else if (marginPct < 20) barFill.style.background = "#a3e635";
-        else barFill.style.background = "#22c55e";
-      }
-    } else {
-      resultEl.innerHTML = "毛利：-";
-      barFill.style.width = "0%";
-      barFill.style.background = "#eee";
+    // 沒 keyword 且沒起訂量 -> 不搜
+    if (!kwRaw && !selectedQty) {
+      alert("請至少輸入關鍵字，或選擇起訂量搭配預算區間搜尋");
+      return;
     }
+
+    // A) Keyword list
+    const keywords = kwRaw.split(/\s+/).filter(Boolean);
+    const expandedKeywords = keywords.flatMap(expandKeyword);
+
+    // B) Keyword filter (永遠可用)
+    let list = productCache.filter(item => {
+      const fields = [
+        (item.model || "").toLowerCase(),
+        (item.name || "").toLowerCase(),
+        (item.searchKey || "").toLowerCase()
+      ];
+      // 沒輸入 keyword -> 不用 keyword 過濾
+      if (!expandedKeywords.length) return true;
+      return expandedKeywords.some(k => fields.some(f => f.includes(k)));
+    });
+
+    // C) Qty + Budget filter (你的規則)
+    if (selectedQty) {
+      if (!rawMin && !rawMax) {
+        alert("已選擇起訂量，請至少輸入『最低預算』或『最高預算』其中一個");
+        return;
+      }
+
+      const key = "quote" + selectedQty;
+      const costs = list.map(x => Number(x[key] ?? x.quote50 ?? 0)).filter(n => n > 0);
+
+      const minDB = Math.min(...costs);
+      const maxDB = Math.max(...costs);
+
+      const minP = rawMin ? Number(rawMin) : minDB;
+      const maxP = rawMax ? Number(rawMax) : maxDB;
+
+      list = list.filter(item => {
+        const cost = Number(item[key] ?? item.quote50 ?? 0);
+        return cost >= minP && cost <= maxP;
+      });
+    }
+
+    // D) sort + render
+    list = applySorting(list);
+    currentResultList = list;
+    renderResults(list);
   }
 
-  // ----------------------
-  // Sorting
-  // ----------------------
-  function applySorting(list) {
-    const opt = sortSelect.value;
-    if (opt === "minPriceAsc")  return list.sort((a,b)=>a.minPrice - b.minPrice);
-    if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
-    if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
-    if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
-    if (opt === "alphaAsc")     return list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
-    if (opt === "alphaDesc")    return list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
-    return list;
-  }
+  // =========================
+  // 5. Render Layer
+  // =========================
 
-  // ----------------------
-  // Unified detail template
-  // ----------------------
-  function renderProductDetail(item) {
+  function renderDetailTemplate(item) {
     const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+    const mainModel = getMainModel(item.model);
 
     let priceBlock = "";
     if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
-    if (userLevel >= 2) {
-      priceBlock += `<div>100 個：${item.quote100} 元</div>`;
-      priceBlock += `<div>300 個：${item.quote300} 元</div>`;
-    }
-    if (userLevel >= 3) {
-      priceBlock += `<div>500 個：${item.quote500} 元</div>`;
-      priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
-    }
+    if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100} 元</div><div>300 個：${item.quote300} 元</div>`;
+    if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500} 元</div><div>1000 個：${item.quote1000} 元</div>`;
 
     const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
 
     return `
       <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
-
-      <h2 style="margin:4px 0 12px;font-size:18px;">${item.name}</h2>
+      <h2 style="margin:4px 0 12px;font-size:18px;">${item.name || "-"}</h2>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.5;">
-        <div><strong>商品型號</strong><br>${item.model}</div>
-        <div><strong>主型號</strong><br>${item.mainModel}</div>
-        <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
-        <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
+        <div><strong>商品型號</strong><br>${item.model || "-"}</div>
+        <div><strong>主型號</strong><br>${mainModel}</div>
+        <div><strong>賣場售價</strong><br>${item.marketPrice ?? "-"} 元</div>
+        <div><strong>末售價格</strong><br>${item.minPrice ?? "-"} 元</div>
         <div><strong>商品網址</strong><br>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}</div>
       </div>
 
       <h3 style="margin-top:18px;">採購價格</h3>
-      <div style="margin-left:4px;line-height:1.6;">
-        ${priceBlock || "<div>此帳號無採購價可見</div>"}
-      </div>
+      <div style="margin-left:4px;line-height:1.6;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
 
       <h3 style="margin-top:18px;">毛利試算</h3>
       <div class="profit-box" style="font-size:14px;margin-top:4px;margin-bottom:16px;">
         <div style="display:flex; gap:8px; margin-bottom:6px;">
-          <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
-          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <input type="number" placeholder="成本" value="${defaultCost ?? 0}" class="cost-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <input type="number" placeholder="售價" value="${item.marketPrice ?? 0}" class="sell-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
         </div>
         <div style="display:flex; gap:8px; margin-bottom:6px;">
           <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
@@ -636,50 +510,13 @@
     `;
   }
 
-  function showDetailDesktop(item) {
-    detailCard.style.display = "block";
-    detailCard.innerHTML = renderProductDetail(item);
-    const pb = detailCard.querySelector(".profit-box");
-    if (pb) updateRowProfit(pb);
-  }
-
-  function showDetailMobile(item) {
-    sheetContent.innerHTML = renderProductDetail(item);
-    const pb = sheetContent.querySelector(".profit-box");
-    if (pb) updateRowProfit(pb);
-    openSheet();
-  }
-
-  // ----------------------
-  // Check All binding
-  // ----------------------
-  function bindCheckAll() {
-    const rowChecks = document.querySelectorAll(".row-check");
-    if (!checkAllBox) return;
-
-    checkAllBox.addEventListener("change", () => {
-      rowChecks.forEach(chk => chk.checked = checkAllBox.checked);
-    });
-
-    rowChecks.forEach(chk => {
-      chk.addEventListener("change", () => {
-        const all = document.querySelectorAll(".row-check");
-        const checked = document.querySelectorAll(".row-check:checked");
-        checkAllBox.checked = (all.length === checked.length);
-      });
-    });
-  }
-
-  // ----------------------
-  // Render search results
-  // ----------------------
   function renderResults(list) {
     resultBody.innerHTML = "";
     detailCard.style.display = "none";
     closeSheet();
     if (checkAllBox) checkAllBox.checked = false;
 
-    if (list.length === 0) {
+    if (!list.length) {
       resultTable.style.display = "none";
       exportBtn.disabled = true;
       return;
@@ -689,28 +526,23 @@
     exportBtn.disabled = false;
 
     list.forEach(item => {
-      const tr  = document.createElement("tr");
+      const tr = document.createElement("tr");
       const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
+      const mainModel = getMainModel(item.model);
 
       let priceHtml = "";
       if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${item.quote50} 元</span>`;
-      if (userLevel >= 2) {
-        priceHtml += `<span class="price-tag tag100">100個：${item.quote100} 元</span>`;
-        priceHtml += `<span class="price-tag tag300">300個：${item.quote300} 元</span>`;
-      }
-      if (userLevel >= 3) {
-        priceHtml += `<span class="price-tag tag500">500個：${item.quote500} 元</span>`;
-        priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
-      }
+      if (userLevel >= 2) priceHtml += `<span class="price-tag tag100">100個：${item.quote100} 元</span><span class="price-tag tag300">300個：${item.quote300} 元</span>`;
+      if (userLevel >= 3) priceHtml += `<span class="price-tag tag500">500個：${item.quote500} 元</span><span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
 
       const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
 
       tr.innerHTML = `
         <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
         <td><img src="${img}" class="product-img" /></td>
-        <td>${item.mainModel || item.main_model || item.main || "-"}</td>
+        <td>${mainModel}</td>
         <td>
-          <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
+          <div style="font-weight:600;margin-bottom:4px;">${item.name || "-"}</div>
           <div class="price-tag-container" style="font-size:13px;line-height:1.6;margin-bottom:4px;">${priceHtml}</div>
           <div style="font-size:13px;color:#444;">顏色：${item.colorList || "-"}</div>
 
@@ -724,9 +556,9 @@
 
           <div class="profit-box" style="margin-top:6px;font-size:12px;">
             <div style="display:flex; gap:6px; margin-bottom:4px;">
-              <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input"
+              <input type="number" placeholder="成本" value="${defaultCost ?? 0}" class="cost-input"
                 style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;">
-              <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input"
+              <input type="number" placeholder="售價" value="${item.marketPrice ?? 0}" class="sell-input"
                 style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:4px;">
             </div>
             <div style="display:flex; gap:6px; margin-bottom:4px;">
@@ -739,20 +571,19 @@
             </div>
           </div>
         </td>
-        <td style="text-align:right;">${item.minPrice} 元</td>
-        <td style="text-align:right;">${item.marketPrice} 元</td>
+        <td style="text-align:right;">${item.minPrice ?? "-"} 元</td>
+        <td style="text-align:right;">${item.marketPrice ?? "-"} 元</td>
       `;
 
-      // 點擊/hover 展示詳細
       if (window.innerWidth > 900) {
         tr.addEventListener("mouseenter", () => showDetailDesktop(item));
         tr.addEventListener("click", (e) => {
-          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+          if (["INPUT","BUTTON"].includes(e.target.tagName) || e.target.classList.contains("row-check")) return;
           showDetailDesktop(item);
         });
       } else {
         tr.addEventListener("click", (e) => {
-          if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return;
+          if (["INPUT","BUTTON"].includes(e.target.tagName) || e.target.classList.contains("row-check")) return;
           showDetailMobile(item);
         });
       }
@@ -766,114 +597,65 @@
     bindCheckAll();
   }
 
-  // ----------------------
-  // Search Products
-  // ----------------------
- async function searchProducts() {
-  const kw = keywordInput.value.trim().toLowerCase();
-  const selectedQty = qtySelect.value;       // 是否選了起訂量
-  const minP = Number(minPriceInput.value) || 0;
-  const maxP = Number(maxPriceInput.value) || 99999999;
+  // =========================
+  // 6. Interaction Layer
+  // =========================
 
-  if (!kw && !selectedQty) {
-    alert("請至少輸入關鍵字，或選擇起訂量進行搜尋");
-    return;
+  // Sheets
+  function openSheet() {
+    sheetBackdrop.classList.remove("hidden");
+    mobileSheet.classList.remove("hidden");
+    requestAnimationFrame(() => mobileSheet.classList.add("open"));
   }
-
-  if (!productCache) await preloadProducts();
-
-  // ------------------------------
-  // Step 1：關鍵字搜尋（永遠可以用）
-  // ------------------------------
-  let list = productCache.filter(item => {
-    const m  = (item.model || "").toLowerCase();
-    const mm = (item.mainModel || "").toLowerCase();
-    const n  = (item.name || "").toLowerCase();
-    return m.includes(kw) || mm.includes(kw) || n.includes(kw);
-  });
-
-  // ------------------------------------------------
-  // Step 2：只有「選了起訂量」才進行預算區間過濾
-  // ------------------------------------------------
-  if (selectedQty) {
-    list = list.filter(item => {
-      const key = "quote" + selectedQty;
-      const cost = item[key] || item.quote50;
-      return cost >= minP && cost <= maxP;
-    });
-  }
-
-  // ------------------------------
-  // Step 3：排序
-  // ------------------------------
-  list = applySorting(list);
-
-  // ------------------------------
-  // Step 4：更新畫面
-  // ------------------------------
-  currentResultList = list;
-  renderResults(list);
-}
-
-  // ----------------------
-  // Excel Export (selected)
-  // ----------------------
-  function exportSelectedExcel() {
-    const boxes = document.querySelectorAll(".row-check:checked");
-    if (boxes.length === 0) { alert("請先勾選要匯出的商品"); return; }
-
-    const selectedModels = Array.from(boxes).map(chk => chk.getAttribute("data-model"));
-
-    const headerBase = ["商品型號", "主型號", "商品名稱", "顏色列表", "箱入數", "商品連結"];
-    let headerPrice = [];
-    const selectedQty = qtySelect.value;
-
-    if (selectedQty) {
-      headerPrice = [`${selectedQty}個`, "末售", "賣場"];
-    } else {
-      if (userLevel === 1) headerPrice = ["50個", "末售", "賣場"];
-      else if (userLevel === 2) headerPrice = ["50個", "100個", "300個", "末售", "賣場"];
-      else if (userLevel === 3) headerPrice = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
-    }
-
-    const rows = [[...headerBase, ...headerPrice]];
-
-    selectedModels.forEach(model => {
-      const item = currentResultList.find(p => p.model === model);
-      if (!item) return;
-
-      const baseRow = [
-        item.model,
-        item.mainModel,
-        item.name,
-        item.colorList || "",
-        item.cartonQty || "",
-        item.productUrl || ""
-      ];
-
-      let priceRow = [];
-      if (selectedQty) {
-        const k = `quote${selectedQty}`;
-        const costVal = item[k] || item.quote50;
-        priceRow = [costVal, item.minPrice, item.marketPrice];
-      } else {
-        if (userLevel === 1) priceRow = [item.quote50, item.minPrice, item.marketPrice];
-        else if (userLevel === 2) priceRow = [item.quote50, item.quote100, item.quote300, item.minPrice, item.marketPrice];
-        else if (userLevel === 3) priceRow = [item.quote50, item.quote100, item.quote300, item.quote500, item.quote1000, item.minPrice, item.marketPrice];
+  function closeSheet() {
+    mobileSheet.classList.remove("open");
+    setTimeout(() => {
+      if (!mobileSheet.classList.contains("open")) {
+        mobileSheet.classList.add("hidden");
+        if (quoteSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
       }
-
-      rows.push([...baseRow, ...priceRow]);
-    });
-
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, "報價");
-    XLSX.writeFile(wb, `KINYO_報價_${selectedQty ? selectedQty + '個' : '完整版'}.xlsx`);
+    }, 220);
+  }
+  function openQuoteSheet() {
+    sheetBackdrop.classList.remove("hidden");
+    quoteSheet.classList.remove("hidden");
+    requestAnimationFrame(() => quoteSheet.classList.add("open"));
+    renderQuoteList();
+  }
+  function closeQuoteSheet() {
+    quoteSheet.classList.remove("open");
+    setTimeout(() => {
+      if (!quoteSheet.classList.contains("open")) quoteSheet.classList.add("hidden");
+      if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
+    }, 220);
   }
 
-  // ----------------------
-  // Quote list helpers
-  // ----------------------
+  function showDetailDesktop(item) {
+    detailCard.style.display = "block";
+    detailCard.innerHTML = renderDetailTemplate(item);
+    const pb = detailCard.querySelector(".profit-box");
+    if (pb) updateRowProfit(pb);
+  }
+  function showDetailMobile(item) {
+    sheetContent.innerHTML = renderDetailTemplate(item);
+    const pb = sheetContent.querySelector(".profit-box");
+    if (pb) updateRowProfit(pb);
+    openSheet();
+  }
+
+  // checkAll
+  function bindCheckAll() {
+    const rowChecks = document.querySelectorAll(".row-check");
+    if (!checkAllBox) return;
+    checkAllBox.onchange = () => rowChecks.forEach(c => c.checked = checkAllBox.checked);
+    rowChecks.forEach(c => c.onchange = () => {
+      const all = document.querySelectorAll(".row-check");
+      const checked = document.querySelectorAll(".row-check:checked");
+      checkAllBox.checked = all.length === checked.length;
+    });
+  }
+
+  // quote ui
   function updateCartCount() {
     cartCount.textContent = quoteList.length;
     if (quoteList.length > 0) {
@@ -881,24 +663,17 @@
       setTimeout(()=>fabCart.classList.remove("bounce"), 300);
     }
   }
-
   function renderQuoteList() {
     quoteListBody.innerHTML = "";
     let total = 0;
-
-    if (quoteList.length === 0) {
-      quoteListBody.innerHTML =
-        `<div style="text-align:center;padding:40px;color:#999;">
-          報價單是空的<br>請先從列表加入商品
-        </div>`;
+    if (!quoteList.length) {
+      quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的<br>請先從列表加入商品</div>`;
       quoteTotalEl.textContent = "$0";
       return;
     }
-
     quoteList.forEach((qItem, idx) => {
       const subtotal = qItem.price * qItem.count;
       total += subtotal;
-
       const div = document.createElement("div");
       div.className = "quote-item";
       div.innerHTML = `
@@ -919,27 +694,103 @@
       `;
       quoteListBody.appendChild(div);
     });
-
     quoteTotalEl.textContent = "$" + total.toLocaleString();
-
-    document.querySelectorAll(".quote-del").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const idx = Number(e.target.getAttribute("data-idx"));
-        quoteList.splice(idx, 1);
-        renderQuoteList();
-        updateCartCount();
-      });
-    });
   }
 
-  // ----------------------
-  // Global event listeners
-  // ----------------------
+  // profit live update
+  function updateRowProfit(container) {
+    const cost = Number(container.querySelector(".cost-input")?.value || 0);
+    const sell = Number(container.querySelector(".sell-input")?.value || 0);
+    const qty  = Number(container.querySelector(".qty-input")?.value || 1);
+    const resultEl = container.querySelector(".profit-result");
+    const barFill  = container.querySelector(".profit-bar-fill");
+    if (!resultEl || !barFill) return;
+
+    if (cost > 0 && sell > 0) {
+      const profit = (sell - cost) * qty;
+      const margin = (sell - cost) / sell;
+      const marginPct = Math.round(margin * 100);
+
+      if (profit < 0) {
+        resultEl.innerHTML = `<span style="color:red;font-weight:bold;">虧損：$${profit} (${marginPct}%)</span>`;
+        barFill.style.width = "100%";
+        barFill.style.background = "#ef4444";
+      } else {
+        resultEl.innerHTML = `毛利：$${profit} (${marginPct}%)`;
+        const pct = Math.max(0, Math.min(100, marginPct));
+        barFill.style.width = pct + "%";
+        if (marginPct < 10) barFill.style.background = "#fbbf24";
+        else if (marginPct < 20) barFill.style.background = "#a3e635";
+        else barFill.style.background = "#22c55e";
+      }
+    } else {
+      resultEl.innerHTML = "毛利：-";
+      barFill.style.width = "0%";
+      barFill.style.background = "#eee";
+    }
+  }
+
+  // Excel export
+  function exportSelectedExcel() {
+    const boxes = document.querySelectorAll(".row-check:checked");
+    if (!boxes.length) { alert("請先勾選要匯出的商品"); return; }
+
+    const selectedModels = Array.from(boxes).map(chk => chk.getAttribute("data-model"));
+    const baseHeader = ["商品型號", "主型號", "商品名稱", "顏色列表", "箱入數", "商品連結"];
+
+    let priceHeader = [];
+    const selectedQty = qtySelect.value;
+
+    if (selectedQty) {
+      priceHeader = [`${selectedQty}個`, "末售", "賣場"];
+    } else {
+      if (userLevel === 1) priceHeader = ["50個", "末售", "賣場"];
+      else if (userLevel === 2) priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
+      else if (userLevel === 3) priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
+    }
+
+    const rows = [[...baseHeader, ...priceHeader]];
+
+    selectedModels.forEach(model => {
+      const item = currentResultList.find(p => p.model === model);
+      if (!item) return;
+
+      const baseRow = [
+        item.model,
+        getMainModel(item.model),
+        item.name,
+        item.colorList || "",
+        item.cartonQty || "",
+        item.productUrl || ""
+      ];
+
+      let priceRow = [];
+      if (selectedQty) {
+        const k = `quote${selectedQty}`;
+        const costVal = item[k] ?? item.quote50;
+        priceRow = [costVal, item.minPrice, item.marketPrice];
+      } else {
+        if (userLevel === 1) priceRow = [item.quote50, item.minPrice, item.marketPrice];
+        else if (userLevel === 2) priceRow = [item.quote50, item.quote100, item.quote300, item.minPrice, item.marketPrice];
+        else if (userLevel === 3) priceRow = [item.quote50, item.quote100, item.quote300, item.quote500, item.quote1000, item.minPrice, item.marketPrice];
+      }
+
+      rows.push([...baseRow, ...priceRow]);
+    });
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "報價");
+    XLSX.writeFile(wb, `KINYO_報價_${selectedQty ? selectedQty + '個' : '完整版'}.xlsx`);
+  }
+
+  // =========================
+  // 7. Event Binding
+  // =========================
 
   sheetBackdrop.addEventListener("click", () => { closeSheet(); closeQuoteSheet(); });
   sheetCloseBtn.addEventListener("click", closeSheet);
   quoteCloseBtn.addEventListener("click", closeQuoteSheet);
-
   fabCart.addEventListener("click", openQuoteSheet);
 
   searchBtn.addEventListener("click", searchProducts);
@@ -957,9 +808,8 @@
 
   sortSelect.addEventListener("change", () => {
     if (currentResultList.length > 0) {
-      const sorted = applySorting([...currentResultList]);
-      currentResultList = sorted;
-      renderResults(sorted);
+      currentResultList = applySorting([...currentResultList]);
+      renderResults(currentResultList);
     }
   });
 
@@ -967,43 +817,47 @@
     el.addEventListener("keydown", e => { if (e.key === "Enter") searchProducts(); });
   });
 
-  // profit input live update
-  document.addEventListener("input", (e) => {
+  document.addEventListener("input", e => {
     const box = e.target.closest(".profit-box");
     if (box) updateRowProfit(box);
   });
 
-  // number input focus select
-  document.addEventListener("click", (e) => {
+  document.addEventListener("click", e => {
     if (e.target.tagName === "INPUT" && e.target.type === "number") e.target.select();
   });
 
-  // add to quote
-  document.addEventListener("click", (e) => {
-    if (!e.target.classList.contains("add-quote-btn")) return;
-    const model = e.target.getAttribute("data-model");
-    const item = currentResultList.find(p => p.model === model);
-    if (!item) return;
+  // add to quote (委派)
+  document.addEventListener("click", e => {
+    if (e.target.classList.contains("add-quote-btn")) {
+      const model = e.target.getAttribute("data-model");
+      const item = currentResultList.find(p => p.model === model);
+      if (!item) return;
+      const { cost, label } = getSelectedCostInfo(item);
+      quoteList.push({ model: item.model, name: item.name, price: Number(cost), qtyLabel: label, count: 1 });
+      updateCartCount();
+      alert(`已加入報價單！\n目前採用 ${label} 價格：$${cost}`);
+      return;
+    }
 
-    const { cost, label } = getSelectedCostInfo(item);
-    quoteList.push({ model: item.model, name: item.name, price: Number(cost), qtyLabel: label, count: 1 });
-    updateCartCount();
-    alert(`已加入報價單！\n目前採用 ${label} 價格：$${cost}`);
-  });
+    if (e.target.classList.contains("quote-del")) {
+      const idx = Number(e.target.getAttribute("data-idx"));
+      quoteList.splice(idx, 1);
+      renderQuoteList();
+      updateCartCount();
+      return;
+    }
 
-  // LINE share
-  document.addEventListener("click", (e) => {
-    if (!e.target.classList.contains("line-share-btn")) return;
-    const model = e.target.getAttribute("data-model");
-    const item = currentResultList.find(p => p.model === model);
-    if (!item) return;
+    if (e.target.classList.contains("line-share-btn")) {
+      const model = e.target.getAttribute("data-model");
+      const item = currentResultList.find(p => p.model === model);
+      if (!item) return;
 
-    let costText = "";
-    if (userLevel >= 1) costText += `• 50個：${item.quote50} 元`;
-    if (userLevel >= 2) { costText += `\n• 100個：${item.quote100} 元\n• 300個：${item.quote300} 元`; }
-    if (userLevel >= 3) { costText += `\n• 500個：${item.quote500} 元\n• 1000個：${item.quote1000} 元`; }
+      let costText = "";
+      if (userLevel >= 1) costText += `• 50個：${item.quote50} 元`;
+      if (userLevel >= 2) costText += `\n• 100個：${item.quote100} 元\n• 300個：${item.quote300} 元`;
+      if (userLevel >= 3) costText += `\n• 500個：${item.quote500} 元\n• 1000個：${item.quote1000} 元`;
 
-    const text =
+      const text =
 `🔥 【${item.model}】${item.name}
 💰 賣場售價：${item.marketPrice} 元
 --------------------------
@@ -1012,12 +866,10 @@ ${costText}
 
 🔗 商品連結：${item.productUrl || "無"}`;
 
-    navigator.clipboard.writeText(text)
-      .then(()=> alert("✅ 已複製！"))
-      .catch(()=> alert("複製失敗"));
+      navigator.clipboard.writeText(text).then(()=>alert("✅ 已複製！")).catch(()=>alert("複製失敗"));
+    }
   });
 
-  // clear quote
   clearQuoteBtn.addEventListener("click", () => {
     if (confirm("確定要清空報價單嗎？")) {
       quoteList = [];
@@ -1027,55 +879,41 @@ ${costText}
     }
   });
 
-  // copy quote
   copyQuoteBtn.addEventListener("click", () => {
-    if (quoteList.length === 0) return;
-
+    if (!quoteList.length) return;
     let text = "📋 KINYO 商品報價單\n----------------------\n";
     let total = 0;
-
     quoteList.forEach((item, i) => {
       const sub = item.price * item.count;
       total += sub;
       text += `${i+1}. 【${item.model}】${item.name}\n   規格：${item.qtyLabel} | 單價：$${item.price}\n`;
     });
-
     text += "----------------------\n";
     text += `💰 總計金額：$${total.toLocaleString()}`;
-
-    navigator.clipboard.writeText(text)
-      .then(() => alert("✅ 報價單已複製！"))
-      .catch(() => alert("複製失敗"));
+    navigator.clipboard.writeText(text).then(()=>alert("✅ 報價單已複製！")).catch(()=>alert("複製失敗"));
   });
 
-  // logout
   logoutBtn.addEventListener("click", async () => {
     try {
       await signOut(auth);
       window.location.href = "login.html";
-    } catch (e) {
+    } catch {
       alert("登出失敗，請重試");
     }
   });
 
-  // ----------------------
-  // Auth state
-  // ----------------------
+  // =========================
+  // 8. Auth State
+  // =========================
   onAuthStateChanged(auth, async (user) => {
-    if (!user) {
-      window.location.href = "login.html";
-      return;
-    }
-
+    if (!user) { window.location.href = "login.html"; return; }
     currentUserEmail = user.email || "";
 
     try {
       const userDocRef = doc(db, "Users", currentUserEmail.toLowerCase());
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) userLevel = userDoc.data().level || 1;
-    } catch (e) {
-      userLevel = 1;
-    }
+    } catch { userLevel = 1; }
 
     userInfoSpan.textContent = `登入帳號：${currentUserEmail.split("@")[0]}`;
     logoutBtn.style.display = "inline-block";
@@ -1084,7 +922,7 @@ ${costText}
     setupQtySelectByLevel();
     preloadProducts();
   });
-</script>
 
+</script>
 </body>
 </html>
