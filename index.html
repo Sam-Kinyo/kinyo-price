@@ -1048,7 +1048,7 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
     });
   });
 
-  // 毛利計算綁定（搜尋結果 + 詳細頁）
+ // 毛利計算綁定（即時運算 + 顏色條）
 document.addEventListener("input", function(e) {
   const row = e.target.closest(".profit-box, .sheet-content, #detailCard");
   if (!row) return;
@@ -1067,17 +1067,33 @@ document.addEventListener("input", function(e) {
     const margin = (sell - cost) / sell;
     const marginPct = Math.round(margin * 100);
 
-    resultEl.innerHTML = `毛利：${profit} 元（${marginPct}%）（${marginPct}%）`;
+    // 文字顯示：若是負毛利，用紅字粗體
+    if (profit < 0) {
+        resultEl.innerHTML = `<span style="color:red;font-weight:bold;">虧損：$${profit} (${marginPct}%)</span>`;
+    } else {
+        resultEl.innerHTML = `毛利：$${profit} (${marginPct}%)`;
+    }
 
-    // 毛利條顏色（紅 → 黃 → 綠）
-    const pct = Math.max(0, Math.min(100, marginPct));
-    barFill.style.width = pct + "%";
-    barFill.style.background = `hsl(${pct}, 70%, 50%)`;
+    // 顏色條邏輯
+    let pct = Math.max(0, Math.min(100, marginPct));
+    
+    // 若虧損，Bar 給 100% 紅色；若獲利，則依照 % 顯示 紅->黃->綠
+    if (profit < 0) {
+        barFill.style.width = "100%";
+        barFill.style.background = "#ef4444"; // 紅色
+    } else {
+        barFill.style.width = pct + "%";
+        // HSL 顏色漸變：0(紅) -> 120(綠) 這裡稍微縮小範圍讓顏色更鮮豔
+        // 使用簡單的分級顏色
+        if(marginPct < 10) barFill.style.background = "#fbbf24"; // 黃色
+        else if(marginPct < 20) barFill.style.background = "#a3e635"; // 淺綠
+        else barFill.style.background = "#22c55e"; // 深綠
+    }
 
   } else {
     resultEl.innerHTML = "毛利：-";
     barFill.style.width = "0%";
-    barFill.style.background = "#4ade80";
+    barFill.style.background = "#eee";
   }
 });
 
