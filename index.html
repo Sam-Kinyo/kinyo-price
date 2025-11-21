@@ -847,7 +847,7 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
   sheetCloseBtn.addEventListener("click", closeSheet);
 
 
-  /* 匯出 Excel */
+/* 匯出 Excel (智慧版：支援單一數量匯出) */
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
     if (checkedBoxes.length === 0) {
@@ -868,13 +868,22 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
       "商品連結"
     ];
 
+    // ★ 修改點 1：動態決定價格標題
+    const selectedQty = qtySelect.value; // 取得目前選的數量 (e.g., "300" or "")
     let priceHeader = [];
-    if (userLevel === 1) {
-      priceHeader = ["50個", "末售", "賣場"];
-    } else if (userLevel === 2) {
-      priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
-    } else if (userLevel === 3) {
-      priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
+
+    if (selectedQty) {
+      // 有選數量：只匯出那一欄
+      priceHeader = [`${selectedQty}個`, "末售", "賣場"];
+    } else {
+      // 沒選數量：匯出所有級距 (維持原邏輯)
+      if (userLevel === 1) {
+        priceHeader = ["50個", "末售", "賣場"];
+      } else if (userLevel === 2) {
+        priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
+      } else if (userLevel === 3) {
+        priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
+      }
     }
 
     const finalHeader = [...baseHeader, ...priceHeader];
@@ -893,27 +902,37 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
         item.productUrl
       ];
 
+      // ★ 修改點 2：動態抓取對應價格
       let priceRow = [];
-      if (userLevel === 1) {
-        priceRow = [item.quote50, item.minPrice, item.marketPrice];
-      } else if (userLevel === 2) {
-        priceRow = [
-          item.quote50,
-          item.quote100,
-          item.quote300,
-          item.minPrice,
-          item.marketPrice
-        ];
-      } else if (userLevel === 3) {
-        priceRow = [
-          item.quote50,
-          item.quote100,
-          item.quote300,
-          item.quote500,
-          item.quote1000,
-          item.minPrice,
-          item.marketPrice
-        ];
+
+      if (selectedQty) {
+        // 有選數量：動態抓取 quote50, quote300 等欄位
+        const costKey = `quote${selectedQty}`; 
+        const costVal = item[costKey] || 0;
+        priceRow = [costVal, item.minPrice, item.marketPrice];
+      } else {
+        // 沒選數量：列出全部
+        if (userLevel === 1) {
+          priceRow = [item.quote50, item.minPrice, item.marketPrice];
+        } else if (userLevel === 2) {
+          priceRow = [
+            item.quote50,
+            item.quote100,
+            item.quote300,
+            item.minPrice,
+            item.marketPrice
+          ];
+        } else if (userLevel === 3) {
+          priceRow = [
+            item.quote50,
+            item.quote100,
+            item.quote300,
+            item.quote500,
+            item.quote1000,
+            item.minPrice,
+            item.marketPrice
+          ];
+        }
       }
 
       rows.push([...baseRow, ...priceRow]);
@@ -922,7 +941,13 @@ document.getElementById("copyQuoteBtn").addEventListener("click", () => {
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "報價");
-    XLSX.writeFile(wb, "KINYO_勾選商品.xlsx");
+    
+    // 檔名也加一點小巧思，方便辨識
+    const filename = selectedQty 
+      ? `KINYO_報價_${selectedQty}個.xlsx` 
+      : "KINYO_完整報價.xlsx";
+      
+    XLSX.writeFile(wb, filename);
   }
   searchBtn.addEventListener("click", searchProducts);
   exportBtn.addEventListener("click", exportSelectedExcel);
