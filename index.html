@@ -17,6 +17,7 @@
     h1 { margin-bottom: 4px; }
     .subtitle { color: #666; margin-bottom: 16px; }
 
+    /* 頂部使用者列（只顯示帳號與登出） */
     .top-bar {
       display:flex;
       justify-content: flex-end;
@@ -100,14 +101,12 @@
       text-align: left;
     }
 
-    /* ★ 修改：圖片放大 */
     .product-img {
-      width: 120px;
-      height: 120px;
+      width: 70px;
+      height: 70px;
       border-radius: 8px;
       object-fit: cover;
       border: 1px solid #ddd;
-      background: #fff;
     }
 
     .price-tag {
@@ -126,7 +125,7 @@
     .tag500 { background:#ffedd5; color:#ea580c; }
     .tag1000{ background:#fee2e2; color:#b91c1c; }
 
-    /* 電腦版右側詳情卡片 */
+    /* 電腦版右側懸浮詳細資訊卡片 */
     #detailCard {
       position: fixed;
       right: 20px;
@@ -142,57 +141,61 @@
       font-size: 14px;
       z-index: 999;
     }
-
-    /* 手機版 bottom sheet */
-    #sheetBackdrop {
+    /* 手機版 Bottom Sheet 遮罩與面板 */
+    .sheet-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.35);
-      z-index: 998;
+      background: rgba(0,0,0,0.45);
+      z-index: 900;
     }
-    #mobileSheet {
+    .sheet {
       position: fixed;
-      left: 0; right: 0; bottom: 0;
-      background: #fff;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 70vh;
+      background: #ffffff;
       border-radius: 16px 16px 0 0;
-      box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.18);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
       transform: translateY(100%);
-      transition: transform 0.22s ease;
-      z-index: 999;
-      max-height: 86vh;
-      overflow-y: auto;
-      padding: 14px 16px 24px;
+      transition: transform 0.22s ease-out;
     }
-    #mobileSheet.open { transform: translateY(0); }
-    .hidden { display:none; }
-
-    #sheetHeader {
+    .sheet.open {
+      transform: translateY(0%);
+    }
+    .sheet-header {
       display:flex;
-      justify-content:space-between;
       align-items:center;
-      margin-bottom: 10px;
+      justify-content:space-between;
+      padding:10px 16px 6px;
+      border-bottom:1px solid #e5e7eb;
     }
-    #sheetHeader h3 {
-      margin:0;
-      font-size: 15px;
-      font-weight: 700;
+    .sheet-title {
+      font-size:15px;
+      font-weight:600;
     }
-    #sheetCloseBtn {
+    .sheet-close {
+      font-size:22px;
+      line-height:1;
       border:none;
-      background:#f3f4f6;
-      padding:6px 10px;
-      border-radius: 999px;
+      background:transparent;
       cursor:pointer;
     }
-
-    /* 價格：手機三欄 grid，桌機維持 inline */
-    .price-tag-container{
-      display:flex;
-      flex-wrap:wrap;
-      gap:4px;
-      margin-bottom:4px;
+    .sheet-content {
+      padding:12px 16px 16px;
+      overflow-y:auto;
+      font-size:14px;
     }
-    @media (max-width: 900px){
+
+    .hidden {
+      display:none !important;
+    }
+
+    /* RWD — 手機不使用右側卡片 */
+    @media (max-width: 900px) {
       body {
         max-width: 100%;
         margin: 16px auto 32px;
@@ -206,216 +209,271 @@
     @media (max-width: 600px) {
       .search-box { padding: 12px; }
       input, select { font-size: 14px; padding: 6px 10px; }
-      
-      /* ★ 修改：手機版圖片也稍微加大 */
-      .product-img { width: 90px; height: 90px; }
-      
+      .product-img { width: 55px; height: 55px; }
       table th, table td { padding: 6px; font-size: 13px; }
       .btn-primary, .btn-secondary { padding: 8px 12px; }
-      
-      .price-tag-container{
-        display:grid;
-        grid-template-columns: repeat(2, 1fr); /* 改為2欄比較不擠 */
-        gap:6px;
-        font-size:12px !important;
-        line-height:1.4 !important;
+    }
+
+    /* 手機版價格：固定 3 欄 Grid */
+    @media (max-width: 600px) {
+      .price-tag-container {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px 6px;
+        margin-bottom: 4px;
       }
-      .price-tag{
-        width:100%;
-        text-align:center;
-        margin:0;
-        padding:2px 4px;
+      .price-tag {
+        display: block;
+        text-align: center;
+        padding: 4px 2px;
+        font-size: 11.5px;
+        border-radius: 5px;
+        white-space: nowrap;
       }
     }
+
   </style>
 </head>
 
 <body>
 
-  <div class="top-bar">
-    <div id="userLevelBadge" class="user-badge">未登入</div>
-    <button id="logoutBtn" class="logout-btn">登出</button>
+<!-- 頂部使用者列 -->
+<div class="top-bar">
+  <span id="userInfo" class="user-badge">未登入</span>
+  <button id="logoutBtn" class="logout-btn" style="display:none;">登出</button>
+</div>
+
+<h1>KINYO 查價系統</h1>
+<div class="subtitle">需登入後方可查價，並依帳號等級顯示不同採購價格（末售／賣場所有等級皆可見）。</div>
+
+<!-- 搜尋區塊 -->
+<div class="search-box">
+  <div class="search-row">
+    <label>關鍵字搜尋（型號 / 名稱）：</label>
+    <input id="keyword" placeholder="如：CL528 / 除毛球機" />
   </div>
 
-  <h1>KINYO 查價系統</h1>
-  <div class="subtitle">輸入型號或名稱即可查詢</div>
+  <div class="search-row">
+    <label>選擇起訂量：</label>
+    <select id="qtySelect"></select>
+  </div>
 
-  <div class="search-box">
-    <div class="search-row">
-      <label>搜尋關鍵字（型號 / 名稱）</label>
-      <input id="keywordInput" placeholder="例如：CL528 或 除毛球機" />
-    </div>
-
-    <div class="search-row" style="display:flex; gap:10px;">
-      <div style="flex:1;">
-        <label>起訂量</label>
-        <select id="qtySelect">
-          <option value="">請選擇</option>
-          <option value="50">50 個</option>
-          <option value="100">100 個</option>
-          <option value="300">300 個</option>
-          <option value="500">500 個</option>
-          <option value="1000">1000 個</option>
-        </select>
-      </div>
-      <div style="flex:1;">
-        <label>排序</label>
-        <select id="sortSelect" class="btn-secondary" style="flex:1;">
-          <option value="">不排序</option>
-          <option value="minPriceAsc">末售：低 → 高</option>
-          <option value="minPriceDesc">末售：高 → 低</option>
-          <option value="marketAsc">賣場：低 → 高</option>
-          <option value="marketDesc">賣場：高 → 低</option>
-          <option value="alphaAsc">主型號：A → Z</option>
-          <option value="alphaDesc">主型號：Z → A</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="search-row" style="display:flex; gap:10px;">
-      <div style="flex:1;">
-        <label>最低預算（元）</label>
-        <input id="minPriceInput" type="number" placeholder="例如 100" />
-      </div>
-      <div style="flex:1;">
-        <label>最高預算（元）</label>
-        <input id="maxPriceInput" type="number" placeholder="例如 300" />
-      </div>
-    </div>
-
-    <div style="display:flex; gap:8px;">
-      <button id="searchBtn" class="btn-primary" style="flex:2;">搜尋</button>
-      <button id="clearBtn" class="btn-secondary" style="flex:1;">清空</button>
-      <button id="exportBtn" class="btn-secondary" style="flex:1;" disabled>匯出 Excel</button>
-      <button id="copyQuoteBtn" class="btn-secondary" style="flex:1;" disabled>複製總報價</button>
+  <div class="search-row">
+    <label>預算區間（需先選起訂量）：</label>
+    <div style="display:flex; gap:6px;">
+      <input id="minPrice" type="number" placeholder="最低金額" />
+      <input id="maxPrice" type="number" placeholder="最高金額" />
     </div>
   </div>
 
-  <table id="resultTable" style="display:none;">
-    <thead>
-      <tr>
-        <th style="width:32px;"><input type="checkbox" id="checkAllBox"></th>
-        <th style="width:130px;">圖片</th>
-        <th style="width:100px;">主型號</th>
-        <th>商品資訊</th>
-        <th style="width:110px;text-align:right;">末售</th>
-        <th style="width:110px;text-align:right;">賣場</th>
-      </tr>
-    </thead>
-    <tbody id="resultBody"></tbody>
-  </table>
+  <button id="searchBtn" class="btn-primary">查詢</button>
+  <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
+</div>
 
-  <div id="detailCard"></div>
+<!-- 工具列 -->
+<div class="toolbar" style="display:flex; gap:10px; align-items:center; margin-bottom:6px;">
+  <select id="sortSelect" class="btn-secondary" style="flex:1;">
+    <option value="">不排序</option>
+    <option value="minPriceAsc">末售：低 → 高</option>
+    <option value="minPriceDesc">末售：高 → 低</option>
+    <option value="marketAsc">賣場：低 → 高</option>
+    <option value="marketDesc">賣場：高 → 低</option>
+    <option value="alphaAsc">主型號：A → Z</option>
+<option value="alphaDesc">主型號：Z → A</option>
+  </select>
 
-  <div id="sheetBackdrop" class="hidden"></div>
-  <div id="mobileSheet" class="hidden">
-    <div id="sheetHeader">
-      <h3>商品詳細資料</h3>
-      <button id="sheetCloseBtn">關閉</button>
-    </div>
-    <div id="sheetContent"></div>
+  <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
+<button id="copyQuoteBtn" class="btn-secondary" disabled>複製總報價</button>
+<!-- FIXED_EXPORTBTN --> 
+</div>
+
+<!-- 結果表格 -->
+<table id="resultTable" style="display:none;">
+  <thead>
+    <tr>
+      <th style="width:32px;"><input type="checkbox" id="checkAll" /></th>
+      <th style="width:80px;">圖片</th>
+      <th style="width:100px;">主型號</th>
+      <th>商品資訊</th>
+      <th style="width:80px;">末售</th>
+      <th style="width:80px;">賣場</th>
+    </tr>
+  </thead>
+  <tbody id="resultBody"></tbody>
+</table>
+
+<!-- 桌機詳細資訊 -->
+<div id="detailCard"></div>
+
+<!-- 手機 Bottom Sheet -->
+<div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
+<div id="mobileDetailSheet" class="sheet hidden">
+  <div class="sheet-header">
+    <span class="sheet-title">商品資訊</span>
+    <button id="sheetCloseBtn" class="sheet-close">×</button>
   </div>
+  <div class="sheet-content" id="sheetContent"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+// 複製總報價
+document.getElementById("copyQuoteBtn").addEventListener("click", () => {
+  const checked = document.querySelectorAll(".row-check:checked");
+  if (checked.length === 0) {
+    alert("請先勾選商品");
+    return;
+  }
+  let text = "【報價單】\n\n";
+  checked.forEach(chk => {
+    const model = chk.getAttribute("data-model");
+    const item = currentResultList.find(p => p.model === model);
+    if (!item) return;
+    let pricing = [];
+    if (userLevel >= 1) pricing.push(`50個：${item.quote50}元`);
+    if (userLevel >= 2){
+      pricing.push(`100個：${item.quote100}元`);
+      pricing.push(`300個：${item.quote300}元`);
+    }
+    if (userLevel >= 3){
+      pricing.push(`500個：${item.quote500}元`);
+      pricing.push(`1000個：${item.quote1000}元`);
+    }
+    text += `【${item.model}】${item.name}\n${pricing.join(" / ")}\n連結：${item.productUrl || "無"}\n-----------------------\n`;
+  });
+  navigator.clipboard.writeText(text)
+    .then(()=> alert("已複製整份報價單，可直接貼到 LINE / 客戶"))
+    .catch(()=> alert("複製失敗，請手動複製"));
+});
+
+</script>
 
 <script type="module">
-  // 維持您原本能運作的版本號
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
-  import {
-    getAuth, onAuthStateChanged, signOut
-  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
   import {
     getFirestore, collection, getDocs, doc, getDoc
   } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
-  import * as XLSX from "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+  import {
+    getAuth, onAuthStateChanged, signOut
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
   const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+    authDomain: "kinyo-price.firebaseapp.com",
+    projectId: "kinyo-price",
+    storageBucket: "kinyo-price.firebasestorage.app",
+    messagingSenderId: "122464645678",
+    appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
   };
-  const app  = initializeApp(firebaseConfig);
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
   const auth = getAuth(app);
-  const db   = getFirestore(app);
 
-  const keywordInput = document.getElementById("keywordInput");
-  const qtySelect    = document.getElementById("qtySelect");
-  const minPriceInput= document.getElementById("minPriceInput");
-  const maxPriceInput= document.getElementById("maxPriceInput");
-  const sortSelect   = document.getElementById("sortSelect");
-
-  const searchBtn    = document.getElementById("searchBtn");
-  const clearBtn     = document.getElementById("clearBtn");
-  const exportBtn    = document.getElementById("exportBtn");
-  const copyQuoteBtn = document.getElementById("copyQuoteBtn");
-
-  const resultTable  = document.getElementById("resultTable");
-  const resultBody   = document.getElementById("resultBody");
-  const detailCard   = document.getElementById("detailCard");
-
-  const sheetBackdrop= document.getElementById("sheetBackdrop");
-  const mobileSheet  = document.getElementById("mobileSheet");
-  const sheetContent = document.getElementById("sheetContent");
-  const sheetCloseBtn= document.getElementById("sheetCloseBtn");
-
-  const checkAllBox  = document.getElementById("checkAllBox");
-  const userLevelBadge = document.getElementById("userLevelBadge");
-  const logoutBtn = document.getElementById("logoutBtn");
-
+  // 狀態
   let productCache = null;
   let currentResultList = [];
   let userLevel = 1;
   let currentUserEmail = "";
 
+  // DOM 參照
+  const keywordInput   = document.getElementById("keyword");
+  const qtySelect      = document.getElementById("qtySelect");
+  const minPriceInput  = document.getElementById("minPrice");
+  const maxPriceInput  = document.getElementById("maxPrice");
+  const searchBtn      = document.getElementById("searchBtn");
+  const clearBtn       = document.getElementById("clearBtn");
+  const exportBtn      = document.getElementById("exportBtn");
+  const resultBody     = document.getElementById("resultBody");
+  const resultTable    = document.getElementById("resultTable");
+  const detailCard     = document.getElementById("detailCard");
+  const checkAllBox    = document.getElementById("checkAll");
+  const sortSelect     = document.getElementById("sortSelect");
+
+  const userInfoSpan   = document.getElementById("userInfo");
+  const logoutBtn      = document.getElementById("logoutBtn");
+
+  const sheetBackdrop  = document.getElementById("sheetBackdrop");
+  const mobileSheet    = document.getElementById("mobileDetailSheet");
+  const sheetContent   = document.getElementById("sheetContent");
+  const sheetCloseBtn  = document.getElementById("sheetCloseBtn");
+
+  // 顏色代碼映射
   const colorMap = {
-    R:"紅", B:"藍", G:"綠", BK:"黑", WH:"白", PK:"粉", Y:"黃", OR:"橘"
+    R: "紅", RD: "紅",
+    PK: "粉", P: "粉",
+    BL: "藍", BU: "藍",
+    B: "藍/黑", BK: "黑", K: "黑",
+    W: "白", WH: "白", WT: "白",
+    G: "綠", GN: "綠",
+    O: "橘", OR: "橘",
+    Y: "黃", YE: "黃"
   };
 
-  // ★ 新增工具：取得目前選擇數量的成本價
-  function getSelectedCostInfo(item) {
-    const selectedQty = qtySelect.value; 
-    let cost = item.quote50; // 預設為 50 個的價格
-    let label = "50個";
-
-    if (selectedQty === "100" && userLevel >= 2) {
-      cost = item.quote100;
-      label = "100個";
-    } else if (selectedQty === "300" && userLevel >= 2) {
-      cost = item.quote300;
-      label = "300個";
-    } else if (selectedQty === "500" && userLevel >= 3) {
-      cost = item.quote500;
-      label = "500個";
-    } else if (selectedQty === "1000" && userLevel >= 3) {
-      cost = item.quote1000;
-      label = "1000個";
-    }
-    return { cost, label };
-  }
-
+  // 使用者登入狀態
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      userLevelBadge.textContent = "未登入";
+      window.location.href = "login.html";
       return;
     }
-    currentUserEmail = user.email || "";
-    const userDocRef = doc(db, "Users", currentUserEmail.toLowerCase());
-    const userDoc = await getDoc(userDocRef);
 
-    if (userDoc.exists()) {
-      userLevel = userDoc.data().level || 1;
-    } else {
+    currentUserEmail = user.email || "";
+    const shortAccount = currentUserEmail.replace(/@.*/, "");
+
+    try {
+      const userDocRef = doc(db, "Users", currentUserEmail.toLowerCase());
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const data = userDoc.data();
+        userLevel = data.level || 1;
+      } else {
+        userLevel = 1;
+        alert("此帳號尚未設定權限，暫以 Level 1 顯示。");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("讀取使用者權限失敗，暫以 Level 1 顯示。");
       userLevel = 1;
     }
 
-    userLevelBadge.textContent = `Level ${userLevel}｜${currentUserEmail}`;
+    userInfoSpan.textContent = `登入帳號：${shortAccount}`;
+    logoutBtn.style.display = "inline-block";
+
+    setupQtySelectByLevel();
   });
 
+  function setupQtySelectByLevel() {
+    qtySelect.innerHTML = "";
+
+    const optNone = document.createElement("option");
+    optNone.value = "";
+    optNone.textContent = "不使用起訂量";
+    qtySelect.appendChild(optNone);
+
+    const addOption = (val, label) => {
+      const opt = document.createElement("option");
+      opt.value = val;
+      opt.textContent = label;
+      qtySelect.appendChild(opt);
+    };
+
+    if (userLevel >= 1) addOption("50", "50 個");
+    if (userLevel >= 2) {
+      addOption("100", "100 個");
+      addOption("300", "300 個");
+    }
+    if (userLevel >= 3) {
+      addOption("500", "500 個");
+      addOption("1000", "1000 個");
+    }
+  }
+
   logoutBtn.addEventListener("click", async () => {
-    await signOut(auth);
-    alert("已登出");
-    location.reload();
+    try {
+      await signOut(auth);
+      window.location.href = "login.html";
+    } catch (e) {
+      console.error(e);
+      alert("登出失敗，請稍後再試");
+    }
   });
 
   function applySorting(list) {
@@ -424,16 +482,10 @@
     if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
     if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
     if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
-
-    if (opt === "alphaAsc")
-      return list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
-
-    if (opt === "alphaDesc")
-      return list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
-
+     if (opt === "alphaAsc")  return list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
+    if (opt === "alphaDesc") return list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
     return list;
   }
-
   async function searchProducts() {
     const kw   = keywordInput.value.trim().toLowerCase();
     const qty  = qtySelect.value;
@@ -459,6 +511,7 @@
 
     list = [...productCache];
 
+    /* 模糊搜尋 */
     if (kw) {
       const k = kw.toLowerCase();
       list = list.filter(item =>
@@ -467,6 +520,7 @@
       );
     }
 
+    /* 起訂量 + 預算 */
     if (qty && minP && maxP) {
       const mapping = {
         "50":"quote50","100":"quote100","300":"quote300",
@@ -480,6 +534,7 @@
       );
     }
 
+    /* 合併同主型號（最後英文視為顏色碼） */
     const grouped = {};
     list.forEach(item => {
       const main = item.model.replace(/[-_ ]?[A-Za-z]+$/, "");
@@ -544,7 +599,7 @@
     if (list.length === 0) {
       resultTable.style.display = "none";
       exportBtn.disabled = true;
-      copyQuoteBtn.disabled = true;
+    copyQuoteBtn.disabled = true;
       alert("查無符合商品");
       return;
     }
@@ -557,6 +612,7 @@
       const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
       const tr  = document.createElement("tr");
 
+      /* 產生價格區塊 HTML */
       let priceHtml = "";
 
       if (userLevel >= 1) {
@@ -571,9 +627,7 @@
         priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000} 元</span>`;
       }
 
-      // ★ 修改點：自動填入成本邏輯
-      const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
-
+      /* ★★★ 新版：手機 3 欄 Grid（price-tag-container） ★★★ */
       tr.innerHTML = `
         <td><input type="checkbox" class="row-check" data-model="${item.model}" /></td>
         <td><img src="${img}" class="product-img" /></td>
@@ -581,6 +635,7 @@
         <td>
           <div style="font-weight:600;margin-bottom:4px;">${item.name}</div>
 
+          <!-- 價格區塊（已支援手機 3 欄 Grid） -->
           <div class="price-tag-container" style="font-size:13px;line-height:1.6;margin-bottom:4px;">
             ${priceHtml}
           </div>
@@ -588,28 +643,23 @@
           <div style="font-size:13px;color:#444;">
             顏色：${item.colorList}
           </div>
+<!-- 毛利計算器（UI2） -->
+<div class="profit-box" style="margin-top:6px;font-size:12px;">
+  <div style="display:flex; gap:6px; margin-bottom:4px;">
+    <input type="number" placeholder="成本" class="cost-input" style="flex:1;padding:4px 6px;">
+    <input type="number" placeholder="售價" class="sell-input" style="flex:1;padding:4px 6px;">
+  </div>
 
-          <button class="line-share-btn" data-model="${item.model}"
-            style="margin-top:6px;padding:6px 12px;font-size:12px;
-            background:#06C755;color:#fff;border:none;border-radius:6px;">
-            複製 LINE 分享
-          </button>
+  <div style="display:flex; gap:6px; margin-bottom:4px;">
+    <input type="number" placeholder="數量" class="qty-input" style="flex:1;padding:4px 6px;">
+    <div class="profit-result" style="flex:1;padding-top:4px;">毛利：-</div>
+  </div>
 
-          <div class="profit-box" style="margin-top:6px;font-size:12px;">
-            <div style="display:flex; gap:6px; margin-bottom:4px;">
-              <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:4px 6px;">
-              <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:4px 6px;">
-            </div>
-
-            <div style="display:flex; gap:6px; margin-bottom:4px;">
-              <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:4px 6px;">
-              <div class="profit-result" style="flex:1;padding-top:4px;color:#666;">點擊試算 (預設:${costLabel})</div>
-            </div>
-
-            <div class="profit-bar" style="height:6px;background:#eee;border-radius:4px;overflow:hidden;">
-              <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
-            </div>
-          </div>
+  <div class="profit-bar" style="height:6px;background:#eee;border-radius:4px;overflow:hidden;">
+    <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+  </div>
+</div>
+          
         </td>
         <td style="text-align:right;">${item.minPrice} 元</td>
         <td style="text-align:right;">${item.marketPrice} 元</td>
@@ -618,12 +668,14 @@
       const isDesktop = window.innerWidth > 900;
 
       if (isDesktop) {
+        /* 桌機：hover / click 顯示卡片 */
         tr.addEventListener("mouseenter", () => showDetailDesktop(item));
         tr.addEventListener("click", (e) => {
           if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
           showDetailDesktop(item);
         });
       } else {
+        /* 手機：點擊顯示 bottom sheet */
         tr.addEventListener("click", (e) => {
           if (e.target.classList.contains("row-check") || e.target.tagName === "INPUT") return;
           showDetailMobile(item);
@@ -635,7 +687,6 @@
 
     bindCheckAll();
   }
-
   function bindCheckAll() {
     const rowChecks = document.querySelectorAll(".row-check");
     if (!checkAllBox) return;
@@ -653,6 +704,7 @@
     });
   }
 
+  /* 桌機版詳細資訊卡片 */
   function showDetailDesktop(item) {
     const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
 
@@ -667,14 +719,12 @@
       priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
     }
 
-    // ★ 動態成本
-    const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
-
     detailCard.style.display = "block";
     detailCard.innerHTML = `
       <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
       <h2 style="margin:4px 0 12px;">${item.name}</h2>
 
+      <!-- 兩欄 Grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;line-height:1.5;">
         <div><strong>商品型號</strong><br>${item.model}</div>
         <div><strong>主型號</strong><br>${item.mainModel}</div>
@@ -702,30 +752,27 @@
 
       <h3 style="margin-top:18px;">商品規格</h3>
       <div style="white-space:pre-line;">${item.specs || "-"}</div>
-
       <h3 style="margin-top:18px;">毛利試算</h3>
-      <div style="font-size:14px;margin-top:4px;">
-        <div style="display:flex; gap:8px; margin-bottom:6px;">
-          <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:6px 8px;">
-          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:6px 8px;">
-        </div>
-        <div style="display:flex; gap:8px; margin-bottom:6px;">
-          <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:6px 8px;">
-          <div class="profit-result" style="flex:1;padding-top:8px;">點擊試算 (預設:${costLabel})</div>
-        </div>
-        <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
-          <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
-        </div>
-      </div>
 
-      <button class="line-share-btn" data-model="${item.model}"
-        style="margin-top:16px;padding:10px;width:100%;
-        background:#06C755;color:#fff;border:none;border-radius:8px;font-size:15px;">
-        複製 LINE 分享
-      </button>
+<div style="font-size:14px;margin-top:4px;">
+  <div style="display:flex; gap:8px; margin-bottom:6px;">
+    <input type="number" placeholder="成本" class="cost-input" style="flex:1;padding:6px 8px;">
+    <input type="number" placeholder="售價" class="sell-input" style="flex:1;padding:6px 8px;">
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:6px;">
+    <input type="number" placeholder="數量" class="qty-input" style="flex:1;padding:6px 8px;">
+    <div class="profit-result" style="flex:1;padding-top:8px;">毛利：-</div>
+  </div>
+
+  <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+    <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+  </div>
+</div>
     `;
   }
 
+  /* 手機版詳細資訊 */
   function showDetailMobile(item) {
     const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
 
@@ -740,13 +787,11 @@
       priceBlock += `<div>1000 個：${item.quote1000} 元</div>`;
     }
 
-    // ★ 動態成本
-    const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
-
     sheetContent.innerHTML = `
       <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
       <h2 style="margin:4px 0 12px;font-size:17px;">${item.name}</h2>
 
+      <!-- 兩欄 Grid -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.5;">
         <div><strong>商品型號</strong><br>${item.model}</div>
         <div><strong>主型號</strong><br>${item.mainModel}</div>
@@ -774,35 +819,14 @@
 
       <h3 style="margin-top:18px;font-size:15px;">商品規格</h3>
       <div style="white-space:pre-line;">${item.specs || "-"}</div>
-
-      <h3 style="margin-top:18px;font-size:15px;">毛利試算</h3>
-      <div style="font-size:14px;margin-top:4px;">
-        <div style="display:flex; gap:8px; margin-bottom:6px;">
-          <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:8px;">
-          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:8px;">
-        </div>
-        <div style="display:flex; gap:8px; margin-bottom:6px;">
-          <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:8px;">
-          <div class="profit-result" style="flex:1;padding-top:8px;">點擊試算 (預設:${costLabel})</div>
-        </div>
-        <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
-          <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
-        </div>
-      </div>
-
-      <button class="line-share-btn" data-model="${item.model}"
-        style="margin-top:16px;padding:10px;width:100%;
-        background:#06C755;color:#fff;border:none;border-radius:8px;font-size:15px;">
-        複製 LINE 分享
-      </button>
     `;
 
     openSheet();
   }
-
   function openSheet() {
     sheetBackdrop.classList.remove("hidden");
     mobileSheet.classList.remove("hidden");
+
     requestAnimationFrame(() => {
       mobileSheet.classList.add("open");
     });
@@ -811,6 +835,7 @@
   function closeSheet() {
     sheetBackdrop.classList.add("hidden");
     mobileSheet.classList.remove("open");
+
     setTimeout(() => {
       if (!mobileSheet.classList.contains("open")) {
         mobileSheet.classList.add("hidden");
@@ -821,7 +846,8 @@
   sheetBackdrop.addEventListener("click", closeSheet);
   sheetCloseBtn.addEventListener("click", closeSheet);
 
-  // ★ 修改：智慧 Excel 匯出 (支援單一數量)
+
+/* 匯出 Excel (智慧版：支援單一數量匯出) */
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
     if (checkedBoxes.length === 0) {
@@ -842,12 +868,15 @@
       "商品連結"
     ];
 
-    const selectedQty = qtySelect.value;
+    // ★ 修改點 1：動態決定價格標題
+    const selectedQty = qtySelect.value; // 取得目前選的數量 (e.g., "300" or "")
     let priceHeader = [];
 
     if (selectedQty) {
+      // 有選數量：只匯出那一欄
       priceHeader = [`${selectedQty}個`, "末售", "賣場"];
     } else {
+      // 沒選數量：匯出所有級距 (維持原邏輯)
       if (userLevel === 1) {
         priceHeader = ["50個", "末售", "賣場"];
       } else if (userLevel === 2) {
@@ -873,13 +902,16 @@
         item.productUrl
       ];
 
+      // ★ 修改點 2：動態抓取對應價格
       let priceRow = [];
 
       if (selectedQty) {
+        // 有選數量：動態抓取 quote50, quote300 等欄位
         const costKey = `quote${selectedQty}`; 
-        const costVal = item[costKey] || item.quote50; // Fallback to quote50 if specific qty price is missing
+        const costVal = item[costKey] || 0;
         priceRow = [costVal, item.minPrice, item.marketPrice];
       } else {
+        // 沒選數量：列出全部
         if (userLevel === 1) {
           priceRow = [item.quote50, item.minPrice, item.marketPrice];
         } else if (userLevel === 2) {
@@ -910,76 +942,13 @@
     const ws = XLSX.utils.aoa_to_sheet(rows);
     XLSX.utils.book_append_sheet(wb, ws, "報價");
     
+    // 檔名也加一點小巧思，方便辨識
     const filename = selectedQty 
       ? `KINYO_報價_${selectedQty}個.xlsx` 
       : "KINYO_完整報價.xlsx";
       
     XLSX.writeFile(wb, filename);
   }
-
-  // 複製總報價
-  copyQuoteBtn.addEventListener("click", () => {
-    const checked = document.querySelectorAll(".row-check:checked");
-    if (checked.length === 0) {
-      alert("請先勾選商品");
-      return;
-    }
-
-    let text = "【報價單】\n\n";
-
-    checked.forEach(chk => {
-      const model = chk.getAttribute("data-model");
-      const item = currentResultList.find(p => p.model === model);
-      if (!item) return;
-
-      let pricing = [];
-      if (userLevel >= 1) pricing.push(`50個：${item.quote50}元`);
-      if (userLevel >= 2){
-        pricing.push(`100個：${item.quote100}元`);
-        pricing.push(`300個：${item.quote300}元`);
-      }
-      if (userLevel >= 3){
-        pricing.push(`500個：${item.quote500}元`);
-        pricing.push(`1000個：${item.quote1000}元`);
-      }
-
-      text += `【${item.model}】${item.name}\n${pricing.join(" / ")}\n連結：${item.productUrl || "無"}\n-----------------------\n`;
-    });
-
-    navigator.clipboard.writeText(text)
-      .then(()=> alert("已複製整份報價單，可直接貼到 LINE / 客戶"))
-      .catch(()=> alert("複製失敗，請手動複製"));
-  });
-
-  // LINE 分享功能（單筆）
-  document.addEventListener("click", function(e) {
-    if (!e.target.classList.contains("line-share-btn")) return;
-
-    const model = e.target.getAttribute("data-model");
-    const item = currentResultList.find(p => p.model === model) || window.__currentDetailItem;
-    if (!item) return;
-
-    let costText = "";
-    if (userLevel >= 1) costText += `50個：${item.quote50}元`;
-    if (userLevel >= 2) {
-      costText += ` / 100個：${item.quote100}元`;
-      costText += ` / 300個：${item.quote300}元`;
-    }
-    if (userLevel >= 3) {
-      costText += ` / 500個：${item.quote500}元`;
-      costText += ` / 1000個：${item.quote1000}元`;
-    }
-
-    const text =
-`【${item.model}】${item.name}
-${costText}
-商品連結：${item.productUrl || "無"}`;
-
-    navigator.clipboard.writeText(text)
-      .then(()=> alert("已複製，可直接貼到 LINE"))
-      .catch(()=> alert("無法複製，請手動長按複製"));
-  });
-
   searchBtn.addEventListener("click", searchProducts);
   exportBtn.addEventListener("click", exportSelectedExcel);
 
@@ -996,58 +965,70 @@ ${costText}
     });
   });
 
-  // ★ 修改：毛利計算綁定（即時運算 + 顏色條 + 負毛利警示）
-  document.addEventListener("input", function(e) {
-    const row = e.target.closest(".profit-box, .sheet-content, #detailCard");
-    if (!row) return;
+  // 毛利計算綁定（搜尋結果 + 詳細頁）
+document.addEventListener("input", function(e) {
+  const row = e.target.closest(".profit-box, .sheet-content, #detailCard");
+  if (!row) return;
 
-    const cost = Number(row.querySelector(".cost-input")?.value || 0);
-    const sell = Number(row.querySelector(".sell-input")?.value || 0);
-    const qty  = Number(row.querySelector(".qty-input")?.value || 1);
+  const cost = Number(row.querySelector(".cost-input")?.value || 0);
+  const sell = Number(row.querySelector(".sell-input")?.value || 0);
+  const qty  = Number(row.querySelector(".qty-input")?.value || 1);
 
-    const resultEl = row.querySelector(".profit-result");
-    const barFill  = row.querySelector(".profit-bar-fill");
+  const resultEl = row.querySelector(".profit-result");
+  const barFill  = row.querySelector(".profit-bar-fill");
 
-    if (!resultEl || !barFill) return;
+  if (!resultEl || !barFill) return;
 
-    if (cost > 0 && sell > 0) {
-      const profit = (sell - cost) * qty;
-      const margin = (sell - cost) / sell;
-      const marginPct = Math.round(margin * 100);
+  if (cost > 0 && sell > 0) {
+    const profit = (sell - cost) * qty;
+    const margin = (sell - cost) / sell;
+    const marginPct = Math.round(margin * 100);
 
-      // 負毛利顯示紅字
-      if (profit < 0) {
-          resultEl.innerHTML = `<span style="color:red;font-weight:bold;">虧損：$${profit} (${marginPct}%)</span>`;
-      } else {
-          resultEl.innerHTML = `毛利：$${profit} (${marginPct}%)`;
-      }
+    resultEl.innerHTML = `毛利：${profit} 元（${marginPct}%）（${marginPct}%）`;
 
-      // 顏色條邏輯
-      let pct = Math.max(0, Math.min(100, marginPct));
-      
-      if (profit < 0) {
-          barFill.style.width = "100%";
-          barFill.style.background = "#ef4444"; // 紅色
-      } else {
-          barFill.style.width = pct + "%";
-          // 簡單分級顏色
-          if(marginPct < 10) barFill.style.background = "#fbbf24"; // 黃色
-          else if(marginPct < 20) barFill.style.background = "#a3e635"; // 淺綠
-          else barFill.style.background = "#22c55e"; // 深綠
-      }
+    // 毛利條顏色（紅 → 黃 → 綠）
+    const pct = Math.max(0, Math.min(100, marginPct));
+    barFill.style.width = pct + "%";
+    barFill.style.background = `hsl(${pct}, 70%, 50%)`;
 
-    } else {
-      resultEl.innerHTML = "毛利：-";
-      barFill.style.width = "0%";
-      barFill.style.background = "#eee";
+  } else {
+    resultEl.innerHTML = "毛利：-";
+    barFill.style.width = "0%";
+    barFill.style.background = "#4ade80";
+  }
+});
+
+
+
+// 複製總報價
+document.getElementById("copyQuoteBtn").addEventListener("click", () => {
+  const checked = document.querySelectorAll(".row-check:checked");
+  if (checked.length === 0) {
+    alert("請先勾選商品");
+    return;
+  }
+  let text = "【報價單】\n\n";
+  checked.forEach(chk => {
+    const model = chk.getAttribute("data-model");
+    const item = currentResultList.find(p => p.model === model);
+    if (!item) return;
+    let pricing = [];
+    if (userLevel >= 1) pricing.push(`50個：${item.quote50}元`);
+    if (userLevel >= 2){
+      pricing.push(`100個：${item.quote100}元`);
+      pricing.push(`300個：${item.quote300}元`);
     }
+    if (userLevel >= 3){
+      pricing.push(`500個：${item.quote500}元`);
+      pricing.push(`1000個：${item.quote1000}元`);
+    }
+    text += `【${item.model}】${item.name}\n${pricing.join(" / ")}\n連結：${item.productUrl || "無"}\n-----------------------\n`;
   });
+  navigator.clipboard.writeText(text)
+    .then(()=> alert("已複製整份報價單，可直接貼到 LINE / 客戶"))
+    .catch(()=> alert("複製失敗，請手動複製"));
+});
 
-  document.addEventListener("click", function(e) {
-     if(e.target.tagName === "INPUT" && e.target.type === "number") {
-         e.target.select();
-     }
-  });
 </script>
 
 </body>
