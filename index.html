@@ -392,14 +392,13 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
-  // ★★★ 修復重點：降級回穩定的 10.13.0 版本 ★★★
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-app.js";
   import {
     getFirestore, collection, getDocs, doc, getDoc
-  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-firestore.js";
   import {
     getAuth, onAuthStateChanged, signOut
-  } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
+  } from "https://www.gstatic.com/firebasejs/12.6.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -419,6 +418,7 @@
   let userLevel = 1;
   let currentUserEmail = "";
   
+  // ★ 報價單陣列
   let quoteList = [];
 
   const keywordInput   = document.getElementById("keyword");
@@ -436,6 +436,7 @@
   const userInfoSpan   = document.getElementById("userInfo");
   const logoutBtn      = document.getElementById("logoutBtn");
   
+  // Sheets
   const sheetBackdrop  = document.getElementById("sheetBackdrop");
   const mobileSheet    = document.getElementById("mobileDetailSheet");
   const sheetContent   = document.getElementById("sheetContent");
@@ -447,6 +448,7 @@
   const copyQuoteBtn   = document.getElementById("copyQuoteBtn");
   const clearQuoteBtn  = document.getElementById("clearQuoteBtn");
   
+  // Fab
   const fabCart        = document.getElementById("fabCart");
   const cartCount      = document.getElementById("cartCount");
 
@@ -461,6 +463,7 @@
     Y: "黃", YE: "黃"
   };
 
+  // 取得目前選擇的起訂量對應的成本價與欄位名稱
   function getSelectedCostInfo(item) {
     const selectedQty = qtySelect.value; 
     let cost = item.quote50;
@@ -508,7 +511,7 @@
     userInfoSpan.textContent = `登入帳號：${shortAccount}`;
     logoutBtn.style.display = "inline-block";
     setupQtySelectByLevel();
-    fabCart.style.display = "flex"; 
+    fabCart.style.display = "flex"; // 登入後顯示購物車按鈕
   });
 
   function setupQtySelectByLevel() {
@@ -563,9 +566,12 @@
     const minP = minPriceInput.value;
     const maxP = maxPriceInput.value;
 
-    // ★★★ 修復重點：放寬搜尋條件，只有「填了其中一個價格但沒填另一個」才擋 ★★★
-    if ( (minP && !maxP) || (!minP && maxP) ) {
-      alert("請輸入完整的預算區間（最低 + 最高）");
+    if (!qty && (minP || maxP)) {
+      alert("請先選擇起訂量，才能使用預算區間搜尋");
+      return;
+    }
+    if (qty && (!minP || !maxP)) {
+      alert("請輸入完整的預算區間");
       return;
     }
 
@@ -832,7 +838,7 @@
           ${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}
         </div>
       </div>
-      <h3 style="margin-top:18px;">採購價格</h3>
+      <h3 style="margin-top:18px;font-size:15px;">採購價格</h3>
       <div style="line-height:1.6;margin-left:4px;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
       
       <h3 style="margin-top:18px;font-size:15px;">毛利試算</h3>
@@ -989,6 +995,7 @@
   });
 
 
+  // ★ 匯出 Excel 邏輯 (與之前相同)
   function exportSelectedExcel() {
     const checkedBoxes = document.querySelectorAll(".row-check:checked");
     if (checkedBoxes.length === 0) {
