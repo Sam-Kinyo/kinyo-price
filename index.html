@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>KINYO 查價系統 (V1.2 Stable)</title>
+  <title>KINYO 查價系統 (最終修正版)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <style>
@@ -115,7 +115,6 @@
       text-align: left;
     }
 
-    /* 圖片放大 */
     .product-img {
       width: 120px;
       height: 120px;
@@ -272,6 +271,7 @@
       .product-img { width: 90px; height: 90px; }
       table th, table td { padding: 8px 6px; font-size: 13px; }
       .btn-primary, .btn-secondary { padding: 8px 12px; }
+      
       .price-tag-container{
         display:grid;
         grid-template-columns: repeat(2, 1fr);
@@ -390,6 +390,7 @@
   import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
+  // 1. 設定與變數 (Global Config)
   const firebaseConfig = {
     apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
     authDomain: "kinyo-price.firebaseapp.com",
@@ -403,13 +404,13 @@
   const db  = getFirestore(app);
   const auth = getAuth(app);
 
-  // === 變數宣告區 ===
   let productCache = null;
   let currentResultList = [];
   let userLevel = 1;
   let currentUserEmail = "";
   let quoteList = [];
 
+  // DOM 元素
   const keywordInput = document.getElementById("keyword");
   const qtySelect = document.getElementById("qtySelect");
   const minPriceInput = document.getElementById("minPrice");
@@ -443,9 +444,8 @@
     R:"紅", B:"藍", G:"綠", BK:"黑", WH:"白", PK:"粉", Y:"黃", OR:"橘"
   };
 
-  // === 功能函式區 (Functions) ===
+  // 2. 所有功能函式定義 (Functions Definition) - 確保先定義後使用
 
-  // 1. 取得成本
   function getSelectedCostInfo(item) {
     const selectedQty = qtySelect.value; 
     let cost = item.quote50; 
@@ -457,7 +457,6 @@
     return { cost, label };
   }
 
-  // 2. 毛利即時計算
   function updateRowProfit(container) {
     const cost = Number(container.querySelector(".cost-input")?.value || 0);
     const sell = Number(container.querySelector(".sell-input")?.value || 0);
@@ -495,12 +494,12 @@
     }
   }
 
-  // 3. 視窗操作 (先定義，避免 ReferenceError)
   function openSheet() {
     sheetBackdrop.classList.remove("hidden");
     mobileSheet.classList.remove("hidden");
     requestAnimationFrame(() => mobileSheet.classList.add("open"));
   }
+
   function closeSheet() {
     sheetBackdrop.classList.add("hidden");
     mobileSheet.classList.remove("open");
@@ -508,12 +507,14 @@
       if (!mobileSheet.classList.contains("open")) mobileSheet.classList.add("hidden");
     }, 220);
   }
+
   function openQuoteSheet() {
     sheetBackdrop.classList.remove("hidden");
     quoteSheet.classList.remove("hidden");
     requestAnimationFrame(() => quoteSheet.classList.add("open"));
     renderQuoteList();
   }
+
   function closeQuoteSheet() {
     quoteSheet.classList.remove("open");
     setTimeout(() => {
@@ -522,17 +523,6 @@
     }, 220);
   }
 
-  // 4. 預先載入
-  async function preloadProducts() {
-    try {
-      const snap = await getDocs(collection(db, "Products"));
-      productCache = [];
-      snap.forEach(docSnap => productCache.push(docSnap.data()));
-      console.log("預載完成");
-    } catch(e) { console.error("預載失敗", e); }
-  }
-
-  // 5. 設定起訂量選項
   function setupQtySelectByLevel() {
     qtySelect.innerHTML = "";
     const optNone = document.createElement("option");
@@ -548,52 +538,134 @@
     if (userLevel >= 3) { addOption("500", "500 個"); addOption("1000", "1000 個"); }
   }
 
-  // 6. 報價單與購物車相關
-  function updateCartCount() {
-    cartCount.textContent = quoteList.length;
-    if (quoteList.length > 0) {
-      fabCart.classList.add("bounce");
-      setTimeout(()=>fabCart.classList.remove("bounce"), 300);
-    }
+  function applySorting(list) {
+    const opt = sortSelect.value;
+    if (opt === "minPriceAsc")  return list.sort((a,b)=>a.minPrice - b.minPrice);
+    if (opt === "minPriceDesc") return list.sort((a,b)=>b.minPrice - a.minPrice);
+    if (opt === "marketAsc")    return list.sort((a,b)=>a.marketPrice - b.marketPrice);
+    if (opt === "marketDesc")   return list.sort((a,b)=>b.marketPrice - a.marketPrice);
+    if (opt === "alphaAsc")   return list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
+    if (opt === "alphaDesc")  return list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
+    return list;
   }
-  function renderQuoteList() {
-    quoteListBody.innerHTML = "";
-    let total = 0;
-    if (quoteList.length === 0) {
-      quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的<br>請先從列表加入商品</div>`;
-      quoteTotalEl.textContent = "$0";
-      return;
-    }
-    quoteList.forEach((qItem, idx) => {
-      const subtotal = qItem.price * qItem.count;
-      total += subtotal;
-      const div = document.createElement("div");
-      div.className = "quote-item";
-      div.innerHTML = `
-        <div style="flex:1;">
-          <div style="font-weight:600;font-size:15px;">${qItem.name}</div>
-          <div class="quote-info" style="color:#666;">${qItem.model} | <span style="background:#eee;padding:1px 4px;border-radius:4px;font-size:12px;">${qItem.qtyLabel}</span></div>
+
+  async function preloadProducts() {
+    try {
+      const snap = await getDocs(collection(db, "Products"));
+      productCache = [];
+      snap.forEach(docSnap => productCache.push(docSnap.data()));
+      console.log("預載完成");
+    } catch(e) { console.error("預載失敗", e); }
+  }
+
+  function showDetailDesktop(item) {
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+    let priceBlock = "";
+    if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
+    if (userLevel >= 2) { priceBlock += `<div>100 個：${item.quote100} 元</div><div>300 個：${item.quote300} 元</div>`; }
+    if (userLevel >= 3) { priceBlock += `<div>500 個：${item.quote500} 元</div><div>1000 個：${item.quote1000} 元</div>`; }
+
+    const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
+
+    detailCard.style.display = "block";
+    detailCard.innerHTML = `
+      <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
+      <h2 style="margin:4px 0 12px;">${item.name}</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;line-height:1.5;">
+        <div><strong>商品型號</strong><br>${item.model}</div>
+        <div><strong>主型號</strong><br>${item.mainModel}</div>
+        <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
+        <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
+        <div><strong>商品網址</strong><br>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}</div>
+      </div>
+      <h3 style="margin-top:18px;">採購價格</h3>
+      <div style="margin-left:4px;line-height:1.6;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
+      
+      <div style="display:flex; gap:10px; margin-top:16px;">
+        <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">複製 LINE 分享</button>
+        <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;margin-top:0;">➕ 加入報價單</button>
+      </div>
+
+      <h3 style="margin-top:18px;">毛利試算</h3>
+      <div class="profit-box" style="font-size:14px;margin-top:4px;">
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
+          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
         </div>
-        <div style="text-align:right;margin-right:12px;">
-          <div class="quote-price">$${qItem.price}</div>
-          <div style="font-size:12px;color:#888;">x ${qItem.count}</div>
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
+          <div class="profit-result" style="flex:1;padding-top:8px;">點擊試算 (預設:${costLabel})</div>
         </div>
-        <div class="quote-del" data-idx="${idx}">🗑️</div>
-      `;
-      quoteListBody.appendChild(div);
+        <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+          <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+        </div>
+      </div>
+    `;
+    const pb = detailCard.querySelector(".profit-box");
+    if(pb) updateRowProfit(pb);
+  }
+
+  function showDetailMobile(item) {
+    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+    let priceBlock = "";
+    if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
+    if (userLevel >= 2) { priceBlock += `<div>100 個：${item.quote100} 元</div><div>300 個：${item.quote300} 元</div>`; }
+    if (userLevel >= 3) { priceBlock += `<div>500 個：${item.quote500} 元</div><div>1000 個：${item.quote1000} 元</div>`; }
+
+    const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
+
+    sheetContent.innerHTML = `
+      <img src="${img}" style="width:100%;max-width:320px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
+      <h2 style="margin:4px 0 12px;font-size:17px;">${item.name}</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.5;">
+        <div><strong>商品型號</strong><br>${item.model}</div>
+        <div><strong>主型號</strong><br>${item.mainModel}</div>
+        <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
+        <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
+        <div><strong>商品網址</strong><br>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}</div>
+      </div>
+      <h3 style="margin-top:18px;">採購價格</h3>
+      <div style="line-height:1.6;margin-left:4px;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
+      
+      <h3 style="margin-top:18px;">毛利試算</h3>
+      <div class="profit-box" style="font-size:14px;margin-top:4px;margin-bottom:16px;">
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+        </div>
+        <div style="display:flex; gap:8px; margin-bottom:6px;">
+          <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:8px;border:1px solid #ccc;border-radius:6px;">
+          <div class="profit-result" style="flex:1;padding-top:8px;">點擊試算 (預設:${costLabel})</div>
+        </div>
+        <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+          <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:6px;">
+        <button class="btn-primary line-share-btn" data-model="${item.model}" style="width:100%;">複製 LINE 分享</button>
+        <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="width:100%;margin-top:0;">➕ 加入報價單</button>
+      </div>
+    `;
+    const pb = sheetContent.querySelector(".profit-box");
+    if(pb) updateRowProfit(pb);
+    openSheet();
+  }
+
+  function bindCheckAll() {
+    const rowChecks = document.querySelectorAll(".row-check");
+    if (!checkAllBox) return;
+    checkAllBox.addEventListener("change", () => {
+      rowChecks.forEach(chk => chk.checked = checkAllBox.checked);
     });
-    quoteTotalEl.textContent = "$" + total.toLocaleString();
-    document.querySelectorAll(".quote-del").forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        const idx = e.target.getAttribute("data-idx");
-        quoteList.splice(idx, 1);
-        renderQuoteList();
-        updateCartCount();
+    rowChecks.forEach(chk => {
+      chk.addEventListener("change", () => {
+        const all = document.querySelectorAll(".row-check");
+        const checked = document.querySelectorAll(".row-check:checked");
+        checkAllBox.checked = (all.length === checked.length);
       });
     });
   }
 
-  // 7. 渲染結果列表
   function renderResults(list) {
     resultBody.innerHTML = "";
     detailCard.style.display = "none";
@@ -678,175 +750,99 @@
         });
       }
       
-      // ★★★ 立即計算毛利 ★★★
       const pb = tr.querySelector(".profit-box");
       if (pb) updateRowProfit(pb);
 
       resultBody.appendChild(tr);
     });
-    
-    // 綁定全選
-    const rowChecks = document.querySelectorAll(".row-check");
-    if (checkAllBox) {
-      checkAllBox.addEventListener("change", () => {
-        rowChecks.forEach(chk => chk.checked = checkAllBox.checked);
-      });
-      rowChecks.forEach(chk => {
-        chk.addEventListener("change", () => {
-          const all = document.querySelectorAll(".row-check");
-          const checked = document.querySelectorAll(".row-check:checked");
-          checkAllBox.checked = (all.length === checked.length);
-        });
-      });
+    bindCheckAll();
+  }
+
+  function updateCartCount() {
+    cartCount.textContent = quoteList.length;
+    if (quoteList.length > 0) {
+      fabCart.classList.add("bounce");
+      setTimeout(()=>fabCart.classList.remove("bounce"), 300);
     }
   }
 
-  // === 邏輯控制區 ===
-
-  // 8. 搜尋
-  async function searchProducts() {
-    const kw   = keywordInput.value.trim().toLowerCase();
-    const qty  = qtySelect.value;
-    const minP = minPriceInput.value;
-    const maxP = maxPriceInput.value;
-
-    if (!qty && (minP || maxP)) {
-      alert("請先選擇起訂量，才能使用預算區間搜尋");
+  function renderQuoteList() {
+    quoteListBody.innerHTML = "";
+    let total = 0;
+    if (quoteList.length === 0) {
+      quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的<br>請先從列表加入商品</div>`;
+      quoteTotalEl.textContent = "$0";
       return;
     }
-    if (qty && (!minP || !maxP)) {
-      if((minP && !maxP) || (!minP && maxP)) {
-         alert("請輸入完整的預算區間"); return;
-      }
-    }
-
-    searchBtn.textContent = "查詢中...";
-    searchBtn.disabled = true;
-
-    try {
-      let list = [];
-      if (!productCache || productCache.length === 0) {
-        const snap = await getDocs(collection(db, "Products"));
-        productCache = [];
-        snap.forEach(docSnap => productCache.push(docSnap.data()));
-      }
-      list = [...productCache];
-
-      if (kw) {
-        const k = kw.toLowerCase();
-        list = list.filter(item =>
-          (item.model && item.model.toLowerCase().includes(k)) ||
-          (item.name && item.name.toLowerCase().includes(k))
-        );
-      }
-
-      if (qty) {
-        const effectiveMin = minP ? Number(minP) : 50;
-        const effectiveMax = maxP ? Number(maxP) : 1000000;
-        const mapping = { "50":"quote50","100":"quote100","300":"quote300","500":"quote500","1000":"quote1000" };
-        const field = mapping[qty];
-        list = list.filter(item => item[field] >= effectiveMin && item[field] <= effectiveMax);
-      }
-
-      const grouped = {};
-      list.forEach(item => {
-        const main = item.model.replace(/[-_ ]?[A-Za-z]+$/, "");
-        if (!grouped[main]) grouped[main] = [];
-        grouped[main].push(item);
+    quoteList.forEach((qItem, idx) => {
+      const subtotal = qItem.price * qItem.count;
+      total += subtotal;
+      const div = document.createElement("div");
+      div.className = "quote-item";
+      div.innerHTML = `
+        <div style="flex:1;">
+          <div style="font-weight:600;font-size:15px;">${qItem.name}</div>
+          <div class="quote-info" style="color:#666;">${qItem.model} | <span style="background:#eee;padding:1px 4px;border-radius:4px;font-size:12px;">${qItem.qtyLabel}</span></div>
+        </div>
+        <div style="text-align:right;margin-right:12px;">
+          <div class="quote-price">$${qItem.price}</div>
+          <div style="font-size:12px;color:#888;">x ${qItem.count}</div>
+        </div>
+        <div class="quote-del" data-idx="${idx}">🗑️</div>
+      `;
+      quoteListBody.appendChild(div);
+    });
+    quoteTotalEl.textContent = "$" + total.toLocaleString();
+    document.querySelectorAll(".quote-del").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        const idx = e.target.getAttribute("data-idx");
+        quoteList.splice(idx, 1);
+        renderQuoteList();
+        updateCartCount();
       });
-
-      list = Object.keys(grouped).map(main => {
-        const items = grouped[main];
-        const first = items[0];
-        const colorCodes = items.map(i => {
-            const m = i.model.match(/[-_ ]?([A-Za-z]+)$/);
-            return m ? m[1].toUpperCase() : "";
-          }).filter(c => c);
-        const uniqueCodes = [...new Set(colorCodes)];
-        const displayColors = uniqueCodes.map(code => {
-            const cname = colorMap[code] || "";
-            return cname ? `${code}（${cname}）` : code;
-          }).join(" / ");
-
-        return {
-          ...first,
-          mainModel: items.length > 1 ? `${main}（多色）` : main,
-          colorList: displayColors || "-"
-        };
-      });
-
-      list.sort((a,b)=>a.minPrice - b.minPrice); // 預設排序
-      if (sortSelect.value) {
-         // 有選排序才蓋過
-         const opt = sortSelect.value;
-         if (opt === "minPriceAsc") list.sort((a,b)=>a.minPrice - b.minPrice);
-         if (opt === "minPriceDesc") list.sort((a,b)=>b.minPrice - a.minPrice);
-         if (opt === "marketAsc") list.sort((a,b)=>a.marketPrice - b.marketPrice);
-         if (opt === "marketDesc") list.sort((a,b)=>b.marketPrice - a.marketPrice);
-         if (opt === "alphaAsc") list.sort((a,b)=> a.mainModel.localeCompare(b.mainModel));
-         if (opt === "alphaDesc") list.sort((a,b)=> b.mainModel.localeCompare(a.mainModel));
-      }
-
-      currentResultList = list;
-      renderResults(list);
-    } catch (err) {
-      console.error(err);
-      alert("查詢失敗，請檢查網路或重新登入");
-    } finally {
-      searchBtn.textContent = "查詢";
-      searchBtn.disabled = false;
-    }
+    });
   }
 
-  // 9. 顯示詳情
-  function showDetailDesktop(item) {
-    const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-    let priceBlock = "";
-    if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50} 元</div>`;
-    if (userLevel >= 2) { priceBlock += `<div>100 個：${item.quote100} 元</div><div>300 個：${item.quote300} 元</div>`; }
-    if (userLevel >= 3) { priceBlock += `<div>500 個：${item.quote500} 元</div><div>1000 個：${item.quote1000} 元</div>`; }
+  // === 3. 執行功能 (Event Listeners) - 放在最後 ===
 
-    const { cost: defaultCost, label: costLabel } = getSelectedCostInfo(item);
-
-    detailCard.style.display = "block";
-    detailCard.innerHTML = `
-      <img src="${img}" style="width:260px;border-radius:12px;margin-bottom:12px;border:1px solid #ddd;" />
-      <h2 style="margin:4px 0 12px;">${item.name}</h2>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;line-height:1.5;">
-        <div><strong>商品型號</strong><br>${item.model}</div>
-        <div><strong>主型號</strong><br>${item.mainModel}</div>
-        <div><strong>賣場售價</strong><br>${item.marketPrice} 元</div>
-        <div><strong>末售價格</strong><br>${item.minPrice} 元</div>
-        <div><strong>商品網址</strong><br>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往商品頁</a>` : "-"}</div>
-      </div>
-      <h3 style="margin-top:18px;">採購價格</h3>
-      <div style="margin-left:4px;line-height:1.6;">${priceBlock || "<div>此帳號無採購價可見</div>"}</div>
-      
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">複製 LINE 分享</button>
-        <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;margin-top:0;">➕ 加入報價單</button>
-      </div>
-
-      <h3 style="margin-top:18px;">毛利試算</h3>
-      <div class="profit-box" style="font-size:14px;margin-top:4px;">
-        <div style="display:flex; gap:8px; margin-bottom:6px;">
-          <input type="number" placeholder="成本" value="${defaultCost}" class="cost-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
-          <input type="number" placeholder="售價" value="${item.marketPrice}" class="sell-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
-        </div>
-        <div style="display:flex; gap:8px; margin-bottom:6px;">
-          <input type="number" placeholder="數量" value="1" class="qty-input" style="flex:1;padding:6px 8px;border:1px solid #ccc;border-radius:6px;">
-          <div class="profit-result" style="flex:1;padding-top:8px;">點擊試算 (預設:${costLabel})</div>
-        </div>
-        <div class="profit-bar" style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
-          <div class="profit-bar-fill" style="height:100%;width:0%;background:#4ade80;"></div>
-        </div>
-      </div>
-    `;
-    const pb = detailCard.querySelector(".profit-box");
-    if(pb) updateRowProfit(pb);
+  function exportSelectedExcel() {
+    const checkedBoxes = document.querySelectorAll(".row-check:checked");
+    if (checkedBoxes.length === 0) { alert("請先勾選要匯出的商品"); return; }
+    const selectedModels = Array.from(checkedBoxes).map(chk => chk.getAttribute("data-model"));
+    const baseHeader = ["商品型號", "主型號", "商品名稱", "顏色列表", "箱入數", "商品連結"];
+    let priceHeader = [];
+    const selectedQty = qtySelect.value;
+    if (selectedQty) { priceHeader = [`${selectedQty}個`, "末售", "賣場"]; } 
+    else {
+      if (userLevel === 1) priceHeader = ["50個", "末售", "賣場"];
+      else if (userLevel === 2) priceHeader = ["50個", "100個", "300個", "末售", "賣場"];
+      else if (userLevel === 3) priceHeader = ["50個", "100個", "300個", "500個", "1000個", "末售", "賣場"];
+    }
+    const finalHeader = [...baseHeader, ...priceHeader];
+    const rows = [finalHeader];
+    selectedModels.forEach(model => {
+      const item = currentResultList.find(p => p.model === model);
+      if (!item) return;
+      const baseRow = [item.model, item.mainModel, item.name, item.colorList, item.cartonQty, item.productUrl];
+      let priceRow = [];
+      if (selectedQty) {
+        const costKey = `quote${selectedQty}`;
+        const costVal = item[costKey] || item.quote50; 
+        priceRow = [costVal, item.minPrice, item.marketPrice];
+      } else {
+        if (userLevel === 1) priceRow = [item.quote50, item.minPrice, item.marketPrice];
+        else if (userLevel === 2) priceRow = [item.quote50, item.quote100, item.quote300, item.minPrice, item.marketPrice];
+        else if (userLevel === 3) priceRow = [item.quote50, item.quote100, item.quote300, item.quote500, item.quote1000, item.minPrice, item.marketPrice];
+      }
+      rows.push([...baseRow, ...priceRow]);
+    });
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, "報價");
+    XLSX.writeFile(wb, `KINYO_商品報價_${selectedQty ? selectedQty + '個' : '完整版'}.xlsx`);
   }
 
-  // 10. 事件監聽綁定 (移到最後，確保函式都存在)
+  // 綁定事件
   sheetBackdrop.addEventListener("click", () => { closeSheet(); closeQuoteSheet(); });
   sheetCloseBtn.addEventListener("click", closeSheet);
   quoteCloseBtn.addEventListener("click", closeQuoteSheet);
@@ -877,7 +873,27 @@
     navigator.clipboard.writeText(text).then(() => alert("✅ 報價單已複製！")).catch(() => alert("複製失敗"));
   });
 
-  // 加入報價單
+  sortSelect.addEventListener("change", () => {
+    if (currentResultList.length > 0) {
+      const sorted = applySorting([...currentResultList]);
+      renderResults(sorted);
+    }
+  });
+
+  [keywordInput, qtySelect, minPriceInput, maxPriceInput].forEach(el => {
+    el.addEventListener("keydown", e => { if (e.key === "Enter") searchProducts(); });
+  });
+
+  document.addEventListener("input", function(e) {
+    const row = e.target.closest(".profit-box");
+    if (row) updateRowProfit(row);
+  });
+
+  document.addEventListener("click", function(e) {
+     if(e.target.tagName === "INPUT" && e.target.type === "number") { e.target.select(); }
+  });
+
+  // 加入報價單事件
   document.addEventListener("click", function(e) {
     if (e.target.classList.contains("add-quote-btn")) {
       const model = e.target.getAttribute("data-model");
@@ -890,18 +906,7 @@
     }
   });
 
-  // 監聽輸入框全選
-  document.addEventListener("click", function(e) {
-     if(e.target.tagName === "INPUT" && e.target.type === "number") { e.target.select(); }
-  });
-
-  // 監聽毛利即時計算
-  document.addEventListener("input", function(e) {
-    const row = e.target.closest(".profit-box");
-    if (row) updateRowProfit(row);
-  });
-
-  // 監聽 LINE 分享
+  // LINE 分享事件
   document.addEventListener("click", function(e) {
     if (!e.target.classList.contains("line-share-btn")) return;
     const model = e.target.getAttribute("data-model");
@@ -915,7 +920,7 @@
     navigator.clipboard.writeText(text).then(()=> alert("✅ 已複製！")).catch(()=> alert("複製失敗"));
   });
 
-  // 登入檢查 (Authentication)
+  // 登入檢查
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
       window.location.href = "login.html";
@@ -932,7 +937,7 @@
     logoutBtn.style.display = "inline-block";
     setupQtySelectByLevel();
     fabCart.style.display = "flex";
-    preloadProducts(); // 預載資料
+    preloadProducts();
   });
 
 </script>
