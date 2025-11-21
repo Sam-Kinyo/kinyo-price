@@ -769,37 +769,51 @@
   // ----------------------
   // Search Products
   // ----------------------
-  async function searchProducts() {
-    const kw = keywordInput.value.trim();
-    if (!kw) { alert("請輸入關鍵字"); return; }
+ async function searchProducts() {
+  const kw = keywordInput.value.trim().toLowerCase();
+  const selectedQty = qtySelect.value;       // 是否選了起訂量
+  const minP = Number(minPriceInput.value) || 0;
+  const maxP = Number(maxPriceInput.value) || 99999999;
 
-    if (!productCache) await preloadProducts();
-
-    let list = productCache.filter(item => {
-      const m = (item.model || "").toLowerCase();
-      const mm = (item.mainModel || "").toLowerCase();
-      const n = (item.name || "").toLowerCase();
-      const k = kw.toLowerCase();
-      return m.includes(k) || mm.includes(k) || n.includes(k);
-    });
-
-    const selectedQty = qtySelect.value;
-    const minP = Number(minPriceInput.value) || 50;
-    const maxP = Number(maxPriceInput.value) || 1000000;
-
-    list = list.filter(item => {
-      let cost = item.quote50;
-      if (selectedQty) {
-        const key = "quote" + selectedQty;
-        cost = item[key] || cost;
-      }
-      return Number(cost) >= minP && Number(cost) <= maxP;
-    });
-
-    const sorted = applySorting(list);
-    currentResultList = sorted;
-    renderResults(sorted);
+  if (!kw && !selectedQty) {
+    alert("請至少輸入關鍵字，或選擇起訂量進行搜尋");
+    return;
   }
+
+  if (!productCache) await preloadProducts();
+
+  // ------------------------------
+  // Step 1：關鍵字搜尋（永遠可以用）
+  // ------------------------------
+  let list = productCache.filter(item => {
+    const m  = (item.model || "").toLowerCase();
+    const mm = (item.mainModel || "").toLowerCase();
+    const n  = (item.name || "").toLowerCase();
+    return m.includes(kw) || mm.includes(kw) || n.includes(kw);
+  });
+
+  // ------------------------------------------------
+  // Step 2：只有「選了起訂量」才進行預算區間過濾
+  // ------------------------------------------------
+  if (selectedQty) {
+    list = list.filter(item => {
+      const key = "quote" + selectedQty;
+      const cost = item[key] || item.quote50;
+      return cost >= minP && cost <= maxP;
+    });
+  }
+
+  // ------------------------------
+  // Step 3：排序
+  // ------------------------------
+  list = applySorting(list);
+
+  // ------------------------------
+  // Step 4：更新畫面
+  // ------------------------------
+  currentResultList = list;
+  renderResults(list);
+}
 
   // ----------------------
   // Excel Export (selected)
