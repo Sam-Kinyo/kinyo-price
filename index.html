@@ -336,7 +336,6 @@ th{background:#fafafa;text-align:left;}
   郭庭豪嘔心瀝血之作（v4.7.7 版本）　任何建議📱：0976-966-333
 </div>
 
-<!-- ✅ v4.7.7：搜尋區改成 form，Enter 保證可搜尋 -->
 <form id="searchForm" class="search-box">
   <div class="search-row">
     <label>關鍵字搜尋（型號 / 名稱）</label>
@@ -391,7 +390,6 @@ th{background:#fafafa;text-align:left;}
 
 <div id="detailCard"></div>
 
-<!-- Mobile detail sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
 <div id="mobileDetailSheet" class="sheet hidden">
   <div class="sheet-header">
@@ -401,7 +399,6 @@ th{background:#fafafa;text-align:left;}
   <div class="sheet-content" id="sheetContent"></div>
 </div>
 
-<!-- Quote sheet -->
 <div id="quoteSheet" class="sheet hidden">
   <div class="sheet-header">
     <span>報價單預覽</span>
@@ -422,9 +419,6 @@ th{background:#fafafa;text-align:left;}
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
-/* =======================================================
-   Firebase 初始化（沿用 v4.7.6 修正）
-======================================================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -442,9 +436,6 @@ const app  = initializeApp(firebaseConfig);
 const db   = getFirestore(app);
 const auth = getAuth(app);
 
-/* =======================================================
-   全域變數
-======================================================= */
 let productCache = [];
 let currentResultList = [];
 let userLevel = 1;
@@ -452,9 +443,10 @@ let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
 
-/* =======================================================
-   DOM 綁定
-======================================================= */
+/* ✅ Google Drive 商品大圖（modelData.json） */
+let driveImageMap = new Map();
+let isDriveLoaded = false;
+
 const searchForm     = document.getElementById("searchForm");
 const keywordInput   = document.getElementById("keyword");
 const qtySelect      = document.getElementById("qtySelect");
@@ -485,13 +477,9 @@ const clearQuoteBtn  = document.getElementById("clearQuoteBtn");
 const downloadQuoteExcelBtn = document.getElementById("downloadQuoteExcelBtn");
 const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
 
-/* Loading Bar */
 const centerLoadingBox = document.getElementById("centerLoadingBox");
 const centerLoadingBar = document.getElementById("centerLoadingBar");
 
-/* =======================================================
-   Loading Bar 控制
-======================================================= */
 function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
@@ -507,8 +495,35 @@ function hideLoading() {
 }
 
 /* =======================================================
-   主型號解析（v4.7.x 規則）
+   讀取 Google Drive 主圖（modelData.json）
 ======================================================= */
+async function preloadDriveImages() {
+  try {
+    const res = await fetch("./modelData.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("modelData.json 讀取失敗");
+    const json = await res.json();
+
+    driveImageMap = new Map();
+    (json.models || []).forEach(m => {
+      if (m?.model && m?.mainImage) {
+        driveImageMap.set(String(m.model).trim().toUpperCase(), m.mainImage);
+      }
+    });
+
+    isDriveLoaded = true;
+    console.log("Drive 商品大圖載入完成：", driveImageMap.size);
+  } catch (e) {
+    isDriveLoaded = false;
+    console.warn("Drive 商品大圖載入失敗（不影響主功能）:", e);
+  }
+}
+
+function getDriveMainImage(item){
+  const m1 = (item?.model || "").trim().toUpperCase();
+  const m2 = (item?.mainModel || "").trim().toUpperCase();
+  return driveImageMap.get(m1) || driveImageMap.get(m2) || "";
+}
+
 function getMainModel(model) {
   if (!model) return "";
   const raw = model.toUpperCase().trim();
@@ -528,9 +543,6 @@ function getMainModel(model) {
   return raw;
 }
 
-/* =======================================================
-   商品預載入
-======================================================= */
 async function preloadProducts() {
   showLoading();
   isProductsLoaded = false;
@@ -571,9 +583,6 @@ async function preloadProducts() {
   hideLoading();
 }
 
-/* =======================================================
-   起訂量權限
-======================================================= */
 function setupQtySelectByLevel() {
   qtySelect.innerHTML = "";
   const emptyOpt = document.createElement("option");
@@ -592,9 +601,6 @@ function setupQtySelectByLevel() {
   if (userLevel >= 3) { add("500", "500 個"); add("1000", "1000 個"); }
 }
 
-/* =======================================================
-   合併主型號
-======================================================= */
 function mergeByMainModel(list) {
   const map = {};
 
@@ -618,23 +624,17 @@ function mergeByMainModel(list) {
   return Object.values(map);
 }
 
-/* =======================================================
-   排序
-======================================================= */
 function applySorting(list) {
   const o = sortSelect.value;
   if (o === "minPriceAsc")  return list.sort((a,b)=> (a.minPrice||0) - (b.minPrice||0));
   if (o === "minPriceDesc") return list.sort((a,b)=> (b.minPrice||0) - (a.minPrice||0));
-  if (o === "marketAsc")    return list.sort((a,b)=> (a.marketPrice||0) - (b.marketPrice||0));
+  if (o === "marketAsc")    return list.sort((a,b)=> (a.marketPrice||0) - (a.marketPrice||0));
   if (o === "marketDesc")   return list.sort((a,b)=> (b.marketPrice||0) - (a.marketPrice||0));
   if (o === "alphaAsc")     return list.sort((a,b)=> (a.mainModel||"").localeCompare(b.mainModel||""));
   if (o === "alphaDesc")    return list.sort((a,b)=> (b.mainModel||"").localeCompare(a.mainModel||""));
   return list;
 }
 
-/* =======================================================
-   搜尋功能（A/B/C）
-======================================================= */
 function searchProducts() {
   if (!isProductsLoaded) {
     alert("商品尚未載入完成，請稍等 1~2 秒再搜尋");
@@ -649,8 +649,6 @@ function searchProducts() {
   showLoading();
 
   setTimeout(() => {
-
-    // A：只打關鍵字
     if (key && !qty && !minPraw && !maxPraw) {
       const r = productCache.filter(p => (p.searchKey || "").includes(key));
       currentResultList = applySorting(mergeByMainModel(r));
@@ -659,7 +657,6 @@ function searchProducts() {
       return;
     }
 
-    // B：起訂量 + 預算（無關鍵字）
     if (!key && qty && (minPraw || maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
@@ -676,7 +673,6 @@ function searchProducts() {
       return;
     }
 
-    // C：三項都填
     if (key && qty && (minPraw || maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
@@ -696,13 +692,9 @@ function searchProducts() {
 
     alert("請輸入關鍵字，或起訂量+預算，或三項都填滿。");
     hideLoading();
-
   }, 260);
 }
 
-/* =======================================================
-   渲染搜尋結果
-======================================================= */
 function renderResults(list) {
   resultBody.innerHTML = "";
   detailCard.style.display = "none";
@@ -775,11 +767,10 @@ function renderResults(list) {
   bindCheckAll();
 }
 
-/* =======================================================
-   桌機右側詳細卡
-======================================================= */
+/* ✅ 新增商品大圖（主圖下方） */
 function showDetailDesktop(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+  const driveMainImage = getDriveMainImage(item);
 
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
@@ -788,7 +779,12 @@ function showDetailDesktop(item) {
 
   detailCard.style.display = "block";
   detailCard.innerHTML = `
-    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:10px;">
+    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:6px;">
+    <div style="font-size:13px;color:#2563eb;margin-bottom:10px;">
+      <strong>商品大圖：</strong>
+      ${driveMainImage ? `<a href="${driveMainImage}" target="_blank">查看</a>` : "無"}
+    </div>
+
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
       <strong>主型號：</strong>${item.mainModel || "-"}<br>
@@ -806,11 +802,9 @@ function showDetailDesktop(item) {
   `;
 }
 
-/* =======================================================
-   手機 bottom-sheet 詳細
-======================================================= */
 function showDetailMobile(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+  const driveMainImage = getDriveMainImage(item);
 
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
@@ -818,7 +812,12 @@ function showDetailMobile(item) {
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
   sheetContent.innerHTML = `
-    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:10px;">
+    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:6px;">
+    <div style="font-size:13px;color:#2563eb;margin-bottom:10px;">
+      <strong>商品大圖：</strong>
+      ${driveMainImage ? `<a href="${driveMainImage}" target="_blank">查看</a>` : "無"}
+    </div>
+
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
       <strong>主型號：</strong>${item.mainModel || "-"}<br>
@@ -837,9 +836,6 @@ function showDetailMobile(item) {
   openSheet();
 }
 
-/* =======================================================
-   Mobile Sheet 控制
-======================================================= */
 function openSheet() {
   sheetBackdrop.classList.remove("hidden");
   mobileSheet.classList.remove("hidden");
@@ -853,9 +849,6 @@ function closeSheet() {
   }, 220);
 }
 
-/* =======================================================
-   全選勾選
-======================================================= */
 function bindCheckAll() {
   const rowChecks = document.querySelectorAll(".row-check");
 
@@ -874,9 +867,6 @@ function bindCheckAll() {
   });
 }
 
-/* =======================================================
-   多選 LINE 分享 — 工具列按鈕
-======================================================= */
 const toolbarEl = document.querySelector(".toolbar");
 const multiLineBtn = document.createElement("button");
 multiLineBtn.id = "multiLineBtn";
@@ -890,9 +880,6 @@ function updateMultiLineBtnState() {
   multiLineBtn.disabled = checked.length === 0;
 }
 
-/* =======================================================
-   報價單按鈕顯示
-======================================================= */
 function updateQuoteToolbarBtn() {
   if (quoteList.length > 0) {
     quoteToolbarBtn.style.display = "inline-block";
@@ -902,9 +889,6 @@ function updateQuoteToolbarBtn() {
   }
 }
 
-/* =======================================================
-   報價單內容渲染
-======================================================= */
 function renderQuoteList() {
   quoteListBody.innerHTML = "";
 
@@ -940,9 +924,6 @@ function renderQuoteList() {
   });
 }
 
-/* =======================================================
-   打開 / 關閉 報價單 Sheet
-======================================================= */
 function openQuoteSheet() {
   sheetBackdrop.classList.remove("hidden");
   quoteSheet.classList.remove("hidden");
@@ -955,9 +936,6 @@ function closeQuoteSheet() {
   if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
 }
 
-/* =======================================================
-   匯出 Excel（搜尋結果多選）
-======================================================= */
 function exportSelectedExcel() {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
@@ -999,9 +977,6 @@ function exportSelectedExcel() {
   XLSX.writeFile(wb, `KINYO_商品報價_${qty ? qty+'個' : '關鍵字搜尋'}.xlsx`);
 }
 
-/* =======================================================
-   報價單頁內 — 匯出 Excel
-======================================================= */
 function downloadQuoteExcel() {
   if (quoteList.length === 0) { alert("報價單是空的"); return; }
 
@@ -1015,12 +990,7 @@ function downloadQuoteExcel() {
   XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-/* =======================================================
-   Event：加入報價單 / LINE 分享
-======================================================= */
 document.addEventListener("click", (e) => {
-
-  // 加入報價單
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1043,7 +1013,6 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  // 單筆 LINE 分享
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1068,7 +1037,6 @@ ${costText}
   }
 });
 
-/* 多選 LINE 分享 */
 multiLineBtn.onclick = () => {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) return;
@@ -1079,7 +1047,7 @@ multiLineBtn.onclick = () => {
     const item  = currentResultList.find(p => p.model === model);
     if (!item) return;
 
-    const qty  = qtySelect.value || "50";
+    const qty  = qtySelect.value || "40";
     const ck   = `quote${qty}`;
     const cost = item[ck] ?? item.quote50 ?? "-";
 
@@ -1092,12 +1060,9 @@ multiLineBtn.onclick = () => {
     .catch(() => alert("複製失敗"));
 };
 
-/* =======================================================
-   綁定事件（v4.7.7）
-======================================================= */
 searchForm.addEventListener("submit", (e) => {
-  e.preventDefault();      // ✅ Enter 不會刷新頁面
-  searchProducts();        // ✅ Enter 一定觸發搜尋
+  e.preventDefault();
+  searchProducts();
 });
 
 exportBtn.onclick = exportSelectedExcel;
@@ -1128,7 +1093,6 @@ clearQuoteBtn.onclick = () => {
   closeQuoteSheet();
 };
 
-/* 清除搜尋條件 */
 clearBtn.onclick = () => {
   keywordInput.value = "";
   qtySelect.value = "";
@@ -1143,7 +1107,6 @@ clearBtn.onclick = () => {
   detailCard.style.display = "none";
 };
 
-/* 排序功能 */
 sortSelect.onchange = () => {
   if (currentResultList.length > 0) {
     currentResultList = applySorting([...currentResultList]);
@@ -1151,9 +1114,6 @@ sortSelect.onchange = () => {
   }
 };
 
-/* =======================================================
-   Firebase Auth：登入後流程
-======================================================= */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
@@ -1173,12 +1133,12 @@ onAuthStateChanged(auth, async (user) => {
   logoutBtn.style.display = "inline-block";
 
   setupQtySelectByLevel();
-  preloadProducts();
+
+  preloadDriveImages(); // ✅ 載入商品大圖
+  preloadProducts();    // ✅ 載入商品資料
 });
 
-/* 登出 */
 logoutBtn.onclick = () => signOut(auth);
-
 </script>
 </body>
 </html>
