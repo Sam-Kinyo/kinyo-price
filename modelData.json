@@ -1,0 +1,2240 @@
+{
+  "generatedAt": "2025-11-22T13:19:53.410502Z",
+  "rootFolderId": "1Vv8tO1IjxtI-R2SiNcpdOeKkH0saqKDI",
+  "count": 44,
+  "models": [
+    {
+      "model": "ACF1138",
+      "folderId": "1Br9zvdZK6J1JrD9vJAJQ0hTkYAvNV92Q",
+      "mainImage": "https://drive.google.com/uc?id=100MCB8lmLAMbW92zmYKH-qZUhh-SmI-o",
+      "images": [
+        {
+          "name": "ACF138_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1KnJScbz0Lk3KwDChgVqAI8EKqiCsu_5v",
+          "id": "1KnJScbz0Lk3KwDChgVqAI8EKqiCsu_5v",
+          "modifiedTime": "2025-03-26T07:55:32.831Z"
+        },
+        {
+          "name": "ACF138_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1FeAcYunUhwaJqLmn0_7BlStE6EwCqH28",
+          "id": "1FeAcYunUhwaJqLmn0_7BlStE6EwCqH28",
+          "modifiedTime": "2025-03-26T07:55:17.004Z"
+        },
+        {
+          "name": "ACF1138_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1oxAhTlLsxgFamYldn-miOUq3N-yxpFd6",
+          "id": "1oxAhTlLsxgFamYldn-miOUq3N-yxpFd6",
+          "modifiedTime": "2025-02-26T03:00:17.486Z"
+        },
+        {
+          "name": "ACF1138.jpg",
+          "url": "https://drive.google.com/uc?id=100MCB8lmLAMbW92zmYKH-qZUhh-SmI-o",
+          "id": "100MCB8lmLAMbW92zmYKH-qZUhh-SmI-o",
+          "modifiedTime": "2025-02-26T03:00:15.712Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1eG4zwaMuhnmuBg8fdv3-l4BiewnVCUKQ",
+          "id": "1eG4zwaMuhnmuBg8fdv3-l4BiewnVCUKQ",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-24T03:30:56.570Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "ACF2135",
+      "folderId": "1Te285YD1ndE_id8vl4eSM4UQIg4UlD8t",
+      "mainImage": "https://drive.google.com/uc?id=1rgAaXfHxD7GFvntR_dfmVkJJ2THFgmVH",
+      "images": [
+        {
+          "name": "ACF-2135.jpg",
+          "url": "https://drive.google.com/uc?id=1rgAaXfHxD7GFvntR_dfmVkJJ2THFgmVH",
+          "id": "1rgAaXfHxD7GFvntR_dfmVkJJ2THFgmVH",
+          "modifiedTime": "2024-04-26T09:19:22.000Z"
+        },
+        {
+          "name": "ACF-2135_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1kgr8hD8VsXWlXRBEP9Rruk9FUvdGIZCx",
+          "id": "1kgr8hD8VsXWlXRBEP9Rruk9FUvdGIZCx",
+          "modifiedTime": "2024-04-26T09:19:19.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1KW6tNe0wvQ_q-ub6cQd1MY75T5YYVrt2",
+          "id": "1KW6tNe0wvQ_q-ub6cQd1MY75T5YYVrt2",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:18.132Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "ADM305",
+      "folderId": "16cMkiLDq0P0MhcAZAU_nNcxfNyvb9cRs",
+      "mainImage": "https://drive.google.com/uc?id=1BGhTfbhUD09hMrsqju34CAwJkQlvhfk6",
+      "images": [
+        {
+          "name": "305.tif",
+          "url": "https://drive.google.com/uc?id=13r_lNal_o70CRHMr8cXoAgR9xgNCYHMG",
+          "id": "13r_lNal_o70CRHMr8cXoAgR9xgNCYHMG",
+          "modifiedTime": "2023-05-31T07:36:55.000Z"
+        },
+        {
+          "name": "1000.jpg",
+          "url": "https://drive.google.com/uc?id=1BGhTfbhUD09hMrsqju34CAwJkQlvhfk6",
+          "id": "1BGhTfbhUD09hMrsqju34CAwJkQlvhfk6",
+          "modifiedTime": "2020-04-30T10:47:55.000Z"
+        },
+        {
+          "name": "ADM305.jpg",
+          "url": "https://drive.google.com/uc?id=1Da30xL4bGn-URlspxiTjyWMumSK1E4gW",
+          "id": "1Da30xL4bGn-URlspxiTjyWMumSK1E4gW",
+          "modifiedTime": "2020-04-30T10:47:44.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1MwQuv8-W3cipLT18pESw7LyGcCd93D1S",
+          "id": "1MwQuv8-W3cipLT18pESw7LyGcCd93D1S",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:18.151Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 3,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AF265",
+      "folderId": "1mCMJRbqb72IaipiDsP2HNfykGNy2R3no",
+      "mainImage": "https://drive.google.com/uc?id=1LXzy2nmXLvUs3lXonJrVhtgmeEAzyF85",
+      "images": [
+        {
+          "name": "AF265_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1n3f2nWRnDyjaKH8Lmb_NJpgaQ0HMeXVU",
+          "id": "1n3f2nWRnDyjaKH8Lmb_NJpgaQ0HMeXVU",
+          "modifiedTime": "2024-11-12T11:18:06.000Z"
+        },
+        {
+          "name": "AF265_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1i9d_l8aNv3A1mYXjjH6VQ_VwWPFcob7F",
+          "id": "1i9d_l8aNv3A1mYXjjH6VQ_VwWPFcob7F",
+          "modifiedTime": "2024-11-12T11:18:05.000Z"
+        },
+        {
+          "name": "AF265.jpg",
+          "url": "https://drive.google.com/uc?id=1LXzy2nmXLvUs3lXonJrVhtgmeEAzyF85",
+          "id": "1LXzy2nmXLvUs3lXonJrVhtgmeEAzyF85",
+          "modifiedTime": "2024-10-09T03:25:03.000Z"
+        },
+        {
+          "name": "AF265_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1NWSP_nz5L6D_1UzPzA75Ov2ytGHJfnXg",
+          "id": "1NWSP_nz5L6D_1UzPzA75Ov2ytGHJfnXg",
+          "modifiedTime": "2024-10-09T03:25:01.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1kTuQ36FmQ1hu0T0KMHXrt7xlGHhQiq3E",
+          "id": "1kTuQ36FmQ1hu0T0KMHXrt7xlGHhQiq3E",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:30.880Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AF425",
+      "folderId": "1U6_8Bg_ypNa2ZASiMagsJke6qAKH4Lho",
+      "mainImage": "https://drive.google.com/uc?id=1CbsxcgEOP0k9-Iv1dZ1ehrx0VfTvKTAM",
+      "images": [
+        {
+          "name": "AF425_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1bfxeGWznz2lt0MrGSA_CVGxahetbFTzQ",
+          "id": "1bfxeGWznz2lt0MrGSA_CVGxahetbFTzQ",
+          "modifiedTime": "2024-11-12T11:18:08.000Z"
+        },
+        {
+          "name": "AF425_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1ZfCLCuNEpU9ZkF3eIMJiVNfqy2GHiWpa",
+          "id": "1ZfCLCuNEpU9ZkF3eIMJiVNfqy2GHiWpa",
+          "modifiedTime": "2024-11-12T11:18:07.000Z"
+        },
+        {
+          "name": "AF425.jpg",
+          "url": "https://drive.google.com/uc?id=1CbsxcgEOP0k9-Iv1dZ1ehrx0VfTvKTAM",
+          "id": "1CbsxcgEOP0k9-Iv1dZ1ehrx0VfTvKTAM",
+          "modifiedTime": "2024-10-09T03:23:55.000Z"
+        },
+        {
+          "name": "AF425_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1yKAqiZwbjMOatBYg8K3yy4gg7WT99WmO",
+          "id": "1yKAqiZwbjMOatBYg8K3yy4gg7WT99WmO",
+          "modifiedTime": "2024-10-09T03:23:55.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=10d9I-NAa-vqMnqBC4c50ByVt9dB1P5pd",
+          "id": "10d9I-NAa-vqMnqBC4c50ByVt9dB1P5pd",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:29.369Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AF598",
+      "folderId": "1VVdV2JWA9xEkU-rrLOiNNWQ8whvUtjue",
+      "mainImage": "https://drive.google.com/uc?id=1eSINx338apZpJHiwowH7HG4mnRVFPH9X",
+      "images": [
+        {
+          "name": "AF598W_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1sKYvJIlPF4L0DTX2pLCt6lCHeEOj38p6",
+          "id": "1sKYvJIlPF4L0DTX2pLCt6lCHeEOj38p6",
+          "modifiedTime": "2025-09-18T06:20:46.130Z"
+        },
+        {
+          "name": "AF598W_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1xlXAtWZaG-W_0Qsl-YZlwzgG9qzAZIvX",
+          "id": "1xlXAtWZaG-W_0Qsl-YZlwzgG9qzAZIvX",
+          "modifiedTime": "2025-09-18T06:20:38.230Z"
+        },
+        {
+          "name": "AF598W_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1fi8eDucLdwmlgvq4jji6VcN5-WX-keim",
+          "id": "1fi8eDucLdwmlgvq4jji6VcN5-WX-keim",
+          "modifiedTime": "2025-06-10T07:29:58.102Z"
+        },
+        {
+          "name": "AF598W.jpg",
+          "url": "https://drive.google.com/uc?id=1eSINx338apZpJHiwowH7HG4mnRVFPH9X",
+          "id": "1eSINx338apZpJHiwowH7HG4mnRVFPH9X",
+          "modifiedTime": "2025-06-10T07:29:48.599Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=13VaqD1G7jvC9LWYD-ZhTsNFR1lzCGsvt",
+          "id": "13VaqD1G7jvC9LWYD-ZhTsNFR1lzCGsvt",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-10-01T03:40:10.139Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AMC6220",
+      "folderId": "1Fk2owlcI4iVuHWnjSUfEBzxD0GXdFxl2",
+      "mainImage": "https://drive.google.com/uc?id=1kkKyeaD6u6KHjHW3zTYF_Mc8HlJ_9OBV",
+      "images": [
+        {
+          "name": "AMC6220_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1Jx-s8_29-KIV0qfgocKGZEzJXKV21xIe",
+          "id": "1Jx-s8_29-KIV0qfgocKGZEzJXKV21xIe",
+          "modifiedTime": "2024-07-08T02:31:31.000Z"
+        },
+        {
+          "name": "AMC6220.jpg",
+          "url": "https://drive.google.com/uc?id=1kkKyeaD6u6KHjHW3zTYF_Mc8HlJ_9OBV",
+          "id": "1kkKyeaD6u6KHjHW3zTYF_Mc8HlJ_9OBV",
+          "modifiedTime": "2024-07-08T02:31:31.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1AtI73aQx2MV0HV2q5DOOyERsAUhBxVlO",
+          "id": "1AtI73aQx2MV0HV2q5DOOyERsAUhBxVlO",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:18.208Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AMR205",
+      "folderId": "1aS74msyIWeXYK9JIRHQSRBYTyQuBwrKU",
+      "mainImage": "https://drive.google.com/uc?id=1BzwjBi4Ho-K8ufjZDMss-Hfa1dQVKjQ1",
+      "images": [
+        {
+          "name": "AMR205PU_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1Uo4WMZ9USohPTd-jUUypZv41XJD8cbyC",
+          "id": "1Uo4WMZ9USohPTd-jUUypZv41XJD8cbyC",
+          "modifiedTime": "2024-01-26T07:39:08.000Z"
+        },
+        {
+          "name": "AMR205PI_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1OoFwI62-uNbPEluNHN9iUIEzLGOvfN22",
+          "id": "1OoFwI62-uNbPEluNHN9iUIEzLGOvfN22",
+          "modifiedTime": "2024-01-26T07:39:05.000Z"
+        },
+        {
+          "name": "AMR205PI_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1_QAirn6z6fyAnf0yfniZkF4E8-MD8UZD",
+          "id": "1_QAirn6z6fyAnf0yfniZkF4E8-MD8UZD",
+          "modifiedTime": "2024-01-26T07:39:01.000Z"
+        },
+        {
+          "name": "AMR205PU_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1R47Tr-DIe8ywyU_ZdqnBu1sOgqdq42PW",
+          "id": "1R47Tr-DIe8ywyU_ZdqnBu1sOgqdq42PW",
+          "modifiedTime": "2024-01-26T07:38:58.000Z"
+        },
+        {
+          "name": "AMR205.jpg",
+          "url": "https://drive.google.com/uc?id=1BzwjBi4Ho-K8ufjZDMss-Hfa1dQVKjQ1",
+          "id": "1BzwjBi4Ho-K8ufjZDMss-Hfa1dQVKjQ1",
+          "modifiedTime": "2023-11-23T08:12:14.000Z"
+        },
+        {
+          "name": "AMR205_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1_KHCZsD_2ZR8G4pjzT84dUzyMQ82PsId",
+          "id": "1_KHCZsD_2ZR8G4pjzT84dUzyMQ82PsId",
+          "modifiedTime": "2023-11-23T08:12:11.000Z"
+        },
+        {
+          "name": "AMR205PI.jpg",
+          "url": "https://drive.google.com/uc?id=1ZO0npXkSXP3SMr0mHh-j89Y2scJk9ilI",
+          "id": "1ZO0npXkSXP3SMr0mHh-j89Y2scJk9ilI",
+          "modifiedTime": "2023-11-23T05:39:13.000Z"
+        },
+        {
+          "name": "AMR205PI_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1wrngA4Dpg-Bc2qqffeJjGZJdizIg76fE",
+          "id": "1wrngA4Dpg-Bc2qqffeJjGZJdizIg76fE",
+          "modifiedTime": "2023-11-23T05:39:10.000Z"
+        },
+        {
+          "name": "AMR205PU.jpg",
+          "url": "https://drive.google.com/uc?id=1rGoAUEvlN6Gy1snEIJgL-8uyBw4hw2Px",
+          "id": "1rGoAUEvlN6Gy1snEIJgL-8uyBw4hw2Px",
+          "modifiedTime": "2023-11-23T05:38:55.000Z"
+        },
+        {
+          "name": "AMR205PU_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1LImlMoWw2Om9plfATyUTj4qLjQYZr5Qx",
+          "id": "1LImlMoWw2Om9plfATyUTj4qLjQYZr5Qx",
+          "modifiedTime": "2023-11-23T05:38:52.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1WP-lF-cNT4oDTylQi1m__s0jbrsW3dfP",
+          "id": "1WP-lF-cNT4oDTylQi1m__s0jbrsW3dfP",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:11.139Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 10,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AMR206",
+      "folderId": "1unMSP4Bcjage1ZFBocen_MqyKuqV3ZIG",
+      "mainImage": "https://drive.google.com/uc?id=11LEEgQiKsbpvKA7LUak24I1z1VyH-YtP",
+      "images": [
+        {
+          "name": "AMR206_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1QOT4hFziBCFYFik9zT4LT_j_AtYiEP3o",
+          "id": "1QOT4hFziBCFYFik9zT4LT_j_AtYiEP3o",
+          "modifiedTime": "2024-01-26T07:39:45.000Z"
+        },
+        {
+          "name": "AMR206_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1QMqFwvOfU5WI_rIIWUg2-Ar5X7s9OZ4F",
+          "id": "1QMqFwvOfU5WI_rIIWUg2-Ar5X7s9OZ4F",
+          "modifiedTime": "2024-01-26T07:39:41.000Z"
+        },
+        {
+          "name": "AMR206.jpg",
+          "url": "https://drive.google.com/uc?id=11LEEgQiKsbpvKA7LUak24I1z1VyH-YtP",
+          "id": "11LEEgQiKsbpvKA7LUak24I1z1VyH-YtP",
+          "modifiedTime": "2023-11-23T05:39:46.000Z"
+        },
+        {
+          "name": "AMR206_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1KmhKb9h2pv_eN_sCnCW-rAuLHylrzq9g",
+          "id": "1KmhKb9h2pv_eN_sCnCW-rAuLHylrzq9g",
+          "modifiedTime": "2023-11-23T05:39:39.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1yDFRWKEnc5vPneernsW0GZjRTn07oVY7",
+          "id": "1yDFRWKEnc5vPneernsW0GZjRTn07oVY7",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:38.561Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AMR207",
+      "folderId": "16HMpQPtC4gW1X5vA3_JDXT4DbtbmHjZp",
+      "mainImage": "https://drive.google.com/uc?id=1BI5O5o4Az7kMpH8gha33Zo1gcrPGDIi4",
+      "images": [
+        {
+          "name": "AMR207.jpg",
+          "url": "https://drive.google.com/uc?id=1BI5O5o4Az7kMpH8gha33Zo1gcrPGDIi4",
+          "id": "1BI5O5o4Az7kMpH8gha33Zo1gcrPGDIi4",
+          "modifiedTime": "2023-11-23T05:39:42.000Z"
+        },
+        {
+          "name": "AMR207_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1VMNDDH_yPzQFy_SVEESoCbk3VTXcqIoY",
+          "id": "1VMNDDH_yPzQFy_SVEESoCbk3VTXcqIoY",
+          "modifiedTime": "2023-11-23T05:39:26.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1kCumLas_NZAUHjVLpfAZxN5sKfjyPtR4",
+          "id": "1kCumLas_NZAUHjVLpfAZxN5sKfjyPtR4",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:18.288Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AMR210",
+      "folderId": "16GnoEgM7cDFoyHf3dSsxTs4oksmHdirP",
+      "mainImage": "https://drive.google.com/uc?id=1LVwe8ZeJxHe_eCE-Fr63XGSxs1OJvC7B",
+      "images": [
+        {
+          "name": "AMR210_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1-8BqBxC3ny-lFuOtLVYzDMq0rRToPtw7",
+          "id": "1-8BqBxC3ny-lFuOtLVYzDMq0rRToPtw7",
+          "modifiedTime": "2024-11-29T02:28:49.000Z"
+        },
+        {
+          "name": "AMR210_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1CMPsrp-VrVDoPoLYXuCsNLjOSLEcs2Aw",
+          "id": "1CMPsrp-VrVDoPoLYXuCsNLjOSLEcs2Aw",
+          "modifiedTime": "2024-11-29T02:28:48.000Z"
+        },
+        {
+          "name": "AMR210.jpg",
+          "url": "https://drive.google.com/uc?id=1LVwe8ZeJxHe_eCE-Fr63XGSxs1OJvC7B",
+          "id": "1LVwe8ZeJxHe_eCE-Fr63XGSxs1OJvC7B",
+          "modifiedTime": "2024-10-25T01:43:14.000Z"
+        },
+        {
+          "name": "AMR210_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1WwyVndf6t8EJ5CXB_YB2FP-UNnMfmVVs",
+          "id": "1WwyVndf6t8EJ5CXB_YB2FP-UNnMfmVVs",
+          "modifiedTime": "2024-10-25T01:43:11.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1yd4IYUDRVVgd4EvtVXb0EVzshvrPQpjK",
+          "id": "1yd4IYUDRVVgd4EvtVXb0EVzshvrPQpjK",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:29.190Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "AO207",
+      "folderId": "1sRIlFTawKO-QStYN5W6WGCPdEs0AU938",
+      "mainImage": "https://drive.google.com/uc?id=1OlwgqMJ-xRSjzGTU7LW5Ezor-aHLjMfh",
+      "images": [
+        {
+          "name": "AO207_19.jpg",
+          "url": "https://drive.google.com/uc?id=1JXm7XEu3ZGvVrehEFLZv-BwVpGq_JOK-",
+          "id": "1JXm7XEu3ZGvVrehEFLZv-BwVpGq_JOK-",
+          "modifiedTime": "2020-06-18T09:35:33.000Z"
+        },
+        {
+          "name": "AO207_14.jpg",
+          "url": "https://drive.google.com/uc?id=1lsclBAAjcp1FCWGa3xNQLBGasDYaas8F",
+          "id": "1lsclBAAjcp1FCWGa3xNQLBGasDYaas8F",
+          "modifiedTime": "2020-06-18T09:35:25.000Z"
+        },
+        {
+          "name": "AO207_06.jpg",
+          "url": "https://drive.google.com/uc?id=1EJSlnGF1hLYeLnGBgeaZRA6rB-m9Ap4v",
+          "id": "1EJSlnGF1hLYeLnGBgeaZRA6rB-m9Ap4v",
+          "modifiedTime": "2020-06-18T09:35:22.000Z"
+        },
+        {
+          "name": "AO207_05.jpg",
+          "url": "https://drive.google.com/uc?id=1FWf46s-Y1sXAXCNF_d-Jx2HPgbUItN2t",
+          "id": "1FWf46s-Y1sXAXCNF_d-Jx2HPgbUItN2t",
+          "modifiedTime": "2020-06-18T09:35:19.000Z"
+        },
+        {
+          "name": "AO207_20.jpg",
+          "url": "https://drive.google.com/uc?id=1Yvr2YGH8Z8xLCTz15IhFMBlMc6png5-M",
+          "id": "1Yvr2YGH8Z8xLCTz15IhFMBlMc6png5-M",
+          "modifiedTime": "2020-06-18T09:35:05.000Z"
+        },
+        {
+          "name": "AO207_18.jpg",
+          "url": "https://drive.google.com/uc?id=1EpwD0G_T3HMTFuHCgRgo1VNGNLvbC40W",
+          "id": "1EpwD0G_T3HMTFuHCgRgo1VNGNLvbC40W",
+          "modifiedTime": "2020-06-18T09:34:58.000Z"
+        },
+        {
+          "name": "AO207_17.jpg",
+          "url": "https://drive.google.com/uc?id=1vw1nlBVKYZRF5nofKLthtFEwWejdCFsV",
+          "id": "1vw1nlBVKYZRF5nofKLthtFEwWejdCFsV",
+          "modifiedTime": "2020-06-18T09:34:55.000Z"
+        },
+        {
+          "name": "AO207_16.jpg",
+          "url": "https://drive.google.com/uc?id=1Hi61fGkODL62MGWV7HoEfyZc5UfzFJG9",
+          "id": "1Hi61fGkODL62MGWV7HoEfyZc5UfzFJG9",
+          "modifiedTime": "2020-06-18T09:34:51.000Z"
+        },
+        {
+          "name": "AO207_15.jpg",
+          "url": "https://drive.google.com/uc?id=1K0Q0fA4Q87vlo8g1ZauTpd9J61Wout7C",
+          "id": "1K0Q0fA4Q87vlo8g1ZauTpd9J61Wout7C",
+          "modifiedTime": "2020-06-18T09:34:48.000Z"
+        },
+        {
+          "name": "AO207_13.jpg",
+          "url": "https://drive.google.com/uc?id=1Tsn4n9uMrFRyLsMtlSuAfXreXI30oJxR",
+          "id": "1Tsn4n9uMrFRyLsMtlSuAfXreXI30oJxR",
+          "modifiedTime": "2020-06-18T09:34:41.000Z"
+        },
+        {
+          "name": "AO207_12.jpg",
+          "url": "https://drive.google.com/uc?id=16UUiB90h_iwfARSBXJzPwGEFCqiKVezt",
+          "id": "16UUiB90h_iwfARSBXJzPwGEFCqiKVezt",
+          "modifiedTime": "2020-06-18T09:34:38.000Z"
+        },
+        {
+          "name": "AO207_11.jpg",
+          "url": "https://drive.google.com/uc?id=1p4oQ910VlWVBZuiNxLueEWW13RZdBhQI",
+          "id": "1p4oQ910VlWVBZuiNxLueEWW13RZdBhQI",
+          "modifiedTime": "2020-06-18T09:34:35.000Z"
+        },
+        {
+          "name": "AO207_10.jpg",
+          "url": "https://drive.google.com/uc?id=1jAeP9Dfrkwf_y2OEQ5SAV0CaxzWASSAy",
+          "id": "1jAeP9Dfrkwf_y2OEQ5SAV0CaxzWASSAy",
+          "modifiedTime": "2020-06-18T09:34:32.000Z"
+        },
+        {
+          "name": "AO207_09.jpg",
+          "url": "https://drive.google.com/uc?id=18IE8qXaUBqi5QRB1Kv5Q-ciUvsNhNRJq",
+          "id": "18IE8qXaUBqi5QRB1Kv5Q-ciUvsNhNRJq",
+          "modifiedTime": "2020-06-18T09:34:28.000Z"
+        },
+        {
+          "name": "AO207_08.jpg",
+          "url": "https://drive.google.com/uc?id=1jggMmkGZbHTVclTTJVBE2Tj3vW-pGGcq",
+          "id": "1jggMmkGZbHTVclTTJVBE2Tj3vW-pGGcq",
+          "modifiedTime": "2020-06-18T09:34:25.000Z"
+        },
+        {
+          "name": "AO207_07.jpg",
+          "url": "https://drive.google.com/uc?id=1xLpVp4mcANOJZPIKRyywOb1BuuiIZeGa",
+          "id": "1xLpVp4mcANOJZPIKRyywOb1BuuiIZeGa",
+          "modifiedTime": "2020-06-18T09:34:21.000Z"
+        },
+        {
+          "name": "AO207_04.jpg",
+          "url": "https://drive.google.com/uc?id=1zM9Ig6GGx77QYBlmvVQYiB5ShyfABLIy",
+          "id": "1zM9Ig6GGx77QYBlmvVQYiB5ShyfABLIy",
+          "modifiedTime": "2020-06-18T09:34:11.000Z"
+        },
+        {
+          "name": "AO207_03.jpg",
+          "url": "https://drive.google.com/uc?id=1pPQU5wKATCI9GJlCWNDFPkLum4OhNSHm",
+          "id": "1pPQU5wKATCI9GJlCWNDFPkLum4OhNSHm",
+          "modifiedTime": "2020-06-18T09:34:08.000Z"
+        },
+        {
+          "name": "AO207_02.jpg",
+          "url": "https://drive.google.com/uc?id=1lvfgSIjREmfWIivdDWnd2RIhUKTp0FwE",
+          "id": "1lvfgSIjREmfWIivdDWnd2RIhUKTp0FwE",
+          "modifiedTime": "2020-06-18T09:34:05.000Z"
+        },
+        {
+          "name": "AO207_01.jpg",
+          "url": "https://drive.google.com/uc?id=1OlwgqMJ-xRSjzGTU7LW5Ezor-aHLjMfh",
+          "id": "1OlwgqMJ-xRSjzGTU7LW5Ezor-aHLjMfh",
+          "modifiedTime": "2020-06-18T09:34:01.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [],
+      "stats": {
+        "imageCount": 20,
+        "pdfCount": 0,
+        "otherCount": 0
+      }
+    },
+    {
+      "model": "AO600",
+      "folderId": "1kN4dn_jOFvFCjdZZzkAZTEEzXPTOhQpc",
+      "mainImage": "https://drive.google.com/uc?id=1zgjiiJ_36NJcbNsaGEwJMu1SFHyOwvUK",
+      "images": [
+        {
+          "name": "AO600.jpg",
+          "url": "https://drive.google.com/uc?id=1zgjiiJ_36NJcbNsaGEwJMu1SFHyOwvUK",
+          "id": "1zgjiiJ_36NJcbNsaGEwJMu1SFHyOwvUK",
+          "modifiedTime": "2022-03-25T10:05:02.000Z"
+        },
+        {
+          "name": "AO600_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1SHdiAkI2iOG7AEEhTcT-d7u-t2hB_rYU",
+          "id": "1SHdiAkI2iOG7AEEhTcT-d7u-t2hB_rYU",
+          "modifiedTime": "2022-03-25T10:04:53.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 0
+      }
+    },
+    {
+      "model": "ASHP65",
+      "folderId": "15lISVFLI5X4WYlyb0cAvGX4kyfFX85aQ",
+      "mainImage": "https://drive.google.com/uc?id=1ayB4pqMn_vlQ0yB1RCqChPgQXjbrzEmH",
+      "images": [
+        {
+          "name": "AS-HP65_說明書A-PRT.cdr",
+          "url": "https://drive.google.com/uc?id=1NUW92eMqQWrPmhi3vFkJfxGNUVhNrhp-",
+          "id": "1NUW92eMqQWrPmhi3vFkJfxGNUVhNrhp-",
+          "modifiedTime": "2020-12-25T02:36:58.000Z"
+        },
+        {
+          "name": "AS-HP65_說明書A.cdr",
+          "url": "https://drive.google.com/uc?id=1dPBQH7Xad3qWrWDDBhigcFtWidF22UN1",
+          "id": "1dPBQH7Xad3qWrWDDBhigcFtWidF22UN1",
+          "modifiedTime": "2020-12-25T02:36:02.000Z"
+        },
+        {
+          "name": "AS-HP65_外殼印刷.jpg",
+          "url": "https://drive.google.com/uc?id=1ayB4pqMn_vlQ0yB1RCqChPgQXjbrzEmH",
+          "id": "1ayB4pqMn_vlQ0yB1RCqChPgQXjbrzEmH",
+          "modifiedTime": "2020-11-09T07:57:07.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "AS-HP65_本體標籤PRT.ai",
+          "url": "https://drive.google.com/uc?id=1wPhx-ZuP2gSx7HVqhHUuLq1iJgLtw31H",
+          "id": "1wPhx-ZuP2gSx7HVqhHUuLq1iJgLtw31H",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-12-25T02:30:53.000Z"
+        },
+        {
+          "name": "AS-HP65_本體標籤.ai",
+          "url": "https://drive.google.com/uc?id=1hkK7EEfjghNDiVTsGeunAca8-Ft1w59m",
+          "id": "1hkK7EEfjghNDiVTsGeunAca8-Ft1w59m",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-12-25T02:28:37.000Z"
+        },
+        {
+          "name": "AS-HP65_彩盒PRT.ai",
+          "url": "https://drive.google.com/uc?id=1YZG55DUaFVwEwj51yhUullCNwIzKcirs",
+          "id": "1YZG55DUaFVwEwj51yhUullCNwIzKcirs",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-12-24T00:45:45.000Z"
+        },
+        {
+          "name": "AS-HP65_彩盒.ai",
+          "url": "https://drive.google.com/uc?id=1akTqzqCNyzrB-e6MKveN7VwDHih3PqNz",
+          "id": "1akTqzqCNyzrB-e6MKveN7VwDHih3PqNz",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-12-24T00:45:29.000Z"
+        },
+        {
+          "name": "AS-HP65_外箱PRT.ai",
+          "url": "https://drive.google.com/uc?id=1oK1Jf572hb4t8Q10uI53vk1ehR_ATQ0X",
+          "id": "1oK1Jf572hb4t8Q10uI53vk1ehR_ATQ0X",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-12-07T09:13:06.000Z"
+        },
+        {
+          "name": "AS-HP65_外箱.ai",
+          "url": "https://drive.google.com/uc?id=1o_tUCi9FhBQ_JnTkv2hV2D2HDK_QmW5L",
+          "id": "1o_tUCi9FhBQ_JnTkv2hV2D2HDK_QmW5L",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-12-04T08:23:29.000Z"
+        },
+        {
+          "name": "AS-HP65_外殼印刷PRT.ai",
+          "url": "https://drive.google.com/uc?id=174hiF07oluroqo0QSYlJmodJDEmoY3CN",
+          "id": "174hiF07oluroqo0QSYlJmodJDEmoY3CN",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-11-09T07:57:22.000Z"
+        },
+        {
+          "name": "AS-HP65_外殼印刷.ai",
+          "url": "https://drive.google.com/uc?id=1NhS5MtzJJDh79ZmQQUvVgxoqAwtLrXRh",
+          "id": "1NhS5MtzJJDh79ZmQQUvVgxoqAwtLrXRh",
+          "mimeType": "application/illustrator",
+          "modifiedTime": "2020-11-09T07:56:41.000Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 3,
+        "pdfCount": 0,
+        "otherCount": 8
+      }
+    },
+    {
+      "model": "AW011",
+      "folderId": "1U2TvPm4N47lN5Om2wkus9TZkA-v8uHFi",
+      "mainImage": "https://drive.google.com/uc?id=1VGwM7feueB-2pdna6bsG3RXq5Kzfjei0",
+      "images": [
+        {
+          "name": "1000_200K-01.jpg",
+          "url": "https://drive.google.com/uc?id=1VGwM7feueB-2pdna6bsG3RXq5Kzfjei0",
+          "id": "1VGwM7feueB-2pdna6bsG3RXq5Kzfjei0",
+          "modifiedTime": "2023-07-20T01:04:20.000Z"
+        },
+        {
+          "name": "1000_200K.jpg",
+          "url": "https://drive.google.com/uc?id=1mwTehOWi_DBjSxLGc7rwdVVT3fQ2WqDK",
+          "id": "1mwTehOWi_DBjSxLGc7rwdVVT3fQ2WqDK",
+          "modifiedTime": "2022-12-02T10:23:27.000Z"
+        },
+        {
+          "name": "AW011_200K.jpg",
+          "url": "https://drive.google.com/uc?id=199BdRAJpzEfQHFT8vXErVYQAmPE8t29U",
+          "id": "199BdRAJpzEfQHFT8vXErVYQAmPE8t29U",
+          "modifiedTime": "2022-12-02T10:22:15.000Z"
+        },
+        {
+          "name": "1000.jpg",
+          "url": "https://drive.google.com/uc?id=1N2zok6DXJNKF45SJe2ED7INPUou3Hy-2",
+          "id": "1N2zok6DXJNKF45SJe2ED7INPUou3Hy-2",
+          "modifiedTime": "2021-01-18T01:51:39.000Z"
+        },
+        {
+          "name": "AW011-2大檔.tif",
+          "url": "https://drive.google.com/uc?id=1DAuEAKUyer6kYkqJ-a8IQ2tIa1c5Z7V0",
+          "id": "1DAuEAKUyer6kYkqJ-a8IQ2tIa1c5Z7V0",
+          "modifiedTime": "2020-11-19T00:52:18.000Z"
+        },
+        {
+          "name": "AW011-1大檔.tif",
+          "url": "https://drive.google.com/uc?id=1y7CY401BNQufJYN8T9twsyzqZU9GruPv",
+          "id": "1y7CY401BNQufJYN8T9twsyzqZU9GruPv",
+          "modifiedTime": "2020-11-19T00:50:16.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [],
+      "stats": {
+        "imageCount": 6,
+        "pdfCount": 0,
+        "otherCount": 0
+      }
+    },
+    {
+      "model": "AW772",
+      "folderId": "1gCGz9UdFY0MXSoC0VGxryTJhhsz7qx9N",
+      "mainImage": "https://drive.google.com/uc?id=1h73NQZ_gTWsFK9vNuUIGylzO2k80IDpx",
+      "images": [
+        {
+          "name": "AW772_BOX2.jpg",
+          "url": "https://drive.google.com/uc?id=1fqVObOle2424xYTzpeBJfl_Xc_oNKKz3",
+          "id": "1fqVObOle2424xYTzpeBJfl_Xc_oNKKz3",
+          "modifiedTime": "2024-08-26T00:36:43.000Z"
+        },
+        {
+          "name": "AW772_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=15QtxhOe36T1KpOncJxxPgb6HJq0tq6Mr",
+          "id": "15QtxhOe36T1KpOncJxxPgb6HJq0tq6Mr",
+          "modifiedTime": "2024-08-26T00:36:05.000Z"
+        },
+        {
+          "name": "AW722_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1ybRZgI2P63uHQan2A-7io5_Be0gWIG5r",
+          "id": "1ybRZgI2P63uHQan2A-7io5_Be0gWIG5r",
+          "modifiedTime": "2024-07-31T10:23:05.000Z"
+        },
+        {
+          "name": "AW722.jpg",
+          "url": "https://drive.google.com/uc?id=1h73NQZ_gTWsFK9vNuUIGylzO2k80IDpx",
+          "id": "1h73NQZ_gTWsFK9vNuUIGylzO2k80IDpx",
+          "modifiedTime": "2024-07-31T10:22:39.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1ihxKchk_rlVO9MTMazq7NOZ1M8OpbDhv",
+          "id": "1ihxKchk_rlVO9MTMazq7NOZ1M8OpbDhv",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:26.954Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2603",
+      "folderId": "1XQ1_Tf6z1u4-JF1bTl_4NH7pqWN99ohG",
+      "mainImage": "https://drive.google.com/uc?id=1gI_E-ANITqmBBSIDAdUGtRjIwRZA8yon",
+      "images": [
+        {
+          "name": "IAM-2603BR.jpg",
+          "url": "https://drive.google.com/uc?id=1j2kWojc3UbgcSXx4OFmVIcn7BqCT0VZz",
+          "id": "1j2kWojc3UbgcSXx4OFmVIcn7BqCT0VZz",
+          "modifiedTime": "2022-09-07T09:55:24.000Z"
+        },
+        {
+          "name": "IAM-2603.jpg",
+          "url": "https://drive.google.com/uc?id=1gI_E-ANITqmBBSIDAdUGtRjIwRZA8yon",
+          "id": "1gI_E-ANITqmBBSIDAdUGtRjIwRZA8yon",
+          "modifiedTime": "2022-09-05T04:24:09.000Z"
+        },
+        {
+          "name": "IAM-2603_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1dWnkmSadpIH7Bk0qe8sAitRVQvbyxckp",
+          "id": "1dWnkmSadpIH7Bk0qe8sAitRVQvbyxckp",
+          "modifiedTime": "2022-08-03T01:38:27.000Z"
+        },
+        {
+          "name": "IAM-2603BR_1000.jpg",
+          "url": "https://drive.google.com/uc?id=12CAyWl4kMZ5EgARs39BN4qsEkEK2jc9f",
+          "id": "12CAyWl4kMZ5EgARs39BN4qsEkEK2jc9f",
+          "modifiedTime": "2022-08-02T10:47:19.000Z"
+        },
+        {
+          "name": "IAM-2603W_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1v5Dwv8Q0wWveOHw34ck6lNqqjsWW5ml5",
+          "id": "1v5Dwv8Q0wWveOHw34ck6lNqqjsWW5ml5",
+          "modifiedTime": "2022-08-02T10:46:24.000Z"
+        },
+        {
+          "name": "IAM-2603W.jpg",
+          "url": "https://drive.google.com/uc?id=1LnIPzezSKu_pPmnYoLi2vnyhbE0KBrCp",
+          "id": "1LnIPzezSKu_pPmnYoLi2vnyhbE0KBrCp",
+          "modifiedTime": "2022-08-02T10:46:12.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1LOF-MPesHAvo9nxijVXzbl5eeO_6BOwu",
+          "id": "1LOF-MPesHAvo9nxijVXzbl5eeO_6BOwu",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-24T09:11:16.619Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 6,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2606",
+      "folderId": "1mF6B97LWzTa2xvjkcLpN97zTr2oxkIZH",
+      "mainImage": "https://drive.google.com/uc?id=1a_xK9a0MAK2CLd2L4Wgnm1clzMGFITAv",
+      "images": [
+        {
+          "name": "IAM-2606_13.jpg",
+          "url": "https://drive.google.com/uc?id=1Qdtyv3Ll_LjRyt3wIH8M8RKyEHl_8jXw",
+          "id": "1Qdtyv3Ll_LjRyt3wIH8M8RKyEHl_8jXw",
+          "modifiedTime": "2023-02-23T02:45:50.000Z"
+        },
+        {
+          "name": "IAM-2606_09.jpg",
+          "url": "https://drive.google.com/uc?id=1o3g7RqQOyIrrQj_m2cS7IlZa-fT3OMGB",
+          "id": "1o3g7RqQOyIrrQj_m2cS7IlZa-fT3OMGB",
+          "modifiedTime": "2023-02-23T02:44:41.000Z"
+        },
+        {
+          "name": "IAM-2606_11.jpg",
+          "url": "https://drive.google.com/uc?id=119AuoOH_2W-khR2kYeRymk5GkdYa1NF8",
+          "id": "119AuoOH_2W-khR2kYeRymk5GkdYa1NF8",
+          "modifiedTime": "2023-02-23T02:44:10.000Z"
+        },
+        {
+          "name": "IAM-2606_12.jpg",
+          "url": "https://drive.google.com/uc?id=1P8uiBoFg9HnICg_5TF2_PzxgZYyYIzpY",
+          "id": "1P8uiBoFg9HnICg_5TF2_PzxgZYyYIzpY",
+          "modifiedTime": "2023-02-23T02:43:53.000Z"
+        },
+        {
+          "name": "IAM-2606_10.jpg",
+          "url": "https://drive.google.com/uc?id=1GFQgStvdnpg7nXKXixq7YhBWtS-ieYJT",
+          "id": "1GFQgStvdnpg7nXKXixq7YhBWtS-ieYJT",
+          "modifiedTime": "2023-02-23T02:43:45.000Z"
+        },
+        {
+          "name": "IAM-2606_08.jpg",
+          "url": "https://drive.google.com/uc?id=1tfa3VNM2du06p6Ejg4z1a9hHpkk2Ks4N",
+          "id": "1tfa3VNM2du06p6Ejg4z1a9hHpkk2Ks4N",
+          "modifiedTime": "2023-02-23T02:43:00.000Z"
+        },
+        {
+          "name": "IAM-2606_03.jpg",
+          "url": "https://drive.google.com/uc?id=1_RoThEA8QRz6NpKyqIQVeHW38h2QFntL",
+          "id": "1_RoThEA8QRz6NpKyqIQVeHW38h2QFntL",
+          "modifiedTime": "2023-02-23T02:42:57.000Z"
+        },
+        {
+          "name": "IAM-2606_07.jpg",
+          "url": "https://drive.google.com/uc?id=1isXlWkT37CQPN4RMAolG0sgsLnNj5oGy",
+          "id": "1isXlWkT37CQPN4RMAolG0sgsLnNj5oGy",
+          "modifiedTime": "2023-02-23T02:42:56.000Z"
+        },
+        {
+          "name": "IAM-2606_06.jpg",
+          "url": "https://drive.google.com/uc?id=1yhca8LKMPc5yS0VPhgVAGKCpHdvJCYip",
+          "id": "1yhca8LKMPc5yS0VPhgVAGKCpHdvJCYip",
+          "modifiedTime": "2023-02-23T02:42:53.000Z"
+        },
+        {
+          "name": "IAM-2606_05.jpg",
+          "url": "https://drive.google.com/uc?id=1TqvryWSQ4C0tBEleob92EBEJmvWeK_9O",
+          "id": "1TqvryWSQ4C0tBEleob92EBEJmvWeK_9O",
+          "modifiedTime": "2023-02-23T02:42:49.000Z"
+        },
+        {
+          "name": "IAM-2606_04.jpg",
+          "url": "https://drive.google.com/uc?id=1G0_LmDJpM3622s1ffm125PM1nr4923q6",
+          "id": "1G0_LmDJpM3622s1ffm125PM1nr4923q6",
+          "modifiedTime": "2023-02-23T02:42:45.000Z"
+        },
+        {
+          "name": "IAM-2606_02.jpg",
+          "url": "https://drive.google.com/uc?id=132371lDLrbtdi_VKee5UfXEQZA7cj4Z5",
+          "id": "132371lDLrbtdi_VKee5UfXEQZA7cj4Z5",
+          "modifiedTime": "2023-02-23T02:42:38.000Z"
+        },
+        {
+          "name": "IAM-2606_01.jpg",
+          "url": "https://drive.google.com/uc?id=1a_xK9a0MAK2CLd2L4Wgnm1clzMGFITAv",
+          "id": "1a_xK9a0MAK2CLd2L4Wgnm1clzMGFITAv",
+          "modifiedTime": "2023-02-23T02:42:34.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [],
+      "stats": {
+        "imageCount": 13,
+        "pdfCount": 0,
+        "otherCount": 0
+      }
+    },
+    {
+      "model": "IAM2703",
+      "folderId": "1qMe3WE9T4bYrW_GidPNWG85gDYKXljpf",
+      "mainImage": "https://drive.google.com/uc?id=19FfJpRaQ91D9J2tdePZj1TQFZ-GoJrtd",
+      "images": [
+        {
+          "name": "IAM2703_1000.jpg",
+          "url": "https://drive.google.com/uc?id=12eNgk9DV_vRfFtEq1kiGpDrSkYkyaIay",
+          "id": "12eNgk9DV_vRfFtEq1kiGpDrSkYkyaIay",
+          "modifiedTime": "2023-06-09T00:28:30.000Z"
+        },
+        {
+          "name": "IAM2703.jpg",
+          "url": "https://drive.google.com/uc?id=19FfJpRaQ91D9J2tdePZj1TQFZ-GoJrtd",
+          "id": "19FfJpRaQ91D9J2tdePZj1TQFZ-GoJrtd",
+          "modifiedTime": "2023-06-09T00:28:17.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1uu6RwjYMDIo2igsf_Grui_DADhQqZLG1",
+          "id": "1uu6RwjYMDIo2igsf_Grui_DADhQqZLG1",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:20.478Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2704",
+      "folderId": "1bfsMslCmbFaZv5AWCEgvx0GA_Sa7htWL",
+      "mainImage": "https://drive.google.com/uc?id=1uWuZdLJMcSbb8E_WQMXFuzTblg5dTd6K",
+      "images": [
+        {
+          "name": "IAM-2704b.tif",
+          "url": "https://drive.google.com/uc?id=1Lgf2tEsrXDIWUvDeYKVp9A9m8hM69-w9",
+          "id": "1Lgf2tEsrXDIWUvDeYKVp9A9m8hM69-w9",
+          "modifiedTime": "2023-06-26T03:29:21.000Z"
+        },
+        {
+          "name": "IAM-2704.tif",
+          "url": "https://drive.google.com/uc?id=1uWuZdLJMcSbb8E_WQMXFuzTblg5dTd6K",
+          "id": "1uWuZdLJMcSbb8E_WQMXFuzTblg5dTd6K",
+          "modifiedTime": "2023-06-26T03:16:48.000Z"
+        },
+        {
+          "name": "IAM-2704a.tif",
+          "url": "https://drive.google.com/uc?id=1Lwf7kawNyf6__2Pltzi7rjyF4xDFQAyK",
+          "id": "1Lwf7kawNyf6__2Pltzi7rjyF4xDFQAyK",
+          "modifiedTime": "2023-06-26T03:13:11.000Z"
+        },
+        {
+          "name": "IAM2704_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1_yA_Y0YlMQoxRWAd9t-qUtdU3d9lX_QT",
+          "id": "1_yA_Y0YlMQoxRWAd9t-qUtdU3d9lX_QT",
+          "modifiedTime": "2023-05-11T07:32:48.000Z"
+        },
+        {
+          "name": "IAM2704.jpg",
+          "url": "https://drive.google.com/uc?id=1m_5cMHZ60MRcs6sfZXDpwAdmP2ThES9y",
+          "id": "1m_5cMHZ60MRcs6sfZXDpwAdmP2ThES9y",
+          "modifiedTime": "2023-05-11T07:32:35.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [],
+      "stats": {
+        "imageCount": 5,
+        "pdfCount": 0,
+        "otherCount": 0
+      }
+    },
+    {
+      "model": "IAM2706",
+      "folderId": "1mPXPN9GBT4NRdTrxA8vs39iJyuZtqa7h",
+      "mainImage": "https://drive.google.com/uc?id=1BGX9-VVtTz5ertsMoS1uYoAcFDN0nJgF",
+      "images": [
+        {
+          "name": "IAM2706_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1XyZc-K9FQtYlnaaQhQZpY88uqhP5GlrT",
+          "id": "1XyZc-K9FQtYlnaaQhQZpY88uqhP5GlrT",
+          "modifiedTime": "2023-12-14T11:08:41.000Z"
+        },
+        {
+          "name": "IAM2706.jpg",
+          "url": "https://drive.google.com/uc?id=1xiOqZrNQr7mWH46Ybn46hcLOuEUmPFBE",
+          "id": "1xiOqZrNQr7mWH46Ybn46hcLOuEUmPFBE",
+          "modifiedTime": "2023-12-14T11:08:27.000Z"
+        },
+        {
+          "name": "IAM-2706.tif",
+          "url": "https://drive.google.com/uc?id=1BGX9-VVtTz5ertsMoS1uYoAcFDN0nJgF",
+          "id": "1BGX9-VVtTz5ertsMoS1uYoAcFDN0nJgF",
+          "modifiedTime": "2023-11-03T01:58:16.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1uVqUZmaJaXIOsFnRHaYwS0M4Ra6VImgm",
+          "id": "1uVqUZmaJaXIOsFnRHaYwS0M4Ra6VImgm",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:20.494Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 3,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2708",
+      "folderId": "1Rx0E_yVr6S9lNnyiuemkj-PDZviito7v",
+      "mainImage": "https://drive.google.com/uc?id=18vUCCG3f89KQtcibYT7W82XHiPTOwBti",
+      "images": [
+        {
+          "name": "IAM2708.jpg",
+          "url": "https://drive.google.com/uc?id=18vUCCG3f89KQtcibYT7W82XHiPTOwBti",
+          "id": "18vUCCG3f89KQtcibYT7W82XHiPTOwBti",
+          "modifiedTime": "2024-09-18T07:42:16.000Z"
+        },
+        {
+          "name": "IAM2708_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1GBWia4yO5HLQStcgugD5LYkgZmvXpz-J",
+          "id": "1GBWia4yO5HLQStcgugD5LYkgZmvXpz-J",
+          "modifiedTime": "2024-09-18T07:42:16.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1fGyyqbdWtq88LTn6dEi-zK8OEXPU2LDm",
+          "id": "1fGyyqbdWtq88LTn6dEi-zK8OEXPU2LDm",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:26.705Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2709",
+      "folderId": "1QnFqn_7VesKR4M-mXZ6tKdK8AEDT5hdH",
+      "mainImage": "https://drive.google.com/uc?id=16yNpMa8YjCd8V_uazDQ-MaesdMLhEGx0",
+      "images": [
+        {
+          "name": "IAM2709_BOX02.jpg",
+          "url": "https://drive.google.com/uc?id=1UjuvD03C5gw0mMIZhF9M_F013PVsVQf2",
+          "id": "1UjuvD03C5gw0mMIZhF9M_F013PVsVQf2",
+          "modifiedTime": "2024-07-03T02:41:19.000Z"
+        },
+        {
+          "name": "IAM2709_BOX01.jpg",
+          "url": "https://drive.google.com/uc?id=16yNpMa8YjCd8V_uazDQ-MaesdMLhEGx0",
+          "id": "16yNpMa8YjCd8V_uazDQ-MaesdMLhEGx0",
+          "modifiedTime": "2024-07-03T02:40:18.000Z"
+        },
+        {
+          "name": "IAM2709_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1lp9iFjiTeo3nSAFd0E6gRbeufJpAxBkO",
+          "id": "1lp9iFjiTeo3nSAFd0E6gRbeufJpAxBkO",
+          "modifiedTime": "2024-06-14T06:00:54.000Z"
+        },
+        {
+          "name": "IAM2709.jpg",
+          "url": "https://drive.google.com/uc?id=1mdpWjOt3JB4gQpPFVpfRSHKzaY31Fy-P",
+          "id": "1mdpWjOt3JB4gQpPFVpfRSHKzaY31Fy-P",
+          "modifiedTime": "2024-06-14T06:00:53.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1WfmhjgPhvrcnlCJ8Ue3VSh3G34ZjkAGf",
+          "id": "1WfmhjgPhvrcnlCJ8Ue3VSh3G34ZjkAGf",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:11.298Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2710",
+      "folderId": "1Xxl5A4ABx6E58af-guVxFxLQKat2C-ab",
+      "mainImage": "https://drive.google.com/uc?id=1lR6uNzEhXp5dSSQeD51Cs4eiDUTs_MXp",
+      "images": [
+        {
+          "name": "IAM2710_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1WpfoClC_k5Rz7CveZoaEYvvfJE9IFGXM",
+          "id": "1WpfoClC_k5Rz7CveZoaEYvvfJE9IFGXM",
+          "modifiedTime": "2024-10-07T07:26:13.000Z"
+        },
+        {
+          "name": "IAM2710.jpg",
+          "url": "https://drive.google.com/uc?id=1SmrNd9BjePy4R7dlks05MzfiidQSYUdW",
+          "id": "1SmrNd9BjePy4R7dlks05MzfiidQSYUdW",
+          "modifiedTime": "2024-10-07T07:26:11.000Z"
+        },
+        {
+          "name": "IAM-2710-03.jpg",
+          "url": "https://drive.google.com/uc?id=1lR6uNzEhXp5dSSQeD51Cs4eiDUTs_MXp",
+          "id": "1lR6uNzEhXp5dSSQeD51Cs4eiDUTs_MXp",
+          "modifiedTime": "2024-10-07T07:25:29.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1rCf5ULyf5yv4aD8M3lELazUSQIV9oEB_",
+          "id": "1rCf5ULyf5yv4aD8M3lELazUSQIV9oEB_",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:26.684Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 3,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2711",
+      "folderId": "123C8WWgc-HdFuI52UnFcN0VMmu7Bygh7",
+      "mainImage": "https://drive.google.com/uc?id=1cfsiY4fuqvQdBciIGaOppC_X0H0Fi610",
+      "images": [
+        {
+          "name": "IAM2711_BOX.gif",
+          "url": "https://drive.google.com/uc?id=1-egS4CVPFG_S0vb7hhjn6WpLqK6gCzzI",
+          "id": "1-egS4CVPFG_S0vb7hhjn6WpLqK6gCzzI",
+          "modifiedTime": "2024-12-04T06:41:51.000Z"
+        },
+        {
+          "name": "IAM2711.jpg",
+          "url": "https://drive.google.com/uc?id=1cfsiY4fuqvQdBciIGaOppC_X0H0Fi610",
+          "id": "1cfsiY4fuqvQdBciIGaOppC_X0H0Fi610",
+          "modifiedTime": "2024-09-18T07:55:36.000Z"
+        },
+        {
+          "name": "IAM2711_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1OZTXqbTM5gNmY9TyDsLuP_UteVfVlBHf",
+          "id": "1OZTXqbTM5gNmY9TyDsLuP_UteVfVlBHf",
+          "modifiedTime": "2024-09-18T07:55:36.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1Xoo_iv3Ppb5pOyH3qlO-w_eQRsqEDQOp",
+          "id": "1Xoo_iv3Ppb5pOyH3qlO-w_eQRsqEDQOp",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:29.142Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 3,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2712",
+      "folderId": "1c3LERVneCYZ3CnbFR7slEsOOU6SYD5LC",
+      "mainImage": "https://drive.google.com/uc?id=1uzu5rLHlh3opn3TXlUL0f25F3_LSYY6H",
+      "images": [
+        {
+          "name": "IAM-2712_BOX2.jpg",
+          "url": "https://drive.google.com/uc?id=10qBDoV2AJ0LX7JGRDb1NqtrYjO9nUmme",
+          "id": "10qBDoV2AJ0LX7JGRDb1NqtrYjO9nUmme",
+          "modifiedTime": "2024-09-03T06:20:14.000Z"
+        },
+        {
+          "name": "IAM-2712_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1uzu5rLHlh3opn3TXlUL0f25F3_LSYY6H",
+          "id": "1uzu5rLHlh3opn3TXlUL0f25F3_LSYY6H",
+          "modifiedTime": "2024-09-03T06:19:30.000Z"
+        },
+        {
+          "name": "IAM2712_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1z0l4g2X0J4AI_8BJkz4YBZ9mW-qBQMZR",
+          "id": "1z0l4g2X0J4AI_8BJkz4YBZ9mW-qBQMZR",
+          "modifiedTime": "2024-08-08T02:57:35.000Z"
+        },
+        {
+          "name": "IAM2712.jpg",
+          "url": "https://drive.google.com/uc?id=1SWD4HZHrG7JVxZZ_73g9Lad-6CRJtXI-",
+          "id": "1SWD4HZHrG7JVxZZ_73g9Lad-6CRJtXI-",
+          "modifiedTime": "2024-08-08T02:57:34.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1UGzHG1wfva7O2XUxFS_cJh5eWqJjhEjF",
+          "id": "1UGzHG1wfva7O2XUxFS_cJh5eWqJjhEjF",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:11.330Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2713",
+      "folderId": "1dTom4R8rrVFP0B9zcdPw14FLBQ4lYiwq",
+      "mainImage": "https://drive.google.com/uc?id=1jRupuTj-fnttvq3qoyoT1dCEVjEXm5tN",
+      "images": [
+        {
+          "name": "IAM-2713_BOX2.jpg",
+          "url": "https://drive.google.com/uc?id=1OelwzY1N7fYQIaHr_YALtnwwfvlV2jht",
+          "id": "1OelwzY1N7fYQIaHr_YALtnwwfvlV2jht",
+          "modifiedTime": "2025-05-15T07:16:44.000Z"
+        },
+        {
+          "name": "IAM-2713_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1jRupuTj-fnttvq3qoyoT1dCEVjEXm5tN",
+          "id": "1jRupuTj-fnttvq3qoyoT1dCEVjEXm5tN",
+          "modifiedTime": "2025-05-15T07:16:25.000Z"
+        },
+        {
+          "name": "IAM2713_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1_p_SeKiTmem-cA5RUkVhHcWAH7h4sZ1C",
+          "id": "1_p_SeKiTmem-cA5RUkVhHcWAH7h4sZ1C",
+          "modifiedTime": "2025-02-05T08:41:30.000Z"
+        },
+        {
+          "name": "IAM2713.jpg",
+          "url": "https://drive.google.com/uc?id=1vq5P-Iko469Kce1Ba_f5uGkf7vEz7jnS",
+          "id": "1vq5P-Iko469Kce1Ba_f5uGkf7vEz7jnS",
+          "modifiedTime": "2025-02-05T08:41:30.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1oZr-K8LF_E6Rrp7j-YQv26tHxwwQrIKU",
+          "id": "1oZr-K8LF_E6Rrp7j-YQv26tHxwwQrIKU",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:35.878Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IAM2803",
+      "folderId": "1ulwbCGLhSzfg2chsJbQZYlb2xxH5KF2c",
+      "mainImage": "https://drive.google.com/uc?id=1RayPcUUXE7YBLirsQUqPElbNchMRZgd2",
+      "images": [
+        {
+          "name": "IAM2803_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1t6IViqAZNH_Y-yZfKaxM5I0P5EAAQQvg",
+          "id": "1t6IViqAZNH_Y-yZfKaxM5I0P5EAAQQvg",
+          "modifiedTime": "2024-12-02T04:20:43.000Z"
+        },
+        {
+          "name": "IAM2803.jpg",
+          "url": "https://drive.google.com/uc?id=1RayPcUUXE7YBLirsQUqPElbNchMRZgd2",
+          "id": "1RayPcUUXE7YBLirsQUqPElbNchMRZgd2",
+          "modifiedTime": "2024-12-02T04:20:42.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1pFFbZvkr2PNJTgyaUaPLB5eZkuIklOZP",
+          "id": "1pFFbZvkr2PNJTgyaUaPLB5eZkuIklOZP",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:31.624Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "ICE33",
+      "folderId": "1OUnAMllf6gzrFpwyhSfa-KWIpuN3_3GC",
+      "mainImage": "https://drive.google.com/uc?id=1Bx3ziypnbfyFCr3XCwJxGLIrPrOrdSex",
+      "images": [
+        {
+          "name": "ICE33_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1wNQ7QdeLVzbA2vMutdZles3wSs75jK0R",
+          "id": "1wNQ7QdeLVzbA2vMutdZles3wSs75jK0R",
+          "modifiedTime": "2022-05-09T00:49:44.000Z"
+        },
+        {
+          "name": "ICE33.jpg",
+          "url": "https://drive.google.com/uc?id=1IOtcRouucPhz43YP5gEPeSTkchzS40Jl",
+          "id": "1IOtcRouucPhz43YP5gEPeSTkchzS40Jl",
+          "modifiedTime": "2022-05-09T00:49:31.000Z"
+        },
+        {
+          "name": "ICE33PI.jpg",
+          "url": "https://drive.google.com/uc?id=108qdiF_WOByXf864sHbAuMu3jK96Zqvn",
+          "id": "108qdiF_WOByXf864sHbAuMu3jK96Zqvn",
+          "modifiedTime": "2022-04-14T01:06:43.000Z"
+        },
+        {
+          "name": "1000.jpg",
+          "url": "https://drive.google.com/uc?id=1Bx3ziypnbfyFCr3XCwJxGLIrPrOrdSex",
+          "id": "1Bx3ziypnbfyFCr3XCwJxGLIrPrOrdSex",
+          "modifiedTime": "2022-04-14T01:06:23.000Z"
+        },
+        {
+          "name": "1000Y.jpg",
+          "url": "https://drive.google.com/uc?id=1LPylPMzVIhB73IxFe-T1Hl8djtzawG6n",
+          "id": "1LPylPMzVIhB73IxFe-T1Hl8djtzawG6n",
+          "modifiedTime": "2022-04-14T01:04:21.000Z"
+        },
+        {
+          "name": "ICE33Y.jpg",
+          "url": "https://drive.google.com/uc?id=1MZ3NyI15UEEUt4XPAAdS9EpXvasOLqqX",
+          "id": "1MZ3NyI15UEEUt4XPAAdS9EpXvasOLqqX",
+          "modifiedTime": "2022-04-14T01:04:20.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1rQ7NYd14EH6rD5Wh_4-ncBsrG6Dm2SSh",
+          "id": "1rQ7NYd14EH6rD5Wh_4-ncBsrG6Dm2SSh",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:20.525Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 6,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IFM3001",
+      "folderId": "1brgr750jS9A5FK8SNrT_QVF8kRbcVsiN",
+      "mainImage": "https://drive.google.com/uc?id=15qBCS7GnyWvwF1rR69WoWCOnIo5sJ4Fi",
+      "images": [
+        {
+          "name": "IFM-3001-2.tif",
+          "url": "https://drive.google.com/uc?id=17KmNdgPMZfNnoHXle6TIrN0buTnjbivK",
+          "id": "17KmNdgPMZfNnoHXle6TIrN0buTnjbivK",
+          "modifiedTime": "2024-08-21T00:40:56.000Z"
+        },
+        {
+          "name": "IFM-3001-3.tif",
+          "url": "https://drive.google.com/uc?id=1xpIF_n77oqKUTN3V-rvqKVB5AkmnrQyj",
+          "id": "1xpIF_n77oqKUTN3V-rvqKVB5AkmnrQyj",
+          "modifiedTime": "2024-08-21T00:40:56.000Z"
+        },
+        {
+          "name": "下載.png",
+          "url": "https://drive.google.com/uc?id=1ZYukrLlyqfTkj9dmJVKFTl3sjpG4p4Cu",
+          "id": "1ZYukrLlyqfTkj9dmJVKFTl3sjpG4p4Cu",
+          "modifiedTime": "2023-10-19T14:26:27.000Z"
+        },
+        {
+          "name": "下載 (3).png",
+          "url": "https://drive.google.com/uc?id=12VBV2VloFWdXENg4tmmH20SbavTLia1d",
+          "id": "12VBV2VloFWdXENg4tmmH20SbavTLia1d",
+          "modifiedTime": "2023-10-19T14:26:14.000Z"
+        },
+        {
+          "name": "IFM3001BK2.tif",
+          "url": "https://drive.google.com/uc?id=1v5-KGDwoqB3M-U6d8HOdiSMFKTMoT0So",
+          "id": "1v5-KGDwoqB3M-U6d8HOdiSMFKTMoT0So",
+          "modifiedTime": "2022-10-19T08:16:10.000Z"
+        },
+        {
+          "name": "IFM3001BK1.tif",
+          "url": "https://drive.google.com/uc?id=19VOBg9L8m65pksE-mXQO_E7iOXq-DpsM",
+          "id": "19VOBg9L8m65pksE-mXQO_E7iOXq-DpsM",
+          "modifiedTime": "2022-10-17T06:43:06.000Z"
+        },
+        {
+          "name": "藥盒.tif",
+          "url": "https://drive.google.com/uc?id=1N9s92zs-kTll8er08r-YGVa5OkjRpRlb",
+          "id": "1N9s92zs-kTll8er08r-YGVa5OkjRpRlb",
+          "modifiedTime": "2022-09-05T06:22:13.000Z"
+        },
+        {
+          "name": "IFM-3001-1.tif",
+          "url": "https://drive.google.com/uc?id=15qBCS7GnyWvwF1rR69WoWCOnIo5sJ4Fi",
+          "id": "15qBCS7GnyWvwF1rR69WoWCOnIo5sJ4Fi",
+          "modifiedTime": "2022-08-29T07:58:54.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "IFM3001情境照",
+          "url": "https://drive.google.com/uc?id=1whJghA9pwKh6ckHOYVMQ8wFiGpEqDNnH",
+          "id": "1whJghA9pwKh6ckHOYVMQ8wFiGpEqDNnH",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:21.000Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 8,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IFM6001",
+      "folderId": "18S0IfzlAJpwoKCfLDJ_SwJAnCvq0xtwz",
+      "mainImage": "https://drive.google.com/uc?id=16jfeUlz75-lBcapf4S5QDJoyIQupB0cp",
+      "images": [
+        {
+          "name": "IFM6001.jpg",
+          "url": "https://drive.google.com/uc?id=16jfeUlz75-lBcapf4S5QDJoyIQupB0cp",
+          "id": "16jfeUlz75-lBcapf4S5QDJoyIQupB0cp",
+          "modifiedTime": "2022-01-19T07:59:34.000Z"
+        },
+        {
+          "name": "IFM6001_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1yp_yGFjr7-OXSJ75UmvuGeU3o6r_S27X",
+          "id": "1yp_yGFjr7-OXSJ75UmvuGeU3o6r_S27X",
+          "modifiedTime": "2022-01-19T07:59:31.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 0
+      }
+    },
+    {
+      "model": "IFM7001",
+      "folderId": "1EhH95rkF2gKzWmsZLwr4Aw8RfI7DOht2",
+      "mainImage": "https://drive.google.com/uc?id=14VYGfzX2LNiI9cFHu4YxcRIS73_Y5Tec",
+      "images": [
+        {
+          "name": "IFM7001_1000_2.jpg",
+          "url": "https://drive.google.com/uc?id=1rFCjS0yJZXjW1zu31bUE8JHn-z53OIZn",
+          "id": "1rFCjS0yJZXjW1zu31bUE8JHn-z53OIZn",
+          "modifiedTime": "2023-11-13T10:28:10.000Z"
+        },
+        {
+          "name": "IFM7001_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1fUBJPMULxnYIzScea2q6DHhKsnjVMie3",
+          "id": "1fUBJPMULxnYIzScea2q6DHhKsnjVMie3",
+          "modifiedTime": "2022-12-01T01:09:19.000Z"
+        },
+        {
+          "name": "IFM7001.jpg",
+          "url": "https://drive.google.com/uc?id=14VYGfzX2LNiI9cFHu4YxcRIS73_Y5Tec",
+          "id": "14VYGfzX2LNiI9cFHu4YxcRIS73_Y5Tec",
+          "modifiedTime": "2022-08-25T02:44:55.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1nr1yRM8DQR-is28ZOO_yXZ8Im-4DjzA0",
+          "id": "1nr1yRM8DQR-is28ZOO_yXZ8Im-4DjzA0",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:10.993Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 3,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IFM7002",
+      "folderId": "1A8ayrAjy5K9fhinkekuHdZMa8ihJU891",
+      "mainImage": "https://drive.google.com/uc?id=1yMVvaHvlMHwkKzoS4YkVX_0XOFxSd0nI",
+      "images": [
+        {
+          "name": "IFM7002.jpg",
+          "url": "https://drive.google.com/uc?id=1yMVvaHvlMHwkKzoS4YkVX_0XOFxSd0nI",
+          "id": "1yMVvaHvlMHwkKzoS4YkVX_0XOFxSd0nI",
+          "modifiedTime": "2023-09-25T07:27:49.000Z"
+        },
+        {
+          "name": "IFM7002_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=12II3os6mCoQQRb0VS3C_qxpsTR_LRT4s",
+          "id": "12II3os6mCoQQRb0VS3C_qxpsTR_LRT4s",
+          "modifiedTime": "2023-09-25T07:27:45.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1G2yDjWt26oGeZjIsaarZhzPkn3pL5XWv",
+          "id": "1G2yDjWt26oGeZjIsaarZhzPkn3pL5XWv",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:20.541Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IFM7012",
+      "folderId": "1O1fRr5zEQ479Un1QcONPRLmCsA1obe52",
+      "mainImage": "https://drive.google.com/uc?id=1-9aumLDpyi2-y3L4QQEGRtFrCQ52N3ti",
+      "images": [
+        {
+          "name": "IFM-7012_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1urNH9wApHDPm3HhoCsGf2w0cbYdk3UC2",
+          "id": "1urNH9wApHDPm3HhoCsGf2w0cbYdk3UC2",
+          "modifiedTime": "2024-05-03T07:38:42.000Z"
+        },
+        {
+          "name": "IFM-7012_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1-9aumLDpyi2-y3L4QQEGRtFrCQ52N3ti",
+          "id": "1-9aumLDpyi2-y3L4QQEGRtFrCQ52N3ti",
+          "modifiedTime": "2024-05-03T07:38:38.000Z"
+        },
+        {
+          "name": "IFM7012_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1S0D5QSvky2dUiVD4NYHIMyMmCFJckbfA",
+          "id": "1S0D5QSvky2dUiVD4NYHIMyMmCFJckbfA",
+          "modifiedTime": "2024-02-29T04:03:47.000Z"
+        },
+        {
+          "name": "IFM7012.jpg",
+          "url": "https://drive.google.com/uc?id=1OIUygPGXpToyKAyfFjXdFFy88uJMf7xb",
+          "id": "1OIUygPGXpToyKAyfFjXdFFy88uJMf7xb",
+          "modifiedTime": "2024-02-29T04:03:13.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=19Z8OgbfDFye73rrhvzogsQbNqWrzSqZg",
+          "id": "19Z8OgbfDFye73rrhvzogsQbNqWrzSqZg",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:31.763Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IR1008",
+      "folderId": "1oYEA4FDTiaCD__FFyYorfiyFladTmzFx",
+      "mainImage": "https://drive.google.com/uc?id=1YlXYG9Db_kU13Youu6KerOWDqT0jYLvM",
+      "images": [
+        {
+          "name": "IR1008G_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1eGs_Ohvj9NzDklfFlM23WNZb97PQCj9q",
+          "id": "1eGs_Ohvj9NzDklfFlM23WNZb97PQCj9q",
+          "modifiedTime": "2022-08-01T01:05:57.000Z"
+        },
+        {
+          "name": "IR1008G.jpg",
+          "url": "https://drive.google.com/uc?id=1YlXYG9Db_kU13Youu6KerOWDqT0jYLvM",
+          "id": "1YlXYG9Db_kU13Youu6KerOWDqT0jYLvM",
+          "modifiedTime": "2022-08-01T01:05:45.000Z"
+        },
+        {
+          "name": "IR1008W_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1IIeZy0fAE_GmMFc2mAPZZ44qcpf_Rb0K",
+          "id": "1IIeZy0fAE_GmMFc2mAPZZ44qcpf_Rb0K",
+          "modifiedTime": "2022-08-01T01:05:14.000Z"
+        },
+        {
+          "name": "IR1008W.jpg",
+          "url": "https://drive.google.com/uc?id=13uJBfyi4awygulVN0RA94wCGjfw0U8oW",
+          "id": "13uJBfyi4awygulVN0RA94wCGjfw0U8oW",
+          "modifiedTime": "2022-08-01T01:05:02.000Z"
+        },
+        {
+          "name": "IR1008GW_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1QHc50AKCNtGMO4TCabDzgzBVY24q1FcX",
+          "id": "1QHc50AKCNtGMO4TCabDzgzBVY24q1FcX",
+          "modifiedTime": "2022-08-01T01:03:49.000Z"
+        },
+        {
+          "name": "IR1008GW.jpg",
+          "url": "https://drive.google.com/uc?id=1KTaIRZmdqCfCQaE9zR51ZN2MAixT9QJv",
+          "id": "1KTaIRZmdqCfCQaE9zR51ZN2MAixT9QJv",
+          "modifiedTime": "2022-08-01T01:03:38.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [],
+      "stats": {
+        "imageCount": 6,
+        "pdfCount": 0,
+        "otherCount": 0
+      }
+    },
+    {
+      "model": "IR1009",
+      "folderId": "14NDWHpcq2qcdW2QRexIbmjxiL8SH-f-9",
+      "mainImage": "https://drive.google.com/uc?id=1Rg_kXdBslitCm-Qd3W0XitlmY6bbsCAw",
+      "images": [
+        {
+          "name": "IR1009W_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1MIWV5aHGvxUNI01AolAz4-m3oD0siSEX",
+          "id": "1MIWV5aHGvxUNI01AolAz4-m3oD0siSEX",
+          "modifiedTime": "2024-01-09T08:19:47.000Z"
+        },
+        {
+          "name": "IR1009W_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1EpIa2nKJYoILhaghB_aY72BG8HxQi6l-",
+          "id": "1EpIa2nKJYoILhaghB_aY72BG8HxQi6l-",
+          "modifiedTime": "2024-01-09T08:19:43.000Z"
+        },
+        {
+          "name": "IR1009B_BOX1.jpg",
+          "url": "https://drive.google.com/uc?id=1maLuVkHs1baxpb2XFyY58K1ZOsJ70ekm",
+          "id": "1maLuVkHs1baxpb2XFyY58K1ZOsJ70ekm",
+          "modifiedTime": "2024-01-09T08:19:39.000Z"
+        },
+        {
+          "name": "IR1009B_BOX.jpg",
+          "url": "https://drive.google.com/uc?id=1cX6aqrxXTFzskO7awHvnxO40Ufw5WYIP",
+          "id": "1cX6aqrxXTFzskO7awHvnxO40Ufw5WYIP",
+          "modifiedTime": "2024-01-09T08:19:35.000Z"
+        },
+        {
+          "name": "IR1009W_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1HC7TVjxMQDZgO_InmKq11P1EtmbdLwi5",
+          "id": "1HC7TVjxMQDZgO_InmKq11P1EtmbdLwi5",
+          "modifiedTime": "2023-11-23T01:46:19.000Z"
+        },
+        {
+          "name": "IR1009.jpg",
+          "url": "https://drive.google.com/uc?id=1Rg_kXdBslitCm-Qd3W0XitlmY6bbsCAw",
+          "id": "1Rg_kXdBslitCm-Qd3W0XitlmY6bbsCAw",
+          "modifiedTime": "2023-11-23T01:46:09.000Z"
+        },
+        {
+          "name": "IR1009_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1gP28eMgi5cynly8aYe9o8vvXP01ts62y",
+          "id": "1gP28eMgi5cynly8aYe9o8vvXP01ts62y",
+          "modifiedTime": "2023-11-23T01:46:00.000Z"
+        },
+        {
+          "name": "IR1009B.jpg",
+          "url": "https://drive.google.com/uc?id=1GiGE1Q7aYaCiEAb_uw0Jrs7iFeT7wyi4",
+          "id": "1GiGE1Q7aYaCiEAb_uw0Jrs7iFeT7wyi4",
+          "modifiedTime": "2023-11-23T01:45:54.000Z"
+        },
+        {
+          "name": "IR1009B_1000x1000.jpg",
+          "url": "https://drive.google.com/uc?id=1lerVWHtpq2u82PKXm-trZjkFjmQzbVQz",
+          "id": "1lerVWHtpq2u82PKXm-trZjkFjmQzbVQz",
+          "modifiedTime": "2023-11-23T01:45:50.000Z"
+        },
+        {
+          "name": "IR1009W.jpg",
+          "url": "https://drive.google.com/uc?id=1NyWoiQlbuEE0BgT3DMqcs8oauuEpMwws",
+          "id": "1NyWoiQlbuEE0BgT3DMqcs8oauuEpMwws",
+          "modifiedTime": "2023-11-23T01:45:47.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1AVWxPtZ9676Kbs2XfAFrPZeJXH-aGvf0",
+          "id": "1AVWxPtZ9676Kbs2XfAFrPZeJXH-aGvf0",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:26.999Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 10,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IR1012",
+      "folderId": "1Eml-dCE7RfSXAHKQg0PFoGo-nd_0Du_C",
+      "mainImage": "https://drive.google.com/uc?id=1lwtbM5o5yV3mfVexEXjeFvwcAmOQppjV",
+      "images": [
+        {
+          "name": "IR1012Y.jpg",
+          "url": "https://drive.google.com/uc?id=1geIExNAIa22UxWfEaFOGCyPUVI62iqfe",
+          "id": "1geIExNAIa22UxWfEaFOGCyPUVI62iqfe",
+          "modifiedTime": "2024-07-11T01:54:51.000Z"
+        },
+        {
+          "name": "IR1012Y_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1xMyNAsI_4Zp6vkaimEAtZr4oyANLFTLy",
+          "id": "1xMyNAsI_4Zp6vkaimEAtZr4oyANLFTLy",
+          "modifiedTime": "2024-07-11T01:54:51.000Z"
+        },
+        {
+          "name": "IR1012BU_1000.jpg",
+          "url": "https://drive.google.com/uc?id=182N2zBSWF6eQGvPT2Agqb8aAk9rIhnjU",
+          "id": "182N2zBSWF6eQGvPT2Agqb8aAk9rIhnjU",
+          "modifiedTime": "2024-07-11T01:49:11.000Z"
+        },
+        {
+          "name": "IR1012BU.jpg",
+          "url": "https://drive.google.com/uc?id=1WTp2N0WUgW0ardXGXyyUTkHcfNU-fJYi",
+          "id": "1WTp2N0WUgW0ardXGXyyUTkHcfNU-fJYi",
+          "modifiedTime": "2024-07-11T01:49:11.000Z"
+        },
+        {
+          "name": "IR1012_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1vWeSWr5pVFT7NFQe3xpoItxsy0wjnAUE",
+          "id": "1vWeSWr5pVFT7NFQe3xpoItxsy0wjnAUE",
+          "modifiedTime": "2024-07-11T01:46:56.000Z"
+        },
+        {
+          "name": "IR1012.jpg",
+          "url": "https://drive.google.com/uc?id=1lwtbM5o5yV3mfVexEXjeFvwcAmOQppjV",
+          "id": "1lwtbM5o5yV3mfVexEXjeFvwcAmOQppjV",
+          "modifiedTime": "2024-07-11T01:46:55.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1QZuGhx5Tf0lW_AWX3Vz_kSQcux52i43q",
+          "id": "1QZuGhx5Tf0lW_AWX3Vz_kSQcux52i43q",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:21.000Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 6,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "IR1201",
+      "folderId": "1g82HA9of1p2S8dk1NzADucvNvyORdyXZ",
+      "mainImage": "https://drive.google.com/uc?id=1dBaFOcM2ik2D_lpOdxtSbA7auZt9uxmO",
+      "images": [
+        {
+          "name": "IR1201B.jpg",
+          "url": "https://drive.google.com/uc?id=1PSBaaJYDpwhb8Ofh9Fs6DVlX0LNEyj_S",
+          "id": "1PSBaaJYDpwhb8Ofh9Fs6DVlX0LNEyj_S",
+          "modifiedTime": "2025-05-27T01:14:56.000Z"
+        },
+        {
+          "name": "IR1201W.jpg",
+          "url": "https://drive.google.com/uc?id=1-RiID_iwq87c0v3EG5zwrhGnHgmu4hvm",
+          "id": "1-RiID_iwq87c0v3EG5zwrhGnHgmu4hvm",
+          "modifiedTime": "2025-05-27T01:14:56.000Z"
+        },
+        {
+          "name": "IR1201.jpg",
+          "url": "https://drive.google.com/uc?id=1dBaFOcM2ik2D_lpOdxtSbA7auZt9uxmO",
+          "id": "1dBaFOcM2ik2D_lpOdxtSbA7auZt9uxmO",
+          "modifiedTime": "2025-05-27T01:05:30.000Z"
+        },
+        {
+          "name": "IR1201W_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1FhGZQ2pJafvOHk4HEzSu5HrBd9T4GxbE",
+          "id": "1FhGZQ2pJafvOHk4HEzSu5HrBd9T4GxbE",
+          "modifiedTime": "2025-04-07T02:03:37.000Z"
+        },
+        {
+          "name": "IR1201B_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1wR6dYxYDhJ2TwfADBSQ2FPOosspFRErH",
+          "id": "1wR6dYxYDhJ2TwfADBSQ2FPOosspFRErH",
+          "modifiedTime": "2025-04-07T01:56:40.000Z"
+        },
+        {
+          "name": "IR1201_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1TXa5yG1dgcNeE_euV15Ahd3TvmOBrTR_",
+          "id": "1TXa5yG1dgcNeE_euV15Ahd3TvmOBrTR_",
+          "modifiedTime": "2025-03-28T05:42:49.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=17BNZm3gObk5kaxWJ1DBcX1CYbZhAvNkP",
+          "id": "17BNZm3gObk5kaxWJ1DBcX1CYbZhAvNkP",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:35.392Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 6,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "ITHP182",
+      "folderId": "1nCs6f0gZNWIAAviK1NFvBH6ggXd_oB2r",
+      "mainImage": "https://drive.google.com/uc?id=1DtvV_e_G8_vgPBWq4rmrIxxE5209v8_i",
+      "images": [
+        {
+          "name": "ITHP-182.jpg",
+          "url": "https://drive.google.com/uc?id=1DtvV_e_G8_vgPBWq4rmrIxxE5209v8_i",
+          "id": "1DtvV_e_G8_vgPBWq4rmrIxxE5209v8_i",
+          "modifiedTime": "2024-01-04T09:19:09.000Z"
+        },
+        {
+          "name": "ITHP-182_1000X1000.jpg",
+          "url": "https://drive.google.com/uc?id=1hebjjLL5J88FYjti1PQeA2nH7Ao7Juwu",
+          "id": "1hebjjLL5J88FYjti1PQeA2nH7Ao7Juwu",
+          "modifiedTime": "2024-01-04T09:19:05.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=11Vk-irDpRn8IiSgufr7iOwUi6LoAQvOz",
+          "id": "11Vk-irDpRn8IiSgufr7iOwUi6LoAQvOz",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:20.573Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "ITHP190",
+      "folderId": "1d_EYbpxezc7xKqHiNV93E-MgDHk-wKRj",
+      "mainImage": "https://drive.google.com/uc?id=18zto3pom4PA7cTQjzxqjxxZtkE0_uKPt",
+      "images": [
+        {
+          "name": "ITHP190M_BOX02.jpg",
+          "url": "https://drive.google.com/uc?id=1ABo_WTgzZ2DBL9luQve9k50tC-KLUwKX",
+          "id": "1ABo_WTgzZ2DBL9luQve9k50tC-KLUwKX",
+          "modifiedTime": "2024-10-23T09:27:29.000Z"
+        },
+        {
+          "name": "ITHP190M_BOX01.jpg",
+          "url": "https://drive.google.com/uc?id=18zto3pom4PA7cTQjzxqjxxZtkE0_uKPt",
+          "id": "18zto3pom4PA7cTQjzxqjxxZtkE0_uKPt",
+          "modifiedTime": "2024-10-23T09:26:30.000Z"
+        },
+        {
+          "name": "ITHP190W_BOX02.jpg",
+          "url": "https://drive.google.com/uc?id=1U5m9snYK_ZSBYMa1m7DyIcb_8puSwcyb",
+          "id": "1U5m9snYK_ZSBYMa1m7DyIcb_8puSwcyb",
+          "modifiedTime": "2024-10-23T09:25:14.000Z"
+        },
+        {
+          "name": "ITHP190W_BOX01.jpg",
+          "url": "https://drive.google.com/uc?id=1dADnIqPiMgKiApiDsPCadTgS6oSixyo0",
+          "id": "1dADnIqPiMgKiApiDsPCadTgS6oSixyo0",
+          "modifiedTime": "2024-10-23T09:22:01.000Z"
+        },
+        {
+          "name": "ITHP190_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1SAMnIGvxOJayIEpPBAKAKSSEWfThl9Tu",
+          "id": "1SAMnIGvxOJayIEpPBAKAKSSEWfThl9Tu",
+          "modifiedTime": "2024-09-16T06:25:19.000Z"
+        },
+        {
+          "name": "ITHP190.jpg",
+          "url": "https://drive.google.com/uc?id=1KKdR_Hg1XHJoW1mZjlps4PUwMhzQ2x41",
+          "id": "1KKdR_Hg1XHJoW1mZjlps4PUwMhzQ2x41",
+          "modifiedTime": "2024-09-16T06:25:18.000Z"
+        },
+        {
+          "name": "ITHP190W_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1GB-NCXcp9nSCTGtkC6fcUw0tDyUFCECb",
+          "id": "1GB-NCXcp9nSCTGtkC6fcUw0tDyUFCECb",
+          "modifiedTime": "2024-09-16T06:23:00.000Z"
+        },
+        {
+          "name": "ITHP190W.jpg",
+          "url": "https://drive.google.com/uc?id=1CjCQJGknfhWUwyL0KMlX0BKoraTwz7Ct",
+          "id": "1CjCQJGknfhWUwyL0KMlX0BKoraTwz7Ct",
+          "modifiedTime": "2024-09-16T06:23:00.000Z"
+        },
+        {
+          "name": "ITHP190M_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1vHlVgxw7TxIPjO8dSw_rsw3zJWb3qPdp",
+          "id": "1vHlVgxw7TxIPjO8dSw_rsw3zJWb3qPdp",
+          "modifiedTime": "2024-09-16T06:20:32.000Z"
+        },
+        {
+          "name": "ITHP190M.jpg",
+          "url": "https://drive.google.com/uc?id=1KxrkCDZfEDgDYQ3162w7j1K8LdnozE2T",
+          "id": "1KxrkCDZfEDgDYQ3162w7j1K8LdnozE2T",
+          "modifiedTime": "2024-09-16T06:20:32.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1czo19gaRwoyrBf7efxafZxBPc4857kHF",
+          "id": "1czo19gaRwoyrBf7efxafZxBPc4857kHF",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:26.657Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 10,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "ITHP2616",
+      "folderId": "1uEZOUSKSOK1LYGMQwRz1BZGGnYa32K56",
+      "mainImage": "https://drive.google.com/uc?id=10SSCC4lWLTuIIq0X92geaYG48Jnm8h-W",
+      "images": [
+        {
+          "name": "ITHP2616_BOX02.jpg",
+          "url": "https://drive.google.com/uc?id=188koCuzywXObevrYRM6w7yK-Y_ZAatXI",
+          "id": "188koCuzywXObevrYRM6w7yK-Y_ZAatXI",
+          "modifiedTime": "2024-11-05T10:40:36.491Z"
+        },
+        {
+          "name": "ITHP2616_BOX01.jpg",
+          "url": "https://drive.google.com/uc?id=10SSCC4lWLTuIIq0X92geaYG48Jnm8h-W",
+          "id": "10SSCC4lWLTuIIq0X92geaYG48Jnm8h-W",
+          "modifiedTime": "2024-11-05T10:39:47.081Z"
+        },
+        {
+          "name": "ITHP2616_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1jSfmQRWKVeho0yWuEaF2qugCJnIo3eNl",
+          "id": "1jSfmQRWKVeho0yWuEaF2qugCJnIo3eNl",
+          "modifiedTime": "2024-09-20T04:13:59.610Z"
+        },
+        {
+          "name": "ITHP2616.jpg",
+          "url": "https://drive.google.com/uc?id=1zmB4iXt7nKjkBoPwHvAqBy3rUSAqgSlU",
+          "id": "1zmB4iXt7nKjkBoPwHvAqBy3rUSAqgSlU",
+          "modifiedTime": "2024-09-20T04:13:57.780Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1jinpJjDlpNV_B9mE-Z1USN1ERTuD261U",
+          "id": "1jinpJjDlpNV_B9mE-Z1USN1ERTuD261U",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-10-08T00:40:57.659Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 4,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "JC023",
+      "folderId": "1dZrPfkfdFEYvu2aNyI1LIA99sSVdzdZW",
+      "mainImage": "https://drive.google.com/uc?id=1_2ylVqRuGqi9xSyQ26DB64z8Us610php",
+      "images": [
+        {
+          "name": "JC023.jpg",
+          "url": "https://drive.google.com/uc?id=1_2ylVqRuGqi9xSyQ26DB64z8Us610php",
+          "id": "1_2ylVqRuGqi9xSyQ26DB64z8Us610php",
+          "modifiedTime": "2024-04-17T00:37:12.000Z"
+        },
+        {
+          "name": "JC023_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1suI3KAtCTQFMaE-fuzf2M2A88krEZM7l",
+          "id": "1suI3KAtCTQFMaE-fuzf2M2A88krEZM7l",
+          "modifiedTime": "2024-03-15T00:56:14.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1rLcVTmNeDszRYPXDQ9RllUmwRAzjHLWo",
+          "id": "1rLcVTmNeDszRYPXDQ9RllUmwRAzjHLWo",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:20.588Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "JR21",
+      "folderId": "10OHRO746eiMWubKVSG96CyOVO39-sgNP",
+      "mainImage": "https://drive.google.com/uc?id=1-dBtzewNDzjZaLdCk7cML6H5sfnC1ZMF",
+      "images": [
+        {
+          "name": "JR21G_BOX02.jpg",
+          "url": "https://drive.google.com/uc?id=1lZUkfx284AULFzrzQGhjOwOIZqeoQ7-7",
+          "id": "1lZUkfx284AULFzrzQGhjOwOIZqeoQ7-7",
+          "modifiedTime": "2025-04-22T07:18:10.000Z"
+        },
+        {
+          "name": "JR21G_BOX01.jpg",
+          "url": "https://drive.google.com/uc?id=1-dBtzewNDzjZaLdCk7cML6H5sfnC1ZMF",
+          "id": "1-dBtzewNDzjZaLdCk7cML6H5sfnC1ZMF",
+          "modifiedTime": "2025-04-22T07:17:39.000Z"
+        },
+        {
+          "name": "JR21Y_BOX02.png",
+          "url": "https://drive.google.com/uc?id=1tlN4j9Lre_42c3Yl7V6QRffmk0Ibw4Gd",
+          "id": "1tlN4j9Lre_42c3Yl7V6QRffmk0Ibw4Gd",
+          "modifiedTime": "2025-04-22T07:16:28.000Z"
+        },
+        {
+          "name": "JR21Y_BOX01.png",
+          "url": "https://drive.google.com/uc?id=1pGaidkaRt1d8Wad2FqS1LCEBj3NDdBUu",
+          "id": "1pGaidkaRt1d8Wad2FqS1LCEBj3NDdBUu",
+          "modifiedTime": "2025-04-22T07:15:40.000Z"
+        },
+        {
+          "name": "JR21_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1x2xn0Fq-BkCn0t5qcrJfkP9bGJVmoPu1",
+          "id": "1x2xn0Fq-BkCn0t5qcrJfkP9bGJVmoPu1",
+          "modifiedTime": "2024-12-24T03:25:13.000Z"
+        },
+        {
+          "name": "JR21.jpg",
+          "url": "https://drive.google.com/uc?id=1K8UZSr20JGwiHOoJRzIWuxBVQoWTfMx7",
+          "id": "1K8UZSr20JGwiHOoJRzIWuxBVQoWTfMx7",
+          "modifiedTime": "2024-12-24T03:25:13.000Z"
+        },
+        {
+          "name": "JR21Y.jpg",
+          "url": "https://drive.google.com/uc?id=1QE7Ncq6KlsduO1sJ6qYVHo7ROd5GcCH1",
+          "id": "1QE7Ncq6KlsduO1sJ6qYVHo7ROd5GcCH1",
+          "modifiedTime": "2024-12-24T03:20:43.000Z"
+        },
+        {
+          "name": "JR21Y_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1bJgf1N_oJ1X6xG1buRZUa54-hTDM-XGY",
+          "id": "1bJgf1N_oJ1X6xG1buRZUa54-hTDM-XGY",
+          "modifiedTime": "2024-12-24T03:20:43.000Z"
+        },
+        {
+          "name": "JR21G_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1ySgWWyQqeuvAAbgxUQ_NBbEZcZcLsNXA",
+          "id": "1ySgWWyQqeuvAAbgxUQ_NBbEZcZcLsNXA",
+          "modifiedTime": "2024-12-24T03:18:32.000Z"
+        },
+        {
+          "name": "JR21G.jpg",
+          "url": "https://drive.google.com/uc?id=1HRx2Fq8GgGLXOttHCbMKk6XztCVNHoWI",
+          "id": "1HRx2Fq8GgGLXOttHCbMKk6XztCVNHoWI",
+          "modifiedTime": "2024-12-24T03:18:31.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=1fSb3naxpfwMkILh9K5f1JWOhIWtQIPY-",
+          "id": "1fSb3naxpfwMkILh9K5f1JWOhIWtQIPY-",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:33.511Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 10,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    },
+    {
+      "model": "JR56",
+      "folderId": "1jjxucgBebF6DYTtyCeJYIr0zBOd_MI9E",
+      "mainImage": "https://drive.google.com/uc?id=1rY7_5oDm0lPI8b4w_60XqiMxDizW8c2S",
+      "images": [
+        {
+          "name": "JR56_1000.jpg",
+          "url": "https://drive.google.com/uc?id=1Uz-l68mUpYovh1qfaHkqxjAsX21hqfIL",
+          "id": "1Uz-l68mUpYovh1qfaHkqxjAsX21hqfIL",
+          "modifiedTime": "2024-03-13T04:12:37.000Z"
+        },
+        {
+          "name": "JR56.jpg",
+          "url": "https://drive.google.com/uc?id=1rY7_5oDm0lPI8b4w_60XqiMxDizW8c2S",
+          "id": "1rY7_5oDm0lPI8b4w_60XqiMxDizW8c2S",
+          "modifiedTime": "2024-03-13T04:12:24.000Z"
+        }
+      ],
+      "pdfs": [],
+      "others": [
+        {
+          "name": "網路圖",
+          "url": "https://drive.google.com/uc?id=185Amf7ZVedBR_NXQNkaekGIEKIL3qSzf",
+          "id": "185Amf7ZVedBR_NXQNkaekGIEKIL3qSzf",
+          "mimeType": "application/vnd.google-apps.folder",
+          "modifiedTime": "2025-09-22T14:05:20.615Z"
+        }
+      ],
+      "stats": {
+        "imageCount": 2,
+        "pdfCount": 0,
+        "otherCount": 1
+      }
+    }
+  ]
+}
