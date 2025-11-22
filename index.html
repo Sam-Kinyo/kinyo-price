@@ -150,6 +150,29 @@ input,select{
 }
 .btn-outline-add:hover{background:#dbeafe;}
 
+/* ✅ Drive 商品大圖按鈕（藍色膠囊） */
+.drive-main-btn{
+  display:inline-block;
+  padding:8px 14px;
+  border-radius:999px;
+  background:#2563eb;
+  color:#fff !important;
+  font-size:15px;
+  font-weight:700;
+  text-decoration:none;
+}
+.drive-main-btn:hover{background:#1d4ed8;}
+
+/* ✅ 商品網路圖縮圖（100px） */
+.net-thumb{
+  width:100px;
+  height:100px;
+  object-fit:cover;
+  border-radius:8px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+}
+
 /* =========================================
    表格
 ========================================= */
@@ -443,8 +466,8 @@ let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
 
-/* ✅ Google Drive 商品大圖（modelData.json） */
-let driveImageMap = new Map();
+/* ✅ Google Drive 商品大圖 + 網路圖（modelData.json） */
+let driveDataMap = new Map(); // key: MODEL or mainModel (UPPER)
 let isDriveLoaded = false;
 
 const searchForm     = document.getElementById("searchForm");
@@ -503,25 +526,36 @@ async function preloadDriveImages() {
     if (!res.ok) throw new Error("modelData.json 讀取失敗");
     const json = await res.json();
 
-    driveImageMap = new Map();
+    driveDataMap = new Map();
     (json.models || []).forEach(m => {
-      if (m?.model && m?.mainImage) {
-        driveImageMap.set(String(m.model).trim().toUpperCase(), m.mainImage);
-      }
+      const key = String(m?.model || "").trim().toUpperCase();
+      if (!key) return;
+      driveDataMap.set(key, {
+        mainImage: m?.mainImage || "",
+        netImages: Array.isArray(m?.netImages) ? m.netImages : []
+      });
     });
 
     isDriveLoaded = true;
-    console.log("Drive 商品大圖載入完成：", driveImageMap.size);
+    console.log("Drive 圖片資料載入完成：", driveDataMap.size);
   } catch (e) {
     isDriveLoaded = false;
-    console.warn("Drive 商品大圖載入失敗（不影響主功能）:", e);
+    console.warn("Drive 圖片資料載入失敗（不影響主功能）:", e);
   }
 }
 
-function getDriveMainImage(item){
+function getDriveData(item){
   const m1 = (item?.model || "").trim().toUpperCase();
   const m2 = (item?.mainModel || "").trim().toUpperCase();
-  return driveImageMap.get(m1) || driveImageMap.get(m2) || "";
+  return driveDataMap.get(m1) || driveDataMap.get(m2) || { mainImage:"", netImages:[] };
+}
+
+function getDriveMainImage(item){
+  return getDriveData(item).mainImage || "";
+}
+
+function getDriveNetImages(item){
+  return getDriveData(item).netImages || [];
 }
 
 function getMainModel(model) {
@@ -618,6 +652,16 @@ function mergeByMainModel(list) {
       const exist = map[main].colorList.split(" / ").filter(Boolean);
       const incoming = (item.colorList || "").split(" / ").filter(Boolean);
       map[main].colorList = [...new Set([...exist, ...incoming])].join(" / ");
+
+      // ✅ 合併 Drive 網路圖
+      const existNet = Array.isArray(map[main].netImages) ? map[main].netImages : [];
+      const incomingNet = Array.isArray(item.netImages) ? item.netImages : [];
+      map[main].netImages = [...new Set([...existNet, ...incomingNet])];
+
+      // ✅ 主圖只要有一張就留
+      if (!map[main].driveMainImage && item.driveMainImage) {
+        map[main].driveMainImage = item.driveMainImage;
+      }
     }
   });
 
@@ -770,34 +814,42 @@ function renderResults(list) {
 /* ✅ 新增商品大圖（主圖下方） */
 function showDetailDesktop(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-  const driveMainImage = getDriveMainImage(item);
+  const driveMainImage = item.driveMainImage || getDriveMainImage(item);
+  const netImages = Array.isArray(item.netImages) ? item.netImages : getDriveNetImages(item);
 
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
+  const netGalleryHtml = (netImages && netImages.length)
+    ? `
+      <div style="margin:12px 0 6px;">
+        <div style="font-weight:700;margin-bottom:6px;color:#2563eb;">商品網路圖</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${netImages.map(u => `
+            <a href="${u}" target="_blank" title="開啟原圖">
+              <img src="${u}" class="net-thumb">
+            </a>
+          `).join("")}
+        </div>
+      </div>
+    `
+    : "";
+
   detailCard.style.display = "block";
   detailCard.innerHTML = `
-    <!-- 商品網路圖 Gallery -->
-    <div style="margin:12px 0;">
-      <div style="font-weight:700;margin-bottom:6px;color:#2563eb;">商品網路圖</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        ${
-          (item.netImages||[])
-            .map(img => `<a href="${img}" target="_blank"><img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"></a>`)
-            .join('')
-        }
-      </div>
-    </div>
-    
-    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:6px;">
-    <div style="font-size:13px;color:#2563eb;margin-bottom:10px;">
-      <strong>商品大圖：</strong>
-      ${driveMainImage ? `<a href="${driveMainImage}" target="_blank">查看</a>` : "無"}
-    </div>
+    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;">
 
-    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
+    ${driveMainImage ? `
+      <div style="margin-bottom:10px;text-align:center;">
+        <a href="${driveMainImage}" target="_blank" class="drive-main-btn">商品大圖預覽下載</a>
+      </div>
+    ` : ""}
+
+    ${netGalleryHtml}
+
+    <div style="font-weight:700;font-size:16px;margin:6px 0;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
       <strong>主型號：</strong>${item.mainModel || "-"}<br>
       <strong>顏色：</strong>${item.colorList || "-"}<br>
@@ -805,8 +857,10 @@ function showDetailDesktop(item) {
       <strong>末售：</strong>${item.minPrice ?? "-"}<br>
       <strong>網址：</strong>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往</a>` : "-"}
     </div>
+
     <div style="font-weight:700;margin-bottom:6px;">採購價格</div>
     <div style="line-height:1.6;">${priceBlock}</div>
+
     <div style="display:flex; gap:8px; margin-top:12px;">
       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
@@ -816,33 +870,41 @@ function showDetailDesktop(item) {
 
 function showDetailMobile(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-  const driveMainImage = getDriveMainImage(item);
+  const driveMainImage = item.driveMainImage || getDriveMainImage(item);
+  const netImages = Array.isArray(item.netImages) ? item.netImages : getDriveNetImages(item);
 
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  sheetContent.innerHTML = `
-    <!-- 商品網路圖 Gallery -->
-    <div style="margin:12px 0;">
-      <div style="font-weight:700;margin-bottom:6px;color:#2563eb;">商品網路圖</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px;">
-        ${
-          (item.netImages||[])
-            .map(img => `<a href="${img}" target="_blank"><img src="${img}" style="width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #ddd;"></a>`)
-            .join('')
-        }
+  const netGalleryHtml = (netImages && netImages.length)
+    ? `
+      <div style="margin:12px 0 6px;">
+        <div style="font-weight:700;margin-bottom:6px;color:#2563eb;">商品網路圖</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${netImages.map(u => `
+            <a href="${u}" target="_blank" title="開啟原圖">
+              <img src="${u}" class="net-thumb">
+            </a>
+          `).join("")}
+        </div>
       </div>
-    </div>
-    
-    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:6px;">
-    <div style="font-size:13px;color:#2563eb;margin-bottom:10px;">
-      <strong>商品大圖：</strong>
-      ${driveMainImage ? `<a href="${driveMainImage}" target="_blank">查看</a>` : "無"}
-    </div>
+    `
+    : "";
 
-    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
+  sheetContent.innerHTML = `
+    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;">
+
+    ${driveMainImage ? `
+      <div style="margin-bottom:10px;text-align:center;">
+        <a href="${driveMainImage}" target="_blank" class="drive-main-btn">商品大圖預覽下載</a>
+      </div>
+    ` : ""}
+
+    ${netGalleryHtml}
+
+    <div style="font-weight:700;font-size:16px;margin:6px 0;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
       <strong>主型號：</strong>${item.mainModel || "-"}<br>
       <strong>顏色：</strong>${item.colorList || "-"}<br>
@@ -850,8 +912,10 @@ function showDetailMobile(item) {
       <strong>末售：</strong>${item.minPrice ?? "-"}<br>
       <strong>網址：</strong>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往</a>` : "-"}
     </div>
+
     <div style="font-weight:700;margin-bottom:6px;">採購價格</div>
     <div style="line-height:1.6;">${priceBlock}</div>
+
     <div style="display:flex; gap:8px; margin-top:12px;">
       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
@@ -1071,7 +1135,7 @@ multiLineBtn.onclick = () => {
     const item  = currentResultList.find(p => p.model === model);
     if (!item) return;
 
-    const qty  = qtySelect.value || "40";
+    const qty  = qtySelect.value || "50";
     const ck   = `quote${qty}`;
     const cost = item[ck] ?? item.quote50 ?? "-";
 
@@ -1158,8 +1222,8 @@ onAuthStateChanged(auth, async (user) => {
 
   setupQtySelectByLevel();
 
-  preloadDriveImages(); // ✅ 載入商品大圖
-  preloadProducts();    // ✅ 載入商品資料
+  await preloadDriveImages(); // ✅ 先載入 Drive 圖片資料
+  await preloadProducts();    // ✅ 再載入 Firestore 商品
 });
 
 logoutBtn.onclick = () => signOut(auth);
