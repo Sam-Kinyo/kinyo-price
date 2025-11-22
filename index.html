@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.2・含 Excel 圖片匯出最終版）</title>
+<title>KINYO 查價系統（v4.5・快取加速最終版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -28,7 +28,7 @@ body{
 }
 
 h1{margin:0 0 4px;}
-.subtitle{color:var(--muted);margin-bottom:18px;font-size:14px;}
+.subtitle{color:var(--muted);margin-bottom:10px;font-size:14px;}
 
 /* Top Bar */
 .top-bar{
@@ -51,6 +51,31 @@ h1{margin:0 0 4px;}
   cursor:pointer;
   background:white;
   font-size:12px;
+}
+
+/* Loading Status Bar */
+.load-bar{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:13px;
+  color:#374151;
+  box-shadow:var(--shadow);
+  margin-bottom:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.load-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#f59e0b;
+  animation:pulse 1s infinite ease-in-out;
+}
+.load-dot.ok{background:#10b981; animation:none;}
+@keyframes pulse{
+  0%,100%{transform:scale(1); opacity:.9;}
+  50%{transform:scale(1.6); opacity:.4;}
 }
 
 /* Search Box */
@@ -84,6 +109,9 @@ input,select{
   cursor:pointer;
   width:100%;
 }
+.btn-primary:disabled{
+  opacity:.5; cursor:not-allowed;
+}
 .btn-secondary{
   background:white;
   border:1px solid var(--border);
@@ -91,6 +119,9 @@ input,select{
   border-radius:999px;
   cursor:pointer;
   font-size:14px;
+}
+.btn-secondary:disabled{
+  opacity:.5; cursor:not-allowed;
 }
 .btn-outline-add{
   padding:6px 12px;
@@ -267,6 +298,12 @@ th{background:#fafafa;text-align:left;}
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">同主型號自動合併，不同顏色僅顯示一筆。</div>
 
+<!-- Loading Status -->
+<div id="loadBar" class="load-bar">
+  <div id="loadDot" class="load-dot"></div>
+  <div id="loadText">正在初始化…</div>
+</div>
+
 <div class="search-box">
   <div class="search-row">
     <label>關鍵字搜尋（型號 / 名稱）</label>
@@ -286,7 +323,7 @@ th{background:#fafafa;text-align:left;}
     </div>
   </div>
 
-  <button id="searchBtn" class="btn-primary">查詢</button>
+  <button id="searchBtn" class="btn-primary" disabled>查詢</button>
   <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </div>
 
@@ -301,7 +338,7 @@ th{background:#fafafa;text-align:left;}
     <option value="alphaDesc">主型號：Z → A</option>
   </select>
 
-  <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel（含圖片）</button>
+  <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
 </div>
 
 <table id="resultTable" style="display:none;">
@@ -355,9 +392,7 @@ th{background:#fafafa;text-align:left;}
   <div id="cartCount" class="fab-badge">0</div>
 </div>
 
-<!-- ExcelJS + FileSaver (for embedded images) -->
-<script src="https://cdn.jsdelivr.net/npm/exceljs/dist/exceljs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/file-saver/dist/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -377,13 +412,16 @@ th{background:#fafafa;text-align:left;}
   const db   = getFirestore(app);
   const auth = getAuth(app);
 
+  // ===== v4.5 Cache Config =====
+  const CACHE_KEY = "kinyo_products_cache_v45";
+  const CACHE_META_KEY = "kinyo_products_cache_meta_v45";
+
   let productCache = [];
   let currentResultList = [];
   let userLevel = 1;
   let currentUserEmail = "";
   let quoteList = [];
-  let hasLoadedProducts = false;
-  window.lastSearchMode = "keyword"; // keyword / qty
+  let isLoaded = false;
 
   const keywordInput   = document.getElementById("keyword");
   const qtySelect      = document.getElementById("qtySelect");
@@ -392,6 +430,7 @@ th{background:#fafafa;text-align:left;}
   const sortSelect     = document.getElementById("sortSelect");
   const exportBtn      = document.getElementById("exportBtn");
   const clearBtn       = document.getElementById("clearBtn");
+  const searchBtn      = document.getElementById("searchBtn");
   const resultTable    = document.getElementById("resultTable");
   const resultBody     = document.getElementById("resultBody");
   const checkAllBox    = document.getElementById("checkAll");
@@ -413,59 +452,124 @@ th{background:#fafafa;text-align:left;}
   const clearQuoteBtn  = document.getElementById("clearQuoteBtn");
   const fabCart        = document.getElementById("fabCart");
   const cartCount      = document.getElementById("cartCount");
+  const loadBar        = document.getElementById("loadBar");
+  const loadText       = document.getElementById("loadText");
+  const loadDot        = document.getElementById("loadDot");
 
   const colorMap = {
-    R:"紅", B:"藍", G:"綠", BK:"黑", WH:"白", PK:"粉", Y:"黃", OR:"橘", BL:"藍", W:"白",
-    PI:"粉", PU:"紫", GR:"灰", BE:"米"
+    R:"紅", B:"藍", G:"綠", BK:"黑", WH:"白", PK:"粉", Y:"黃", OR:"橘", BL:"藍", W:"白"
   };
 
-  // v4.2 主型號規則：
-  // 型號 = 英文+數字(+英文顏色尾碼任意長度) -> 主型號 = 英文+數字
+  // ===== 主型號規則（你剛剛定的）：英文+數字+英文 -> 最後英文視為顏色 =====
   function getMainModel(model) {
     if (!model) return "-";
-    const m = model.trim().toUpperCase();
-    const match = m.match(/^([A-Z]+)(\d+)([A-Z]+)$/);
-    if (match) {
-      return match[1] + match[2]; // 去掉尾巴顏色碼
+    const m = model.trim();
+    // 如果最後一碼是英文，就去掉最後一碼當顏色
+    if (/[A-Za-z]$/.test(m) && /[A-Za-z0-9]+[A-Za-z]$/.test(m)) {
+      return m.slice(0, -1);
     }
-    return model.trim();
+    return m;
   }
 
-  async function preloadProducts() {
-    try {
-      const snap = await getDocs(collection(db, "Products"));
-      productCache = [];
+  function normalizeProducts(rawList) {
+    const list = [];
+    rawList.forEach(d => {
+      const model = (d.model || "").trim();
+      const mainModel = getMainModel(model);
 
-      snap.forEach(docSnap => {
-        const d = docSnap.data() || {};
-        const model = (d.model || "").trim();
-        const mainModel = getMainModel(model);
+      let colorList = (d.colorList || "").trim();
+      if (!colorList) {
+        const lastChar = model.slice(-1).toUpperCase();
+        if (/[A-Z]/.test(lastChar)) colorList = colorMap[lastChar] || lastChar;
+      }
 
-        let colorList = (d.colorList || "").trim();
-        if (!colorList) {
-          const m = model.toUpperCase();
-          const colorHit = m.match(/^([A-Z]+)(\d+)([A-Z]+)$/);
-          if (colorHit) {
-            const colorCode = colorHit[3]; // 尾巴英文=顏色碼
-            colorList = colorMap[colorCode] || colorCode;
-          }
-        }
+      const searchKey = (d.searchKey || `${model} ${d.name || ""}`).toLowerCase();
 
-        const searchKey = (d.searchKey || `${model} ${d.name || ""}`).toLowerCase();
-
-        productCache.push({
-          ...d,
-          model,
-          mainModel,
-          colorList,
-          searchKey
-        });
+      list.push({
+        ...d,
+        model,
+        mainModel,
+        colorList,
+        searchKey
       });
+    });
+    return list;
+  }
 
-      hasLoadedProducts = true;
-      console.log("商品預載完成", productCache.length, "筆");
+  function setLoadedUI(msg="商品已載入，可以開始搜尋") {
+    isLoaded = true;
+    searchBtn.disabled = false;
+    exportBtn.disabled = (currentResultList.length === 0);
+    loadText.textContent = msg;
+    loadDot.classList.add("ok");
+  }
+
+  function setLoadingUI(msg="正在載入商品資料…") {
+    isLoaded = false;
+    searchBtn.disabled = true;
+    exportBtn.disabled = true;
+    loadText.textContent = msg;
+    loadDot.classList.remove("ok");
+  }
+
+  // ===== localStorage 讀快取 =====
+  function loadFromCache() {
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (!cached) return null;
+      const parsed = JSON.parse(cached);
+      if (!Array.isArray(parsed) || parsed.length === 0) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveToCache(list) {
+    try {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(list));
+      localStorage.setItem(CACHE_META_KEY, JSON.stringify({ savedAt: Date.now(), count: list.length }));
+    } catch {}
+  }
+
+  // ===== Firestore 抓資料 =====
+  async function fetchProductsFromFirestore() {
+    const snap = await getDocs(collection(db, "Products"));
+    const raw = [];
+    snap.forEach(docSnap => raw.push(docSnap.data() || {}));
+    return normalizeProducts(raw);
+  }
+
+  // ===== 預載：先快取、後背景更新 =====
+  async function preloadProducts() {
+    // 1) 先快取（秒開）
+    const cached = loadFromCache();
+    if (cached) {
+      productCache = cached;
+      setLoadedUI(`已從快取載入 ${productCache.length} 筆商品，背景同步更新中…`);
+      // 背景同步 firestore
+      try {
+        const fresh = await fetchProductsFromFirestore();
+        productCache = fresh;
+        saveToCache(fresh);
+        loadText.textContent = `背景更新完成（${fresh.length} 筆）`;
+      } catch (e) {
+        console.warn("背景同步失敗，使用快取版本", e);
+        loadText.textContent = `快取已就緒（背景更新失敗，不影響搜尋）`;
+      }
+      return;
+    }
+
+    // 2) 沒快取 -> 正常載入
+    setLoadingUI("首次載入商品資料中…（請稍候 1–3 秒）");
+    try {
+      const fresh = await fetchProductsFromFirestore();
+      productCache = fresh;
+      saveToCache(fresh);
+      setLoadedUI(`首次載入完成（${fresh.length} 筆）`);
     } catch (e) {
-      console.error("預載失敗：", e);
+      console.error("首次載入失敗：", e);
+      setLoadingUI("載入失敗，請重新整理或稍後再試");
     }
   }
 
@@ -521,21 +625,17 @@ th{background:#fafafa;text-align:left;}
   }
 
   function searchProducts() {
-    if (!hasLoadedProducts) {
-      alert("商品尚在載入中，請稍後再搜尋。");
-      return;
-    }
+    if (!isLoaded) return; // v4.5：不彈窗、不做事
 
     const key = keywordInput.value.trim().toLowerCase();
     const qty = qtySelect.value;
     const minPraw = minPriceInput.value.trim();
     const maxPraw = maxPriceInput.value.trim();
 
-    // A) 只打關鍵字
+    // A) 只打關鍵字（沒有起訂量）
     if (key && !qty) {
       const r = productCache.filter(p => (p.searchKey || "").includes(key));
       currentResultList = applySorting(mergeByMainModel(r));
-      window.lastSearchMode = "keyword";
       renderResults(currentResultList);
       return;
     }
@@ -543,19 +643,8 @@ th{background:#fafafa;text-align:left;}
     // B) 起訂量 + 預算（預算可只填一邊）
     if (qty) {
       const costKey = `quote${qty}`;
-
-      // 只填一邊時，自動補 DB min/max
-      const prices = productCache.map(p => Number(p[costKey]) || 0).filter(v => v > 0);
-      const dbMin = prices.length ? Math.min(...prices) : 0;
-      const dbMax = prices.length ? Math.max(...prices) : Number.MAX_SAFE_INTEGER;
-
-      const minP = minPraw ? Number(minPraw) : dbMin;
-      const maxP = maxPraw ? Number(maxPraw) : dbMax;
-
-      if (!minPraw && !maxPraw) {
-        alert("請至少輸入最低或最高預算其中一個。");
-        return;
-      }
+      const minP = minPraw ? Number(minPraw) : 0;
+      const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
 
       const r = productCache.filter(p => {
         const price = Number(p[costKey]) || 0;
@@ -563,12 +652,11 @@ th{background:#fafafa;text-align:left;}
       });
 
       currentResultList = applySorting(mergeByMainModel(r));
-      window.lastSearchMode = "qty";
       renderResults(currentResultList);
       return;
     }
 
-    alert("請輸入關鍵字，或選擇起訂量 + 預算其中一種方式搜尋。");
+    alert("請輸入關鍵字，或選擇起訂量 + 預算區間其中一種方式搜尋。");
   }
 
   function renderResults(list) {
@@ -584,11 +672,7 @@ th{background:#fafafa;text-align:left;}
     }
 
     resultTable.style.display = "table";
-
-    // v4.2：純關鍵字搜尋禁匯出
-    exportBtn.disabled = (window.lastSearchMode === "keyword");
-
-    const frag = document.createDocumentFragment();
+    exportBtn.disabled = false;
 
     list.forEach(item => {
       const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
@@ -640,10 +724,9 @@ th{background:#fafafa;text-align:left;}
         });
       }
 
-      frag.appendChild(tr);
+      resultBody.appendChild(tr);
     });
 
-    resultBody.appendChild(frag);
     bindCheckAll();
   }
 
@@ -772,88 +855,56 @@ th{background:#fafafa;text-align:left;}
     });
   }
 
-  // v4.2 ExcelJS 匯出（含嵌入圖片）
-  async function exportSelectedExcel() {
-    if (window.lastSearchMode === "keyword") {
-      alert("關鍵字搜尋無法匯出報價，請選擇起訂量。");
-      return;
-    }
-
+  function exportSelectedExcel() {
     const checked = document.querySelectorAll(".row-check:checked");
-    if (checked.length === 0) {
-      alert("請先勾選要匯出的商品");
-      return;
+    if (checked.length===0){ alert("請先勾選要匯出的商品"); return; }
+
+    const selectedModels = Array.from(checked).map(c=>c.getAttribute("data-model"));
+    const baseHeader = ["商品型號","主型號","商品名稱","顏色列表","箱入數","商品連結"];
+    let priceHeader=[];
+    const qty=qtySelect.value;
+
+    if (qty) priceHeader=[`${qty}個`,"末售","賣場"];
+    else{
+      if (userLevel===1) priceHeader=["50個","末售","賣場"];
+      else if (userLevel===2) priceHeader=["50個","100個","300個","末售","賣場"];
+      else priceHeader=["50個","100個","300個","500個","1000個","末售","賣場"];
     }
 
-    const qty = qtySelect.value;
-    if (!qty) {
-      alert("請先選擇起訂量，再匯出報價");
-      return;
-    }
+    const rows=[[...baseHeader,...priceHeader]];
+    selectedModels.forEach(m=>{
+      const item=currentResultList.find(p=>p.model===m);
+      if(!item)return;
+      const baseRow=[item.model,item.mainModel,item.name,item.colorList,item.cartonQty,item.productUrl];
 
-    const costKey = `quote${qty}`;
-
-    const workbook = new ExcelJS.Workbook();
-    const ws = workbook.addWorksheet("報價", {
-      properties: { defaultRowHeight: 80 }
+      let priceRow=[];
+      if(qty){
+        const ck=`quote${qty}`;
+        priceRow=[item[ck]||item.quote50,item.minPrice,item.marketPrice];
+      }else{
+        if(userLevel===1) priceRow=[item.quote50,item.minPrice,item.marketPrice];
+        else if(userLevel===2) priceRow=[item.quote50,item.quote100,item.quote300,item.minPrice,item.marketPrice];
+        else priceRow=[item.quote50,item.quote100,item.quote300,item.quote500,item.quote1000,item.minPrice,item.marketPrice];
+      }
+      rows.push([...baseRow,...priceRow]);
     });
 
-    ws.columns = [
-      { header: "商品圖片", key: "img", width: 20 },
-      { header: "商品型號", key: "model", width: 15 },
-      { header: "主型號", key: "mainModel", width: 15 },
-      { header: "商品名稱", key: "name", width: 30 },
-      { header: "顏色", key: "colorList", width: 20 },
-      { header: `${qty}個`, key: "qtyPrice", width: 12 },
-      { header: "末售", key: "minPrice", width: 12 },
-      { header: "賣場", key: "marketPrice", width: 12 }
-    ];
-
-    const selectedModels = Array.from(checked).map(c => c.getAttribute("data-model"));
-
-    for (const model of selectedModels) {
-      const item = currentResultList.find(p => p.model === model);
-      if (!item) continue;
-
-      const row = ws.addRow({
-        model: item.model,
-        mainModel: item.mainModel,
-        name: item.name,
-        colorList: item.colorList || "",
-        qtyPrice: item[costKey] || "",
-        minPrice: item.minPrice || "",
-        marketPrice: item.marketPrice || ""
-      });
-
-      const imgUrl = item.imageUrl;
-      if (imgUrl) {
-        try {
-          const imgResp = await fetch(imgUrl);
-          const imgBlob = await imgResp.blob();
-          const arrayBuffer = await imgBlob.arrayBuffer();
-
-          const imageId = workbook.addImage({
-            buffer: arrayBuffer,
-            extension: "jpeg"
-          });
-
-          ws.addImage(imageId, {
-            tl: { col: 0, row: row.number - 1 },
-            ext: { width: 100, height: 100 }
-          });
-        } catch (e) {
-          console.error("圖片擷取失敗：", imgUrl, e);
-        }
-      }
-    }
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), `KINYO_商品報價_${qty}個_含圖片.xlsx`);
+    const wb=XLSX.utils.book_new();
+    const ws=XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb,ws,"報價");
+    XLSX.writeFile(wb,`KINYO_商品報價_${qty?qty+'個':'完整版'}.xlsx`);
   }
 
   // Events
-  document.getElementById("searchBtn").onclick = searchProducts;
+  searchBtn.onclick = searchProducts;
   exportBtn.onclick = exportSelectedExcel;
+
+  // Enter 搜尋
+  [keywordInput, qtySelect, minPriceInput, maxPriceInput].forEach(el=>{
+    el.addEventListener("keydown",(e)=>{
+      if(e.key==="Enter") searchProducts();
+    });
+  });
 
   clearBtn.onclick = () => {
     keywordInput.value="";
@@ -864,7 +915,6 @@ th{background:#fafafa;text-align:left;}
     resultTable.style.display="none";
     exportBtn.disabled=true;
     detailCard.style.display="none";
-    window.lastSearchMode="keyword";
   };
 
   sortSelect.onchange = () => {
@@ -873,16 +923,6 @@ th{background:#fafafa;text-align:left;}
       renderResults(currentResultList);
     }
   };
-
-  // v4.2 Enter 搜尋（僅搜尋欄位）
-  [keywordInput, qtySelect, minPriceInput, maxPriceInput].forEach(el=>{
-    el.addEventListener("keydown",(e)=>{
-      if(e.key==="Enter"){
-        e.preventDefault();
-        searchProducts();
-      }
-    });
-  });
 
   document.addEventListener("click",(e)=>{
     if(e.target.classList.contains("add-quote-btn")){
@@ -978,7 +1018,7 @@ ${costText}
     logoutBtn.style.display="inline-block";
 
     setupQtySelectByLevel();
-    preloadProducts();
+    await preloadProducts();
   });
 
   logoutBtn.onclick = () => signOut(auth);
