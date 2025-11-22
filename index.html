@@ -1130,7 +1130,9 @@ clearQuoteBtn.onclick = () => {
 
 /* Enter 搜尋 */
 keywordInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") searchProducts();
+  if (e.key === "Enter") {
+    document.getElementById("searchBtn").click(); 
+  }
 });
 
 /* 清除搜尋條件 */
