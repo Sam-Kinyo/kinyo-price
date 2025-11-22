@@ -150,29 +150,6 @@ input,select{
 }
 .btn-outline-add:hover{background:#dbeafe;}
 
-/* ✅ Drive 商品大圖按鈕（藍色膠囊） */
-.drive-main-btn{
-  display:inline-block;
-  padding:8px 14px;
-  border-radius:999px;
-  background:#2563eb;
-  color:#fff !important;
-  font-size:15px;
-  font-weight:700;
-  text-decoration:none;
-}
-.drive-main-btn:hover{background:#1d4ed8;}
-
-/* ✅ 商品網路圖縮圖（100px） */
-.net-thumb{
-  width:100px;
-  height:100px;
-  object-fit:cover;
-  border-radius:8px;
-  border:1px solid #e5e7eb;
-  background:#fff;
-}
-
 /* =========================================
    表格
 ========================================= */
@@ -466,8 +443,8 @@ let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
 
-/* ✅ Google Drive 商品大圖 + 網路圖（modelData.json） */
-let driveDataMap = new Map(); // key: MODEL or mainModel (UPPER)
+/* ✅ Google Drive 大圖 / 網路圖（modelData.json） */
+let driveDataMap = new Map();
 let isDriveLoaded = false;
 
 const searchForm     = document.getElementById("searchForm");
@@ -530,51 +507,48 @@ async function preloadDriveImages() {
     (json.models || []).forEach(m => {
       const key = String(m?.model || "").trim().toUpperCase();
       if (!key) return;
-      driveDataMap.set(key, {
-        mainImage: m?.mainImage || "",
-        netImages: Array.isArray(m?.netImages) ? m.netImages : []
-      });
+
+      // 主圖連結
+      const mainImage = m?.mainImage || "";
+
+      // 子資料夾「網路圖」folder id
+      let netFolderId = "";
+      const others = Array.isArray(m?.others) ? m.others : [];
+      const netFolder = others.find(o => (o?.mimeType || "").includes("folder") && String(o?.name||"").trim() === "網路圖");
+      if (netFolder?.id) netFolderId = netFolder.id;
+
+      driveDataMap.set(key, { mainImage, netFolderId });
     });
 
     isDriveLoaded = true;
-    console.log("Drive 圖片資料載入完成：", driveDataMap.size);
+    console.log("Drive 大圖/網路圖載入完成：", driveDataMap.size);
   } catch (e) {
     isDriveLoaded = false;
-    console.warn("Drive 圖片資料載入失敗（不影響主功能）:", e);
+    console.warn("Drive 大圖/網路圖載入失敗（不影響主功能）:", e);
   }
-}
-
-function getDriveData(item){
-  const m1 = (item?.model || "").trim().toUpperCase();
-  const m2 = (item?.mainModel || "").trim().toUpperCase();
-  return driveDataMap.get(m1) || driveDataMap.get(m2) || { mainImage:"", netImages:[] };
 }
 
 function getDriveMainImage(item){
-  return getDriveData(item).mainImage || "";
+  const main = (item?.mainModel || getMainModel(item?.model) || "").trim().toUpperCase();
+  const raw  = (item?.model || "").trim().toUpperCase();
+  return (driveDataMap.get(main) || driveDataMap.get(raw) || {}).mainImage || "";
 }
 
-function getDriveNetImages(item){
-  return getDriveData(item).netImages || [];
+function getDriveNetFolderLink(item){
+  const main = (item?.mainModel || getMainModel(item?.model) || "").trim().toUpperCase();
+  const raw  = (item?.model || "").trim().toUpperCase();
+  const data = driveDataMap.get(main) || driveDataMap.get(raw) || {};
+  if (!data.netFolderId) return "";
+  return `https://drive.google.com/drive/folders/${data.netFolderId}`;
 }
 
-function getMainModel(model) {
+
+function getMainModel(model){
   if (!model) return "";
-  const raw = model.toUpperCase().trim();
-
-  if (raw.includes("-")) {
-    const parts = raw.split("-");
-    const lastPart = parts[parts.length - 1];
-    if (/^[A-Z]{1,3}$/.test(lastPart)) {
-      return raw.replace(/-[A-Z]{1,3}$/,"");
-    }
-    return raw;
-  }
-
-  const m = raw.match(/^([A-Z]+[0-9]+)([A-Z]{1,3})$/);
-  if (m) return m[1];
-
-  return raw;
+  const raw = String(model).toUpperCase().trim();
+  // 依你的規則：主型號只取「英文+數字(+可選-數字)」，後面顏色英文一律忽略
+  const m = raw.match(/^([A-Z]+[0-9]+(?:-[0-9]+)?)/);
+  return m ? m[1] : raw;
 }
 
 async function preloadProducts() {
@@ -652,16 +626,6 @@ function mergeByMainModel(list) {
       const exist = map[main].colorList.split(" / ").filter(Boolean);
       const incoming = (item.colorList || "").split(" / ").filter(Boolean);
       map[main].colorList = [...new Set([...exist, ...incoming])].join(" / ");
-
-      // ✅ 合併 Drive 網路圖
-      const existNet = Array.isArray(map[main].netImages) ? map[main].netImages : [];
-      const incomingNet = Array.isArray(item.netImages) ? item.netImages : [];
-      map[main].netImages = [...new Set([...existNet, ...incomingNet])];
-
-      // ✅ 主圖只要有一張就留
-      if (!map[main].driveMainImage && item.driveMainImage) {
-        map[main].driveMainImage = item.driveMainImage;
-      }
     }
   });
 
@@ -672,7 +636,7 @@ function applySorting(list) {
   const o = sortSelect.value;
   if (o === "minPriceAsc")  return list.sort((a,b)=> (a.minPrice||0) - (b.minPrice||0));
   if (o === "minPriceDesc") return list.sort((a,b)=> (b.minPrice||0) - (a.minPrice||0));
-  if (o === "marketAsc")    return list.sort((a,b)=> (a.marketPrice||0) - (a.marketPrice||0));
+  if (o === "marketAsc")    return list.sort((a,b)=> (a.marketPrice||0) - (b.marketPrice||0));
   if (o === "marketDesc")   return list.sort((a,b)=> (b.marketPrice||0) - (a.marketPrice||0));
   if (o === "alphaAsc")     return list.sort((a,b)=> (a.mainModel||"").localeCompare(b.mainModel||""));
   if (o === "alphaDesc")    return list.sort((a,b)=> (b.mainModel||"").localeCompare(a.mainModel||""));
@@ -814,42 +778,33 @@ function renderResults(list) {
 /* ✅ 新增商品大圖（主圖下方） */
 function showDetailDesktop(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-  const driveMainImage = item.driveMainImage || getDriveMainImage(item);
-  const netImages = Array.isArray(item.netImages) ? item.netImages : getDriveNetImages(item);
+  const driveMainImage = getDriveMainImage(item);
+  const driveNetFolder = getDriveNetFolderLink(item);
 
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netGalleryHtml = (netImages && netImages.length)
-    ? `
-      <div style="margin:12px 0 6px;">
-        <div style="font-weight:700;margin-bottom:6px;color:#2563eb;">商品網路圖</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${netImages.map(u => `
-            <a href="${u}" target="_blank" title="開啟原圖">
-              <img src="${u}" class="net-thumb">
-            </a>
-          `).join("")}
-        </div>
-      </div>
-    `
-    : "";
-
   detailCard.style.display = "block";
   detailCard.innerHTML = `
-    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;">
+    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:10px;">
 
-    ${driveMainImage ? `
-      <div style="margin-bottom:10px;text-align:center;">
-        <a href="${driveMainImage}" target="_blank" class="drive-main-btn">商品大圖預覽下載</a>
-      </div>
-    ` : ""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      ${driveMainImage ? `
+        <a href="${driveMainImage}" target="_blank"
+           style="display:inline-block;padding:8px 14px;border-radius:999px;background:#2563eb;color:#fff;font-weight:700;font-size:14px;text-decoration:none;">
+           商品大圖預覽下載
+        </a>` : ""}
 
-    ${netGalleryHtml}
+      ${driveNetFolder ? `
+        <a href="${driveNetFolder}" target="_blank"
+           style="display:inline-block;padding:8px 14px;border-radius:999px;background:#0ea5e9;color:#fff;font-weight:700;font-size:14px;text-decoration:none;">
+           查看下載商品網路圖
+        </a>` : ""}
+    </div>
 
-    <div style="font-weight:700;font-size:16px;margin:6px 0;">${item.name || "-"}</div>
+    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
       <strong>主型號：</strong>${item.mainModel || "-"}<br>
       <strong>顏色：</strong>${item.colorList || "-"}<br>
@@ -857,10 +812,8 @@ function showDetailDesktop(item) {
       <strong>末售：</strong>${item.minPrice ?? "-"}<br>
       <strong>網址：</strong>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往</a>` : "-"}
     </div>
-
     <div style="font-weight:700;margin-bottom:6px;">採購價格</div>
     <div style="line-height:1.6;">${priceBlock}</div>
-
     <div style="display:flex; gap:8px; margin-top:12px;">
       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
@@ -870,41 +823,32 @@ function showDetailDesktop(item) {
 
 function showDetailMobile(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-  const driveMainImage = item.driveMainImage || getDriveMainImage(item);
-  const netImages = Array.isArray(item.netImages) ? item.netImages : getDriveNetImages(item);
+  const driveMainImage = getDriveMainImage(item);
+  const driveNetFolder = getDriveNetFolderLink(item);
 
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netGalleryHtml = (netImages && netImages.length)
-    ? `
-      <div style="margin:12px 0 6px;">
-        <div style="font-weight:700;margin-bottom:6px;color:#2563eb;">商品網路圖</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${netImages.map(u => `
-            <a href="${u}" target="_blank" title="開啟原圖">
-              <img src="${u}" class="net-thumb">
-            </a>
-          `).join("")}
-        </div>
-      </div>
-    `
-    : "";
-
   sheetContent.innerHTML = `
-    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;">
+    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:10px;">
 
-    ${driveMainImage ? `
-      <div style="margin-bottom:10px;text-align:center;">
-        <a href="${driveMainImage}" target="_blank" class="drive-main-btn">商品大圖預覽下載</a>
-      </div>
-    ` : ""}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      ${driveMainImage ? `
+        <a href="${driveMainImage}" target="_blank"
+           style="display:inline-block;padding:8px 14px;border-radius:999px;background:#2563eb;color:#fff;font-weight:700;font-size:15px;text-decoration:none;">
+           商品大圖預覽下載
+        </a>` : ""}
 
-    ${netGalleryHtml}
+      ${driveNetFolder ? `
+        <a href="${driveNetFolder}" target="_blank"
+           style="display:inline-block;padding:8px 14px;border-radius:999px;background:#0ea5e9;color:#fff;font-weight:700;font-size:15px;text-decoration:none;">
+           查看下載商品網路圖
+        </a>` : ""}
+    </div>
 
-    <div style="font-weight:700;font-size:16px;margin:6px 0;">${item.name || "-"}</div>
+    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
       <strong>主型號：</strong>${item.mainModel || "-"}<br>
       <strong>顏色：</strong>${item.colorList || "-"}<br>
@@ -912,10 +856,8 @@ function showDetailMobile(item) {
       <strong>末售：</strong>${item.minPrice ?? "-"}<br>
       <strong>網址：</strong>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往</a>` : "-"}
     </div>
-
     <div style="font-weight:700;margin-bottom:6px;">採購價格</div>
     <div style="line-height:1.6;">${priceBlock}</div>
-
     <div style="display:flex; gap:8px; margin-top:12px;">
       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
@@ -1222,8 +1164,8 @@ onAuthStateChanged(auth, async (user) => {
 
   setupQtySelectByLevel();
 
-  await preloadDriveImages(); // ✅ 先載入 Drive 圖片資料
-  await preloadProducts();    // ✅ 再載入 Firestore 商品
+  preloadDriveImages(); // ✅ 載入商品大圖
+  preloadProducts();    // ✅ 載入商品資料
 });
 
 logoutBtn.onclick = () => signOut(auth);
