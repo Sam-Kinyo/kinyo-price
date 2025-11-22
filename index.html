@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.5・快取加速最終版）</title>
+<title>KINYO 查價系統（v4.5・完整整合版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -119,6 +119,7 @@ input,select{
   border-radius:999px;
   cursor:pointer;
   font-size:14px;
+  white-space:nowrap;
 }
 .btn-secondary:disabled{
   opacity:.5; cursor:not-allowed;
@@ -141,8 +142,10 @@ input,select{
   gap:10px;
   align-items:center;
   margin:10px 0 6px;
+  flex-wrap:wrap;
 }
-.toolbar select{flex:1;}
+.toolbar select{flex:1; min-width:150px;}
+.toolbar button{flex:0 0 auto;}
 
 /* Table */
 table{
@@ -244,31 +247,6 @@ th{background:#fafafa;text-align:left;}
 .quote-del{color:#999;cursor:pointer;padding:6px;font-size:16px;}
 .quote-del:hover{color:#ef4444;}
 
-/* FAB cart */
-.fab-cart{
-  position:fixed;
-  bottom:26px;right:22px;
-  width:62px;height:62px;
-  background:#111827;color:#fff;
-  border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  box-shadow:0 6px 16px rgba(0,0,0,0.25);
-  cursor:pointer;z-index:990;
-}
-.fab-badge{
-  position:absolute;top:-2px;right:-2px;
-  background:#ef4444;color:#fff;
-  font-size:12px;font-weight:700;
-  width:22px;height:22px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  border:2px solid #fff;
-}
-.bounce{animation:bounce .3s ease-in-out;}
-@keyframes bounce{
-  0%,100%{transform:scale(1);}
-  50%{transform:scale(1.2);}
-}
-
 /* RWD */
 @media (max-width:900px){
   #detailCard{display:none!important;}
@@ -327,6 +305,7 @@ th{background:#fafafa;text-align:left;}
   <button id="clearBtn" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </div>
 
+<!-- Toolbar：排序 + 匯出 + 報價單 -->
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
     <option value="">不排序</option>
@@ -338,7 +317,8 @@ th{background:#fafafa;text-align:left;}
     <option value="alphaDesc">主型號：Z → A</option>
   </select>
 
-  <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
+  <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel（含圖片）</button>
+  <button id="openQuoteBtn" class="btn-secondary" disabled>📋 報價單（0）</button>
 </div>
 
 <table id="resultTable" style="display:none;">
@@ -386,12 +366,6 @@ th{background:#fafafa;text-align:left;}
   </div>
 </div>
 
-<!-- FAB cart -->
-<div id="fabCart" class="fab-cart hidden">
-  <span style="font-size:24px;">📝</span>
-  <div id="cartCount" class="fab-badge">0</div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
@@ -429,6 +403,7 @@ th{background:#fafafa;text-align:left;}
   const maxPriceInput  = document.getElementById("maxPrice");
   const sortSelect     = document.getElementById("sortSelect");
   const exportBtn      = document.getElementById("exportBtn");
+  const openQuoteBtn   = document.getElementById("openQuoteBtn");
   const clearBtn       = document.getElementById("clearBtn");
   const searchBtn      = document.getElementById("searchBtn");
   const resultTable    = document.getElementById("resultTable");
@@ -450,9 +425,7 @@ th{background:#fafafa;text-align:left;}
   const quoteTotalEl   = document.getElementById("quoteTotal");
   const copyQuoteBtn   = document.getElementById("copyQuoteBtn");
   const clearQuoteBtn  = document.getElementById("clearQuoteBtn");
-  const fabCart        = document.getElementById("fabCart");
-  const cartCount      = document.getElementById("cartCount");
-  const loadBar        = document.getElementById("loadBar");
+
   const loadText       = document.getElementById("loadText");
   const loadDot        = document.getElementById("loadDot");
 
@@ -460,11 +433,10 @@ th{background:#fafafa;text-align:left;}
     R:"紅", B:"藍", G:"綠", BK:"黑", WH:"白", PK:"粉", Y:"黃", OR:"橘", BL:"藍", W:"白"
   };
 
-  // ===== 主型號規則（你剛剛定的）：英文+數字+英文 -> 最後英文視為顏色 =====
+  // ===== 主型號規則（你定的）：英文+數字+英文 -> 最後英文視為顏色 =====
   function getMainModel(model) {
     if (!model) return "-";
     const m = model.trim();
-    // 如果最後一碼是英文，就去掉最後一碼當顏色
     if (/[A-Za-z]$/.test(m) && /[A-Za-z0-9]+[A-Za-z]$/.test(m)) {
       return m.slice(0, -1);
     }
@@ -499,6 +471,7 @@ th{background:#fafafa;text-align:left;}
   function setLoadedUI(msg="商品已載入，可以開始搜尋") {
     isLoaded = true;
     searchBtn.disabled = false;
+    openQuoteBtn.disabled = false;
     exportBtn.disabled = (currentResultList.length === 0);
     loadText.textContent = msg;
     loadDot.classList.add("ok");
@@ -508,6 +481,7 @@ th{background:#fafafa;text-align:left;}
     isLoaded = false;
     searchBtn.disabled = true;
     exportBtn.disabled = true;
+    openQuoteBtn.disabled = true;
     loadText.textContent = msg;
     loadDot.classList.remove("ok");
   }
@@ -542,12 +516,10 @@ th{background:#fafafa;text-align:left;}
 
   // ===== 預載：先快取、後背景更新 =====
   async function preloadProducts() {
-    // 1) 先快取（秒開）
     const cached = loadFromCache();
     if (cached) {
       productCache = cached;
       setLoadedUI(`已從快取載入 ${productCache.length} 筆商品，背景同步更新中…`);
-      // 背景同步 firestore
       try {
         const fresh = await fetchProductsFromFirestore();
         productCache = fresh;
@@ -560,7 +532,6 @@ th{background:#fafafa;text-align:left;}
       return;
     }
 
-    // 2) 沒快取 -> 正常載入
     setLoadingUI("首次載入商品資料中…（請稍候 1–3 秒）");
     try {
       const fresh = await fetchProductsFromFirestore();
@@ -604,7 +575,6 @@ th{background:#fafafa;text-align:left;}
         };
       } else {
         map[main].models.push(item.model);
-
         const exist = map[main].colorList.split(" / ").filter(Boolean);
         const newColors = (item.colorList || "").split(" / ").filter(Boolean);
         map[main].colorList = [...new Set([...exist, ...newColors])].join(" / ");
@@ -625,14 +595,14 @@ th{background:#fafafa;text-align:left;}
   }
 
   function searchProducts() {
-    if (!isLoaded) return; // v4.5：不彈窗、不做事
+    if (!isLoaded) return;
 
     const key = keywordInput.value.trim().toLowerCase();
     const qty = qtySelect.value;
     const minPraw = minPriceInput.value.trim();
     const maxPraw = maxPriceInput.value.trim();
 
-    // A) 只打關鍵字（沒有起訂量）
+    // A) 只打關鍵字
     if (key && !qty) {
       const r = productCache.filter(p => (p.searchKey || "").includes(key));
       currentResultList = applySorting(mergeByMainModel(r));
@@ -640,7 +610,7 @@ th{background:#fafafa;text-align:left;}
       return;
     }
 
-    // B) 起訂量 + 預算（預算可只填一邊）
+    // B) 起訂量 + 預算
     if (qty) {
       const costKey = `quote${qty}`;
       const minP = minPraw ? Number(minPraw) : 0;
@@ -797,6 +767,19 @@ th{background:#fafafa;text-align:left;}
     }, 220);
   }
 
+  function openQuoteSheet() {
+    sheetBackdrop.classList.remove("hidden");
+    quoteSheet.classList.remove("hidden");
+    requestAnimationFrame(()=>quoteSheet.classList.add("open"));
+    renderQuoteList();
+  }
+
+  function closeQuoteSheet() {
+    quoteSheet.classList.remove("open");
+    setTimeout(()=>quoteSheet.classList.add("hidden"),220);
+    if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
+  }
+
   function bindCheckAll() {
     const rowChecks = document.querySelectorAll(".row-check");
     checkAllBox.onchange = () => rowChecks.forEach(c=>c.checked=checkAllBox.checked);
@@ -810,14 +793,7 @@ th{background:#fafafa;text-align:left;}
   }
 
   function updateCartCount() {
-    cartCount.textContent = quoteList.length;
-    if (quoteList.length>0){
-      fabCart.classList.remove("hidden");
-      fabCart.classList.add("bounce");
-      setTimeout(()=>fabCart.classList.remove("bounce"),300);
-    } else {
-      fabCart.classList.add("hidden");
-    }
+    openQuoteBtn.textContent = `📋 報價單（${quoteList.length}）`;
   }
 
   function renderQuoteList() {
@@ -826,6 +802,7 @@ th{background:#fafafa;text-align:left;}
     if (quoteList.length===0){
       quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的</div>`;
       quoteTotalEl.textContent = "$0";
+      updateCartCount();
       return;
     }
     quoteList.forEach((q,idx)=>{
@@ -846,11 +823,13 @@ th{background:#fafafa;text-align:left;}
       quoteListBody.appendChild(div);
     });
     quoteTotalEl.textContent = "$"+total.toLocaleString();
+    updateCartCount();
+
     document.querySelectorAll(".quote-del").forEach(btn=>{
       btn.onclick=(e)=>{
         const i=Number(e.target.getAttribute("data-idx"));
         quoteList.splice(i,1);
-        renderQuoteList(); updateCartCount();
+        renderQuoteList();
       };
     });
   }
@@ -898,6 +877,7 @@ th{background:#fafafa;text-align:left;}
   // Events
   searchBtn.onclick = searchProducts;
   exportBtn.onclick = exportSelectedExcel;
+  openQuoteBtn.onclick = openQuoteSheet;
 
   // Enter 搜尋
   [keywordInput, qtySelect, minPriceInput, maxPriceInput].forEach(el=>{
@@ -935,7 +915,7 @@ th{background:#fafafa;text-align:left;}
       const cost=item[ck]||item.quote50;
 
       quoteList.push({model:item.model,name:item.name,price:cost,qtyLabel:`${qty}個`,count:1});
-      updateCartCount();
+      renderQuoteList();
       alert(`已加入報價單（${qty}個：$${cost}）`);
     }
 
@@ -960,34 +940,15 @@ ${costText}
     }
   });
 
-  fabCart.onclick = () => {
-    sheetBackdrop.classList.remove("hidden");
-    quoteSheet.classList.remove("hidden");
-    requestAnimationFrame(()=>quoteSheet.classList.add("open"));
-    renderQuoteList();
-  };
-
-  quoteCloseBtn.onclick = () => {
-    quoteSheet.classList.remove("open");
-    setTimeout(()=>quoteSheet.classList.add("hidden"),220);
-    if(mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
-  };
-
-  sheetBackdrop.onclick = () => {
-    closeSheet();
-    quoteSheet.classList.remove("open");
-    setTimeout(()=>quoteSheet.classList.add("hidden"),220);
-  };
-
+  quoteCloseBtn.onclick = closeQuoteSheet;
+  sheetBackdrop.onclick = () => { closeSheet(); closeQuoteSheet(); };
   sheetCloseBtn.onclick = closeSheet;
 
   clearQuoteBtn.onclick = () => {
     if(confirm("確定要清空報價單嗎？")){
       quoteList=[];
       renderQuoteList();
-      updateCartCount();
-      quoteSheet.classList.remove("open");
-      setTimeout(()=>quoteSheet.classList.add("hidden"),220);
+      closeQuoteSheet();
     }
   };
 
@@ -1019,6 +980,7 @@ ${costText}
 
     setupQtySelectByLevel();
     await preloadProducts();
+    renderQuoteList(); // 初始化報價單數字
   });
 
   logoutBtn.onclick = () => signOut(auth);
