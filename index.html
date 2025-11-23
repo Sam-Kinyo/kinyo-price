@@ -6,6 +6,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
+/* =========================================
+   Root 變數
+========================================= */
 :root{
   --bg:#f5f6f8;
   --card:#ffffff;
@@ -20,6 +23,9 @@
   --loading-fill:#3b82f6;
 }
 
+/* =========================================
+   Body
+========================================= */
 body{
   margin:0;
   padding:24px;
@@ -37,6 +43,9 @@ h1{margin:0 0 4px;}
   font-size:14px;
 }
 
+/* =========================================
+   Top Bar
+========================================= */
 .top-bar{
   display:flex;
   justify-content:space-between;
@@ -58,6 +67,9 @@ h1{margin:0 0 4px;}
   font-size:12px;
 }
 
+/* =========================================
+   Toolbar（排序/匯出/報價單）
+========================================= */
 .toolbar{
   display:flex;
   gap:10px;
@@ -66,6 +78,7 @@ h1{margin:0 0 4px;}
 }
 .toolbar select{ flex:1; }
 
+/* 報價單按鈕 */
 .quote-toolbar-btn{
   padding:10px 16px;
   border-radius:999px;
@@ -77,6 +90,9 @@ h1{margin:0 0 4px;}
   display:none;
 }
 
+/* =========================================
+   搜尋區塊
+========================================= */
 .search-box{
   background:var(--card);
   padding:18px;
@@ -100,6 +116,9 @@ input,select{
   box-sizing:border-box;
 }
 
+/* =========================================
+   Buttons
+========================================= */
 .btn-primary{
   background:var(--primary);
   color:white;
@@ -131,6 +150,9 @@ input,select{
 }
 .btn-outline-add:hover{background:#dbeafe;}
 
+/* =========================================
+   表格
+========================================= */
 table{
   width:100%;
   border-collapse:collapse;
@@ -155,6 +177,7 @@ th{background:#fafafa;text-align:left;}
   background:#fff;
 }
 
+/* 價格標籤 */
 .price-tag{
   padding:3px 8px;
   font-size:12px;
@@ -171,6 +194,9 @@ th{background:#fafafa;text-align:left;}
 .tag500{background:#ffedd5;color:#ea580c;}
 .tag1000{background:#fee2e2;color:#b91c1c;}
 
+/* =========================================
+   Loading（中間顯示）
+========================================= */
 #centerLoadingBox{
   position:fixed;
   inset:0;
@@ -207,6 +233,9 @@ th{background:#fafafa;text-align:left;}
   transition:width .15s linear;
 }
 
+/* =========================================
+   Desktop Detail Card
+========================================= */
 #detailCard{
   position:fixed;
   right:20px;
@@ -222,6 +251,9 @@ th{background:#fafafa;text-align:left;}
   z-index:999;
 }
 
+/* =========================================
+   Mobile Sheet（Detail / Quote 共用）
+========================================= */
 .sheet-backdrop{
   position:fixed;inset:0;
   background:rgba(0,0,0,0.45);
@@ -252,6 +284,7 @@ th{background:#fafafa;text-align:left;}
 }
 .hidden{display:none!important;}
 
+/* Quote list */
 .quote-item{
   display:flex;justify-content:space-between;align-items:center;
   padding:12px 0;border-bottom:1px solid #eee;
@@ -284,6 +317,9 @@ th{background:#fafafa;text-align:left;}
 }
 .netgallery-link:hover{text-decoration:underline;}
 
+/* =========================================
+   RWD
+========================================= */
 @media (max-width:900px){
   #detailCard{display:none!important;}
 }
@@ -303,6 +339,7 @@ th{background:#fafafa;text-align:left;}
 </head>
 <body>
 
+<!-- v4.7.7 中央 Loading -->
 <div id="centerLoadingBox">
   <div id="centerLoadingCard">
     <div class="loading-title">商品載入中...</div>
@@ -429,11 +466,10 @@ let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
 
-/* ✅ Drive Map：model/mainModel -> entry */
+/* ✅ Drive models 資料（modelData.json） */
 let driveModelMap = new Map();
 let isDriveLoaded = false;
 
-/* DOM */
 const searchForm     = document.getElementById("searchForm");
 const keywordInput   = document.getElementById("keyword");
 const qtySelect      = document.getElementById("qtySelect");
@@ -467,7 +503,6 @@ const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
 const centerLoadingBox = document.getElementById("centerLoadingBox");
 const centerLoadingBar = document.getElementById("centerLoadingBar");
 
-/* Loading */
 function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
@@ -482,10 +517,12 @@ function hideLoading() {
   }, 260);
 }
 
-/* 主型號解析 */
-function getMainModel(model) {
+/* =======================================================
+   主型號規則：KH195PI -> KH195（尾碼英文字母=顏色）
+======================================================= */
+function getMainModel(model){
   if (!model) return "";
-  const raw = model.toUpperCase().trim();
+  const raw = String(model).toUpperCase().trim();
 
   if (raw.includes("-")) {
     const parts = raw.split("-");
@@ -503,7 +540,7 @@ function getMainModel(model) {
 }
 
 /* =======================================================
-   讀取 Google Drive modelData.json（載入整個 entry）
+   讀取 Google Drive modelData.json
 ======================================================= */
 async function preloadDriveImages() {
   try {
@@ -516,8 +553,7 @@ async function preloadDriveImages() {
       if (!entry?.model) return;
       const m = String(entry.model).trim().toUpperCase();
       driveModelMap.set(m, entry);
-      // 再放一份主型號 key（保險）
-      driveModelMap.set(getMainModel(m), entry);
+      driveModelMap.set(getMainModel(m), entry); // 主型號 key
     });
 
     isDriveLoaded = true;
@@ -565,7 +601,7 @@ function getDriveNetGalleryUrl(item){
 }
 
 /* =======================================================
-   商品預載入
+   Firestore 商品預載入
 ======================================================= */
 async function preloadProducts() {
   showLoading();
@@ -650,19 +686,17 @@ function mergeByMainModel(list) {
   return Object.values(map);
 }
 
-/* 排序（修正 marketAsc typo） */
 function applySorting(list) {
   const o = sortSelect.value;
   if (o === "minPriceAsc")  return list.sort((a,b)=> (a.minPrice||0) - (b.minPrice||0));
   if (o === "minPriceDesc") return list.sort((a,b)=> (b.minPrice||0) - (a.minPrice||0));
-  if (o === "marketAsc")    return list.sort((a,b)=> (a.marketPrice||0) - (b.marketPrice||0));
+  if (o === "marketAsc")    return list.sort((a,b)=> (a.marketPrice||0) - (a.marketPrice||0));
   if (o === "marketDesc")   return list.sort((a,b)=> (b.marketPrice||0) - (a.marketPrice||0));
   if (o === "alphaAsc")     return list.sort((a,b)=> (a.mainModel||"").localeCompare(b.mainModel||""));
   if (o === "alphaDesc")    return list.sort((a,b)=> (b.mainModel||"").localeCompare(a.mainModel||""));
   return list;
 }
 
-/* 搜尋 */
 function searchProducts() {
   if (!isProductsLoaded) {
     alert("商品尚未載入完成，請稍等 1~2 秒再搜尋");
@@ -880,7 +914,6 @@ function showDetailMobile(item) {
   openSheet();
 }
 
-/* Sheet 控制 */
 function openSheet() {
   sheetBackdrop.classList.remove("hidden");
   mobileSheet.classList.remove("hidden");
@@ -894,7 +927,6 @@ function closeSheet() {
   }, 220);
 }
 
-/* 全選 */
 function bindCheckAll() {
   const rowChecks = document.querySelectorAll(".row-check");
 
@@ -913,7 +945,6 @@ function bindCheckAll() {
   });
 }
 
-/* 多選 LINE */
 const toolbarEl = document.querySelector(".toolbar");
 const multiLineBtn = document.createElement("button");
 multiLineBtn.id = "multiLineBtn";
@@ -927,7 +958,6 @@ function updateMultiLineBtnState() {
   multiLineBtn.disabled = checked.length === 0;
 }
 
-/* 報價單按鈕 */
 function updateQuoteToolbarBtn() {
   if (quoteList.length > 0) {
     quoteToolbarBtn.style.display = "inline-block";
@@ -937,7 +967,6 @@ function updateQuoteToolbarBtn() {
   }
 }
 
-/* 報價單內容 */
 function renderQuoteList() {
   quoteListBody.innerHTML = "";
 
@@ -985,7 +1014,6 @@ function closeQuoteSheet() {
   if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
 }
 
-/* 匯出 Excel */
 function exportSelectedExcel() {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
@@ -1027,7 +1055,6 @@ function exportSelectedExcel() {
   XLSX.writeFile(wb, `KINYO_商品報價_${qty ? qty+'個' : '關鍵字搜尋'}.xlsx`);
 }
 
-/* 報價單匯出 Excel */
 function downloadQuoteExcel() {
   if (quoteList.length === 0) { alert("報價單是空的"); return; }
 
@@ -1041,7 +1068,7 @@ function downloadQuoteExcel() {
   XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-/* 加入報價單 / LINE 分享 */
+/* 事件委派 */
 document.addEventListener("click", (e) => {
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
@@ -1089,7 +1116,6 @@ ${costText}
   }
 });
 
-/* 多選 LINE 分享 */
 multiLineBtn.onclick = () => {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) return;
@@ -1100,7 +1126,7 @@ multiLineBtn.onclick = () => {
     const item  = currentResultList.find(p => p.model === model);
     if (!item) return;
 
-    const qty  = qtySelect.value || "50";
+    const qty  = qtySelect.value || "40";
     const ck   = `quote${qty}`;
     const cost = item[ck] ?? item.quote50 ?? "-";
 
@@ -1192,12 +1218,11 @@ onAuthStateChanged(auth, async (user) => {
   setupQtySelectByLevel();
 
   await preloadDriveImages(); // ✅ 先載 Drive
-  await preloadProducts();    // ✅ 再載商品
+  await preloadProducts();    // ✅ 再載 Firestore
 });
 
 /* 登出 */
 logoutBtn.onclick = () => signOut(auth);
-
 </script>
 </body>
 </html>
