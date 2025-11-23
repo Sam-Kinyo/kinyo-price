@@ -234,7 +234,7 @@ th{background:#fafafa;text-align:left;}
 }
 
 /* =========================================
-   Detail Sheet（含網路圖 UI）
+   Detail Card（桌機右側）
 ========================================= */
 #detailCard{
   position:fixed;
@@ -251,7 +251,9 @@ th{background:#fafafa;text-align:left;}
   z-index:999;
 }
 
-/* 網路圖 grid */
+/* =========================================
+   網路圖 grid
+========================================= */
 .net-gallery{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -278,9 +280,71 @@ th{background:#fafafa;text-align:left;}
   margin:6px 0;
 }
 
+/* =========================================
+   Mobile Sheet（Detail / Quote 共用）
+========================================= */
+.sheet-backdrop{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,0.45);
+  z-index:1000;
+}
+.sheet{
+  position:fixed;left:0;right:0;bottom:0;
+  height:80vh;background:#fff;
+  border-radius:16px 16px 0 0;
+  transform:translateY(100%);
+  transition:transform .25s ease;
+  display:flex;flex-direction:column;
+  z-index:1001;
+}
+.sheet.open{transform:translateY(0);}
+.sheet-header{
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+  font-weight:700;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.sheet-close{
+  background:none;border:none;
+  font-size:26px;cursor:pointer;line-height:1;
+}
+.sheet-content{
+  padding:16px;overflow-y:auto;font-size:15px;flex:1;
+}
+.hidden{display:none!important;}
+
+/* Quote list */
+.quote-item{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px solid #eee;
+}
+.quote-info{font-size:14px;color:#666;}
+.quote-price{font-weight:700;color:#2563eb;}
+.quote-del{color:#999;cursor:pointer;padding:6px;font-size:16px;}
+.quote-del:hover{color:#ef4444;}
+
+/* =========================================
+   RWD
+========================================= */
+@media (max-width:900px){
+  #detailCard{display:none!important;}
+}
+@media (max-width:600px){
+  body{padding:14px;}
+  .search-box{padding:14px;}
+  input,select{font-size:14px;}
+  .product-img{width:90px;height:90px;}
+  th,td{padding:8px 6px;font-size:13px;}
+  .price-tag-container{
+    display:grid;grid-template-columns:repeat(2,1fr);
+    gap:4px 6px;margin-bottom:4px;
+  }
+  .price-tag{width:100%;text-align:center;margin:0;}
+}
 </style>
 </head>
 <body>
+
 <!-- v4.7.7 中央 Loading -->
 <div id="centerLoadingBox">
   <div id="centerLoadingCard">
@@ -298,7 +362,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.7.7 + Drive 版本）　任何建議📱：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.7.7 + Drive 版本）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -408,6 +472,42 @@ const db   = getFirestore(app);
 const auth = getAuth(app);
 
 /* =======================================================
+   DOM refs
+======================================================= */
+const searchForm     = document.getElementById("searchForm");
+const keywordInput   = document.getElementById("keyword");
+const qtySelect      = document.getElementById("qtySelect");
+const minPriceInput  = document.getElementById("minPrice");
+const maxPriceInput  = document.getElementById("maxPrice");
+const sortSelect     = document.getElementById("sortSelect");
+const exportBtn      = document.getElementById("exportBtn");
+const clearBtn       = document.getElementById("clearBtn");
+
+const resultTable    = document.getElementById("resultTable");
+const resultBody     = document.getElementById("resultBody");
+const checkAllBox    = document.getElementById("checkAll");
+const detailCard     = document.getElementById("detailCard");
+
+const userInfoSpan   = document.getElementById("userInfo");
+const logoutBtn      = document.getElementById("logoutBtn");
+
+const sheetBackdrop  = document.getElementById("sheetBackdrop");
+const mobileSheet    = document.getElementById("mobileDetailSheet");
+const sheetContent   = document.getElementById("sheetContent");
+const sheetCloseBtn  = document.getElementById("sheetCloseBtn");
+
+const quoteSheet     = document.getElementById("quoteSheet");
+const quoteCloseBtn  = document.getElementById("quoteCloseBtn");
+const quoteListBody  = document.getElementById("quoteListBody");
+const copyQuoteBtn   = document.getElementById("copyQuoteBtn");
+const clearQuoteBtn  = document.getElementById("clearQuoteBtn");
+const downloadQuoteExcelBtn = document.getElementById("downloadQuoteExcelBtn");
+const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
+
+const centerLoadingBox = document.getElementById("centerLoadingBox");
+const centerLoadingBar = document.getElementById("centerLoadingBar");
+
+/* =======================================================
    全域變數
 ======================================================= */
 let productCache = [];
@@ -418,38 +518,76 @@ let quoteList = [];
 let isProductsLoaded = false;
 
 /* =======================================================
-   Google Drive modelData.json
+   Drive modelData.json
 ======================================================= */
-let driveMap = new Map();      // 商品大圖
-let netMap   = new Map();      // 網路圖資料夾
+let driveMap = new Map();      // key -> mainImage url
+let netMap   = new Map();      // key -> net folder url (optional)
+let netImagesMap = new Map();  // key -> net images urls
 let isDriveLoaded = false;
 
 /* =======================================================
-   載入 modelData.json（含：商品大圖、網路圖）
+   Loading 控制
+======================================================= */
+function showLoading() {
+  centerLoadingBox.style.display = "flex";
+  centerLoadingBar.querySelector(".fill").style.width = "0%";
+  setTimeout(() => {
+    centerLoadingBar.querySelector(".fill").style.width = "55%";
+  }, 120);
+}
+function hideLoading() {
+  centerLoadingBar.querySelector(".fill").style.width = "100%";
+  setTimeout(() => {
+    centerLoadingBox.style.display = "none";
+  }, 260);
+}
+
+/* =======================================================
+   ✅ Drive 載入（支援 mainImage + netImages + images + netGalleryUrl）
+   modelData.json 目前的網路圖存於 images[] (含 url)，因此一併相容。
 ======================================================= */
 async function preloadDriveModelData() {
   try {
     const res = await fetch("./modelData.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("modelData.json 讀取失敗");
     const data = await res.json();
 
     driveMap.clear();
     netMap.clear();
+    netImagesMap.clear();
 
     (data.models || []).forEach(m => {
-      const modelKey = (m.mainModel || m.model || "").trim().toUpperCase();
+      const key = String(m.mainModel || m.model || "").trim().toUpperCase();
+      if (!key) return;
 
-      if (m.mainImage) {
-        driveMap.set(modelKey, m.mainImage);
+      if (m.mainImage) driveMap.set(key, m.mainImage);
+
+      // 網路圖資料夾 url（若 python 有輸出）
+      const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
+      if (folderUrl) netMap.set(key, folderUrl);
+
+      // 主要網路圖來源：netImages[]（新格式）
+      if (Array.isArray(m.netImages) && m.netImages.length) {
+        netImagesMap.set(key, m.netImages.filter(Boolean));
+        return;
       }
-      if (m.netGalleryUrl) {
-        netMap.set(modelKey, m.netGalleryUrl);
+
+      // 相容舊格式：images[]（每個物件有 url）
+      if (Array.isArray(m.images) && m.images.length) {
+        const urls = m.images.map(x => x?.url).filter(Boolean);
+        if (urls.length) netImagesMap.set(key, urls);
       }
     });
 
-    console.log("Drive 大圖 / 網路圖載入完成：", driveMap.size, netMap.size);
+    console.log("Drive 載入完成：", {
+      mainImage: driveMap.size,
+      netFolder: netMap.size,
+      netImages: netImagesMap.size
+    });
+
     isDriveLoaded = true;
   } catch (e) {
-    console.warn("modelData.json 載入失敗：", e);
+    console.warn("Drive 載入失敗（不影響主功能）：", e);
     isDriveLoaded = false;
   }
 }
@@ -468,6 +606,13 @@ function getDriveNetGallery(model, mainModel) {
   return netMap.get(k1) || netMap.get(k2) || "";
 }
 
+/* 取得網路圖清單 */
+function getDriveNetImages(model, mainModel){
+  const k1 = model?.toUpperCase().trim();
+  const k2 = mainModel?.toUpperCase().trim();
+  return netImagesMap.get(k1) || netImagesMap.get(k2) || [];
+}
+
 /* =======================================================
    Firestore 商品預載入
 ======================================================= */
@@ -475,7 +620,7 @@ function getMainModel(model) {
   if (!model) return "";
   const raw = model.trim().toUpperCase();
 
-  // KH195PI → KH195
+  // KH195PI → KH195（英文字尾視為色碼）
   const m = raw.match(/^([A-Z]+[0-9]+)([A-Z]{1,3})$/);
   if (m) return m[1];
 
@@ -549,54 +694,6 @@ function setupQtySelectByLevel() {
   if (userLevel >= 1) add("50", "50 個");
   if (userLevel >= 2) { add("100", "100 個"); add("300", "300 個"); }
   if (userLevel >= 3) { add("500", "500 個"); add("1000", "1000 個"); }
-}
-/* =======================================================
-   ✅ 覆寫 Drive 載入（支援 mainImage + netImages + netGalleryUrl）
-======================================================= */
-let netImagesMap = new Map(); // 主型號 -> netImages[]
-
-async function preloadDriveModelData() {
-  try {
-    const res = await fetch("./modelData.json", { cache: "no-store" });
-    if (!res.ok) throw new Error("modelData.json 讀取失敗");
-    const data = await res.json();
-
-    driveMap.clear();
-    netMap.clear();
-    netImagesMap.clear();
-
-    (data.models || []).forEach(m => {
-      const modelKeyRaw = (m.mainModel || m.model || "").trim().toUpperCase();
-      if (!modelKeyRaw) return;
-
-      if (m.mainImage) driveMap.set(modelKeyRaw, m.mainImage);
-
-      // 1) 若有 folder url（未來可用）
-      if (m.netGalleryUrl) netMap.set(modelKeyRaw, m.netGalleryUrl);
-
-      // 2) 主要來源：netImages 陣列
-      if (Array.isArray(m.netImages) && m.netImages.length > 0) {
-        netImagesMap.set(modelKeyRaw, m.netImages);
-      }
-    });
-
-    console.log("Drive 載入完成：", {
-      mainImage: driveMap.size,
-      netFolder: netMap.size,
-      netImages: netImagesMap.size
-    });
-    isDriveLoaded = true;
-  } catch (e) {
-    console.warn("Drive 載入失敗（不影響主功能）：", e);
-    isDriveLoaded = false;
-  }
-}
-
-/* 取得網路圖清單 */
-function getDriveNetImages(model, mainModel){
-  const k1 = model?.toUpperCase().trim();
-  const k2 = mainModel?.toUpperCase().trim();
-  return netImagesMap.get(k1) || netImagesMap.get(k2) || [];
 }
 
 /* =======================================================
@@ -781,7 +878,7 @@ function renderResults(list) {
 }
 
 /* =======================================================
-   ✅ 桌機右側詳細卡（含商品大圖按鈕 + 網路圖縮圖/下載）
+   桌機右側詳細卡（含商品大圖按鈕 + 網路圖縮圖/下載）
 ======================================================= */
 function showDetailDesktop(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
@@ -796,7 +893,7 @@ function showDetailDesktop(item) {
 
   const netThumbHtml = netImages.length
     ? `<div class="net-gallery">
-        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}"></a>`).join("")}
+        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}" loading="lazy"></a>`).join("")}
       </div>`
     : `<div style="color:#999;font-size:13px;margin-top:6px;">網路圖尚未提供</div>`;
 
@@ -841,7 +938,7 @@ function showDetailDesktop(item) {
 }
 
 /* =======================================================
-   ✅ 手機 bottom-sheet 詳細（同桌機）
+   手機 bottom-sheet 詳細（同桌機）
 ======================================================= */
 function showDetailMobile(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
@@ -856,7 +953,7 @@ function showDetailMobile(item) {
 
   const netThumbHtml = netImages.length
     ? `<div class="net-gallery">
-        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}"></a>`).join("")}
+        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}" loading="lazy"></a>`).join("")}
       </div>`
     : `<div style="color:#999;font-size:13px;margin-top:6px;">網路圖尚未提供</div>`;
 
@@ -915,6 +1012,7 @@ function closeSheet() {
     if (quoteSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden");
   }, 220);
 }
+
 /* =======================================================
    全選勾選
 ======================================================= */
@@ -1010,7 +1108,7 @@ function closeQuoteSheet() {
 }
 
 /* =======================================================
-   匯出 Excel
+   匯出 Excel（多選）
 ======================================================= */
 function exportSelectedExcel() {
   const checked = document.querySelectorAll(".row-check:checked");
@@ -1113,7 +1211,7 @@ document.addEventListener("click", (e) => {
     if (userLevel >= 2) costText += `100個：${item.quote100 ?? "-"}\n300個：${item.quote300 ?? "-"}\n`;
     if (userLevel >= 3) costText += `500個：${item.quote500 ?? "-"}\n1000個：${item.quote1000 ?? "-"}\n`;
 
-    const text = `🔥【${item.model}】${item.name}
+    const text = `【${item.model}】${item.name}
 賣場售價：${item.marketPrice ?? "-"}
 末售價格：${item.minPrice ?? "-"}
 --------------------
@@ -1132,7 +1230,7 @@ multiLineBtn.onclick = () => {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) return;
 
-  let text = "📌 KINYO 多品項報價\n--------------------\n";
+  let text = "KINYO 多品項報價\n--------------------\n";
   Array.from(checked).forEach((c, i) => {
     const model = c.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1177,6 +1275,36 @@ sortSelect.onchange = () => {
 };
 
 /* =======================================================
+   Sheet / Quote UI events
+======================================================= */
+sheetCloseBtn.onclick = closeSheet;
+quoteCloseBtn.onclick = closeQuoteSheet;
+
+sheetBackdrop.onclick = () => {
+  if (!mobileSheet.classList.contains("hidden")) closeSheet();
+  if (!quoteSheet.classList.contains("hidden")) closeQuoteSheet();
+};
+
+quoteToolbarBtn.onclick = openQuoteSheet;
+downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
+clearQuoteBtn.onclick = () => {
+  quoteList = [];
+  renderQuoteList();
+  updateQuoteToolbarBtn();
+};
+copyQuoteBtn.onclick = () => {
+  if (quoteList.length === 0) return alert("報價單是空的");
+  let text = "KINYO 報價單\n--------------------\n";
+  quoteList.forEach((q,i)=>{
+    text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：$${q.price} x ${q.count}\n`;
+  });
+  text += "--------------------\n";
+  navigator.clipboard.writeText(text)
+    .then(() => alert("報價單已複製"))
+    .catch(() => alert("複製失敗"));
+};
+
+/* =======================================================
    Firebase Auth：登入後流程
 ======================================================= */
 onAuthStateChanged(auth, async (user) => {
@@ -1199,13 +1327,16 @@ onAuthStateChanged(auth, async (user) => {
 
   setupQtySelectByLevel();
 
-  /* 先載入 Drive（大圖＋網路圖）再載入商品 */
   await preloadDriveModelData();
   await preloadProducts();
 });
 
 /* 登出 */
 logoutBtn.onclick = () => signOut(auth);
+
+/* 搜尋 / 匯出 */
+searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
+exportBtn.onclick = exportSelectedExcel;
 
 </script>
 </body>
