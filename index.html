@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.8.1 UltraFast + Premium UI）</title>
+<title>KINYO 查價系統（v4.8.2 UltraFast SecureCache）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -64,7 +64,7 @@ h1{margin:0 0 4px;}
   border-radius:999px;
   border:1px solid var(--border);
   cursor:pointer;
-  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
+  background:white;
   font-size:12px;
 }
 
@@ -83,7 +83,7 @@ h1{margin:0 0 4px;}
   padding:10px 16px;
   border-radius:999px;
   border:1px solid var(--border);
-  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
+  background:white;
   cursor:pointer;
   font-size:14px;
   white-space:nowrap;
@@ -97,7 +97,7 @@ h1{margin:0 0 4px;}
   background:var(--card);
   padding:18px;
   border-radius:var(--radius);
-  box-shadow:0 8px 28px rgba(0,0,0,0.15);
+  box-shadow:var(--shadow);
   margin-bottom:12px;
 }
 .search-row{margin-bottom:14px;}
@@ -110,7 +110,7 @@ label{
 input,select{
   width:100%;
   padding:10px 12px;
-  border-radius:14px;
+  border-radius:8px;
   border:1px solid #d1d5db;
   font-size:15px;
   box-sizing:border-box;
@@ -130,7 +130,7 @@ input,select{
   width:100%;
 }
 .btn-secondary{
-  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
+  background:white;
   border:1px solid var(--border);
   padding:10px 16px;
   border-radius:999px;
@@ -156,10 +156,10 @@ input,select{
 table{
   width:100%;
   border-collapse:collapse;
-  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
+  background:white;
   border-radius:var(--radius);
   overflow:hidden;
-  box-shadow:0 8px 28px rgba(0,0,0,0.15);
+  box-shadow:var(--shadow);
 }
 th,td{
   padding:12px 10px;
@@ -172,7 +172,7 @@ th{background:#fafafa;text-align:left;}
 .product-img{
   width:110px;height:110px;
   object-fit:cover;
-  border-radius:14px;
+  border-radius:8px;
   border:1px solid #e5e7eb;
   background:#fff;
 }
@@ -207,12 +207,12 @@ th{background:#fafafa;text-align:left;}
   z-index:2000;
 }
 #centerLoadingCard{
-  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
+  background:white;
   width:280px;
   padding:20px;
   border-radius:12px;
   text-align:center;
-  box-shadow:0 8px 28px rgba(0,0,0,0.15);
+  box-shadow:var(--shadow);
 }
 .loading-title{
   font-size:15px;
@@ -243,10 +243,10 @@ th{background:#fafafa;text-align:left;}
   width:360px;
   max-height:78vh;
   overflow-y:auto;
-  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
+  background:white;
   padding:18px;
   border-radius:var(--radius);
-  box-shadow:0 8px 28px rgba(0,0,0,0.15);
+  box-shadow:var(--shadow);
   display:none;
   z-index:999;
 }
@@ -362,7 +362,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.8.1 UltraFast + Premium UI）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.8.2 UltraFast SecureCache）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -422,7 +422,7 @@ th{background:#fafafa;text-align:left;}
 
 <!-- Mobile 詳細頁 Sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
-<div id="mobileDetailSheet" class="sheet hidden" data-drag="1">
+<div id="mobileDetailSheet" class="sheet hidden">
   <div class="sheet-header">
     <span>商品資訊</span>
     <button id="sheetCloseBtn" class="sheet-close">×</button>
@@ -431,7 +431,7 @@ th{background:#fafafa;text-align:left;}
 </div>
 
 <!-- 報價單 Sheet -->
-<div id="quoteSheet" class="sheet hidden" data-drag="1">
+<div id="quoteSheet" class="sheet hidden">
   <div class="sheet-header">
     <span>報價單預覽</span>
     <button id="quoteCloseBtn" class="sheet-close">×</button>
@@ -516,6 +516,45 @@ let userLevel = 1;
 let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
+let isQuotesLoaded = false; // sensitive prices loaded in memory only
+
+/* =======================================================
+   Secure UltraFast Local Cache (non-sensitive only)
+   Sensitive: quote50/100/300/500/1000, userLevel
+======================================================= */
+const CACHE_VERSION = "v1";
+const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
+function cacheKeyForUser(){
+  const email = (currentUserEmail || "guest").toLowerCase();
+  return `KINYO_SAFE_CACHE_${CACHE_VERSION}_${email}`;
+}
+function loadSafeCache(){
+  try{
+    const raw = localStorage.getItem(cacheKeyForUser());
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(!obj || !obj.time || !obj.data) return null;
+    if(Date.now() - obj.time > CACHE_TTL) return null;
+    return obj.data;
+  }catch(e){ return null; }
+}
+function saveSafeCache(list){
+  try{
+    const safeList = list.map(p=>({
+      model:p.model||"",
+      mainModel:p.mainModel||"",
+      name:p.name||"",
+      colorList:p.colorList||"",
+      cartonQty:p.cartonQty||"",
+      productUrl:p.productUrl||"",
+      imageUrl:p.imageUrl||"",
+      minPrice:p.minPrice??null,
+      marketPrice:p.marketPrice??null,
+      // searchKey rebuilt client-side
+    }));
+    localStorage.setItem(cacheKeyForUser(), JSON.stringify({time:Date.now(), data:safeList}));
+  }catch(e){}
+}
 
 /* =======================================================
    Drive modelData.json
@@ -531,18 +570,20 @@ let isDriveLoaded = false;
 function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
-  setTimeout(() => { centerLoadingBar.querySelector('.fill').style.width = '55%';
+  setTimeout(() => {
+    centerLoadingBar.querySelector(".fill").style.width = "55%";
   }, 40);
 }
 function hideLoading() {
-  centerLoadingBar.querySelector('.fill').style.width = '100%';
+  centerLoadingBar.querySelector(".fill").style.width = "100%";
   setTimeout(() => {
     centerLoadingBox.style.display = "none";
-  }, 80);
+  }, 0);
 }
 
 /* =======================================================
    ✅ Drive 載入（支援 mainImage + netImages + images + netGalleryUrl）
+   modelData.json 目前的網路圖存於 images[] (含 url)，因此一併相容。
 ======================================================= */
 async function preloadDriveModelData() {
   try {
@@ -560,15 +601,17 @@ async function preloadDriveModelData() {
 
       if (m.mainImage) driveMap.set(key, m.mainImage);
 
-      const folderUrl =
-        m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
+      // 網路圖資料夾 url（若 python 有輸出）
+      const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
       if (folderUrl) netMap.set(key, folderUrl);
 
+      // 主要網路圖來源：netImages[]（新格式）
       if (Array.isArray(m.netImages) && m.netImages.length) {
         netImagesMap.set(key, m.netImages.filter(Boolean));
         return;
       }
 
+      // 相容舊格式：images[]（每個物件有 url）
       if (Array.isArray(m.images) && m.images.length) {
         const urls = m.images.map(x => x?.url).filter(Boolean);
         if (urls.length) netImagesMap.set(key, urls);
@@ -588,16 +631,21 @@ async function preloadDriveModelData() {
   }
 }
 
+/* 取得商品大圖 */
 function getDriveMainImage(model, mainModel) {
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
   return driveMap.get(k1) || driveMap.get(k2) || "";
 }
+
+/* 取得商品網路圖資料夾連結 */
 function getDriveNetGallery(model, mainModel) {
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
   return netMap.get(k1) || netMap.get(k2) || "";
 }
+
+/* 取得網路圖清單 */
 function getDriveNetImages(model, mainModel){
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
@@ -611,9 +659,11 @@ function getMainModel(model) {
   if (!model) return "";
   const raw = model.trim().toUpperCase();
 
+  // KH195PI → KH195（英文字尾視為色碼）
   const m = raw.match(/^([A-Z]+[0-9]+)([A-Z]{1,3})$/);
   if (m) return m[1];
 
+  // ABC-123X → 主型號 ABC-123
   if (raw.includes("-")) {
     const parts = raw.split("-");
     const last = parts[parts.length - 1];
@@ -623,13 +673,34 @@ function getMainModel(model) {
   return raw;
 }
 
-async function preloadProducts() {
-  showLoading();
+async function preloadProducts({background=false} = {}) {
+  // If we are doing background refresh, don't block UI with loading overlay
+  if (!background) showLoading();
   isProductsLoaded = false;
+  isQuotesLoaded = false;
 
+  // 1) Try safe cache to speed up first paint
+  const cached = loadSafeCache();
+  if (cached && cached.length) {
+    productCache = cached.map(d => {
+      const model = (d.model || "").trim();
+      const mainModel = getMainModel(model) || d.mainModel || "";
+      const colorList = (d.colorList || "").trim() || "-";
+      const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
+      return { ...d, model, mainModel, colorList, searchKey };
+    });
+    isProductsLoaded = true;
+    if (!background) hideLoading();
+
+    // Kick off background refresh for full data (incl. sensitive quotes in memory)
+    preloadProducts({background:true});
+    return;
+  }
+
+  // 2) No cache → fetch Firestore normally
   try {
     const snap = await getDocs(collection(db, "Products"));
-    productCache = [];
+    const fresh = [];
 
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
@@ -642,10 +713,9 @@ async function preloadProducts() {
         if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
       }
 
-      /* ✅ 方案A修正：永遠自己組 searchKey（不依賴 Firestore searchKey） */
       const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
 
-      productCache.push({
+      fresh.push({
         ...d,
         model,
         mainModel,
@@ -654,15 +724,21 @@ async function preloadProducts() {
       });
     });
 
-    console.log("Firestore 商品載入完成：", productCache.length);
+    productCache = fresh;
     isProductsLoaded = true;
+    isQuotesLoaded = true; // quotes are now in memory
+
+    // Save only non-sensitive fields for next time
+    saveSafeCache(productCache);
+
+    console.log("Firestore 商品載入完成：", productCache.length);
 
   } catch (e) {
     alert("商品載入失敗！");
     console.error(e);
   }
 
-  hideLoading();
+  if (!background) hideLoading();
 }
 
 /* =======================================================
@@ -732,6 +808,11 @@ function searchProducts() {
     alert("商品尚未載入完成，請稍等 1~2 秒再搜尋");
     return;
   }
+  // If user wants price-based search but quotes not ready yet
+  if (!isQuotesLoaded && (qtySelect.value || minPriceInput.value || maxPriceInput.value)) {
+    alert("價格資料載入中，請稍等 1~2 秒再用預算/起訂量篩選");
+    return;
+  }
 
   const key = keywordInput.value.trim().toLowerCase();
   const qty = qtySelect.value;
@@ -742,6 +823,7 @@ function searchProducts() {
 
   setTimeout(() => {
 
+    // A：只打關鍵字
     if (key && !qty && !minPraw && !maxPraw) {
       const r = productCache.filter(p => (p.searchKey || "").includes(key));
       currentResultList = applySorting(mergeByMainModel(r));
@@ -750,6 +832,7 @@ function searchProducts() {
       return;
     }
 
+    // B：起訂量 + 預算（無關鍵字）
     if (!key && qty && (minPraw || maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
@@ -766,6 +849,7 @@ function searchProducts() {
       return;
     }
 
+    // C：三項都填
     if (key && qty && (minPraw || maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
@@ -786,7 +870,7 @@ function searchProducts() {
     alert("請輸入關鍵字，或起訂量+預算，或三項都填滿。");
     hideLoading();
 
-  }, 80);
+  }, 0);
 }
 
 /* =======================================================
@@ -865,7 +949,7 @@ function renderResults(list) {
 }
 
 /* =======================================================
-   桌機右側詳細卡
+   桌機右側詳細卡（含商品大圖按鈕 + 網路圖縮圖/下載）
 ======================================================= */
 function showDetailDesktop(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
@@ -1164,6 +1248,7 @@ function downloadQuoteExcel() {
 ======================================================= */
 document.addEventListener("click", (e) => {
 
+  /* 加入報價單 */
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1186,6 +1271,7 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  /* 單筆 LINE 分享 */
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1210,6 +1296,7 @@ ${costText}
   }
 });
 
+/* 多選 LINE 分享 */
 multiLineBtn.onclick = () => {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) return;
@@ -1250,6 +1337,7 @@ clearBtn.onclick = () => {
   detailCard.style.display = "none";
 };
 
+/* 排序變更 */
 sortSelect.onchange = () => {
   if (currentResultList.length > 0) {
     currentResultList = applySorting([...currentResultList]);
@@ -1314,6 +1402,7 @@ onAuthStateChanged(auth, async (user) => {
   await preloadProducts();
 });
 
+/* 登出 */
 logoutBtn.onclick = () => signOut(auth);
 
 /* 搜尋 / 匯出 */
