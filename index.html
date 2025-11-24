@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.8.2 UltraFast + Premium UI (SecureCache)）</title>
+<title>KINYO 查價系統（v4.8.5 UltraFast AutoVersion + SecureCache）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -362,7 +362,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.8.2 UltraFast + Premium UI (SecureCache)）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.8.5 UltraFast + Premium UI (SecureCache)）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -382,6 +382,9 @@ th{background:#fafafa;text-align:left;}
       <input id="minPrice" type="number" placeholder="最低 (可空)">
       <input id="maxPrice" type="number" placeholder="最高 (可空)">
     </div>
+      <div id="quoteSyncTip" style="display:none;color:#d97706;font-size:13px;margin-top:6px;">
+        採購價同步中… 請稍後再使用起訂量／預算搜尋
+      </div>
   </div>
 
   <button id="searchBtn" type="submit" class="btn-primary">查詢</button>
@@ -505,7 +508,29 @@ const downloadQuoteExcelBtn = document.getElementById("downloadQuoteExcelBtn");
 const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
 
 const centerLoadingBox = document.getElementById("centerLoadingBox");
-const centerLoadingBar = document.getElementById("centerLoadingBar");
+const centerLoadingBar = document.getElementById\(\"centerLoadingBar\"\);
+
+const quoteSyncTipEl = document.getElementById("quoteSyncTip");
+
+function needQuoteSearchInputs(){
+  const qty = qtySelect.value;
+  const minP = minPriceInput.value.trim();
+  const maxP = maxPriceInput.value.trim();
+  return !!qty && (!!minP || !!maxP);
+}
+function showQuoteSyncTip(){
+  if (quoteSyncTipEl) quoteSyncTipEl.style.display = "block";
+}
+function hideQuoteSyncTip(){
+  if (quoteSyncTipEl) quoteSyncTipEl.style.display = "none";
+}
+function refreshQuoteSyncTipUI(){
+  if (needQuoteSearchInputs() && !isQuotesLoaded) showQuoteSyncTip();
+  else hideQuoteSyncTip();
+}
+qtySelect.addEventListener("change", refreshQuoteSyncTipUI);
+minPriceInput.addEventListener("input", refreshQuoteSyncTipUI);
+maxPriceInput.addEventListener("input", refreshQuoteSyncTipUI);
 
 /* =======================================================
    全域變數
@@ -520,25 +545,106 @@ let isQuotesLoaded = false;
 
 
 /* =======================================================
-   Secure UltraFast Local Cache (non-sensitive only)
+   Versioned Secure UltraFast Local Cache (non-sensitive only)
    - Cache excludes quote50/100/300/500/1000 and userLevel
+   - cacheVersion.json controls automatic refresh
 ======================================================= */
-const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
+const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours fallback TTL
+let remoteCacheVersion = 0;
 
-function getCacheKey() {
+function getCacheKey(version = remoteCacheVersion) {
   const mail = (currentUserEmail || "guest").toLowerCase();
-  return `KINYO_SAFE_CACHE_V1_${mail}`;
+  return `KINYO_SAFE_CACHE_V1_${mail}_${version || 0}`;
+}
+function getLegacyCacheKey(){
+  const mail = (currentUserEmail || "guest").toLowerCase();
+  return `KINYO_SAFE_CACHE_V1_${mail}`; // old key without version
+}
+
+// Remove all safe caches for this user (all versions)
+function clearUserSafeCaches() {
+  const mail = (currentUserEmail || "guest").toLowerCase();
+  const prefix = `KINYO_SAFE_CACHE_V1_${mail}_`;
+  Object.keys(localStorage).forEach(k=>{
+    if (k.startsWith(prefix) || k === getLegacyCacheKey()) localStorage.removeItem(k);
+  });
+}
+
+// Fetch remote cacheVersion.json and handle version change
+async function initRemoteCacheVersion() {
+  try {
+    const res = await fetch("./cacheVersion.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("cacheVersion.json 讀取失敗");
+    const j = await res.json();
+    const v = Number(j.version) || 0;
+    remoteCacheVersion = v;
+
+    const mail = (currentUserEmail || "guest").toLowerCase();
+    const seenKey = `KINYO_LAST_REMOTE_VER_${mail}`;
+    const lastSeen = Number(localStorage.getItem(seenKey) || 0);
+
+    if (lastSeen !== v) {
+      clearUserSafeCaches();
+      localStorage.setItem(seenKey, String(v));
+      console.log("✅ 偵測到遠端版本更新，已刷新本地快取：", lastSeen, "→", v);
+    }
+  } catch (e) {
+    console.warn("cacheVersion.json 讀取失敗，使用 fallback TTL 快取：", e);
+    remoteCacheVersion = 0;
+  }
+}
+
+// Update cacheVersion.json on GitHub (admin only)
+async function updateGithubCacheVersion(newVersion, token) {
+  const fileUrl = "https://api.github.com/repos/sam-kinyo/kinyo-price/contents/cacheVersion.json";
+  const fileRes = await fetch(fileUrl, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  const fileJson = await fileRes.json();
+  if (!fileJson.sha) throw new Error("無法取得 cacheVersion.json SHA");
+
+  const newContent = btoa(JSON.stringify({ version: newVersion }, null, 2));
+
+  const putRes = await fetch(fileUrl, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      message: `Auto update cacheVersion to ${newVersion}`,
+      content: newContent,
+      sha: fileJson.sha
+    })
+  });
+  if (!putRes.ok) {
+    const err = await putRes.text();
+    throw new Error("GitHub 更新失敗: " + err);
+  }
 }
 
 function loadCache() {
   try {
+    // new versioned cache first
     const raw = localStorage.getItem(getCacheKey());
-    if (!raw) return null;
-    const obj = JSON.parse(raw);
-    if (!obj || !obj.time || !Array.isArray(obj.data)) return null;
-    if (Date.now() - obj.time > CACHE_TTL) return null;
-    return obj.data;
-  } catch { return null; }
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && obj.time && Array.isArray(obj.data) && (Date.now() - obj.time) < CACHE_TTL) {
+        return obj.data;
+      }
+    }
+    // fallback legacy cache (one-time migration)
+    const legacyRaw = localStorage.getItem(getLegacyCacheKey());
+    if (legacyRaw) {
+      const obj = JSON.parse(legacyRaw);
+      if (obj && obj.time && Array.isArray(obj.data) && (Date.now() - obj.time) < CACHE_TTL) {
+        // migrate into new key
+        saveCache(obj.data);
+        return obj.data;
+      }
+    }
+  } catch {}
+  return null;
 }
 
 function saveCache(data) {
@@ -549,8 +655,6 @@ function saveCache(data) {
     }));
   } catch {}
 }
-
-
 /* =======================================================
    Drive modelData.json
 ======================================================= */
@@ -726,7 +830,67 @@ async function preloadProducts() {
     isProductsLoaded = true;
     isQuotesLoaded = true;
 
-    // Save non-sensitive cache
+    
+    // ===================================================
+    // AutoVersion A+B（偵測變動 → 自動 version++）
+    // ===================================================
+    try {
+      const remoteCount = fullList.length;
+
+      let remoteMaxUpdated = 0;
+      fullList.forEach(p => {
+        const lu = p.lastUpdated;
+        let t = 0;
+        if (lu && typeof lu.toMillis === "function") t = lu.toMillis();
+        else if (lu && lu.seconds) t = lu.seconds * 1000;
+        remoteMaxUpdated = Math.max(remoteMaxUpdated, t || 0);
+      });
+
+      const mail = (currentUserEmail || "guest").toLowerCase();
+      const metaKey = `KINYO_CACHE_META_${mail}`;
+      let localMeta = {};
+      try { localMeta = JSON.parse(localStorage.getItem(metaKey) || "{}"); } catch {}
+      const localCount = Number(localMeta.count || 0);
+      const localMaxUpdated = Number(localMeta.maxUpdated || 0);
+      const localVer = Number(localMeta.version || 0);
+
+      const changed = (remoteCount !== localCount) || (remoteMaxUpdated !== localMaxUpdated);
+
+      if (changed) {
+        const baseVer = Math.max(remoteCacheVersion || 0, localVer || 0);
+        const newVer = baseVer + 1;
+        const token = localStorage.getItem("KINYO_GITHUB_TOKEN");
+
+        if (token) {
+          await updateGithubCacheVersion(newVer, token);
+          remoteCacheVersion = newVer;
+
+          // mark seen version & clear old safe caches
+          const seenKey = `KINYO_LAST_REMOTE_VER_${mail}`;
+          localStorage.setItem(seenKey, String(newVer));
+          clearUserSafeCaches();
+
+          console.log("✅ AutoVersion：已更新遠端版本 →", newVer);
+        } else {
+          console.log("AutoVersion：偵測到變更但未設定 Token，僅更新本地 meta。");
+        }
+
+        localStorage.setItem(metaKey, JSON.stringify({
+          count: remoteCount,
+          maxUpdated: remoteMaxUpdated,
+          version: newVer
+        }));
+      } else {
+        localStorage.setItem(metaKey, JSON.stringify({
+          count: remoteCount,
+          maxUpdated: remoteMaxUpdated,
+          version: Math.max(remoteCacheVersion || 0, localVer || 0)
+        }));
+      }
+    } catch (e) {
+      console.warn("AutoVersion 檢查失敗（不影響主功能）：", e);
+    }
+// Save non-sensitive cache
     const safeList = fullList.map(p => {
       const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
@@ -1452,7 +1616,9 @@ onAuthStateChanged(auth, async (user) => {
 
   setupQtySelectByLevel();
 
-  await preloadDriveModelData();
+  
+  await initRemoteCacheVersion();
+await preloadDriveModelData();
   await preloadProducts();
 });
 
@@ -1466,88 +1632,34 @@ exportBtn.onclick = exportSelectedExcel;
 </script>
 
 <script>
-/* ============================================
-   AutoVersion A+B 完整版（前端自動刷新版本）
-   - A: 偵測商品筆數變化
-   - B: 偵測最大 lastUpdated 變化
-   - 自動更新 cacheVersion.json（需 Token）
-============================================ */
+/* AutoVersion Fix: Modular Firebase Loader */
 (async function(){
-
-  async function fetchFirestoreMeta() {
-    const app = self.firebaseApp;
-    const db = self.firebaseDB;
-    const snap = await firebase.firestore().collection("Products").get();
-    let count = snap.size;
-    let lastTimes = [];
-    snap.forEach(doc => {
-      const d = doc.data();
-      if (d.lastUpdated) lastTimes.push(d.lastUpdated.toMillis());
-    });
-    let maxUpdated = lastTimes.length ? Math.max(...lastTimes) : 0;
-    return { count, maxUpdated };
-  }
-
-  async function fetchLocalCacheMeta() {
-    try {
-      const meta = JSON.parse(localStorage.getItem("KINYO_CACHE_META") || "{}");
-      return {
-        count: meta.count || 0,
-        maxUpdated: meta.maxUpdated || 0,
-        version: meta.version || 0
-      };
-    } catch { return { count:0, maxUpdated:0, version:0 }; }
-  }
-
-  async function saveLocalCacheMeta(data) {
-    localStorage.setItem("KINYO_CACHE_META", JSON.stringify(data));
-  }
-
-  async function updateGithubVersion(newVersion) {
-    const token = localStorage.getItem("KINYO_GITHUB_TOKEN");
-    if (!token) return;
-
-    const fileUrl = "https://api.github.com/repos/sam-kinyo/kinyo-price/contents/cacheVersion.json";
-
-    const fileRes = await fetch(fileUrl, { headers:{Authorization:`Bearer ${token}`} });
-    const fileJson = await fileRes.json();
-
-    const newContent = btoa(JSON.stringify({version:newVersion}, null, 2));
-
-    await fetch(fileUrl, {
-      method:"PUT",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        message:`Auto update version to ${newVersion}`,
-        content:newContent,
-        sha:fileJson.sha
-      })
-    });
-  }
-
   try {
-    const remote = await fetchFirestoreMeta();
-    const local = await fetchLocalCacheMeta();
+    const appMod = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
+    const fsMod  = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
 
-    if (remote.count !== local.count || remote.maxUpdated !== local.maxUpdated) {
-      const newVersion = (local.version||0) + 1;
-      await updateGithubVersion(newVersion);
-      await saveLocalCacheMeta({
-        count: remote.count,
-        maxUpdated: remote.maxUpdated,
-        version: newVersion
-      });
-      console.log("AutoVersion: version updated to", newVersion);
-    } else {
-      console.log("AutoVersion: no change");
-    }
+    const { initializeApp } = appMod;
+    const {
+      getFirestore, collection, getDocs
+    } = fsMod;
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+      authDomain: "kinyo-price.firebaseapp.com",
+      projectId: "kinyo-price",
+      storageBucket: "kinyo-price.appspot.com",
+      messagingSenderId: "122464645678",
+      appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window._autoVersionDB = db; // expose for main script
+
   } catch(e){
-    console.error("AutoVersion Error:", e);
+    console.error("AutoVersionInitError:", e);
   }
-
 })();
 </script>
 
