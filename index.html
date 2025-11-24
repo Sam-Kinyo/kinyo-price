@@ -533,13 +533,15 @@ function showLoading() {
   centerLoadingBar.querySelector(".fill").style.width = "0%";
   setTimeout(() => {
     centerLoadingBar.querySelector(".fill").style.width = "55%";
-  }, 120);
+  }, 40);
+}, 120);
 }
 function hideLoading() {
   centerLoadingBar.querySelector(".fill").style.width = "100%";
   setTimeout(() => {
     centerLoadingBox.style.display = "none";
-  }, 260);
+  }, 80);
+}, 0);
 }
 
 /* =======================================================
@@ -799,7 +801,7 @@ function searchProducts() {
     alert("請輸入關鍵字，或起訂量+預算，或三項都填滿。");
     hideLoading();
 
-  }, 260);
+  }, 0);
 }
 
 /* =======================================================
@@ -1327,8 +1329,8 @@ onAuthStateChanged(auth, async (user) => {
 
   setupQtySelectByLevel();
 
-  await preloadDriveModelData();
-  await preloadProducts();
+  preloadDriveModelData();
+  preloadProducts();
 });
 
 /* 登出 */
