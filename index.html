@@ -596,7 +596,7 @@ async function preloadDriveModelData() {
       if (!key) return;
 
       if (m.mainImage) driveMap.set(key, m.mainImage);
-      if(m.folderUrl) mainFolderMap.set(key, m.folderUrl);
+      if (m.folderUrl) mainFolderMap.set(key, m.folderUrl);
 
       // 網路圖資料夾 url（若 python 有輸出）
       const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
@@ -635,7 +635,7 @@ function getDriveMainImage(model, mainModel) {
   return driveMap.get(k1) || driveMap.get(k2) || "";
 }
 
-function getDriveMainFolder(model, mainModel){ const k1=model?.toUpperCase().trim(); const k2=mainModel?.toUpperCase().trim(); return mainFolderMap.get(k1)||mainFolderMap.get(k2)||""; }
+function getDriveMainFolder(model, mainModel){ const k1=model?.toUpperCase().trim(); const k2=mainModel?.toUpperCase().trim(); return mainFolderMap.get(k1)||mainFolderMap.get(k2)||\"\"; }
 
 /* 取得商品網路圖資料夾連結 */
 function getDriveNetGallery(model, mainModel) {
@@ -1020,7 +1020,7 @@ function showDetailDesktop(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml="";
+  const netThumbHtml = "";
 
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
@@ -1030,10 +1030,7 @@ function showDetailDesktop(item) {
 
     <div style="margin-bottom:8px;">
       <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
-      ${driveMainImage
-        ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>`
-        : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`
-      }
+      ${driveMainFolder ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }
     </div>
 
     <div style="margin-bottom:8px;">
@@ -1076,7 +1073,7 @@ function showDetailMobile(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml="";
+  const netThumbHtml = "";
 
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
@@ -1085,10 +1082,7 @@ function showDetailMobile(item) {
 
     <div style="margin-bottom:8px;">
       <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
-      ${driveMainImage
-        ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>`
-        : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`
-      }
+      ${driveMainFolder ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }
     </div>
 
     <div style="margin-bottom:8px;">
