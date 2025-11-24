@@ -554,9 +554,10 @@ function saveCache(data) {
 /* =======================================================
    Drive modelData.json
 ======================================================= */
-let driveMap = new Map();      // key -> mainImage url
-let netMap   = new Map();      // key -> net folder url (optional)
-let netImagesMap = new Map();  // key -> net images urls
+let driveMap = new Map();      // key -> mainImage url（保留相容）
+let mainFolderMap = new Map(); // key -> 商品大圖資料夾 url（folderUrl）
+let netMap   = new Map();      // key -> net folder url (netGalleryUrl)
+let netImagesMap = new Map();  // key -> net images urls（保留相容）
 let isDriveLoaded = false;
 
 /* =======================================================
@@ -595,6 +596,7 @@ async function preloadDriveModelData() {
       if (!key) return;
 
       if (m.mainImage) driveMap.set(key, m.mainImage);
+      if (m.folderUrl) mainFolderMap.set(key, m.folderUrl);
 
       // 網路圖資料夾 url（若 python 有輸出）
       const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
@@ -632,6 +634,14 @@ function getDriveMainImage(model, mainModel) {
   const k2 = mainModel?.toUpperCase().trim();
   return driveMap.get(k1) || driveMap.get(k2) || "";
 }
+
+/* 取得商品大圖資料夾 */
+function getDriveMainFolder(model, mainModel) {
+  const k1 = model?.toUpperCase().trim();
+  const k2 = mainModel?.toUpperCase().trim();
+  return mainFolderMap.get(k1) || mainFolderMap.get(k2) || "";
+}
+
 
 /* 取得商品網路圖資料夾連結 */
 function getDriveNetGallery(model, mainModel) {
@@ -1007,7 +1017,7 @@ function renderResults(list) {
 ======================================================= */
 function showDetailDesktop(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-  const driveMainImage = getDriveMainImage(item.model, item.mainModel);
+  const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
   const netImages = getDriveNetImages(item.model, item.mainModel);
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
 
@@ -1016,11 +1026,7 @@ function showDetailDesktop(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml = netImages.length
-    ? `<div class="net-gallery">
-        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}" loading="lazy"></a>`).join("")}
-      </div>`
-    : `<div style="color:#999;font-size:13px;margin-top:6px;">網路圖尚未提供</div>`;
+  const netThumbHtml = \"\"; // v4.8.3: 不顯示網路圖縮圖
 
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
@@ -1030,8 +1036,8 @@ function showDetailDesktop(item) {
 
     <div style="margin-bottom:8px;">
       <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
-      ${driveMainImage
-        ? `<a class="btn-blue" href="${driveMainImage}" target="_blank">商品大圖預覽下載</a>`
+      ${driveMainFolder
+        ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>`
         : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`
       }
     </div>
@@ -1042,7 +1048,7 @@ function showDetailDesktop(item) {
         ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>`
         : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>`
       }
-      ${netThumbHtml}
+
     </div>
 
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
@@ -1067,7 +1073,7 @@ function showDetailDesktop(item) {
 ======================================================= */
 function showDetailMobile(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
-  const driveMainImage = getDriveMainImage(item.model, item.mainModel);
+  const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
   const netImages = getDriveNetImages(item.model, item.mainModel);
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
 
@@ -1076,11 +1082,7 @@ function showDetailMobile(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml = netImages.length
-    ? `<div class="net-gallery">
-        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}" loading="lazy"></a>`).join("")}
-      </div>`
-    : `<div style="color:#999;font-size:13px;margin-top:6px;">網路圖尚未提供</div>`;
+  const netThumbHtml = \"\"; // v4.8.3: 不顯示網路圖縮圖
 
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
@@ -1089,8 +1091,8 @@ function showDetailMobile(item) {
 
     <div style="margin-bottom:8px;">
       <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
-      ${driveMainImage
-        ? `<a class="btn-blue" href="${driveMainImage}" target="_blank">商品大圖預覽下載</a>`
+      ${driveMainFolder
+        ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>`
         : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`
       }
     </div>
@@ -1101,7 +1103,7 @@ function showDetailMobile(item) {
         ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>`
         : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>`
       }
-      ${netThumbHtml}
+
     </div>
 
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
@@ -1473,6 +1475,12 @@ exportBtn.onclick = exportSelectedExcel;
    - 自動更新 cacheVersion.json（需 Token）
 ============================================ */
 (async function(){
+
+  // v4.8.3-fix: 如果沒有載入 firebase compat（window.firebase），就跳過 AutoVersion，避免全站報錯
+  if (!window.firebase || !firebase.firestore) {
+    console.log('AutoVersion: firebase compat not found, skip');
+    return;
+  }
 
   async function fetchFirestoreMeta() {
     const app = self.firebaseApp;
