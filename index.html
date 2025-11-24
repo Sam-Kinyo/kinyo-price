@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.8.2 UltraFast + Premium UI (SecureCache)）</title>
+<title>KINYO 查價系統（v4.8.4 UltraFast + Premium UI (SecureCache)）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -362,7 +362,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.8.2 UltraFast + Premium UI (SecureCache)）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.8.4 UltraFast + Premium UI (SecureCache)）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -557,7 +557,7 @@ function saveCache(data) {
 let driveMap = new Map();      // key -> mainImage url
 let netMap   = new Map();      // key -> net folder url (optional)
 let netImagesMap = new Map();  // key -> net images urls
-   let mainFolderMap = new Map();  // key -> 大圖資料夾 folderUrl
+let mainFolderMap = new Map(); // key -> 商品大圖資料夾 folderUrl
 let isDriveLoaded = false;
 
 /* =======================================================
@@ -597,7 +597,9 @@ async function preloadDriveModelData() {
 
       if (m.mainImage) driveMap.set(key, m.mainImage);
 
-      // 網路圖資料夾 url（若 python 有輸出）
+      
+      if (m.folderUrl) mainFolderMap.set(key, m.folderUrl);
+// 網路圖資料夾 url（若 python 有輸出）
       const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
       if (folderUrl) netMap.set(key, folderUrl);
 
@@ -628,14 +630,18 @@ async function preloadDriveModelData() {
 }
 
 /* 取得商品大圖 */
-function getDriveMainFolder(model, mainModel){
-  return mainFolderMap.get(model?.toUpperCase().trim()) || mainFolderMap.get(mainModel?.toUpperCase().trim()) || '';
-}
-
 function getDriveMainImage(model, mainModel) {
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
   return driveMap.get(k1) || driveMap.get(k2) || "";
+}
+
+
+/* 取得商品大圖資料夾（folderUrl） */
+function getDriveMainFolder(model, mainModel) {
+  const k1 = model?.toUpperCase().trim();
+  const k2 = mainModel?.toUpperCase().trim();
+  return mainFolderMap.get(k1) || mainFolderMap.get(k2) || \"\";
 }
 
 /* 取得商品網路圖資料夾連結 */
@@ -1033,7 +1039,7 @@ function showDetailDesktop(item) {
       <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
       ${driveMainFolder
         ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>`
-        : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`}
+        : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`
       }
     </div>
 
@@ -1088,7 +1094,7 @@ function showDetailMobile(item) {
       <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
       ${driveMainFolder
         ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>`
-        : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`}
+        : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>`
       }
     </div>
 
