@@ -1016,11 +1016,7 @@ function showDetailDesktop(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml = netImages.length
-    ? `<div class="net-gallery">
-        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}" loading="lazy"></a>`).join("")}
-      </div>`
-    : `<div style="color:#999;font-size:13px;margin-top:6px;">網路圖尚未提供</div>`;
+  const netThumbHtml = "";
 
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
@@ -1042,7 +1038,7 @@ function showDetailDesktop(item) {
         ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>`
         : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>`
       }
-      ${netThumbHtml}
+      
     </div>
 
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
@@ -1076,11 +1072,7 @@ function showDetailMobile(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml = netImages.length
-    ? `<div class="net-gallery">
-        ${netImages.map(u => `<a href="${u}" target="_blank"><img src="${u}" loading="lazy"></a>`).join("")}
-      </div>`
-    : `<div style="color:#999;font-size:13px;margin-top:6px;">網路圖尚未提供</div>`;
+  const netThumbHtml = "";
 
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
@@ -1101,7 +1093,7 @@ function showDetailMobile(item) {
         ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>`
         : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>`
       }
-      ${netThumbHtml}
+      
     </div>
 
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
