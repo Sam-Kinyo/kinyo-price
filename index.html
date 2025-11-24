@@ -518,6 +518,34 @@ let quoteList = [];
 let isProductsLoaded = false;
 
 /* =======================================================
+   方案A：Firestore 商品快取（localStorage）
+======================================================= */
+const PRODUCTS_CACHE_KEY = "kinyo_products_cache_v4_8";
+const PRODUCTS_CACHE_TS_KEY = "kinyo_products_cache_ts_v4_8";
+const PRODUCTS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 小時
+
+function readProductsCache() {
+  try {
+    const ts = Number(localStorage.getItem(PRODUCTS_CACHE_TS_KEY) || 0);
+    const raw = localStorage.getItem(PRODUCTS_CACHE_KEY);
+    if (!raw || !ts) return null;
+    if (Date.now() - ts > PRODUCTS_CACHE_TTL_MS) return null;
+    const data = JSON.parse(raw);
+    if (!Array.isArray(data)) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function writeProductsCache(list) {
+  try {
+    localStorage.setItem(PRODUCTS_CACHE_KEY, JSON.stringify(list));
+    localStorage.setItem(PRODUCTS_CACHE_TS_KEY, String(Date.now()));
+  } catch {}
+}
+
+/* =======================================================
    Drive modelData.json
 ======================================================= */
 let driveMap = new Map();      // key -> mainImage url
@@ -544,7 +572,6 @@ function hideLoading() {
 
 /* =======================================================
    ✅ Drive 載入（支援 mainImage + netImages + images + netGalleryUrl）
-   modelData.json 目前的網路圖存於 images[] (含 url)，因此一併相容。
 ======================================================= */
 async function preloadDriveModelData() {
   try {
@@ -562,17 +589,14 @@ async function preloadDriveModelData() {
 
       if (m.mainImage) driveMap.set(key, m.mainImage);
 
-      // 網路圖資料夾 url（若 python 有輸出）
       const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
       if (folderUrl) netMap.set(key, folderUrl);
 
-      // 主要網路圖來源：netImages[]（新格式）
       if (Array.isArray(m.netImages) && m.netImages.length) {
         netImagesMap.set(key, m.netImages.filter(Boolean));
         return;
       }
 
-      // 相容舊格式：images[]（每個物件有 url）
       if (Array.isArray(m.images) && m.images.length) {
         const urls = m.images.map(x => x?.url).filter(Boolean);
         if (urls.length) netImagesMap.set(key, urls);
@@ -592,21 +616,16 @@ async function preloadDriveModelData() {
   }
 }
 
-/* 取得商品大圖 */
 function getDriveMainImage(model, mainModel) {
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
   return driveMap.get(k1) || driveMap.get(k2) || "";
 }
-
-/* 取得商品網路圖資料夾連結 */
 function getDriveNetGallery(model, mainModel) {
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
   return netMap.get(k1) || netMap.get(k2) || "";
 }
-
-/* 取得網路圖清單 */
 function getDriveNetImages(model, mainModel){
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
@@ -620,11 +639,9 @@ function getMainModel(model) {
   if (!model) return "";
   const raw = model.trim().toUpperCase();
 
-  // KH195PI → KH195（英文字尾視為色碼）
   const m = raw.match(/^([A-Z]+[0-9]+)([A-Z]{1,3})$/);
   if (m) return m[1];
 
-  // ABC-123X → 主型號 ABC-123
   if (raw.includes("-")) {
     const parts = raw.split("-");
     const last = parts[parts.length - 1];
@@ -634,14 +651,31 @@ function getMainModel(model) {
   return raw;
 }
 
+/* 
+   ✅ 方案A preloadProducts：
+   1) 先讀快取（有就秒開）
+   2) 再去 Firestore 更新快取（背景更新，不阻塞）
+*/
 async function preloadProducts() {
+  // 1) 先用快取秒開
+  const cached = readProductsCache();
+  if (cached && cached.length > 0) {
+    productCache = cached;
+    isProductsLoaded = true;
+    console.log("✅ 使用快取商品：", productCache.length);
+
+    // 2) 背景更新 Firestore（不 showLoading）
+    refreshProductsInBackground();
+    return;
+  }
+
+  // 沒快取才 showLoading
   showLoading();
   isProductsLoaded = false;
 
   try {
     const snap = await getDocs(collection(db, "Products"));
-    productCache = [];
-
+    const fresh = [];
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
       const model     = (d.model || "").trim();
@@ -655,7 +689,7 @@ async function preloadProducts() {
 
       const searchKey = (d.searchKey || `${model} ${d.name || ""}`).toLowerCase();
 
-      productCache.push({
+      fresh.push({
         ...d,
         model,
         mainModel,
@@ -664,15 +698,52 @@ async function preloadProducts() {
       });
     });
 
-    console.log("Firestore 商品載入完成：", productCache.length);
+    productCache = fresh;
     isProductsLoaded = true;
-
+    writeProductsCache(fresh);
+    console.log("Firestore 商品載入完成：", productCache.length);
   } catch (e) {
     alert("商品載入失敗！");
     console.error(e);
   }
 
   hideLoading();
+}
+
+// Firestore 背景更新
+async function refreshProductsInBackground() {
+  try {
+    const snap = await getDocs(collection(db, "Products"));
+    const fresh = [];
+    snap.forEach(docSnap => {
+      const d = docSnap.data() || {};
+      const model     = (d.model || "").trim();
+      const mainModel = getMainModel(model);
+
+      let colorList = (d.colorList || "").trim();
+      if (!colorList) {
+        const suffix = model.toUpperCase().replace(mainModel, "");
+        if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
+      }
+
+      const searchKey = (d.searchKey || `${model} ${d.name || ""}`).toLowerCase();
+
+      fresh.push({
+        ...d,
+        model,
+        mainModel,
+        colorList,
+        searchKey
+      });
+    });
+
+    productCache = fresh;
+    isProductsLoaded = true;
+    writeProductsCache(fresh);
+    console.log("🔄 Firestore 背景更新完成：", fresh.length);
+  } catch (e) {
+    console.warn("背景更新失敗（不影響使用）：", e);
+  }
 }
 
 /* =======================================================
@@ -752,7 +823,6 @@ function searchProducts() {
 
   setTimeout(() => {
 
-    // A：只打關鍵字
     if (key && !qty && !minPraw && !maxPraw) {
       const r = productCache.filter(p => (p.searchKey || "").includes(key));
       currentResultList = applySorting(mergeByMainModel(r));
@@ -761,7 +831,6 @@ function searchProducts() {
       return;
     }
 
-    // B：起訂量 + 預算（無關鍵字）
     if (!key && qty && (minPraw || maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
@@ -778,7 +847,6 @@ function searchProducts() {
       return;
     }
 
-    // C：三項都填
     if (key && qty && (minPraw || maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
@@ -1177,7 +1245,6 @@ function downloadQuoteExcel() {
 ======================================================= */
 document.addEventListener("click", (e) => {
 
-  /* 加入報價單 */
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1200,7 +1267,6 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  /* 單筆 LINE 分享 */
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
