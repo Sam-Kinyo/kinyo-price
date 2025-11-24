@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.7.7 + Drive 版本）</title>
+<title>KINYO 查價系統（v4.8.1 UltraFast + Premium UI）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -64,7 +64,7 @@ h1{margin:0 0 4px;}
   border-radius:999px;
   border:1px solid var(--border);
   cursor:pointer;
-  background:white;
+  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
   font-size:12px;
 }
 
@@ -83,7 +83,7 @@ h1{margin:0 0 4px;}
   padding:10px 16px;
   border-radius:999px;
   border:1px solid var(--border);
-  background:white;
+  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
   cursor:pointer;
   font-size:14px;
   white-space:nowrap;
@@ -97,7 +97,7 @@ h1{margin:0 0 4px;}
   background:var(--card);
   padding:18px;
   border-radius:var(--radius);
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
   margin-bottom:12px;
 }
 .search-row{margin-bottom:14px;}
@@ -110,7 +110,7 @@ label{
 input,select{
   width:100%;
   padding:10px 12px;
-  border-radius:8px;
+  border-radius:14px;
   border:1px solid #d1d5db;
   font-size:15px;
   box-sizing:border-box;
@@ -130,7 +130,7 @@ input,select{
   width:100%;
 }
 .btn-secondary{
-  background:white;
+  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
   border:1px solid var(--border);
   padding:10px 16px;
   border-radius:999px;
@@ -156,10 +156,10 @@ input,select{
 table{
   width:100%;
   border-collapse:collapse;
-  background:white;
+  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
   border-radius:var(--radius);
   overflow:hidden;
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
 }
 th,td{
   padding:12px 10px;
@@ -172,7 +172,7 @@ th{background:#fafafa;text-align:left;}
 .product-img{
   width:110px;height:110px;
   object-fit:cover;
-  border-radius:8px;
+  border-radius:14px;
   border:1px solid #e5e7eb;
   background:#fff;
 }
@@ -207,12 +207,12 @@ th{background:#fafafa;text-align:left;}
   z-index:2000;
 }
 #centerLoadingCard{
-  background:white;
+  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
   width:280px;
   padding:20px;
   border-radius:12px;
   text-align:center;
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
 }
 .loading-title{
   font-size:15px;
@@ -243,10 +243,10 @@ th{background:#fafafa;text-align:left;}
   width:360px;
   max-height:78vh;
   overflow-y:auto;
-  background:white;
+  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
   padding:18px;
   border-radius:var(--radius);
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
   display:none;
   z-index:999;
 }
@@ -362,7 +362,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.7.7 + Drive 版本）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.8.1 UltraFast + Premium UI）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -422,7 +422,7 @@ th{background:#fafafa;text-align:left;}
 
 <!-- Mobile 詳細頁 Sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
-<div id="mobileDetailSheet" class="sheet hidden">
+<div id="mobileDetailSheet" class="sheet hidden" data-drag="1">
   <div class="sheet-header">
     <span>商品資訊</span>
     <button id="sheetCloseBtn" class="sheet-close">×</button>
@@ -431,7 +431,7 @@ th{background:#fafafa;text-align:left;}
 </div>
 
 <!-- 報價單 Sheet -->
-<div id="quoteSheet" class="sheet hidden">
+<div id="quoteSheet" class="sheet hidden" data-drag="1">
   <div class="sheet-header">
     <span>報價單預覽</span>
     <button id="quoteCloseBtn" class="sheet-close">×</button>
@@ -531,15 +531,14 @@ let isDriveLoaded = false;
 function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
-  setTimeout(() => {
-    centerLoadingBar.querySelector(".fill").style.width = "55%";
-  }, 120);
+  setTimeout(() => { centerLoadingBar.querySelector('.fill').style.width = '55%';
+  }, 40);
 }
 function hideLoading() {
-  centerLoadingBar.querySelector(".fill").style.width = "100%";
+  centerLoadingBar.querySelector('.fill').style.width = '100%';
   setTimeout(() => {
     centerLoadingBox.style.display = "none";
-  }, 260);
+  }, 80);
 }
 
 /* =======================================================
@@ -787,7 +786,7 @@ function searchProducts() {
     alert("請輸入關鍵字，或起訂量+預算，或三項都填滿。");
     hideLoading();
 
-  }, 260);
+  }, 80);
 }
 
 /* =======================================================
