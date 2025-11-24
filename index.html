@@ -1402,5 +1402,20 @@ searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 
 </script>
+
+<script>
+(function(){
+    try {
+        const modules = [...document.querySelectorAll("script[type='module']")]
+            .map(s => s.textContent)
+            .join("\n/*MODULE_BREAK*/\n");
+        new Function(modules);
+    } catch(e) {
+        console.error("Auto Syntax Guard Error:", e);
+        alert("偵測到 JS 語法錯誤：\n" + e.message + "\n請查看 Console 了解詳細位置。");
+    }
+})();
+</script>
+
 </body>
 </html>
