@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.8.2 UltraFast SecureCache）</title>
+<title>KINYO 查價系統（v4.8.2 UltraFast + Premium UI (SecureCache)）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <style>
@@ -97,7 +97,7 @@ h1{margin:0 0 4px;}
   background:var(--card);
   padding:18px;
   border-radius:var(--radius);
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
   margin-bottom:12px;
 }
 .search-row{margin-bottom:14px;}
@@ -159,7 +159,7 @@ table{
   background:white;
   border-radius:var(--radius);
   overflow:hidden;
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
 }
 th,td{
   padding:12px 10px;
@@ -172,7 +172,7 @@ th{background:#fafafa;text-align:left;}
 .product-img{
   width:110px;height:110px;
   object-fit:cover;
-  border-radius:8px;
+  border-radius:14px;
   border:1px solid #e5e7eb;
   background:#fff;
 }
@@ -207,12 +207,12 @@ th{background:#fafafa;text-align:left;}
   z-index:2000;
 }
 #centerLoadingCard{
-  background:white;
+  background:rgba(255,255,255,0.65);backdrop-filter:blur(14px);
   width:280px;
   padding:20px;
   border-radius:12px;
   text-align:center;
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
 }
 .loading-title{
   font-size:15px;
@@ -246,7 +246,7 @@ th{background:#fafafa;text-align:left;}
   background:white;
   padding:18px;
   border-radius:var(--radius);
-  box-shadow:var(--shadow);
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);
   display:none;
   z-index:999;
 }
@@ -362,7 +362,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.8.2 UltraFast SecureCache）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.8.2 UltraFast + Premium UI (SecureCache)）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -516,45 +516,40 @@ let userLevel = 1;
 let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
-let isQuotesLoaded = false; // sensitive prices loaded in memory only
+let isQuotesLoaded = false;
+
 
 /* =======================================================
    Secure UltraFast Local Cache (non-sensitive only)
-   Sensitive: quote50/100/300/500/1000, userLevel
+   - Cache excludes quote50/100/300/500/1000 and userLevel
 ======================================================= */
-const CACHE_VERSION = "v1";
 const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
-function cacheKeyForUser(){
-  const email = (currentUserEmail || "guest").toLowerCase();
-  return `KINYO_SAFE_CACHE_${CACHE_VERSION}_${email}`;
+
+function getCacheKey() {
+  const mail = (currentUserEmail || "guest").toLowerCase();
+  return `KINYO_SAFE_CACHE_V1_${mail}`;
 }
-function loadSafeCache(){
-  try{
-    const raw = localStorage.getItem(cacheKeyForUser());
-    if(!raw) return null;
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(getCacheKey());
+    if (!raw) return null;
     const obj = JSON.parse(raw);
-    if(!obj || !obj.time || !obj.data) return null;
-    if(Date.now() - obj.time > CACHE_TTL) return null;
+    if (!obj || !obj.time || !Array.isArray(obj.data)) return null;
+    if (Date.now() - obj.time > CACHE_TTL) return null;
     return obj.data;
-  }catch(e){ return null; }
+  } catch { return null; }
 }
-function saveSafeCache(list){
-  try{
-    const safeList = list.map(p=>({
-      model:p.model||"",
-      mainModel:p.mainModel||"",
-      name:p.name||"",
-      colorList:p.colorList||"",
-      cartonQty:p.cartonQty||"",
-      productUrl:p.productUrl||"",
-      imageUrl:p.imageUrl||"",
-      minPrice:p.minPrice??null,
-      marketPrice:p.marketPrice??null,
-      // searchKey rebuilt client-side
+
+function saveCache(data) {
+  try {
+    localStorage.setItem(getCacheKey(), JSON.stringify({
+      time: Date.now(),
+      data
     }));
-    localStorage.setItem(cacheKeyForUser(), JSON.stringify({time:Date.now(), data:safeList}));
-  }catch(e){}
+  } catch {}
 }
+
 
 /* =======================================================
    Drive modelData.json
@@ -572,7 +567,7 @@ function showLoading() {
   centerLoadingBar.querySelector(".fill").style.width = "0%";
   setTimeout(() => {
     centerLoadingBar.querySelector(".fill").style.width = "55%";
-  }, 40);
+  }, 120);
 }
 function hideLoading() {
   centerLoadingBar.querySelector(".fill").style.width = "100%";
@@ -655,15 +650,17 @@ function getDriveNetImages(model, mainModel){
 /* =======================================================
    Firestore 商品預載入
 ======================================================= */
+
 function getMainModel(model) {
   if (!model) return "";
-  const raw = model.trim().toUpperCase();
+  const raw = String(model).trim().toUpperCase();
+  if (!raw) return "";
 
-  // KH195PI → KH195（英文字尾視為色碼）
+  // e.g. ABC123D -> ABC123
   const m = raw.match(/^([A-Z]+[0-9]+)([A-Z]{1,3})$/);
   if (m) return m[1];
 
-  // ABC-123X → 主型號 ABC-123
+  // e.g. ABC123-D -> ABC123
   if (raw.includes("-")) {
     const parts = raw.split("-");
     const last = parts[parts.length - 1];
@@ -673,34 +670,35 @@ function getMainModel(model) {
   return raw;
 }
 
-async function preloadProducts({background=false} = {}) {
-  // If we are doing background refresh, don't block UI with loading overlay
-  if (!background) showLoading();
-  isProductsLoaded = false;
-  isQuotesLoaded = false;
 
-  // 1) Try safe cache to speed up first paint
-  const cached = loadSafeCache();
+async function preloadProducts() {
+  // 1) Try cache first (non-sensitive)
+  const cached = loadCache();
   if (cached && cached.length) {
-    productCache = cached.map(d => {
-      const model = (d.model || "").trim();
-      const mainModel = getMainModel(model) || d.mainModel || "";
-      const colorList = (d.colorList || "").trim() || "-";
-      const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
-      return { ...d, model, mainModel, colorList, searchKey };
-    });
+    productCache = cached.map(p => ({
+      ...p,
+      // ensure derived fields exist
+      model: (p.model || "").trim(),
+      mainModel: p.mainModel || getMainModel(p.model || ""),
+      searchKey: (p.searchKey || `${p.model||""} ${p.mainModel||""} ${p.name||""}`.toLowerCase())
+    }));
     isProductsLoaded = true;
-    if (!background) hideLoading();
+    isQuotesLoaded = false; // quotes still pending
+    console.log("✅ 使用本地快取商品：", productCache.length);
 
-    // Kick off background refresh for full data (incl. sensitive quotes in memory)
-    preloadProducts({background:true});
+    // Background refresh to pull quotes + latest fields
+    refreshProductsFromFirestore();
     return;
   }
 
-  // 2) No cache → fetch Firestore normally
+  // 2) No cache → full load
+  showLoading();
+  isProductsLoaded = false;
+  isQuotesLoaded = false;
+
   try {
     const snap = await getDocs(collection(db, "Products"));
-    const fresh = [];
+    const fullList = [];
 
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
@@ -715,7 +713,7 @@ async function preloadProducts({background=false} = {}) {
 
       const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
 
-      fresh.push({
+      fullList.push({
         ...d,
         model,
         mainModel,
@@ -724,12 +722,17 @@ async function preloadProducts({background=false} = {}) {
       });
     });
 
-    productCache = fresh;
+    productCache = fullList;
     isProductsLoaded = true;
-    isQuotesLoaded = true; // quotes are now in memory
+    isQuotesLoaded = true;
 
-    // Save only non-sensitive fields for next time
-    saveSafeCache(productCache);
+    // Save non-sensitive cache
+    const safeList = fullList.map(p => {
+      const c = { ...p };
+      delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
+      return c;
+    });
+    saveCache(safeList);
 
     console.log("Firestore 商品載入完成：", productCache.length);
 
@@ -738,7 +741,54 @@ async function preloadProducts({background=false} = {}) {
     console.error(e);
   }
 
-  if (!background) hideLoading();
+  hideLoading();
+}
+
+/* =======================================================
+   Background refresh (pull latest + quotes)
+======================================================= */
+async function refreshProductsFromFirestore() {
+  try {
+    const snap = await getDocs(collection(db, "Products"));
+    const fullList = [];
+
+    snap.forEach(docSnap => {
+      const d = docSnap.data() || {};
+      const model     = (d.model || "").trim();
+      const mainModel = getMainModel(model);
+
+      let colorList = (d.colorList || "").trim();
+      if (!colorList) {
+        const suffix = model.toUpperCase().replace(mainModel, "");
+        if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
+      }
+
+      const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
+
+      fullList.push({
+        ...d,
+        model,
+        mainModel,
+        colorList,
+        searchKey
+      });
+    });
+
+    productCache = fullList;
+    isQuotesLoaded = true;
+
+    // Update safe cache
+    const safeList = fullList.map(p => {
+      const c = { ...p };
+      delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
+      return c;
+    });
+    saveCache(safeList);
+
+    console.log("✅ 背景更新完成（含採購價）：", fullList.length);
+  } catch(e) {
+    console.warn("背景更新失敗（不影響快取搜尋）", e);
+  }
 }
 
 /* =======================================================
@@ -808,9 +858,13 @@ function searchProducts() {
     alert("商品尚未載入完成，請稍等 1~2 秒再搜尋");
     return;
   }
-  // If user wants price-based search but quotes not ready yet
-  if (!isQuotesLoaded && (qtySelect.value || minPriceInput.value || maxPriceInput.value)) {
-    alert("價格資料載入中，請稍等 1~2 秒再用預算/起訂量篩選");
+  // 若使用起訂量/預算篩選，需要採購價已同步完成
+  const _qtyTmp = qtySelect.value;
+  const _minTmp = minPriceInput.value.trim();
+  const _maxTmp = maxPriceInput.value.trim();
+  const _needsQuote = !!_qtyTmp && (_minTmp || _maxTmp || keywordInput.value.trim());
+  if (_needsQuote && !isQuotesLoaded) {
+    alert("採購價同步中，請稍等 1~2 秒再用起訂量/預算篩選");
     return;
   }
 
