@@ -1631,34 +1631,110 @@ exportBtn.onclick = exportSelectedExcel;
 
 </script>
 
+
 <script>
-/* AutoVersion Fix: Modular Firebase Loader */
+/* ============================================
+   AutoVersion A+B+C UltraStable (modular v9+)
+   - A: 偵測商品筆數變化
+   - B: 偵測最大 lastUpdated 變化
+   - C: 有 Token 時自動更新 GitHub cacheVersion.json
+   依賴主程式已初始化的 db（getFirestore(app)）
+============================================ */
 (async function(){
   try {
-    const appMod = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js");
-    const fsMod  = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+    // 主程式的 Firebase modular 已初始化
+    const db = window.__KINYO_DB__;
+    if (!db) {
+      console.warn("AutoVersion: db not ready, skip.");
+      return;
+    }
 
-    const { initializeApp } = appMod;
-    const {
-      getFirestore, collection, getDocs
-    } = fsMod;
+    const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
-      authDomain: "kinyo-price.firebaseapp.com",
-      projectId: "kinyo-price",
-      storageBucket: "kinyo-price.appspot.com",
-      messagingSenderId: "122464645678",
-      appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
-    };
+    async function fetchFirestoreMeta() {
+      const snap = await getDocs(collection(db, "Products"));
+      const count = snap.size;
+      let maxUpdated = 0;
+      snap.forEach(d => {
+        const v = d.data()?.lastUpdated;
+        if (v && typeof v.toMillis === "function") {
+          const ms = v.toMillis();
+          if (ms > maxUpdated) maxUpdated = ms;
+        }
+      });
+      return { count, maxUpdated };
+    }
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    function fetchLocalMeta() {
+      try {
+        return JSON.parse(localStorage.getItem("KINYO_CACHE_META") || "{}");
+      } catch {
+        return {};
+      }
+    }
 
-    window._autoVersionDB = db; // expose for main script
+    function saveLocalMeta(meta) {
+      localStorage.setItem("KINYO_CACHE_META", JSON.stringify(meta));
+    }
 
-  } catch(e){
-    console.error("AutoVersionInitError:", e);
+    async function updateGithubVersion(newVersion) {
+      const token = localStorage.getItem("KINYO_GITHUB_TOKEN");
+      if (!token) return false;
+
+      const fileUrl = "https://api.github.com/repos/sam-kinyo/kinyo-price/contents/cacheVersion.json";
+
+      const fileRes = await fetch(fileUrl, { headers:{Authorization:`Bearer ${token}`} });
+      if (!fileRes.ok) return false;
+      const fileJson = await fileRes.json();
+
+      const newContent = btoa(JSON.stringify({version:newVersion}, null, 2));
+
+      const updateRes = await fetch(fileUrl, {
+        method:"PUT",
+        headers:{
+          Authorization:`Bearer ${token}`,
+          "Content-Type":"application/json"
+        },
+        body: JSON.stringify({
+          message:`Auto update cacheVersion to ${newVersion}`,
+          content:newContent,
+          sha:fileJson.sha
+        })
+      });
+
+      return updateRes.ok;
+    }
+
+    const remote = await fetchFirestoreMeta();
+    const local = fetchLocalMeta();
+
+    const localCount = Number(local.count || 0);
+    const localMax = Number(local.maxUpdated || 0);
+    const localVersion = Number(local.version || 0);
+
+    if (remote.count !== localCount || remote.maxUpdated !== localMax) {
+      const newVersion = localVersion + 1;
+      const ok = await updateGithubVersion(newVersion);
+
+      saveLocalMeta({
+        count: remote.count,
+        maxUpdated: remote.maxUpdated,
+        version: newVersion
+      });
+
+      if (ok) {
+        // 若成功回寫 GitHub，清空安全快取讓本機也走新版本
+        Object.keys(localStorage)
+          .filter(k => k.startsWith("KINYO_SAFE_CACHE_V1_"))
+          .forEach(k => localStorage.removeItem(k));
+      }
+
+      console.log("AutoVersion: updated to", newVersion, "github:", ok);
+    } else {
+      console.log("AutoVersion: no change");
+    }
+  } catch(e) {
+    console.error("AutoVersion Error:", e);
   }
 })();
 </script>
