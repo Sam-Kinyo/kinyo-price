@@ -382,9 +382,6 @@ th{background:#fafafa;text-align:left;}
       <input id="minPrice" type="number" placeholder="最低 (可空)">
       <input id="maxPrice" type="number" placeholder="最高 (可空)">
     </div>
-    <div id="quoteSyncTip" style="display:none;color:#d97706;font-size:13px;margin-top:6px;">
-      採購價同步中… 請稍後再使用起訂量／預算搜尋
-    </div>
   </div>
 
   <button id="searchBtn" type="submit" class="btn-primary">查詢</button>
@@ -510,24 +507,6 @@ const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
 const centerLoadingBox = document.getElementById("centerLoadingBox");
 const centerLoadingBar = document.getElementById("centerLoadingBar");
 
-const quoteSyncTip = document.getElementById("quoteSyncTip");
-function showQuoteSyncTip(){
-  if (quoteSyncTip) quoteSyncTip.style.display = "block";
-}
-function hideQuoteSyncTip(){
-  if (quoteSyncTip) quoteSyncTip.style.display = "none";
-}
-function updateQuoteSyncTipByInputs(){
-  const _qtyTmp = qtySelect.value;
-  const _minTmp = minPriceInput.value.trim();
-  const _maxTmp = maxPriceInput.value.trim();
-  const _keyTmp = keywordInput.value.trim();
-  const _needsQuote = !!_qtyTmp && (_minTmp || _maxTmp || _keyTmp);
-  if (_needsQuote && !isQuotesLoaded) showQuoteSyncTip();
-  else hideQuoteSyncTip();
-}
-
-
 /* =======================================================
    全域變數
 ======================================================= */
@@ -543,35 +522,17 @@ let isQuotesLoaded = false;
 /* =======================================================
    Secure UltraFast Local Cache (non-sensitive only)
    - Cache excludes quote50/100/300/500/1000 and userLevel
-   - Versioned by cacheVersion.json (方案A)
 ======================================================= */
 const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
-const CACHE_VERSION_URL = "./cacheVersion.json";
 
-let cacheVersion = null;
-
-async function fetchCacheVersion() {
-  try {
-    const res = await fetch(`${CACHE_VERSION_URL}?t=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) throw new Error("cacheVersion.json 讀取失敗");
-    const j = await res.json();
-    const v = String(j.version || j.v || j.cacheVersion || "").trim();
-    return v || "0";
-  } catch (e) {
-    console.warn("cacheVersion.json 讀取失敗，先使用本地快取版本", e);
-    return null;
-  }
-}
-
-function getCacheKey(version) {
+function getCacheKey() {
   const mail = (currentUserEmail || "guest").toLowerCase();
-  const v = version || "0";
-  return `KINYO_SAFE_CACHE_V1_${mail}_${v}`;
+  return `KINYO_SAFE_CACHE_V1_${mail}`;
 }
 
-function loadCache(version) {
+function loadCache() {
   try {
-    const raw = localStorage.getItem(getCacheKey(version));
+    const raw = localStorage.getItem(getCacheKey());
     if (!raw) return null;
     const obj = JSON.parse(raw);
     if (!obj || !obj.time || !Array.isArray(obj.data)) return null;
@@ -580,26 +541,11 @@ function loadCache(version) {
   } catch { return null; }
 }
 
-function clearOldCaches() {
+function saveCache(data) {
   try {
-    const mail = (currentUserEmail || "guest").toLowerCase();
-    const prefix = `KINYO_SAFE_CACHE_V1_${mail}_`;
-    Object.keys(localStorage).forEach(k => {
-      if (k.startsWith(prefix)) localStorage.removeItem(k);
-    });
-  } catch {}
-}
-
-function saveCache(version, data) {
-  try {
-    const safeData = (data || []).map(p => {
-      const c = { ...p };
-      delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
-      return c;
-    });
-    localStorage.setItem(getCacheKey(version), JSON.stringify({
+    localStorage.setItem(getCacheKey(), JSON.stringify({
       time: Date.now(),
-      data: safeData
+      data
     }));
   } catch {}
 }
@@ -726,36 +672,27 @@ function getMainModel(model) {
 
 
 async function preloadProducts() {
-  // 0) Fetch remote cache version (方案A). If failed, fallback to local only.
-  cacheVersion = await fetchCacheVersion();
-
-  // 1) Try versioned cache first (non-sensitive)
-  if (cacheVersion) clearOldCaches();
-  const cached = loadCache(cacheVersion);
-
+  // 1) Try cache first (non-sensitive)
+  const cached = loadCache();
   if (cached && cached.length) {
     productCache = cached.map(p => ({
       ...p,
+      // ensure derived fields exist
       model: (p.model || "").trim(),
       mainModel: p.mainModel || getMainModel(p.model || ""),
       searchKey: (p.searchKey || `${p.model||""} ${p.mainModel||""} ${p.name||""}`.toLowerCase())
     }));
     isProductsLoaded = true;
     isQuotesLoaded = false; // quotes still pending
-    console.log("✅ 使用本地快取商品：", productCache.length, "version:", cacheVersion || "local");
+    console.log("✅ 使用本地快取商品：", productCache.length);
 
-    // Background refresh to pull quotes + latest fields (silent)
-    refreshFromFirestore(true);
+    // Background refresh to pull quotes + latest fields
+    refreshProductsFromFirestore();
     return;
   }
 
-  // 2) First boot: foreground load from Firestore
-  await refreshFromFirestore(false);
-}
-
-/* Foreground / Background refresh shared */
-async function refreshFromFirestore(silent = false) {
-  if (!silent) showLoading();
+  // 2) No cache → full load
+  showLoading();
   isProductsLoaded = false;
   isQuotesLoaded = false;
 
@@ -774,7 +711,6 @@ async function refreshFromFirestore(silent = false) {
         if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
       }
 
-      // 永遠自己組 searchKey
       const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
 
       fullList.push({
@@ -790,21 +726,70 @@ async function refreshFromFirestore(silent = false) {
     isProductsLoaded = true;
     isQuotesLoaded = true;
 
-    // Save non-sensitive cache (versioned)
-    saveCache(cacheVersion, productCache);
+    // Save non-sensitive cache
+    const safeList = fullList.map(p => {
+      const c = { ...p };
+      delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
+      return c;
+    });
+    saveCache(safeList);
 
-    console.log(silent ? "✅ 背景更新完成（含採購價）：" : "Firestore 商品載入完成：", productCache.length);
-    hideQuoteSyncTip();
+    console.log("Firestore 商品載入完成：", productCache.length);
 
   } catch (e) {
-    if (!silent) alert("商品載入失敗！");
+    alert("商品載入失敗！");
     console.error(e);
   }
 
-  if (!silent) hideLoading();
+  hideLoading();
 }
 
+/* =======================================================
+   Background refresh (pull latest + quotes)
+======================================================= */
+async function refreshProductsFromFirestore() {
+  try {
+    const snap = await getDocs(collection(db, "Products"));
+    const fullList = [];
 
+    snap.forEach(docSnap => {
+      const d = docSnap.data() || {};
+      const model     = (d.model || "").trim();
+      const mainModel = getMainModel(model);
+
+      let colorList = (d.colorList || "").trim();
+      if (!colorList) {
+        const suffix = model.toUpperCase().replace(mainModel, "");
+        if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
+      }
+
+      const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
+
+      fullList.push({
+        ...d,
+        model,
+        mainModel,
+        colorList,
+        searchKey
+      });
+    });
+
+    productCache = fullList;
+    isQuotesLoaded = true;
+
+    // Update safe cache
+    const safeList = fullList.map(p => {
+      const c = { ...p };
+      delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
+      return c;
+    });
+    saveCache(safeList);
+
+    console.log("✅ 背景更新完成（含採購價）：", fullList.length);
+  } catch(e) {
+    console.warn("背景更新失敗（不影響快取搜尋）", e);
+  }
+}
 
 /* =======================================================
    起訂量權限設定
@@ -878,8 +863,10 @@ function searchProducts() {
   const _minTmp = minPriceInput.value.trim();
   const _maxTmp = maxPriceInput.value.trim();
   const _needsQuote = !!_qtyTmp && (_minTmp || _maxTmp || keywordInput.value.trim());
-  if (_needsQuote && !isQuotesLoaded) { showQuoteSyncTip(); alert("採購價同步中，請稍等 1~2 秒再用起訂量/預算篩選"); return; }
-  hideQuoteSyncTip();
+  if (_needsQuote && !isQuotesLoaded) {
+    alert("採購價同步中，請稍等 1~2 秒再用起訂量/預算篩選");
+    return;
+  }
 
   const key = keywordInput.value.trim().toLowerCase();
   const qty = qtySelect.value;
@@ -1404,12 +1391,6 @@ clearBtn.onclick = () => {
   detailCard.style.display = "none";
 };
 
-/* Quote Sync tip listeners */
-qtySelect.addEventListener("change", updateQuoteSyncTipByInputs);
-minPriceInput.addEventListener("input", updateQuoteSyncTipByInputs);
-maxPriceInput.addEventListener("input", updateQuoteSyncTipByInputs);
-keywordInput.addEventListener("input", updateQuoteSyncTipByInputs);
-
 /* 排序變更 */
 sortSelect.onchange = () => {
   if (currentResultList.length > 0) {
@@ -1483,5 +1464,92 @@ searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 
 </script>
+
+<script>
+/* ============================================
+   AutoVersion A+B 完整版（前端自動刷新版本）
+   - A: 偵測商品筆數變化
+   - B: 偵測最大 lastUpdated 變化
+   - 自動更新 cacheVersion.json（需 Token）
+============================================ */
+(async function(){
+
+  async function fetchFirestoreMeta() {
+    const app = self.firebaseApp;
+    const db = self.firebaseDB;
+    const snap = await firebase.firestore().collection("Products").get();
+    let count = snap.size;
+    let lastTimes = [];
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d.lastUpdated) lastTimes.push(d.lastUpdated.toMillis());
+    });
+    let maxUpdated = lastTimes.length ? Math.max(...lastTimes) : 0;
+    return { count, maxUpdated };
+  }
+
+  async function fetchLocalCacheMeta() {
+    try {
+      const meta = JSON.parse(localStorage.getItem("KINYO_CACHE_META") || "{}");
+      return {
+        count: meta.count || 0,
+        maxUpdated: meta.maxUpdated || 0,
+        version: meta.version || 0
+      };
+    } catch { return { count:0, maxUpdated:0, version:0 }; }
+  }
+
+  async function saveLocalCacheMeta(data) {
+    localStorage.setItem("KINYO_CACHE_META", JSON.stringify(data));
+  }
+
+  async function updateGithubVersion(newVersion) {
+    const token = localStorage.getItem("KINYO_GITHUB_TOKEN");
+    if (!token) return;
+
+    const fileUrl = "https://api.github.com/repos/sam-kinyo/kinyo-price/contents/cacheVersion.json";
+
+    const fileRes = await fetch(fileUrl, { headers:{Authorization:`Bearer ${token}`} });
+    const fileJson = await fileRes.json();
+
+    const newContent = btoa(JSON.stringify({version:newVersion}, null, 2));
+
+    await fetch(fileUrl, {
+      method:"PUT",
+      headers:{
+        Authorization:`Bearer ${token}`,
+        "Content-Type":"application/json"
+      },
+      body: JSON.stringify({
+        message:`Auto update version to ${newVersion}`,
+        content:newContent,
+        sha:fileJson.sha
+      })
+    });
+  }
+
+  try {
+    const remote = await fetchFirestoreMeta();
+    const local = await fetchLocalCacheMeta();
+
+    if (remote.count !== local.count || remote.maxUpdated !== local.maxUpdated) {
+      const newVersion = (local.version||0) + 1;
+      await updateGithubVersion(newVersion);
+      await saveLocalCacheMeta({
+        count: remote.count,
+        maxUpdated: remote.maxUpdated,
+        version: newVersion
+      });
+      console.log("AutoVersion: version updated to", newVersion);
+    } else {
+      console.log("AutoVersion: no change");
+    }
+  } catch(e){
+    console.error("AutoVersion Error:", e);
+  }
+
+})();
+</script>
+
 </body>
 </html>
