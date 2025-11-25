@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.10.2 Perfect Layout）</title>
+<title>KINYO 查價系統（v4.10.4 PPT Layout Fix）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -394,7 +394,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.10.2 Perfect Layout）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.10.4 PPT Layout Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -484,7 +484,6 @@ th{background:#fafafa;text-align:left;}
    1. 設定您的 LOGO 網址
 ======================================================= */
 const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1421uDbhoWaEvASQX4dYy2WoN1ix5sF-z/view?usp=sharing"; 
-
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -829,7 +828,12 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
-    const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
+    // 🚀 2. 智慧過濾無效圖片
+    let img = item.imageUrl;
+    if (!img || !img.startsWith("http")) {
+      img = "https://placehold.co/110x110?text=No+Image";
+    }
+  
     const tr = document.createElement("tr");
     let priceHtml = "";
     if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${item.quote50 ?? "-"}</span>`;
@@ -880,7 +884,12 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
-  const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
+  // 🚀 2. 智慧過濾無效圖片
+  let img = item.imageUrl;
+  if (!img || !img.startsWith("http")) {
+    img = "https://placehold.co/300x300?text=No+Image";
+  }
+
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
   const netImages = getDriveNetImages(item.model, item.mainModel);
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
@@ -964,38 +973,37 @@ function getQuoteByTier(item, tier){ const key = "quote" + String(tier); return 
 async function buildProductSlide(pptx, item, tier){
   const slide = pptx.addSlide();
   
-  // 1. Blue Header
-  slide.addShape(pptx.ShapeType.rect, { x:0, y:0, w:'100%', h:1.2, fill:{color:'003366'} });
+  // 1. Header Bar (Blue)
+  slide.addShape(pptx.ShapeType.rect, { x:0, y:0, w:'100%', h:1.1, fill:{color:'003366'} });
   
-  // Logo (Left, Big)
+  // Logo (Left)
   const logoData = await fetchAsDataURL(COMPANY_LOGO_URL);
   if(logoData){
-    slide.addImage({ data: logoData, x:0.2, y:0.15, w:2.5, h:0.9, sizing: { type:'contain' } });
+    slide.addImage({ data: logoData, x:0.2, y:0.1, w:2.0, h:0.9, sizing: { type:'contain' } });
   } else {
     slide.addText("KINYO", { x:0.2, y:0.3, fontSize:28, bold:true, color:'FFFFFF' });
   }
   
-  // 商品名稱 (Middle, White)
-  slide.addText(`${item.name || ""}`, { x:3.0, y:0.3, w:5.5, h:0.6, fontFace:"Microsoft JhengHei", fontSize:28, bold:true, color:'FFFFFF' });
+  // Title (Middle)
+  slide.addText(`${item.name || ""}`, { x:2.4, y:0.1, w:6.0, h:0.9, fontFace:"Microsoft JhengHei", fontSize:28, bold:true, color:'FFFFFF', valign:'middle' });
 
-  // 報價 (Right, Integrated in Blue Header)
+  // Quote Info (Right)
+  // Market Price (Top Right, Small)
+  slide.addText(`賣場價: $${item.marketPrice ?? item.salePrice ?? "-"}`, { x:8.5, y:0.15, w:4.5, h:0.3, fontSize:14, color:'D1D5DB', fontFace:"Microsoft JhengHei", align:'right' });
+  // Quote Price (Bottom Right, Big Gold)
   const quoteVal = getQuoteByTier(item, tier);
-  // 賣場價 (上, 淺灰)
-  slide.addText(`賣場價: $${item.marketPrice ?? item.salePrice ?? "-"}`, { x:8.8, y:0.2, w:4.0, h:0.4, fontSize:14, color:'D1D5DB', fontFace:"Microsoft JhengHei", align:'left' });
-  // 報價 (下, 黃底紅字 High Contrast)
-  slide.addShape(pptx.ShapeType.rect, { x:8.8, y:0.6, w:4.0, h:0.5, fill:{color:'FEF3C7'}, line:{color:'F59E0B', width:0} });
-  slide.addText(`報價(${tier}pcs): $${quoteVal}`, { x:8.8, y:0.6, w:4.0, h:0.5, fontSize:18, bold:true, color:'B91C1C', fontFace:"Microsoft JhengHei", align:'center' });
+  slide.addText(`報價(${tier}pcs): $${quoteVal}`, { x:8.5, y:0.45, w:4.5, h:0.5, fontSize:24, bold:true, color:'FFD700', fontFace:"Microsoft JhengHei", align:'right' });
 
-  // 2. Info Strip (Removed redundant info, kept simple)
-  slide.addShape(pptx.ShapeType.rect, { x:0, y:1.2, w:'100%', h:0.1, fill:{color:'D4AF37'} }); // Gold Line separator
-
-  // 3. Images Grid (Safe Zone: Y=1.8 ~ 7.2)
-  // 1 Main + 5 Random, 2x3 Grid
+  // 3. Images Grid (2x3)
+  // Safe Zone: Y start 1.5, Height max 2.6 per image row
   const netImgs = pickRandom(getDriveNetImages(item.model, item.mainModel), 6);
-  const startY = 1.8; 
-  const w = 3.8; const h = 2.5; // Rectangular Frame
-  const colX = [0.6, 4.75, 8.9];
-  const rowY = [startY, startY + h + 0.3];
+  const startY = 1.5; 
+  const w = 3.8; const h = 2.6; // Rectangular Frame, reduced height to fit
+  const gapY = 0.2;
+  
+  // Cols
+  const colX = [0.5, 4.7, 8.9];
+  const rowY = [startY, startY + h + gapY];
 
   let idx = 0;
   for(let r=0; r<2; r++){
@@ -1016,7 +1024,7 @@ async function buildProductSlide(pptx, item, tier){
         slide.addImage({ 
           data:dataUrl, 
           x:colX[c]+0.1, y:rowY[r]+0.1, w:w-0.2, h:h-0.2,
-          sizing: { type: 'contain', w:w-0.2, h:h-0.2 } // Force Contain
+          sizing: { type: 'contain', w:w-0.2, h:h-0.2 } 
         });
       } else {
         slide.addText("No Image", { x:colX[c], y:rowY[r]+1, w:w, align:'center', fontSize:12, color:'9CA3AF' });
@@ -1026,7 +1034,7 @@ async function buildProductSlide(pptx, item, tier){
   }
 
   // 4. Footer
-  slide.addText(`KINYO 產品報價單 | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.5, y:7.0, fontSize:10, color:'9CA3AF' });
+  slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.5, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
 async function exportSelectedPPT() {
