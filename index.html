@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.13.9）</title>
+<title>KINYO 查價系統（v4.14.0）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -408,7 +408,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.13.9）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.14.0 Random Search & PPT Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -436,7 +436,7 @@ th{background:#fafafa;text-align:left;}
 
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
-    <option value="">不排序</option>
+    <option value="">不排序 (隨機)</option>
     <option value="minPriceAsc">末售：低 → 高</option>
     <option value="minPriceDesc">末售：高 → 低</option>
     <option value="marketAsc">賣場：低 → 高</option>
@@ -641,6 +641,16 @@ function normalizeKey(key) {
         return (m[1] + m[2]);
     }
     return base;
+}
+
+// 🚀 隨機洗牌函式
+function shuffleArray(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 async function preloadDriveModelData() {
@@ -882,7 +892,14 @@ function searchProducts() {
       });
     }
 
-    currentResultList = applySorting(mergeByMainModel(r));
+    // 🚀 隨機排序邏輯：如果沒有指定排序，就隨機洗牌
+    currentResultList = mergeByMainModel(r);
+    if (!sortSelect.value) {
+        currentResultList = shuffleArray(currentResultList);
+    } else {
+        currentResultList = applySorting(currentResultList);
+    }
+    
     renderResults(currentResultList);
     hideLoading();
     updateUserDisplay('normal');
@@ -897,11 +914,14 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
+    // 🚀 2. 智慧過濾無效圖片 (Fix Logic)
     let img = item.imageUrl;
+    // Try to get from DriveMap using normalized keys
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    if (driveImg) img = driveImg;
+    
     if (!img || !img.startsWith("http")) {
-      const driveImg = getDriveMainImage(item.model, item.mainModel);
-      if (driveImg) img = driveImg;
-      else img = "https://placehold.co/110x110?text=No+Image";
+      img = "https://placehold.co/110x110?text=No+Image";
     }
   
     const tr = document.createElement("tr");
@@ -935,6 +955,7 @@ function renderResults(list) {
       <td style="text-align:right;">${item.marketPrice ?? "-"}</td>
     `;
 
+    // 🚀 修正事件綁定：只對圖片和型號綁定 Click/Hover
     const imgEl = tr.querySelector('.product-img');
     const modelEl = tr.querySelector('.model-cell');
 
@@ -1097,11 +1118,10 @@ function downloadQuoteExcel() {
 }
 
 // --- PPT Logic Updated (4:3 Style with Image Locking) ---
-function shuffleArray(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-
+// Helper: Pick random N items, but ensure index 0 (Main Image) is kept first
 function pickRandom(arr, n){ 
   if(!Array.isArray(arr) || arr.length === 0) return [];
-  const first = arr[0]; 
+  const first = arr[0]; // The Python script already ensures index 0 is _01
   const others = arr.slice(1);
   const shuffledOthers = shuffleArray(others);
   const pickedOthers = shuffledOthers.slice(0, n - 1); 
@@ -1193,51 +1213,10 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
-  
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-      const model = cb.dataset.model;
-      let item = currentResultList.find(p => p.model === model);
-      if(!item) item = currentResultList.find(p => p.mainModel === model);
-      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-      return item;
-  }).filter(Boolean);
-
-  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
-
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; 
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-    
-    const salesName = "郭庭豪";
-    const salesPhone = "0976-966333";
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
-}
-
 /* =======================================================
    Event Listeners (Bind within Module)
 ======================================================= */
+// 🚀 Moved all Event Listeners to bottom to prevent ReferenceError
 searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 logoutBtn.onclick = () => signOut(auth);
@@ -1300,6 +1279,7 @@ onAuthStateChanged(auth, async (user) => {
    Quote Button Listeners inside Module
 ======================================================= */
 document.addEventListener("click", (e) => {
+  // Add to Quote
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1322,6 +1302,7 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  // Line Share
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1345,13 +1326,19 @@ ${costText}
       .catch(() => alert("複製失敗"));
   }
 
+  // --- Click outside detailCard to close it ---
   const card = document.getElementById("detailCard");
   if (card && card.style.display !== "none") {
+    // If click is NOT inside the card AND NOT inside a table row (which opens it)
+    // Note: The button click itself (add-quote-btn) is inside a row, so we should check specific targets
+    // If clicking row-check, we don't close.
+    // If clicking outside table and card, close.
     if (!card.contains(e.target) && !e.target.closest("tr")) {
       card.style.display = "none";
     }
   }
 
+  // Add Listeners to detailCard itself for mouse enter/leave logic
   if(card && !card.hasAttribute("data-listeners-added")){
       card.setAttribute("data-listeners-added", "true");
       card.addEventListener("mouseenter", () => {
@@ -1365,6 +1352,7 @@ ${costText}
   }
 });
 
+/* 多選 LINE 分享 */
 if(multiLineBtn) {
   multiLineBtn.onclick = () => {
     const checked = document.querySelectorAll(".row-check:checked");
@@ -1390,6 +1378,7 @@ if(multiLineBtn) {
   };
 }
 
+/* Clear Search */
 if(clearBtn) {
   clearBtn.onclick = () => {
     keywordInput.value = "";
@@ -1407,6 +1396,7 @@ if(clearBtn) {
   };
 }
 
+/* Sort */
 if(sortSelect) {
   sortSelect.onchange = () => {
     if (currentResultList.length > 0) {
@@ -1416,6 +1406,7 @@ if(sortSelect) {
   };
 }
 
+/* Sheet & Quote UI */
 if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
 if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
 
