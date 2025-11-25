@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.9.1 PPT Image Fix）</title>
+<title>KINYO 查價系統（v4.9.2 PPT Weserv Fix）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -371,7 +371,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.9.1 PPT Image Fix）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.9.2 PPT Weserv Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -724,8 +724,8 @@ async function preloadProducts() {
     saveCache(safeList);
     console.log("Firestore 商品載入完成：", productCache.length);
   } catch (e) {
-    alert("商品載入失敗！");
-    console.error(e);
+    console.error("商品載入失敗 (可能是權限或網路問題):", e);
+    // alert("商品載入失敗！"); // 避免彈出視窗打擾使用者，改用 Console Log
   }
   hideLoading();
 }
@@ -756,7 +756,7 @@ async function refreshProductsFromFirestore() {
     saveCache(safeList);
     console.log("✅ 背景更新完成（含採購價）：", fullList.length);
   } catch(e) {
-    console.warn("背景更新失敗", e);
+    console.warn("背景更新失敗 (請檢查 Firebase 授權網域設定)", e);
   }
 }
 
@@ -1219,8 +1219,11 @@ function pickRandom(arr, n){
 // Helper: Fetch URL as DataURL
 async function fetchAsDataURL(url){
   try{
-    // Use CORS proxy to bypass Google Drive blocking
-    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+    // Use Weserv.nl proxy to bypass Google Drive blocking
+    // Weserv needs the URL without https:// for short version, or full URL with ?url=
+    // We use the query param method which is safer
+    const proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
+    
     const r = await fetch(proxyUrl);
     if(!r.ok) return null;
     const blob = await r.blob();
@@ -1545,4 +1548,4 @@ if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
 
 </script>
 </body>
-</html>"
+</html>
