@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.9.6 Connection Fix）</title>
+<title>KINYO 查價系統（v4.9.7 UI Tweak）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -260,6 +260,31 @@ th{background:#fafafa;text-align:left;}
   z-index:999;
 }
 
+/* 右上角關閉按鈕樣式 */
+.card-close-btn {
+  position: absolute; 
+  top: 12px; 
+  right: 12px; 
+  width: 32px; 
+  height: 32px; 
+  border-radius: 50%; 
+  background: #f3f4f6; 
+  border: 1px solid #e5e7eb;
+  color: #6b7280; 
+  font-size: 20px; 
+  cursor: pointer; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center;
+  z-index: 20;
+  transition: all 0.2s;
+}
+.card-close-btn:hover {
+  background: #e5e7eb;
+  color: #ef4444; /* Hover時變紅色 */
+  transform: scale(1.1);
+}
+
 /* =========================================
    網路圖 grid
 ========================================= */
@@ -369,7 +394,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.9.6 Connection Fix）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.9.7 UI Tweak）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -861,6 +886,7 @@ function showDetailDesktop(item) {
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
   detailCard.style.display = "block";
   detailCard.innerHTML = `
+    <button class="card-close-btn" onclick="this.parentElement.style.display='none'">×</button>
     <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;">
     <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品大圖</div>${driveMainFolder ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }</div>
     <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>${netDownloadLink ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }</div>
@@ -1127,6 +1153,18 @@ ${costText}
     navigator.clipboard.writeText(text)
       .then(() => alert("已複製到剪貼簿"))
       .catch(() => alert("複製失敗"));
+  }
+
+  // --- Click outside detailCard to close it ---
+  const card = document.getElementById("detailCard");
+  if (card && card.style.display !== "none") {
+    // If click is NOT inside the card AND NOT inside a table row (which opens it)
+    // Note: The button click itself (add-quote-btn) is inside a row, so we should check specific targets
+    // If clicking row-check, we don't close.
+    // If clicking outside table and card, close.
+    if (!card.contains(e.target) && !e.target.closest("tr")) {
+      card.style.display = "none";
+    }
   }
 });
 
