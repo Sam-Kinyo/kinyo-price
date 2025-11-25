@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.11.0 4:3 PPT Style）</title>
+<title>KINYO 查價系統（v4.12.0 Smart Main Image）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -394,7 +394,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.11.0 4:3 PPT Style）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.12.0 Smart Main Image）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -597,17 +597,33 @@ async function preloadDriveModelData() {
     (data.models || []).forEach(m => {
       const key = String(m.mainModel || m.model || "").trim().toUpperCase();
       if (!key) return;
+
       if (m.mainImage) driveMap.set(key, m.mainImage);
       if (m.folderUrl) mainFolderMap.set(key, m.folderUrl);
+      
+      // Net Gallery Link
       const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
       if (folderUrl) netMap.set(key, folderUrl);
-      if (Array.isArray(m.netImages) && m.netImages.length) {
-        netImagesMap.set(key, m.netImages.filter(Boolean));
-        return;
+
+      // 🚀 SMART IMAGE LOGIC: 
+      // If m.images (object array) exists, look for _01
+      let sortedUrls = [];
+      
+      if (Array.isArray(m.images) && m.images.length > 0) {
+        // Find the image that contains "_01." in its name
+        const mainObj = m.images.find(img => img.name && (img.name.includes("_01.") || img.name.includes("-01.")));
+        const otherObjs = m.images.filter(img => img !== mainObj);
+        
+        if (mainObj && mainObj.url) sortedUrls.push(mainObj.url);
+        sortedUrls.push(...otherObjs.map(x => x.url).filter(Boolean));
+        
+      } else if (Array.isArray(m.netImages) && m.netImages.length > 0) {
+        // Fallback to raw string array (hope it's sorted)
+        sortedUrls = m.netImages.filter(Boolean);
       }
-      if (Array.isArray(m.images) && m.images.length) {
-        const urls = m.images.map(x => x?.url).filter(Boolean);
-        if (urls.length) netImagesMap.set(key, urls);
+      
+      if (sortedUrls.length > 0) {
+         netImagesMap.set(key, sortedUrls);
       }
     });
     isDriveLoaded = true;
@@ -828,6 +844,7 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
+    // 🚀 2. 智慧過濾無效圖片
     let img = item.imageUrl;
     if (!img || !img.startsWith("http")) {
       img = "https://placehold.co/110x110?text=No+Image";
@@ -847,6 +864,7 @@ function renderResults(list) {
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
+        <!-- Added onerror handler for broken images -->
         <img src="${img}" class="product-img" onerror="this.onerror=null;this.src='https://placehold.co/110x110?text=No+Image';">
       </td>
       <td>${item.mainModel || "-"}</td>
@@ -882,6 +900,7 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
+  // 🚀 2. 智慧過濾無效圖片
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     img = "https://placehold.co/300x300?text=No+Image";
@@ -899,6 +918,7 @@ function showDetailDesktop(item) {
   detailCard.style.display = "block";
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="this.parentElement.style.display='none'">×</button>
+    <!-- Added onerror handler for broken images -->
     <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
     <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品大圖</div>${driveMainFolder ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }</div>
     <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>${netDownloadLink ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }</div>
@@ -968,10 +988,10 @@ async function buildProductSlide(pptx, item, tier){
     slide.addText("KINYO", { x:0.4, y:0.3, fontSize:24, bold:true, color:'000000' });
   }
   
-  // Title (Middle-Left)
+  // Title (Middle-Left) - Black Text
   slide.addText(`${item.name || ""}`, { x:3.0, y:0.2, w:4.0, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
 
-  // Quote Info (Right) - Stacked in same column
+  // Quote Info (Right) - Stacked
   const quoteVal = getQuoteByTier(item, tier);
   // Market Price
   slide.addText(`賣場價: $${item.marketPrice ?? item.salePrice ?? "-"}`, { x:7.2, y:0.2, w:2.5, h:0.4, fontSize:14, color:'6B7280', fontFace:"Microsoft JhengHei", align:'right' });
@@ -988,28 +1008,13 @@ async function buildProductSlide(pptx, item, tier){
   slide.addShape(pptx.ShapeType.line, { x:0.4, y:1.2, w:9.2, h:0, line:{color:'E5E7EB', width:1} });
 
   // 3. Images Grid (2x3) - 4:3 Layout
-  // Logic: Prefer MainImage (from DriveMap) as Pos 1, else use NetImages[0]. Then fill random.
-  const mainImgUrl = getDriveMainImage(item.model, item.mainModel);
-  const netImgList = getDriveNetImages(item.model, item.mainModel) || [];
+  // Logic: Use netImagesMap which is pre-sorted in preload
+  const netImgs = getDriveNetImages(item.model, item.mainModel) || [];
   
-  // Combine: Start with Main Image if exists, then add others
-  let allCandidates = [];
-  if(mainImgUrl) allCandidates.push(mainImgUrl);
-  
-  // Add net images (avoid dupes of main image)
-  netImgList.forEach(url => {
-      if(url !== mainImgUrl) allCandidates.push(url);
-  });
-  
-  // If no main image but have net images, 1st net image is 1st
-  if(allCandidates.length === 0 && netImgList.length > 0) {
-      allCandidates = [...netImgList];
-  }
-  
-  // Now we have a list where index 0 is the most important image
-  const firstImg = allCandidates[0];
-  const otherImgs = allCandidates.slice(1);
-  const randomOthers = shuffleArray(otherImgs).slice(0, 5); // Pick 5 random from others
+  // Use first image as hero, shuffle rest (max 5)
+  const firstImg = netImgs[0];
+  const others = netImgs.slice(1);
+  const randomOthers = shuffleArray(others).slice(0, 5);
   
   const finalDisplayList = firstImg ? [firstImg, ...randomOthers] : [];
   
