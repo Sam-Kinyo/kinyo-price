@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.9.4 PPT Pro+）</title>
+<title>KINYO 查價系統（v4.9.5 Search Logic Update）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -369,7 +369,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.9.4 PPT Pro+）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.9.5 Search Logic Update）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -738,35 +738,62 @@ function applySorting(list) {
 
 function searchProducts() {
   if (!isProductsLoaded) { alert("商品資料載入中"); return; }
-  const _qtyTmp = qtySelect.value;
-  const _minTmp = minPriceInput.value.trim();
-  const _maxTmp = maxPriceInput.value.trim();
-  const _needsQuote = !!_qtyTmp && (_minTmp || _maxTmp || keywordInput.value.trim());
-  if (_needsQuote && !isQuotesLoaded) { alert("報價載入中"); return; }
-
+  
   const key = keywordInput.value.trim().toLowerCase();
   const qty = qtySelect.value;
   const minPraw = minPriceInput.value.trim();
   const maxPraw = maxPriceInput.value.trim();
+  
+  const hasKey = !!key;
+  const hasQty = !!qty;
+  const hasBudget = !!minPraw || !!maxPraw;
+
+  // Logic 3 Guard: Budget requires Quantity
+  // "3. 搜尋起定量與預算區間 缺一不可"
+  if (hasBudget && !hasQty) {
+    alert("搜尋預算區間時，必須選擇「起訂量」！");
+    return;
+  }
+  
+  // Validate general valid modes
+  // Mode 1: Key only (allowed)
+  // Mode 2: Key + Qty (allowed)
+  // Mode 3: Qty + Budget (allowed)
+  // Invalid: Qty only (no key, no budget)
+  if (hasQty && !hasKey && !hasBudget) {
+    alert("選擇起訂量後，請輸入「關鍵字」或「預算區間」！");
+    return;
+  }
+  
+  if (!hasKey && !hasQty && !hasBudget) {
+    alert("請輸入搜尋條件（關鍵字、起訂量、預算）");
+    return;
+  }
+
+  const _needsQuote = hasQty && hasBudget;
+  if (_needsQuote && !isQuotesLoaded) { alert("報價資料載入中，請稍候"); return; }
 
   showLoading();
   setTimeout(() => {
-    if (key && !qty && !minPraw && !maxPraw) {
-      const r = productCache.filter(p => (p.searchKey || "").includes(key));
-      currentResultList = applySorting(mergeByMainModel(r));
-      renderResults(currentResultList); hideLoading(); return;
+    let r = productCache;
+
+    // Logic 1 & 2: Keyword Filter
+    if (hasKey) {
+      r = r.filter(p => (p.searchKey || "").includes(key));
     }
-    if (!key && qty) {
-      alert("請搭配關鍵字或預算"); hideLoading(); return;
+
+    // Logic 3: Budget Filter (if budget provided)
+    if (hasBudget) {
+      // We know hasQty is true here
+      const min = minPraw ? Number(minPraw) : 0;
+      const max = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
+      const k = `quote${qty}`;
+      r = r.filter(p => {
+        const price = Number(p[k]) || 0;
+        return price >= min && price <= max;
+      });
     }
-    const minP = minPraw ? Number(minPraw) : 0;
-    const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
-    const costKey = `quote${qty}`;
-    const r = productCache.filter(p => {
-      const hitKey = key ? (p.searchKey || "").includes(key) : true;
-      const price = Number(p[costKey]) || 0;
-      return hitKey && price >= minP && price <= maxP;
-    });
+
     currentResultList = applySorting(mergeByMainModel(r));
     renderResults(currentResultList);
     hideLoading();
