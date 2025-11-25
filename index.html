@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.10.0 Flagship PPT）</title>
+<title>KINYO 查價系統（v4.10.1 Auto Hide）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -394,7 +394,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.10.0 Flagship PPT）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.10.1 Auto Hide）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -483,7 +483,7 @@ th{background:#fafafa;text-align:left;}
 /* =======================================================
    1. 設定您的 LOGO 網址
 ======================================================= */
-const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1421uDbhoWaEvASQX4dYy2WoN1ix5sF-z/view?usp=sharing"; 
+const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn/view?usp=sharing"; 
 
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
@@ -861,7 +861,15 @@ function renderResults(list) {
       <td style="text-align:right;">${item.marketPrice ?? "-"}</td>
     `;
     if (window.innerWidth > 900) {
-      tr.addEventListener("mouseenter", () => showDetailDesktop(item));
+      tr.addEventListener("mouseenter", () => {
+        if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
+        showDetailDesktop(item);
+      });
+      tr.addEventListener("mouseleave", () => {
+        window.hideDetailTimer = setTimeout(() => {
+          detailCard.style.display = "none";
+        }, 200); 
+      });
       tr.addEventListener("click", (e)=> { if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return; showDetailDesktop(item); });
     } else {
       tr.addEventListener("click", (e)=> { if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return; showDetailMobile(item); });
@@ -1191,6 +1199,19 @@ ${costText}
     if (!card.contains(e.target) && !e.target.closest("tr")) {
       card.style.display = "none";
     }
+  }
+
+  // Add Listeners to detailCard itself for mouse enter/leave logic
+  if(card && !card.hasAttribute("data-listeners-added")){
+      card.setAttribute("data-listeners-added", "true");
+      card.addEventListener("mouseenter", () => {
+        if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
+      });
+      card.addEventListener("mouseleave", () => {
+        window.hideDetailTimer = setTimeout(() => {
+          card.style.display = "none";
+        }, 200);
+      });
   }
 });
 
