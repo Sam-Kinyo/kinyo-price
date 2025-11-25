@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.9.5 Search Logic Update）</title>
+<title>KINYO 查價系統（v4.9.6 Connection Fix）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -369,7 +369,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.9.5 Search Logic Update）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.9.6 Connection Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -455,8 +455,9 @@ th{background:#fafafa;text-align:left;}
 
 
 <script type="module">
+// 注意：這裡新增了 initializeFirestore 模組
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -470,7 +471,12 @@ const firebaseConfig = {
 };
 
 const app  = initializeApp(firebaseConfig);
-const db   = getFirestore(app);
+
+// 🚀 關鍵修正：強制使用 longPolling 解決 404 transport error
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
+
 const auth = getAuth(app);
 
 const searchForm     = document.getElementById("searchForm");
@@ -749,16 +755,11 @@ function searchProducts() {
   const hasBudget = !!minPraw || !!maxPraw;
 
   // Logic 3 Guard: Budget requires Quantity
-  // "3. 搜尋起定量與預算區間 缺一不可"
   if (hasBudget && !hasQty) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
   
-  // Validate general valid modes
-  // Mode 1: Key only (allowed)
-  // Mode 2: Key + Qty (allowed)
-  // Mode 3: Qty + Budget (allowed)
   // Invalid: Qty only (no key, no budget)
   if (hasQty && !hasKey && !hasBudget) {
     alert("選擇起訂量後，請輸入「關鍵字」或「預算區間」！");
