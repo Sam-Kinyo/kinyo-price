@@ -449,7 +449,68 @@ th{background:#fafafa;text-align:left;}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
+async function exportSelectedPPT() {
+  if (typeof PptxGenJS === "undefined") {
+    alert("PPT 模組尚未載入，請稍後再試。");
+    return;
+  }
+
+  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+  if (checks.length < 1) {
+    alert("請至少勾選 1 個商品才能生成 PPT。");
+    return;
+  }
+  if (checks.length > 20) {
+    alert("最多只能勾選 20 個商品生成 PPT。");
+    return;
+  }
+
+  const tier = qtySelect.value || "50";
+
+  const selectedItems = checks
+    .map(cb => {
+      const model = cb.dataset.model;
+
+      let item = renderList.find(p => p.model === model);
+      if (!item) item = renderList.find(p => p.mainModel === model);
+      if (!item) item = renderList.find(
+        p => Array.isArray(p.models) && p.models.includes(model)
+      );
+
+      return item;
+    })
+    .filter(Boolean);
+
+  if (selectedItems.length === 0) {
+    alert("找不到已勾選商品的資料，請重新搜尋後再試。");
+    return;
+  }
+
+  pptToolbarBtn.disabled = true;
+  pptToolbarBtn.textContent = "PPT 生成中...";
+
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = "LAYOUT_WIDE";
+    pptx.author = "KINYO";
+
+    for (const item of selectedItems) {
+      await buildProductSlide(pptx, item, tier);
+    }
+
+    await pptx.writeFile({ fileName: `KINYO_quote_${tier}pcs.pptx` });
+
+  } catch (e) {
+    console.error(e);
+    alert("PPT 生成失敗，請查看 Console。");
+  } finally {
+    pptToolbarBtn.disabled = false;
+    pptToolbarBtn.textContent = "生成 PPT（1–20）";
+  }
+}
+
+</script>
 
 <script type="module">
 /* =======================================================
@@ -1651,70 +1712,7 @@ async function buildProductSlide(pptx, item, tier){
   }
 }
 
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") {
-    alert("PPT 模組尚未載入，請稍後再試。");
-    return;
-  }
-
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) {
-    alert("請至少勾選 1 個商品才能生成 PPT。");
-    return;
-  }
-  if (checks.length > 20) {
-    alert("最多只能勾選 20 個商品生成 PPT。");
-    return;
-  }
-
-  const tier = qtySelect.value || "50";
-
-  // ✨ 使用 renderList（你網站真正渲染的資料）
-  const selectedItems = checks
-    .map(cb => {
-      const model = cb.dataset.model;
-
-      let item = renderList.find(p => p.model === model);
-      if (!item) item = renderList.find(p => p.mainModel === model);
-      if (!item) item = renderList.find(
-        p => Array.isArray(p.models) && p.models.includes(model)
-      );
-
-      return item;
-    })
-    .filter(Boolean);
-
-  if (selectedItems.length === 0) {
-    alert("找不到已勾選商品的資料，請重新搜尋後再試。");
-    return;
-  }
-
-  pptToolbarBtn.disabled = true;
-  pptToolbarBtn.textContent = "PPT 生成中...";
-
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_WIDE";
-    pptx.author = "KINYO";
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-
-    await pptx.writeFile({
-      fileName: `KINYO_quote_${tier}pcs.pptx`,
-    });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
-}
-
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+const checks = Array.from(document.querySelectorAll(".row-check:checked"));
   if (checks.length < 1) {
     alert("請至少勾選 1 個商品才能生成 PPT。");
     return;
