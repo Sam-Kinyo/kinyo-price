@@ -2,9 +2,10 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.8.8 Stable Fix）</title>
+<title>KINYO 查價系統（v4.8.9 Final Stable）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
+<!-- PptxGenJS for PPT export & XLSX for Excel -->
 <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -79,7 +80,7 @@ h1{margin:0 0 4px;}
   gap:10px;
   align-items:center;
   margin:10px 0 6px;
-  flex-wrap: wrap; /* 避免按鈕太多擠壓 */
+  flex-wrap: wrap;
 }
 .toolbar select{ flex:1; min-width: 120px; }
 
@@ -353,6 +354,7 @@ th{background:#fafafa;text-align:left;}
 </head>
 <body>
 
+<!-- Loading -->
 <div id="centerLoadingBox">
   <div id="centerLoadingCard">
     <div class="loading-title">商品載入中...</div>
@@ -369,7 +371,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.8.8 Stable Fix）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.8.9 Final Stable）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -405,6 +407,7 @@ th{background:#fafafa;text-align:left;}
     <option value="alphaAsc">主型號：A → Z</option>
     <option value="alphaDesc">主型號：Z → A</option>
   </select>
+  <!-- 直接定義按鈕，確保存在 -->
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
   <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
@@ -425,8 +428,10 @@ th{background:#fafafa;text-align:left;}
   <tbody id="resultBody"></tbody>
 </table>
 
+<!-- 桌機版詳細頁 -->
 <div id="detailCard"></div>
 
+<!-- Mobile 詳細頁 Sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
 <div id="mobileDetailSheet" class="sheet hidden">
   <div class="sheet-header">
@@ -436,6 +441,7 @@ th{background:#fafafa;text-align:left;}
   <div class="sheet-content" id="sheetContent"></div>
 </div>
 
+<!-- 報價單 Sheet -->
 <div id="quoteSheet" class="sheet hidden">
   <div class="sheet-header">
     <span>報價單預覽</span>
@@ -456,7 +462,7 @@ th{background:#fafafa;text-align:left;}
 
 <script type="module">
 /* =======================================================
-   Firebase 初始化
+   Firebase 初始化 (已更新為正確金鑰)
 ======================================================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -466,9 +472,10 @@ const firebaseConfig = {
   apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
   authDomain: "kinyo-price.firebaseapp.com",
   projectId: "kinyo-price",
-  storageBucket: "kinyo-price.appspot.com",
+  storageBucket: "kinyo-price.firebasestorage.app", // 修正後的 Bucket URL
   messagingSenderId: "122464645678",
-  appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
+  appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf",
+  measurementId: "G-R0PWMZNSJH"
 };
 
 const app  = initializeApp(firebaseConfig);
@@ -486,7 +493,7 @@ const maxPriceInput  = document.getElementById("maxPrice");
 const sortSelect     = document.getElementById("sortSelect");
 const exportBtn      = document.getElementById("exportBtn");
 const pptToolbarBtn  = document.getElementById("pptToolbarBtn");
-const multiLineBtn   = document.getElementById("multiLineBtn"); // 這裡對應 HTML 的 ID
+const multiLineBtn   = document.getElementById("multiLineBtn");
 const clearBtn       = document.getElementById("clearBtn");
 
 const resultTable    = document.getElementById("resultTable");
