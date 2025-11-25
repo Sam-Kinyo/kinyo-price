@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.12.0 Smart Main Image）</title>
+<title>KINYO 查價系統（v4.12.1 Image Load Fix）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -394,7 +394,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.12.0 Smart Main Image）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.12.1 Image Load Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -598,32 +598,37 @@ async function preloadDriveModelData() {
       const key = String(m.mainModel || m.model || "").trim().toUpperCase();
       if (!key) return;
 
+      // 1. Populate Maps
       if (m.mainImage) driveMap.set(key, m.mainImage);
       if (m.folderUrl) mainFolderMap.set(key, m.folderUrl);
-      
-      // Net Gallery Link
       const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
       if (folderUrl) netMap.set(key, folderUrl);
 
-      // 🚀 SMART IMAGE LOGIC: 
-      // If m.images (object array) exists, look for _01
-      let sortedUrls = [];
+      // 2. Collect all URLs (Priority: netImages)
+      let finalImages = [];
       
-      if (Array.isArray(m.images) && m.images.length > 0) {
-        // Find the image that contains "_01." in its name
-        const mainObj = m.images.find(img => img.name && (img.name.includes("_01.") || img.name.includes("-01.")));
-        const otherObjs = m.images.filter(img => img !== mainObj);
-        
-        if (mainObj && mainObj.url) sortedUrls.push(mainObj.url);
-        sortedUrls.push(...otherObjs.map(x => x.url).filter(Boolean));
-        
-      } else if (Array.isArray(m.netImages) && m.netImages.length > 0) {
-        // Fallback to raw string array (hope it's sorted)
-        sortedUrls = m.netImages.filter(Boolean);
+      // A. Get raw URLs first (Most reliable)
+      if (Array.isArray(m.netImages) && m.netImages.length > 0) {
+          finalImages = m.netImages.filter(Boolean);
+      }
+      // B. Fallback to object array if netImages empty
+      else if (Array.isArray(m.images) && m.images.length > 0) {
+          finalImages = m.images.map(x => x.url).filter(Boolean);
       }
       
-      if (sortedUrls.length > 0) {
-         netImagesMap.set(key, sortedUrls);
+      // 3. Smart Sort: Try to find _01 in m.images metadata
+      // We use m.images (objects) only for metadata/sorting info, but rely on finalImages for content
+      if (Array.isArray(m.images) && m.images.length > 0 && finalImages.length > 0) {
+          const mainObj = m.images.find(img => img.name && (img.name.includes("_01.") || img.name.includes("-01.")));
+          if (mainObj && mainObj.url) {
+              // If found, move this URL to front of finalImages
+              finalImages = finalImages.filter(u => u !== mainObj.url);
+              finalImages.unshift(mainObj.url);
+          }
+      }
+
+      if (finalImages.length > 0) {
+         netImagesMap.set(key, finalImages);
       }
     });
     isDriveLoaded = true;
@@ -983,13 +988,13 @@ async function buildProductSlide(pptx, item, tier){
   // 1. Header Area (White Background)
   const logoData = await fetchAsDataURL(COMPANY_LOGO_URL);
   if(logoData){
-    slide.addImage({ data: logoData, x:0.4, y:0.2, w:2.4, h:1.2, sizing: { type:'contain' } });
+    slide.addImage({ data: logoData, x:0.4, y:0.2, w:2.0, h:0.8, sizing: { type:'contain' } });
   } else {
     slide.addText("KINYO", { x:0.4, y:0.3, fontSize:24, bold:true, color:'000000' });
   }
   
   // Title (Middle-Left) - Black Text
-  slide.addText(`${item.name || ""}`, { x:3.0, y:0.2, w:4.0, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
+  slide.addText(`${item.name || ""}`, { x:2.6, y:0.2, w:4.5, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
 
   // Quote Info (Right) - Stacked
   const quoteVal = getQuoteByTier(item, tier);
@@ -1012,6 +1017,7 @@ async function buildProductSlide(pptx, item, tier){
   const netImgs = getDriveNetImages(item.model, item.mainModel) || [];
   
   // Use first image as hero, shuffle rest (max 5)
+  // Logic 2: Shuffle but keep index 0 fixed
   const firstImg = netImgs[0];
   const others = netImgs.slice(1);
   const randomOthers = shuffleArray(others).slice(0, 5);
