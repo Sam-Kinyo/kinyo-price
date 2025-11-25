@@ -863,6 +863,7 @@ function applySorting(list) {
 ======================================================= */
 function searchProducts() {
   if (!isProductsLoaded) {
+    alert('商品資料載入中，請稍候');
     alert("商品尚未載入完成，請稍等 1~2 秒再搜尋");
     return;
   }
@@ -872,6 +873,7 @@ function searchProducts() {
   const _maxTmp = maxPriceInput.value.trim();
   const _needsQuote = !!_qtyTmp && (_minTmp || _maxTmp || keywordInput.value.trim());
   if (_needsQuote && !isQuotesLoaded) {
+    alert('報價載入中，請稍候');
     alert("採購價同步中，請稍等 1~2 秒再用起訂量/預算篩選");
     return;
   }
