@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.13.0 Retry & No-Cache）</title>
+<title>KINYO 查價系統（v4.13.2）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -395,7 +395,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.13.0 Retry & No-Cache）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.13.2 Link Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -614,9 +614,24 @@ async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
     }
 }
 
+// 🚀 核心：智慧型號正規化 (與 Python 同步)
+function normalizeKey(key) {
+    if (!key) return "";
+    // 1. Force Upper Case FIRST
+    let base = key.split('.')[0].split('_')[0].toUpperCase();
+    // 2. Remove hyphens
+    base = base.replace(/-/g, '');
+    // 3. Match Letters + Digits pattern
+    let m = base.match(/^([a-zA-Z]+)(\d+)([a-zA-Z]*)$/);
+    if (m) {
+        // Return Letters + Digits only (ignore color suffix in key)
+        return (m[1] + m[2]);
+    }
+    return base;
+}
+
 async function preloadDriveModelData() {
   try {
-    // 🚀 修改：加入 cache busting 參數
     const res = await fetch(`./modelData.json?v=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) throw new Error("modelData.json 讀取失敗");
     const data = await res.json();
@@ -624,8 +639,10 @@ async function preloadDriveModelData() {
     driveMap.clear(); netMap.clear(); netImagesMap.clear(); mainFolderMap.clear();
 
     (data.models || []).forEach(m => {
-      const key = String(m.mainModel || m.model || "").trim().toUpperCase();
-      if (!key) return;
+      // 🚀 使用正規化後的 Key 存入 Map
+      const rawKey = String(m.mainModel || m.model || "").trim();
+      if (!rawKey) return;
+      const key = normalizeKey(rawKey);
 
       if (m.mainImage) driveMap.set(key, m.mainImage);
       if (m.folderUrl) mainFolderMap.set(key, m.folderUrl);
@@ -634,7 +651,6 @@ async function preloadDriveModelData() {
       if (folderUrl) netMap.set(key, folderUrl);
 
       let finalImages = [];
-      
       if (Array.isArray(m.netImages) && m.netImages.length > 0) {
           finalImages = m.netImages.filter(Boolean);
       }
@@ -642,14 +658,6 @@ async function preloadDriveModelData() {
           finalImages = m.images.map(x => x.url).filter(Boolean);
       }
       
-      if (Array.isArray(m.images) && m.images.length > 0 && finalImages.length > 0) {
-          const mainObj = m.images.find(img => img.name && (img.name.includes("_01.") || img.name.includes("-01.")));
-          if (mainObj && mainObj.url) {
-              finalImages = finalImages.filter(u => u !== mainObj.url);
-              finalImages.unshift(mainObj.url);
-          }
-      }
-
       if (finalImages.length > 0) {
          netImagesMap.set(key, finalImages);
       }
@@ -661,24 +669,25 @@ async function preloadDriveModelData() {
   }
 }
 
+// 🚀 Lookup Functions now use normalizeKey
 function getDriveMainImage(model, mainModel) {
-  const k1 = model?.toUpperCase().trim();
-  const k2 = mainModel?.toUpperCase().trim();
+  const k1 = normalizeKey(model);
+  const k2 = normalizeKey(mainModel);
   return driveMap.get(k1) || driveMap.get(k2) || "";
 }
 function getDriveMainFolder(model, mainModel){
-  const k1=model?.toUpperCase().trim();
-  const k2=mainModel?.toUpperCase().trim();
+  const k1 = normalizeKey(model);
+  const k2 = normalizeKey(mainModel);
   return mainFolderMap.get(k1)||mainFolderMap.get(k2)||"";
 }
 function getDriveNetGallery(model, mainModel) {
-  const k1 = model?.toUpperCase().trim();
-  const k2 = mainModel?.toUpperCase().trim();
+  const k1 = normalizeKey(model);
+  const k2 = normalizeKey(mainModel);
   return netMap.get(k1) || netMap.get(k2) || "";
 }
 function getDriveNetImages(model, mainModel){
-  const k1 = model?.toUpperCase().trim();
-  const k2 = mainModel?.toUpperCase().trim();
+  const k1 = normalizeKey(model);
+  const k2 = normalizeKey(mainModel);
   return netImagesMap.get(k1) || netImagesMap.get(k2) || [];
 }
 
@@ -714,7 +723,6 @@ async function preloadProducts() {
   isProductsLoaded = false;
   isQuotesLoaded = false;
   try {
-    // 🚀 修改：使用 retry helper
     const snap = await getDocsWithRetry(collection(db, "Products"));
     const fullList = [];
     snap.forEach(docSnap => {
@@ -740,14 +748,12 @@ async function preloadProducts() {
     saveCache(safeList);
   } catch (e) {
     console.error(e);
-    // 雖然失敗，但至少取消 loading 遮罩
   }
   hideLoading();
 }
 
 async function refreshProductsFromFirestore() {
   try {
-    // 🚀 修改：使用 retry helper
     const snap = await getDocsWithRetry(collection(db, "Products"));
     const fullList = [];
     snap.forEach(docSnap => {
@@ -844,7 +850,6 @@ function searchProducts() {
   if (_needsQuote && !isQuotesLoaded) { alert("報價資料載入中，請稍候"); return; }
 
   showLoading();
-  // 🚀 修改：設定為「搜尋中」狀態
   updateUserDisplay('searching');
 
   setTimeout(() => {
@@ -867,7 +872,6 @@ function searchProducts() {
     currentResultList = applySorting(mergeByMainModel(r));
     renderResults(currentResultList);
     hideLoading();
-    // 🚀 修改：恢復使用者狀態
     updateUserDisplay('normal');
   }, 0);
 }
@@ -880,7 +884,12 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
+    // 🚀 2. 智慧過濾無效圖片 (Fix Logic)
     let img = item.imageUrl;
+    // Try to get from DriveMap using normalized keys
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    if (driveImg) img = driveImg;
+    
     if (!img || !img.startsWith("http")) {
       img = "https://placehold.co/110x110?text=No+Image";
     }
@@ -899,6 +908,7 @@ function renderResults(list) {
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
+        <!-- Added onerror handler for broken images -->
         <img src="${img}" class="product-img" onerror="this.onerror=null;this.src='https://placehold.co/110x110?text=No+Image';">
       </td>
       <td>${item.mainModel || "-"}</td>
@@ -934,26 +944,42 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
-  let img = item.imageUrl;
+  // 🚀 2. 智慧過濾無效圖片 (Fix Logic)
+  // 1. Try Folder first, 2. Fallback to Image URL
+  const mainImgUrl = getDriveMainImage(item.model, item.mainModel);
+  const mainFolder = getDriveMainFolder(item.model, item.mainModel);
+  // 優先用資料夾，沒有就用單圖連結
+  const actMainLink = mainFolder || mainImgUrl;
+
+  const netImages = getDriveNetImages(item.model, item.mainModel);
+  const netFolder = getDriveNetGallery(item.model, item.mainModel);
+  // 優先用資料夾，沒有就用第一張圖的連結
+  const actNetLink = netFolder || (netImages && netImages.length > 0 ? netImages[0] : "");
+  
+  // Display Image: Priority Drive Main > Item Image
+  let img = mainImgUrl || item.imageUrl;
   if (!img || !img.startsWith("http")) {
     img = "https://placehold.co/300x300?text=No+Image";
   }
 
-  const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
-  const netImages = getDriveNetImages(item.model, item.mainModel);
-  const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
   
-  const netDownloadLink = netFolderUrl || (netImages[0] || "");
   detailCard.style.display = "block";
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="this.parentElement.style.display='none'">×</button>
+    <!-- Added onerror handler for broken images -->
     <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
-    <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品大圖</div>${driveMainFolder ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }</div>
-    <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>${netDownloadLink ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }</div>
+    <div style="margin-bottom:8px;">
+      <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
+      ${actMainLink ? `<a class="btn-blue" href="${actMainLink}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }
+    </div>
+    <div style="margin-bottom:8px;">
+      <div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>
+      ${actNetLink ? `<a class="btn-blue" href="${actNetLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }
+    </div>
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
       <strong>主型號：</strong>${item.mainModel || "-"}<br><strong>顏色：</strong>${item.colorList || "-"}<br><strong>賣場：</strong>${item.marketPrice ?? "-"}<br><strong>末售：</strong>${item.minPrice ?? "-"}<br><strong>網址：</strong>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往</a>` : "-"}
@@ -1069,7 +1095,7 @@ async function buildProductSlide(pptx, item, tier){
   // Title (Middle-Left) - Black Text
   slide.addText(`${item.name || ""}`, { x:3.0, y:0.2, w:4.0, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
 
-  // Quote Info (Right) - Stacked in same column
+  // Quote Info (Right) - Stacked
   const quoteVal = getQuoteByTier(item, tier);
   // Market Price
   slide.addText(`賣場價: $${item.marketPrice ?? item.salePrice ?? "-"}`, { x:7.2, y:0.2, w:2.5, h:0.4, fontSize:14, color:'6B7280', fontFace:"Microsoft JhengHei", align:'right' });
@@ -1128,47 +1154,6 @@ async function buildProductSlide(pptx, item, tier){
 
   // 4. Footer
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
-}
-
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請勾選至少 1 個商品"); return; }
-  if (checks.length > 20) { alert("最多 20 個商品"); return; }
-  
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-    const model = cb.dataset.model;
-    let item = currentResultList.find(p => p.model === model);
-    if(!item) item = currentResultList.find(p => p.mainModel === model);
-    if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-    return item;
-  }).filter(Boolean);
-
-  if (selectedItems.length === 0) { alert("找不到商品資料"); return; }
-
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "生成中...";
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; // Changed to 4:3
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-    
-    // Filename format update
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@郭庭豪-@0976-966333.pptx` });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
 }
 
 /* =======================================================
