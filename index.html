@@ -401,6 +401,7 @@ th{background:#fafafa;text-align:left;}
 
   <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
+  <button id="pptBtn" class="btn-secondary" disabled>生成 PPT（1–20 個）</button>
 </div>
 
 <table id="resultTable" style="display:none;">
@@ -481,6 +482,7 @@ const minPriceInput  = document.getElementById("minPrice");
 const maxPriceInput  = document.getElementById("maxPrice");
 const sortSelect     = document.getElementById("sortSelect");
 const exportBtn      = document.getElementById("exportBtn");
+const pptBtn         = document.getElementById("pptBtn");
 const clearBtn       = document.getElementById("clearBtn");
 
 const resultTable    = document.getElementById("resultTable");
@@ -608,9 +610,11 @@ async function preloadDriveModelData() {
         return;
       }
 
-      // 相容舊格式：images[]（每個物件有 url）
+      // 相容舊格式：images[]（支援 {url:""} 或 "url字串"）
       if (Array.isArray(m.images) && m.images.length) {
-        const urls = m.images.map(x => x?.url).filter(Boolean);
+        const urls = m.images
+          .map(x => (typeof x === "string" ? x : x?.url))
+          .filter(Boolean);
         if (urls.length) netImagesMap.set(key, urls);
       }
     });
@@ -947,11 +951,14 @@ function renderResults(list) {
   if (list.length === 0) {
     resultTable.style.display = "none";
     exportBtn.disabled = true;
+  pptBtn.disabled = true;
+    pptBtn.disabled = true;
     return;
   }
 
   resultTable.style.display = "table";
   exportBtn.disabled = false;
+  pptBtn.disabled = false;
 
   list.forEach(item => {
     const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
@@ -969,7 +976,12 @@ function renderResults(list) {
     }
 
     tr.innerHTML = `
-      <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
+      <td style="text-align:center;">
+        <input type="checkbox" class="row-check" data-model="${item.model}">
+        <input type="checkbox" class="ppt-select"
+          data-model="${item.model}"
+          style="margin-left:6px;">
+      </td>
       <td><img src="${img}" class="product-img"></td>
       <td>${item.mainModel || "-"}</td>
       <td>
@@ -1272,6 +1284,86 @@ function exportSelectedExcel() {
   XLSX.utils.book_append_sheet(wb, ws, "報價");
   XLSX.writeFile(wb, `KINYO_商品報價_${qty ? qty+'個' : '關鍵字搜尋'}.xlsx`);
 }
+/* =======================================================
+   ✅ PPT 生成（網路圖優先；每商品一頁 2×3；1–20 個）
+   - 圖片來源：getDriveNetImages() 取得網路圖
+   - 後端會隨機取 6 張（少於 6 張則全部）
+   - 依客戶 qtySelect 的數量 tier 帶入對應報價
+======================================================= */
+
+// 限制 PPT 勾選最多 20 個
+document.addEventListener("change", (e) => {
+  if (!e.target.classList.contains("ppt-select")) return;
+
+  const checks = [...document.querySelectorAll(".ppt-select:checked")];
+  if (checks.length > 20) {
+    e.target.checked = false;
+    alert("最多只能選 20 個商品生成 PPT。");
+  }
+});
+
+function buildPptPayload() {
+  const checked = [...document.querySelectorAll(".ppt-select:checked")];
+  if (checked.length < 1) {
+    alert("至少要勾選 1 個商品才能生成 PPT。");
+    return null;
+  }
+  if (checked.length > 20) {
+    alert("最多只能選 20 個商品生成 PPT。");
+    return null;
+  }
+
+  const tier = qtySelect.value || "50";
+  const costKey = `quote${tier}`;
+
+  const items = checked.map(cb => {
+    const model = cb.getAttribute("data-model");
+    // currentResultList 內是 mergeByMainModel 後的清單，model 可能是主型號第一筆
+    const item = currentResultList.find(p => p.model === model) ||
+                 currentResultList.find(p => p.mainModel === model) || {};
+
+    const netImages = getDriveNetImages(item.model, item.mainModel);
+
+    return {
+      model: item.mainModel || item.model || model,
+      name: item.name || "-",
+      salePrice: item.marketPrice ?? "-",      // 賣場價
+      tier,
+      quote: item[costKey] ?? item.quote50 ?? "-", // 對應報價
+      netImages
+    };
+  });
+
+  return { items };
+}
+
+// 點擊生成 PPT
+pptBtn.onclick = async () => {
+  const payload = buildPptPayload();
+  if (!payload) return;
+
+  try {
+    const res = await fetch("http://127.0.0.1:5000/generate_ppt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) throw new Error("PPT 生成失敗");
+    const blob = await res.blob();
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `KINYO_quote_${payload.items[0]?.tier || ""}pcs.pptx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    console.error(e);
+    alert("PPT 生成失敗：請確認本機 PPT 伺服器是否已啟動（python generate_ppt.py）");
+  }
+};
+
 
 /* =======================================================
    報價單 Download Excel
@@ -1378,6 +1470,7 @@ clearBtn.onclick = () => {
   resultBody.innerHTML = "";
   resultTable.style.display = "none";
   exportBtn.disabled = true;
+  pptBtn.disabled = true;
   multiLineBtn.disabled = true;
   checkAllBox.checked = false;
   detailCard.style.display = "none";
