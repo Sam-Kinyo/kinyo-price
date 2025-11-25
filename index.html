@@ -341,20 +341,6 @@ th{background:#fafafa;text-align:left;}
   }
   .price-tag{width:100%;text-align:center;margin:0;}
 }
-
-/* =========================================
-   Skeleton Loading（採購價/末售/賣場未同步時）
-========================================= */
-.skeleton{
-  background:linear-gradient(90deg,#eee 25%,#ddd 37%,#eee 63%);
-  background-size:400% 100%;
-  animation:skeleton-loading 1.4s ease infinite;
-  border-radius:6px;
-}
-@keyframes skeleton-loading{
-  0%{background-position:100% 0;}
-  100%{background-position:-100% 0;}
-}
 </style>
 </head>
 <body>
@@ -496,7 +482,6 @@ const maxPriceInput  = document.getElementById("maxPrice");
 const sortSelect     = document.getElementById("sortSelect");
 const exportBtn      = document.getElementById("exportBtn");
 const clearBtn       = document.getElementById("clearBtn");
-const searchBtn     = document.getElementById("searchBtn");
 
 const resultTable    = document.getElementById("resultTable");
 const resultBody     = document.getElementById("resultBody");
@@ -532,7 +517,6 @@ let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
 let isQuotesLoaded = false;
-let isPriceLoading = true; // 採購價/末售/賣場是否已同步（Skeleton 用）
 
 
 /* =======================================================
@@ -575,8 +559,6 @@ let mainFolderMap = new Map(); // 大圖資料夾 folderUrl      // key -> mainI
 let netMap   = new Map();      // key -> net folder url (optional)
 let netImagesMap = new Map();  // key -> net images urls
 let isDriveLoaded = false;
-    checkAllLoaded();
-    checkAllLoaded();
 
 /* =======================================================
    Loading 控制
@@ -640,11 +622,9 @@ async function preloadDriveModelData() {
     });
 
     isDriveLoaded = true;
-    checkAllLoaded();
   } catch (e) {
     console.warn("Drive 載入失敗（不影響主功能）：", e);
     isDriveLoaded = false;
-    checkAllLoaded();
   }
 }
 
@@ -700,8 +680,6 @@ function getMainModel(model) {
 
 
 async function preloadProducts() {
-  isPriceLoading = true; // 開始載入採購價/價格
-  lockSearchInputs();
   // 1) Try cache first (non-sensitive)
   const cached = loadCache();
   if (cached && cached.length) {
@@ -714,7 +692,6 @@ async function preloadProducts() {
     }));
     isProductsLoaded = true;
     isQuotesLoaded = false; // quotes still pending
-    checkAllLoaded();
     console.log("✅ 使用本地快取商品：", productCache.length);
 
     // Background refresh to pull quotes + latest fields
@@ -756,7 +733,6 @@ async function preloadProducts() {
     productCache = fullList;
     isProductsLoaded = true;
     isQuotesLoaded = true;
-    checkAllLoaded();
 
     // Save non-sensitive cache
     const safeList = fullList.map(p => {
@@ -773,7 +749,6 @@ async function preloadProducts() {
     console.error(e);
   }
 
-  checkAllLoaded();
   hideLoading();
 }
 
@@ -960,55 +935,6 @@ function searchProducts() {
   }, 0);
 }
 
-
-/* =======================================================
-   Skeleton / Loading 雙系統：輔助函數
-======================================================= */
-function skeletonMinBar(w=60,h=16){
-  return `<div class="skeleton" style="width:${w}px;height:${h}px;"></div>`;
-}
-function safeValue(v){
-  return isPriceLoading ? skeletonMinBar() : (v ?? "-");
-}
-function displayPriceTag(label, value, css){
-  if (isPriceLoading){
-    return `<span class="price-tag ${css}">${label}：${skeletonMinBar()}</span>`;
-  }
-  return `<span class="price-tag ${css}">${label}：${value ?? "-"}</span>`;
-}
-
-/* =======================================================
-   搜尋欄位鎖定/解鎖（避免快取先到、採購價後到）
-======================================================= */
-function lockSearchInputs(){
-  try{
-    keywordInput.disabled = true;
-    qtySelect.disabled = true;
-    minPriceInput.disabled = true;
-    maxPriceInput.disabled = true;
-    if (searchBtn) searchBtn.disabled = true;
-    clearBtn.disabled = true;
-    keywordInput.placeholder = "資料載入中，請稍候…";
-  }catch{}
-}
-function unlockSearchInputs(){
-  try{
-    keywordInput.disabled = false;
-    qtySelect.disabled = false;
-    minPriceInput.disabled = false;
-    maxPriceInput.disabled = false;
-    if (searchBtn) searchBtn.disabled = false;
-    clearBtn.disabled = false;
-    keywordInput.placeholder = "如：CL528 / 捕蚊燈 / 除毛球機";
-  }catch{}
-}
-function checkAllLoaded(){
-  if (isDriveLoaded && isProductsLoaded && isQuotesLoaded){
-    isPriceLoading = false; // 關閉 Skeleton
-    unlockSearchInputs();
-  }
-}
-
 /* =======================================================
    渲染搜尋結果
 ======================================================= */
@@ -1061,8 +987,8 @@ function renderResults(list) {
           </button>
         </div>
       </td>
-      <td style="text-align:right;">${safeValue(item.minPrice)}</td>
-      <td style="text-align:right;">${safeValue(item.marketPrice)}</td>
+      <td style="text-align:right;">${item.minPrice ?? "-"}</td>
+      <td style="text-align:right;">${item.marketPrice ?? "-"}</td>
     `;
 
     if (window.innerWidth > 900) {
@@ -1094,9 +1020,9 @@ function showDetailDesktop(item) {
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
 
   let priceBlock = "";
-  if (userLevel >= 1) priceBlock += `<div>50 個：${safeValue(item.quote50)}</div>`;
-  if (userLevel >= 2) priceBlock += `<div>100 個：${safeValue(item.quote100)}</div><div>300 個：${safeValue(item.quote300)}</div>`;
-  if (userLevel >= 3) priceBlock += `<div>500 個：${safeValue(item.quote500)}</div><div>1000 個：${safeValue(item.quote1000)}</div>`;
+  if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
+  if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
+  if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
   const netThumbHtml = "";
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
@@ -1146,9 +1072,9 @@ function showDetailMobile(item) {
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
 
   let priceBlock = "";
-  if (userLevel >= 1) priceBlock += `<div>50 個：${safeValue(item.quote50)}</div>`;
-  if (userLevel >= 2) priceBlock += `<div>100 個：${safeValue(item.quote100)}</div><div>300 個：${safeValue(item.quote300)}</div>`;
-  if (userLevel >= 3) priceBlock += `<div>500 個：${safeValue(item.quote500)}</div><div>1000 個：${safeValue(item.quote1000)}</div>`;
+  if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
+  if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
+  if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
   const netThumbHtml = "";
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
@@ -1517,12 +1443,9 @@ onAuthStateChanged(auth, async (user) => {
   logoutBtn.style.display = "inline-block";
 
   setupQtySelectByLevel();
-  lockSearchInputs();
 
   await preloadDriveModelData();
-  checkAllLoaded();
   await preloadProducts();
-  checkAllLoaded();
 });
 
 /* 登出 */
