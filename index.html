@@ -1669,23 +1669,23 @@ async function exportSelectedPPT() {
 
   const tier = qtySelect.value || "50";
 
-  // ✨ 正確從 currentResultList 找資料（你的表格來源）
+  // ✨ 使用你的正式版本資料：resultList（不是 currentResultList）
   const selectedItems = checks
     .map(cb => {
       const model = cb.dataset.model;
 
-      // 先比對 model
-      let item = currentResultList.find(p => p.model === model);
+      // 先比 model
+      let item = resultList.find(p => p.model === model);
 
-      // 再比對 mainModel
+      // 再比 mainModel
       if (!item) {
-        item = currentResultList.find(p => p.mainModel === model);
+        item = resultList.find(p => p.mainModel === model);
       }
 
-      // 再比對 models[]（合併主型號用）
+      // 搜尋合併型號 models[]
       if (!item) {
-        item = currentResultList.find(p =>
-          Array.isArray(p.models) && p.models.includes(model)
+        item = resultList.find(
+          p => Array.isArray(p.models) && p.models.includes(model)
         );
       }
 
@@ -1722,6 +1722,7 @@ async function exportSelectedPPT() {
     pptToolbarBtn.textContent = "生成 PPT（1–20）";
   }
 }
+
 
 
 // Bind button
