@@ -828,7 +828,6 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
-    // 🚀 2. 智慧過濾無效圖片
     let img = item.imageUrl;
     if (!img || !img.startsWith("http")) {
       img = "https://placehold.co/110x110?text=No+Image";
@@ -848,7 +847,6 @@ function renderResults(list) {
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
-        <!-- Added onerror handler for broken images -->
         <img src="${img}" class="product-img" onerror="this.onerror=null;this.src='https://placehold.co/110x110?text=No+Image';">
       </td>
       <td>${item.mainModel || "-"}</td>
@@ -884,7 +882,6 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
-  // 🚀 2. 智慧過濾無效圖片
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     img = "https://placehold.co/300x300?text=No+Image";
@@ -902,7 +899,6 @@ function showDetailDesktop(item) {
   detailCard.style.display = "block";
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="this.parentElement.style.display='none'">×</button>
-    <!-- Added onerror handler for broken images -->
     <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
     <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品大圖</div>${driveMainFolder ? `<a class="btn-blue" href="${driveMainFolder}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }</div>
     <div style="margin-bottom:8px;"><div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>${netDownloadLink ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }</div>
@@ -944,17 +940,8 @@ function closeQuoteSheet() { quoteSheet.classList.remove("open"); setTimeout(() 
 function exportSelectedExcel() { /* ...原有邏輯... */ }
 function downloadQuoteExcel() { /* ...原有邏輯... */ }
 
-// --- PPT Logic Updated (4:3 Style) ---
+// --- PPT Logic Updated (4:3 Style with Image Locking) ---
 function shuffleArray(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-
-function pickRandom(arr, n){ 
-  if(!Array.isArray(arr) || arr.length === 0) return [];
-  const first = arr[0]; // Ensure index 0 is first
-  const others = arr.slice(1);
-  const shuffledOthers = shuffleArray(others);
-  const pickedOthers = shuffledOthers.slice(0, n - 1); 
-  return [first, ...pickedOthers];
-}
 
 async function fetchAsDataURL(url){
   if(!url) return null;
@@ -974,18 +961,17 @@ async function buildProductSlide(pptx, item, tier){
   const slide = pptx.addSlide();
   
   // 1. Header Area (White Background)
-  // Logo (Left)
   const logoData = await fetchAsDataURL(COMPANY_LOGO_URL);
   if(logoData){
-    slide.addImage({ data: logoData, x:0.4, y:0.2, w:2.0, h:0.8, sizing: { type:'contain' } });
+    slide.addImage({ data: logoData, x:0.4, y:0.2, w:2.4, h:1.2, sizing: { type:'contain' } });
   } else {
     slide.addText("KINYO", { x:0.4, y:0.3, fontSize:24, bold:true, color:'000000' });
   }
   
-  // Title (Middle-Left) - Black Text
-  slide.addText(`${item.name || ""}`, { x:2.6, y:0.2, w:4.5, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
+  // Title (Middle-Left)
+  slide.addText(`${item.name || ""}`, { x:3.0, y:0.2, w:4.0, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
 
-  // Quote Info (Right) - Stacked
+  // Quote Info (Right) - Stacked in same column
   const quoteVal = getQuoteByTier(item, tier);
   // Market Price
   slide.addText(`賣場價: $${item.marketPrice ?? item.salePrice ?? "-"}`, { x:7.2, y:0.2, w:2.5, h:0.4, fontSize:14, color:'6B7280', fontFace:"Microsoft JhengHei", align:'right' });
@@ -1001,10 +987,32 @@ async function buildProductSlide(pptx, item, tier){
   // Divider Line
   slide.addShape(pptx.ShapeType.line, { x:0.4, y:1.2, w:9.2, h:0, line:{color:'E5E7EB', width:1} });
 
-  // 3. Images Grid (2x3) - 4:3 Layout Adjusted
-  // Slide Width 10, Height 7.5
-  // Image Area: Y=1.5 ~ 7.0
-  const netImgs = pickRandom(getDriveNetImages(item.model, item.mainModel), 6);
+  // 3. Images Grid (2x3) - 4:3 Layout
+  // Logic: Prefer MainImage (from DriveMap) as Pos 1, else use NetImages[0]. Then fill random.
+  const mainImgUrl = getDriveMainImage(item.model, item.mainModel);
+  const netImgList = getDriveNetImages(item.model, item.mainModel) || [];
+  
+  // Combine: Start with Main Image if exists, then add others
+  let allCandidates = [];
+  if(mainImgUrl) allCandidates.push(mainImgUrl);
+  
+  // Add net images (avoid dupes of main image)
+  netImgList.forEach(url => {
+      if(url !== mainImgUrl) allCandidates.push(url);
+  });
+  
+  // If no main image but have net images, 1st net image is 1st
+  if(allCandidates.length === 0 && netImgList.length > 0) {
+      allCandidates = [...netImgList];
+  }
+  
+  // Now we have a list where index 0 is the most important image
+  const firstImg = allCandidates[0];
+  const otherImgs = allCandidates.slice(1);
+  const randomOthers = shuffleArray(otherImgs).slice(0, 5); // Pick 5 random from others
+  
+  const finalDisplayList = firstImg ? [firstImg, ...randomOthers] : [];
+  
   const startY = 1.5; 
   const w = 2.8; const h = 2.4; // Smaller image size for 4:3
   
@@ -1014,8 +1022,8 @@ async function buildProductSlide(pptx, item, tier){
   let idx = 0;
   for(let r=0; r<2; r++){
     for(let c=0; c<3; c++){
-      if(idx >= netImgs.length) break;
-      const url = netImgs[idx];
+      if(idx >= finalDisplayList.length) break;
+      const url = finalDisplayList[idx];
       
       // Polaroid Frame
       slide.addShape(pptx.ShapeType.rect, { 
@@ -1063,7 +1071,7 @@ async function exportSelectedPPT() {
   pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "生成中...";
   try {
     const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; // Changed to 4:3
+    pptx.layout = "LAYOUT_4x3"; // 4:3 Layout
     pptx.author = "KINYO Price System";
     pptx.company = "KINYO";
     pptx.title = `KINYO Quote ${tier}pcs`;
@@ -1072,7 +1080,6 @@ async function exportSelectedPPT() {
       await buildProductSlide(pptx, item, tier);
     }
     
-    // Filename format update
     await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@郭庭豪-@0976-966333.pptx` });
 
   } catch (e) {
