@@ -176,6 +176,10 @@ th{background:#fafafa;text-align:left;}
   border:1px solid #e5e7eb;
   background:#fff;
 }
+/* 圖片 Lazy Loading 優化 */
+.product-img[loading="lazy"] {
+  background-color: #f3f4f6;
+}
 
 /* 價格標籤 */
 .price-tag{
@@ -345,7 +349,6 @@ th{background:#fafafa;text-align:left;}
 </head>
 <body>
 
-<!-- v4.7.7 中央 Loading -->
 <div id="centerLoadingBox">
   <div id="centerLoadingCard">
     <div class="loading-title">商品載入中...</div>
@@ -368,7 +371,9 @@ th{background:#fafafa;text-align:left;}
 <form id="searchForm" class="search-box">
   <div class="search-row">
     <label>關鍵字搜尋（型號 / 名稱）</label>
-    <input id="keyword" placeholder="如：CL528 / 捕蚊燈 / 除毛球機" autocomplete="off" />
+    <div style="position:relative;">
+        <input id="keyword" placeholder="如：CL528 / 捕蚊燈 / 除毛球機" autocomplete="off" />
+    </div>
   </div>
 
   <div class="search-row">
@@ -417,10 +422,8 @@ th{background:#fafafa;text-align:left;}
   <tbody id="resultBody"></tbody>
 </table>
 
-<!-- 桌機版詳細頁 -->
 <div id="detailCard"></div>
 
-<!-- Mobile 詳細頁 Sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
 <div id="mobileDetailSheet" class="sheet hidden">
   <div class="sheet-header">
@@ -430,7 +433,6 @@ th{background:#fafafa;text-align:left;}
   <div class="sheet-content" id="sheetContent"></div>
 </div>
 
-<!-- 報價單 Sheet -->
 <div id="quoteSheet" class="sheet hidden">
   <div class="sheet-header">
     <span>報價單預覽</span>
@@ -742,6 +744,9 @@ async function preloadProducts() {
     });
     saveCache(safeList);
 
+    // Trigger Version Check
+    checkAndAutoUpdateVersion(fullList);
+
     console.log("Firestore 商品載入完成：", productCache.length);
 
   } catch (e) {
@@ -793,11 +798,108 @@ async function refreshProductsFromFirestore() {
     });
     saveCache(safeList);
 
+    // Trigger Version Check with the fresh list
+    checkAndAutoUpdateVersion(fullList);
+
     console.log("✅ 背景更新完成（含採購價）：", fullList.length);
   } catch(e) {
     console.warn("背景更新失敗（不影響快取搜尋）", e);
   }
 }
+
+/* =======================================================
+   AutoVersion A+B 完整版（修復版）
+   - 整合至 Module
+   - 使用已讀取的 List 計算，避免二次讀取
+======================================================= */
+async function checkAndAutoUpdateVersion(fullList) {
+  try {
+    const token = localStorage.getItem("KINYO_GITHUB_TOKEN");
+    // 如果沒有 Token，表示不是管理者，不需要執行版本寫回操作
+    // 但我們仍可更新本地 Meta 以供參考 (選用)
+    
+    // 1. Calculate Remote Meta
+    const count = fullList.length;
+    let maxUpdated = 0;
+    
+    fullList.forEach(item => {
+      // lastUpdated 可能是 Firestore Timestamp (物件) 或其他格式
+      if (item.lastUpdated && typeof item.lastUpdated.toMillis === 'function') {
+        const t = item.lastUpdated.toMillis();
+        if (t > maxUpdated) maxUpdated = t;
+      } else if (item.lastUpdated && item.lastUpdated.seconds) {
+        const t = item.lastUpdated.seconds * 1000;
+        if (t > maxUpdated) maxUpdated = t;
+      }
+    });
+
+    const remoteMeta = { count, maxUpdated };
+
+    // 2. Fetch Local Meta
+    let localMeta = { count: 0, maxUpdated: 0, version: 0 };
+    try {
+      const stored = JSON.parse(localStorage.getItem("KINYO_CACHE_META") || "{}");
+      localMeta = { ...localMeta, ...stored };
+    } catch {}
+
+    // 3. Compare & Update
+    if (remoteMeta.count !== localMeta.count || remoteMeta.maxUpdated !== localMeta.maxUpdated) {
+      const newVersion = (localMeta.version || 0) + 1;
+      
+      console.log(`[AutoVersion] Data changed! Updating version to ${newVersion}`);
+
+      // Update Local
+      localStorage.setItem("KINYO_CACHE_META", JSON.stringify({
+        count: remoteMeta.count,
+        maxUpdated: remoteMeta.maxUpdated,
+        version: newVersion
+      }));
+
+      // Update Github (Only if token exists)
+      if (token) {
+         await updateGithubVersionFile(token, newVersion);
+      }
+    } else {
+      console.log("[AutoVersion] No data change detected.");
+    }
+  } catch (e) {
+    console.error("[AutoVersion] Error:", e);
+  }
+}
+
+async function updateGithubVersionFile(token, newVersion) {
+  try {
+    const fileUrl = "https://api.github.com/repos/sam-kinyo/kinyo-price/contents/cacheVersion.json";
+    
+    // Get current SHA
+    const fileRes = await fetch(fileUrl, { 
+      headers: { Authorization: `Bearer ${token}` } 
+    });
+    
+    if(!fileRes.ok) throw new Error("Failed to get cacheVersion.json info");
+    
+    const fileJson = await fileRes.json();
+    const newContent = btoa(JSON.stringify({ version: newVersion }, null, 2));
+
+    // Update File
+    await fetch(fileUrl, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Auto update version to ${newVersion}`,
+        content: newContent,
+        sha: fileJson.sha
+      })
+    });
+    console.log("[AutoVersion] GitHub file updated successfully.");
+  } catch(e) {
+    console.error("[AutoVersion] GitHub update failed:", e);
+  }
+}
+
 
 /* =======================================================
    起訂量權限設定
@@ -968,9 +1070,10 @@ function renderResults(list) {
       priceHtml += `<span class="price-tag tag1000">1000個：${item.quote1000 ?? "-"}</span>`;
     }
 
+    // 增加 loading=lazy
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
-      <td><img src="${img}" class="product-img"></td>
+      <td><img src="${img}" class="product-img" loading="lazy"></td>
       <td>${item.mainModel || "-"}</td>
       <td>
         <div style="font-weight:700;margin-bottom:4px;">${item.name || "-"}</div>
@@ -1455,92 +1558,6 @@ logoutBtn.onclick = () => signOut(auth);
 searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 
-</script>
-
-<script>
-/* ============================================
-   AutoVersion A+B 完整版（前端自動刷新版本）
-   - A: 偵測商品筆數變化
-   - B: 偵測最大 lastUpdated 變化
-   - 自動更新 cacheVersion.json（需 Token）
-============================================ */
-(async function(){
-
-  async function fetchFirestoreMeta() {
-    const app = self.firebaseApp;
-    const db = self.firebaseDB;
-    const snap = await firebase.firestore().collection("Products").get();
-    let count = snap.size;
-    let lastTimes = [];
-    snap.forEach(doc => {
-      const d = doc.data();
-      if (d.lastUpdated) lastTimes.push(d.lastUpdated.toMillis());
-    });
-    let maxUpdated = lastTimes.length ? Math.max(...lastTimes) : 0;
-    return { count, maxUpdated };
-  }
-
-  async function fetchLocalCacheMeta() {
-    try {
-      const meta = JSON.parse(localStorage.getItem("KINYO_CACHE_META") || "{}");
-      return {
-        count: meta.count || 0,
-        maxUpdated: meta.maxUpdated || 0,
-        version: meta.version || 0
-      };
-    } catch { return { count:0, maxUpdated:0, version:0 }; }
-  }
-
-  async function saveLocalCacheMeta(data) {
-    localStorage.setItem("KINYO_CACHE_META", JSON.stringify(data));
-  }
-
-  async function updateGithubVersion(newVersion) {
-    const token = localStorage.getItem("KINYO_GITHUB_TOKEN");
-    if (!token) return;
-
-    const fileUrl = "https://api.github.com/repos/sam-kinyo/kinyo-price/contents/cacheVersion.json";
-
-    const fileRes = await fetch(fileUrl, { headers:{Authorization:`Bearer ${token}`} });
-    const fileJson = await fileRes.json();
-
-    const newContent = btoa(JSON.stringify({version:newVersion}, null, 2));
-
-    await fetch(fileUrl, {
-      method:"PUT",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        message:`Auto update version to ${newVersion}`,
-        content:newContent,
-        sha:fileJson.sha
-      })
-    });
-  }
-
-  try {
-    const remote = await fetchFirestoreMeta();
-    const local = await fetchLocalCacheMeta();
-
-    if (remote.count !== local.count || remote.maxUpdated !== local.maxUpdated) {
-      const newVersion = (local.version||0) + 1;
-      await updateGithubVersion(newVersion);
-      await saveLocalCacheMeta({
-        count: remote.count,
-        maxUpdated: remote.maxUpdated,
-        version: newVersion
-      });
-      console.log("AutoVersion: version updated to", newVersion);
-    } else {
-      console.log("AutoVersion: no change");
-    }
-  } catch(e){
-    console.error("AutoVersion Error:", e);
-  }
-
-})();
 </script>
 
 </body>
