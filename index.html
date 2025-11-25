@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.13.3 Structure Fix）</title>
+<title>KINYO 查價系統（v4.13.5）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -395,7 +395,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.13.3 Structure Fix）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.13.5）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -587,7 +587,7 @@ function hideLoading() {
   setTimeout(() => { centerLoadingBox.style.display = "none"; }, 0);
 }
 
-// 🚀 更新使用者狀態顯示
+// 🚀 更新使用者狀態顯示 (用於搜尋中提示)
 function updateUserDisplay(status) {
   if (!userInfoSpan) return;
   if (status === 'searching') {
@@ -614,13 +614,17 @@ async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
     }
 }
 
-// 🚀 智慧型號正規化
+// 🚀 智慧型號正規化 (與 Python 同步)
 function normalizeKey(key) {
     if (!key) return "";
+    // 1. Force Upper Case FIRST
     let base = key.split('.')[0].split('_')[0].toUpperCase();
+    // 2. Remove hyphens
     base = base.replace(/-/g, '');
+    // 3. Match Letters + Digits pattern
     let m = base.match(/^([a-zA-Z]+)(\d+)([a-zA-Z]*)$/);
     if (m) {
+        // Return Letters + Digits only (ignore color suffix in key)
         return (m[1] + m[2]);
     }
     return base;
@@ -635,6 +639,7 @@ async function preloadDriveModelData() {
     driveMap.clear(); netMap.clear(); netImagesMap.clear(); mainFolderMap.clear();
 
     (data.models || []).forEach(m => {
+      // 🚀 使用正規化後的 Key 存入 Map
       const rawKey = String(m.mainModel || m.model || "").trim();
       if (!rawKey) return;
       const key = normalizeKey(rawKey);
@@ -664,7 +669,7 @@ async function preloadDriveModelData() {
   }
 }
 
-// 🚀 Lookup Functions
+// 🚀 Lookup Functions now use normalizeKey
 function getDriveMainImage(model, mainModel) {
   const k1 = normalizeKey(model);
   const k2 = normalizeKey(mainModel);
@@ -880,6 +885,8 @@ function renderResults(list) {
 
   list.forEach(item => {
     let img = item.imageUrl;
+    // 🚀 Sync Image Logic: Prefer item.imageUrl (scraper)
+    // Fallback to Drive Image if scraper image missing/invalid
     if (!img || !img.startsWith("http")) {
       const driveImg = getDriveMainImage(item.model, item.mainModel);
       if (driveImg) img = driveImg;
@@ -900,6 +907,7 @@ function renderResults(list) {
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
+        <!-- Added onerror handler for broken images -->
         <img src="${img}" class="product-img" onerror="this.onerror=null;this.src='https://placehold.co/110x110?text=No+Image';">
       </td>
       <td>${item.mainModel || "-"}</td>
@@ -936,18 +944,22 @@ function renderResults(list) {
 
 function showDetailDesktop(item) {
   let img = item.imageUrl;
-  const driveImg = getDriveMainImage(item.model, item.mainModel);
-  if (driveImg) img = driveImg;
-  
+  // 🚀 Sync Image Logic with List: Prefer item.imageUrl
   if (!img || !img.startsWith("http")) {
-    img = "https://placehold.co/300x300?text=No+Image";
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    if (driveImg) img = driveImg;
+    else img = "https://placehold.co/300x300?text=No+Image";
   }
 
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
   const netImages = getDriveNetImages(item.model, item.mainModel);
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
   // 雙重備援連結
-  const actMainLink = driveMainFolder || driveImg;
+  // 優先用資料夾，沒有就用單圖連結 (Main Image)
+  const mainImgUrl = getDriveMainImage(item.model, item.mainModel);
+  const actMainLink = driveMainFolder || mainImgUrl;
+  
+  // 優先用資料夾，沒有就用第一張圖的連結
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
   let priceBlock = "";
@@ -1046,6 +1058,7 @@ function shuffleArray(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--)
 
 function pickRandom(arr, n){ 
   if(!Array.isArray(arr) || arr.length === 0) return [];
+  // Logic 2: Array is already sorted by name in preload. Index 0 is _01.
   const first = arr[0]; 
   const others = arr.slice(1);
   const shuffledOthers = shuffleArray(others);
@@ -1138,55 +1151,14 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請勾選至少 1 個商品"); return; }
-  if (checks.length > 20) { alert("最多 20 個商品"); return; }
-  
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-    const model = cb.dataset.model;
-    let item = currentResultList.find(p => p.model === model);
-    if(!item) item = currentResultList.find(p => p.mainModel === model);
-    if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-    return item;
-  }).filter(Boolean);
-
-  if (selectedItems.length === 0) { alert("找不到商品資料"); return; }
-
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "生成中...";
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; // Changed to 4:3
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-    
-    // Filename format update
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@郭庭豪-@0976-966333.pptx` });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
-}
-
 /* =======================================================
    Event Listeners (Bind within Module)
 ======================================================= */
-// 🚀 Moved all Event Listeners to bottom to prevent ReferenceError
 searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 logoutBtn.onclick = () => signOut(auth);
 
+// Bind PPT button inside module so it can access exportSelectedPPT
 if(pptToolbarBtn) {
   pptToolbarBtn.onclick = exportSelectedPPT;
 }
