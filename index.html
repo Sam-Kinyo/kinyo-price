@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.9.7 UI Tweak）</title>
+<title>KINYO 查價系統（v4.9.8 SDK Upgrade）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -394,7 +394,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.9.7 UI Tweak）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.9.8 SDK Upgrade）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -480,10 +480,10 @@ th{background:#fafafa;text-align:left;}
 
 
 <script type="module">
-// 注意：這裡新增了 initializeFirestore 模組
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+// 注意：這裡升級了 SDK 版本至 10.14.1
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -497,7 +497,7 @@ const firebaseConfig = {
 
 const app  = initializeApp(firebaseConfig);
 
-// 🚀 關鍵修正：強制使用 longPolling 解決 404 transport error
+// 🚀 關鍵修正：強制使用 longPolling 解決 transport error
 const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
@@ -779,13 +779,11 @@ function searchProducts() {
   const hasQty = !!qty;
   const hasBudget = !!minPraw || !!maxPraw;
 
-  // Logic 3 Guard: Budget requires Quantity
   if (hasBudget && !hasQty) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
   
-  // Invalid: Qty only (no key, no budget)
   if (hasQty && !hasKey && !hasBudget) {
     alert("選擇起訂量後，請輸入「關鍵字」或「預算區間」！");
     return;
@@ -803,14 +801,11 @@ function searchProducts() {
   setTimeout(() => {
     let r = productCache;
 
-    // Logic 1 & 2: Keyword Filter
     if (hasKey) {
       r = r.filter(p => (p.searchKey || "").includes(key));
     }
 
-    // Logic 3: Budget Filter (if budget provided)
     if (hasBudget) {
-      // We know hasQty is true here
       const min = minPraw ? Number(minPraw) : 0;
       const max = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
       const k = `quote${qty}`;
