@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.13.7）</title>
+<title>KINYO 查價系統（v4.13.8）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -308,6 +308,11 @@ th{background:#fafafa;text-align:left;}
   border-radius:6px;
   border:1px solid #e5e7eb;
   object-fit:cover;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.net-gallery img:hover {
+  transform: scale(1.05);
 }
 
 .btn-blue{
@@ -403,7 +408,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.13.7）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.13.8）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -979,6 +984,19 @@ function showDetailDesktop(item) {
   const actMainLink = driveMainFolder || driveImg;
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
+  // 🚀 New Feature: Show 6 Thumbnails below
+  let netThumbHtml = "";
+  if (netImages && netImages.length > 0) {
+      const imgsHtml = netImages.slice(0, 6).map(url => { 
+          // Use Weserv proxy for safe display
+          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
+          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer;" onclick="window.open('${url}', '_blank')">`;
+      }).join("");
+      netThumbHtml = `<div class="net-gallery">${imgsHtml}</div>`;
+  } else {
+      netThumbHtml = `<div style="color:#999;font-size:13px;margin-top:6px;">無預覽圖</div>`;
+  }
+
   let priceBlock = "";
   if (userLevel >= 1) priceBlock += `<div>50 個：${item.quote50 ?? "-"}</div>`;
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
@@ -995,6 +1013,8 @@ function showDetailDesktop(item) {
     <div style="margin-bottom:8px;">
       <div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>
       ${actNetLink ? `<a class="btn-blue" href="${actNetLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }
+      <!-- 🚀 Inserted Thumbnail Grid -->
+      ${netThumbHtml}
     </div>
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
     <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
@@ -1005,7 +1025,7 @@ function showDetailDesktop(item) {
   `;
 }
 
-function showDetailMobile(item) { /* 同上省略，邏輯一致 */ showDetailDesktop(item); openSheet(); document.getElementById("sheetContent").innerHTML = detailCard.innerHTML; }
+function showDetailMobile(item) { /* Reuse Desktop Logic for Content */ showDetailDesktop(item); openSheet(); document.getElementById("sheetContent").innerHTML = detailCard.innerHTML; }
 
 function openSheet() { sheetBackdrop.classList.remove("hidden"); mobileSheet.classList.remove("hidden"); requestAnimationFrame(() => mobileSheet.classList.add("open")); }
 function closeSheet() { mobileSheet.classList.remove("open"); setTimeout(() => { mobileSheet.classList.add("hidden"); if (quoteSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }, 220); }
@@ -1167,52 +1187,10 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
-// 🚀 Re-inserted exportSelectedPPT function
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
-  
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-      const model = cb.dataset.model;
-      let item = currentResultList.find(p => p.model === model);
-      if(!item) item = currentResultList.find(p => p.mainModel === model);
-      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-      return item;
-  }).filter(Boolean);
-
-  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
-
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; 
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-    
-    const salesName = "郭庭豪";
-    const salesPhone = "0976-966333";
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
-}
-
 /* =======================================================
    Event Listeners (Bind within Module)
 ======================================================= */
+// 🚀 Moved all Event Listeners to bottom to prevent ReferenceError
 searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 logoutBtn.onclick = () => signOut(auth);
