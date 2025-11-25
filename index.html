@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.9.8 SDK Upgrade）</title>
+<title>KINYO 查價系統（v4.9.9 Brand Style PPT）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -394,7 +394,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.9.8 SDK Upgrade）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.9.9 Brand Style）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -480,7 +480,9 @@ th{background:#fafafa;text-align:left;}
 
 
 <script type="module">
-// 注意：這裡升級了 SDK 版本至 10.14.1
+// 注意：請務必將此處換成貴公司真正的 Logo 連結
+const COMPANY_LOGO_URL = "https://placehold.co/200x80?text=LOGO"; 
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -496,12 +498,7 @@ const firebaseConfig = {
 };
 
 const app  = initializeApp(firebaseConfig);
-
-// 🚀 關鍵修正：強制使用 longPolling 解決 transport error
-const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-});
-
+const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 const auth = getAuth(app);
 
 const searchForm     = document.getElementById("searchForm");
@@ -923,7 +920,7 @@ function closeQuoteSheet() { quoteSheet.classList.remove("open"); setTimeout(() 
 function exportSelectedExcel() { /* ...原有邏輯... */ }
 function downloadQuoteExcel() { /* ...原有邏輯... */ }
 
-// --- PPT Logic Updated ---
+// --- PPT Logic Updated (Brand Style) ---
 function shuffleArray(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 function pickRandom(arr, n){ if(!Array.isArray(arr)) return []; const a = shuffleArray(arr.filter(Boolean)); return a.slice(0, n); }
 async function fetchAsDataURL(url){
@@ -933,32 +930,31 @@ function getQuoteByTier(item, tier){ const key = "quote" + String(tier); return 
 
 async function buildProductSlide(pptx, item, tier){
   const slide = pptx.addSlide();
-  // 1. Blue Header
-  slide.addShape(pptx.ShapeType.rect, { x:0, y:0, w:'100%', h:1.1, fill:{color:'003366'} });
-  // 只顯示商品名稱
-  slide.addText(`${item.name || ""}`, { x:0.3, y:0.3, w:'90%', h:0.5, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'FFFFFF' });
   
-  // 2. Info Bar with Pricing Highlight
-  slide.addShape(pptx.ShapeType.rect, { x:0, y:1.1, w:'100%', h:0.7, fill:{color:'E5E7EB'} }); // Light gray strip
+  // 1. Logo & Header (White Background)
+  // 預設載入 Logo (請替換 COMPANY_LOGO_URL)
+  slide.addImage({ path: COMPANY_LOGO_URL, x:0.3, y:0.2, w:2.0, h:0.8, sizing: { type:'contain' } });
   
-  // Market Price
-  slide.addText(`賣場價：$${item.marketPrice ?? item.salePrice ?? "-"}`, { x:0.3, y:1.2, fontSize:16, color:'374151', fontFace:"Microsoft JhengHei" });
+  // 商品名稱 (黑色大字)
+  slide.addText(`${item.name || ""}`, { x:2.5, y:0.3, w:'80%', h:0.6, fontFace:"Microsoft JhengHei", fontSize:28, bold:true, color:'111827' });
   
-  // Quote Box - 金黃色區塊 + 分色文字
+  // 2. Info Column (Stacked)
+  // 賣場價 (灰色)
+  slide.addText(`賣場價：$${item.marketPrice ?? item.salePrice ?? "-"}`, { x:2.5, y:1.0, w:4.0, h:0.4, fontSize:16, color:'6B7280', fontFace:"Microsoft JhengHei" });
+  
+  // 報價 (兩段式顏色)
+  slide.addText(`報價 (${tier}pcs):`, { x:2.5, y:1.4, w:2.0, h:0.5, fontSize:18, bold:true, color:'1E3A8A', fontFace:"Microsoft JhengHei" }); // Navy Blue
   const quoteVal = getQuoteByTier(item, tier);
-  slide.addShape(pptx.ShapeType.rect, { x:4.5, y:1.15, w:4.0, h:0.6, fill:{color:'FFF8DC'}, line:{color:'D4AF37', width:1.5} });
-  
-  // 數量報價 (Navy Blue)
-  slide.addText(`報價 (${tier}pcs):`, { x:4.6, y:1.15, w:2.0, h:0.6, align:'right', fontSize:16, bold:true, color:'003366', fontFace:"Microsoft JhengHei" });
-  // 價格 (Red)
-  slide.addText(`$${quoteVal}`, { x:6.6, y:1.15, w:1.8, h:0.6, align:'left', fontSize:18, bold:true, color:'B91C1C', fontFace:"Microsoft JhengHei" });
+  slide.addText(`$${quoteVal}`, { x:4.5, y:1.4, w:2.0, h:0.5, fontSize:22, bold:true, color:'DC2626', fontFace:"Microsoft JhengHei" }); // Red
 
-  // 3. Images (2 rows x 3 cols)
+  // 3. Images (2 rows x 3 cols, Square Frames)
   const netImgs = pickRandom(getDriveNetImages(item.model, item.mainModel), 6);
-  const startY = 2.0; 
+  const startY = 2.2; 
   const gap = 0.2;
-  const w = 3.8; const h = 2.3;
+  const w = 3.5; const h = 3.5; // Square 1:1 Frame
   const colX = [0.5, 4.5, 8.5];
+  // 為了放得下 2 行，稍微重疊或調整 Y
+  // 修正：因為 header 變小了，空間變多，可以使用較大的正方形
   const rowY = [startY, startY + h + gap];
 
   let idx = 0;
@@ -966,14 +962,16 @@ async function buildProductSlide(pptx, item, tier){
     for(let c=0; c<3; c++){
       if(idx >= netImgs.length) break;
       const url = netImgs[idx];
-      // Draw frame with shadow
+      
+      // Draw White Frame with Shadow
       slide.addShape(pptx.ShapeType.rect, { 
         x:colX[c], y:rowY[r], w:w, h:h, 
         fill:{color:'FFFFFF'}, 
-        line:{color:'D1D5DB', width:0.5},
-        shadow: { type:'outer', angle:45, blur:5, offset:2, color:'000000', opacity:0.15 }
+        line:{color:'E5E7EB', width:1},
+        shadow: { type:'outer', angle:45, blur:8, offset:3, color:'000000', opacity:0.1 }
       });
-      // Load Image with contain sizing (正常比例)
+
+      // Load Image (Contain 1:1)
       const dataUrl = await fetchAsDataURL(url);
       if(dataUrl){
         slide.addImage({ 
@@ -981,15 +979,13 @@ async function buildProductSlide(pptx, item, tier){
           x:colX[c]+0.1, y:rowY[r]+0.1, w:w-0.2, h:h-0.2,
           sizing: { type: 'contain', w:w-0.2, h:h-0.2 }
         });
-      } else {
-        slide.addText("No Image", { x:colX[c], y:rowY[r]+1, w:w, align:'center', fontSize:12, color:'9CA3AF' });
       }
       idx++;
     }
   }
 
   // 4. Footer
-  slide.addText(`KINYO 產品報價單 | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.5, y:7.0, fontSize:10, color:'9CA3AF' });
+  slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.5, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
 async function exportSelectedPPT() {
