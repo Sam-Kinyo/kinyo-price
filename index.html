@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.8.9 Final Stable）</title>
+<title>KINYO 查價系統（v4.9.0 PPT Fix）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -371,7 +371,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.8.9 Final Stable）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.9.0 PPT Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -462,7 +462,7 @@ th{background:#fafafa;text-align:left;}
 
 <script type="module">
 /* =======================================================
-   Firebase 初始化 (已更新為正確金鑰)
+   Firebase 初始化 (正確配置)
 ======================================================= */
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -472,7 +472,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
   authDomain: "kinyo-price.firebaseapp.com",
   projectId: "kinyo-price",
-  storageBucket: "kinyo-price.firebasestorage.app", // 修正後的 Bucket URL
+  storageBucket: "kinyo-price.firebasestorage.app",
   messagingSenderId: "122464645678",
   appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf",
   measurementId: "G-R0PWMZNSJH"
@@ -1219,7 +1219,9 @@ function pickRandom(arr, n){
 // Helper: Fetch URL as DataURL
 async function fetchAsDataURL(url){
   try{
-    const r = await fetch(url, {mode:"cors"});
+    // Use CORS proxy to bypass Google Drive blocking
+    const proxyUrl = "https://api.allorigins.win/raw?url=" + encodeURIComponent(url);
+    const r = await fetch(proxyUrl);
     if(!r.ok) return null;
     const blob = await r.blob();
     return await new Promise((resolve)=>{
@@ -1229,6 +1231,7 @@ async function fetchAsDataURL(url){
       fr.readAsDataURL(blob);
     });
   }catch(e){
+    console.error("Image fetch failed", e);
     return null;
   }
 }
