@@ -401,6 +401,7 @@ th{background:#fafafa;text-align:left;}
 
   <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
+  <button id="pptToolbarBtn" class="btn-secondary" disabled>生成 PPT（1–20）</button>
 </div>
 
 <table id="resultTable" style="display:none;">
@@ -481,6 +482,7 @@ const minPriceInput  = document.getElementById("minPrice");
 const maxPriceInput  = document.getElementById("maxPrice");
 const sortSelect     = document.getElementById("sortSelect");
 const exportBtn      = document.getElementById("exportBtn");
+const pptToolbarBtn = document.getElementById("pptToolbarBtn");
 const clearBtn       = document.getElementById("clearBtn");
 
 const resultTable    = document.getElementById("resultTable");
@@ -949,11 +951,13 @@ function renderResults(list) {
   if (list.length === 0) {
     resultTable.style.display = "none";
     exportBtn.disabled = true;
+    pptToolbarBtn.disabled = true;
     return;
   }
 
   resultTable.style.display = "table";
   exportBtn.disabled = false;
+  pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
     const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
@@ -1543,6 +1547,165 @@ exportBtn.onclick = exportSelectedExcel;
   }
 
 })();
+</script>
+
+<!-- PptxGenJS for online PPT export -->
+<script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+
+<script>
+// =======================================================
+// Online PPT Export (v4.8.6) - Style B
+// - use existing row-check selections
+// - limit 1~20 items
+// - images: Drive netImages random 6, 2x3 grid per slide
+// =======================================================
+
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function pickRandom(arr, n){
+  if(!Array.isArray(arr)) return [];
+  const a = shuffleArray(arr.filter(Boolean));
+  return a.slice(0, n);
+}
+
+async function fetchAsDataURL(url){
+  try{
+    const r = await fetch(url, {mode:"cors"});
+    if(!r.ok) return null;
+    const blob = await r.blob();
+    return await new Promise((resolve)=>{
+      const fr = new FileReader();
+      fr.onload = ()=>resolve(fr.result);
+      fr.onerror = ()=>resolve(null);
+      fr.readAsDataURL(blob);
+    });
+  }catch(e){
+    return null;
+  }
+}
+
+function getQuoteByTier(item, tier){
+  const key = "quote" + String(tier);
+  return (item && item[key] != null) ? item[key] : "";
+}
+
+async function buildProductSlide(pptx, item, tier){
+  const slide = pptx.addSlide();
+
+  // Top banner (Style B)
+  slide.addShape(pptx.ShapeType.rect, {
+    x:0.2, y:0.1, w:12.9, h:1.1,
+    fill:{color:"EAF2FF"},
+    line:{color:"BFD3FF", width:1}
+  });
+
+  slide.addText(`${item.model || ""}   ${item.name || ""}`, {
+    x:0.5, y:0.18, w:12.3, h:0.5,
+    fontFace:"Calibri", fontSize:26, bold:true, color:"1F2937"
+  });
+
+  const salePrice = item.marketPrice ?? item.salePrice ?? "";
+  const quoteVal  = getQuoteByTier(item, tier);
+
+  slide.addText(`賣場價：${salePrice}    ${tier} pcs 報價：${quoteVal}`, {
+    x:0.5, y:0.63, w:12.0, h:0.4,
+    fontFace:"Calibri", fontSize:16, bold:true, color:"111827"
+  });
+
+  // Images: take netImages random 6
+  const netImgs = pickRandom(getDriveNetImages(item.model, item.mainModel), 6);
+
+  const xs = [0.5, 4.7, 8.9];
+  const ys = [1.6, 4.1];
+  const w  = 3.6;
+  const h  = 2.2;
+
+  let idx = 0;
+  for(let r=0;r<2;r++){
+    for(let c=0;c<3;c++){
+      if(idx >= netImgs.length) break;
+      const url = netImgs[idx];
+      const dataUrl = await fetchAsDataURL(url);
+      if(dataUrl){
+        slide.addImage({ data: dataUrl, x: xs[c], y: ys[r], w, h });
+      }else{
+        // placeholder if image fails
+        slide.addShape(pptx.ShapeType.rect, {
+          x: xs[c], y: ys[r], w, h,
+          fill:{color:"F3F4F6"},
+          line:{color:"E5E7EB", width:1}
+        });
+        slide.addText("Image load failed", {
+          x: xs[c], y: ys[r]+0.9, w, h:0.3, fontSize:10, color:"6B7280", align:"center"
+        });
+      }
+      idx++;
+    }
+  }
+}
+
+async function exportSelectedPPT(){
+  if(typeof PptxGenJS === "undefined"){
+    alert("PPT 模組尚未載入，請稍後再試。");
+    return;
+  }
+
+  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+  if(checks.length < 1){
+    alert("請至少勾選 1 個商品才能生成 PPT。");
+    return;
+  }
+  if(checks.length > 20){
+    alert("最多只能勾選 20 個商品生成 PPT。");
+    return;
+  }
+
+  const tier = qtySelect.value || "50";
+
+  // map selected models to items in cache
+  const selectedItems = checks.map(cb => {
+    const model = cb.dataset.model;
+    return productCache.find(p => p.model === model) || productCache.find(p => p.mainModel === model);
+  }).filter(Boolean);
+
+  if(selectedItems.length === 0){
+    alert("找不到已勾選商品的資料，請重新搜尋後再試。");
+    return;
+  }
+
+  pptToolbarBtn.disabled = true;
+  pptToolbarBtn.textContent = "PPT 生成中...";
+
+  try{
+    const pptx = new PptxGenJS();
+    pptx.layout = "LAYOUT_WIDE";
+    pptx.author = "KINYO";
+
+    for(const item of selectedItems){
+      await buildProductSlide(pptx, item, tier);
+    }
+
+    await pptx.writeFile({ fileName: `KINYO_quote_${tier}pcs.pptx` });
+
+  }catch(e){
+    console.error(e);
+    alert("PPT 生成失敗，請查看 Console。");
+  }finally{
+    pptToolbarBtn.disabled = false;
+    pptToolbarBtn.textContent = "生成 PPT（1–20）";
+  }
+}
+
+// Bind button
+pptToolbarBtn?.addEventListener("click", exportSelectedPPT);
+
 </script>
 
 </body>
