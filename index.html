@@ -2,8 +2,11 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.8.5 UltraFast + Premium UI (SecureCache)）</title>
+<title>KINYO 查價系統（v4.8.8 Stable Fix）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <style>
 /* =========================================
@@ -76,8 +79,9 @@ h1{margin:0 0 4px;}
   gap:10px;
   align-items:center;
   margin:10px 0 6px;
+  flex-wrap: wrap; /* 避免按鈕太多擠壓 */
 }
-.toolbar select{ flex:1; }
+.toolbar select{ flex:1; min-width: 120px; }
 
 .quote-toolbar-btn{
   padding:10px 16px;
@@ -137,6 +141,10 @@ input,select{
   cursor:pointer;
   font-size:14px;
   white-space:nowrap;
+}
+.btn-secondary:disabled {
+  color: #ccc;
+  cursor: not-allowed;
 }
 .btn-outline-add{
   padding:6px 12px;
@@ -345,7 +353,6 @@ th{background:#fafafa;text-align:left;}
 </head>
 <body>
 
-<!-- v4.7.7 中央 Loading -->
 <div id="centerLoadingBox">
   <div id="centerLoadingCard">
     <div class="loading-title">商品載入中...</div>
@@ -362,7 +369,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.8.5 UltraFast + Premium UI (SecureCache)）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.8.8 Stable Fix）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -398,9 +405,10 @@ th{background:#fafafa;text-align:left;}
     <option value="alphaAsc">主型號：A → Z</option>
     <option value="alphaDesc">主型號：Z → A</option>
   </select>
-
+  <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
   <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
+  <button id="pptToolbarBtn" class="btn-secondary" disabled>生成 PPT（1–20）</button>
 </div>
 
 <table id="resultTable" style="display:none;">
@@ -417,10 +425,8 @@ th{background:#fafafa;text-align:left;}
   <tbody id="resultBody"></tbody>
 </table>
 
-<!-- 桌機版詳細頁 -->
 <div id="detailCard"></div>
 
-<!-- Mobile 詳細頁 Sheet -->
 <div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
 <div id="mobileDetailSheet" class="sheet hidden">
   <div class="sheet-header">
@@ -430,7 +436,6 @@ th{background:#fafafa;text-align:left;}
   <div class="sheet-content" id="sheetContent"></div>
 </div>
 
-<!-- 報價單 Sheet -->
 <div id="quoteSheet" class="sheet hidden">
   <div class="sheet-header">
     <span>報價單預覽</span>
@@ -448,7 +453,6 @@ th{background:#fafafa;text-align:left;}
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script type="module">
 /* =======================================================
@@ -481,6 +485,8 @@ const minPriceInput  = document.getElementById("minPrice");
 const maxPriceInput  = document.getElementById("maxPrice");
 const sortSelect     = document.getElementById("sortSelect");
 const exportBtn      = document.getElementById("exportBtn");
+const pptToolbarBtn  = document.getElementById("pptToolbarBtn");
+const multiLineBtn   = document.getElementById("multiLineBtn"); // 這裡對應 HTML 的 ID
 const clearBtn       = document.getElementById("clearBtn");
 
 const resultTable    = document.getElementById("resultTable");
@@ -511,7 +517,7 @@ const centerLoadingBar = document.getElementById("centerLoadingBar");
    全域變數
 ======================================================= */
 let productCache = [];
-let currentResultList = [];
+let currentResultList = []; // 當前搜尋結果
 let userLevel = 1;
 let currentUserEmail = "";
 let quoteList = [];
@@ -520,8 +526,7 @@ let isQuotesLoaded = false;
 
 
 /* =======================================================
-   Secure UltraFast Local Cache (non-sensitive only)
-   - Cache excludes quote50/100/300/500/1000 and userLevel
+   Secure UltraFast Local Cache
 ======================================================= */
 const CACHE_TTL = 1000 * 60 * 60 * 6; // 6 hours
 
@@ -555,9 +560,9 @@ function saveCache(data) {
    Drive modelData.json
 ======================================================= */
 let driveMap = new Map();
-let mainFolderMap = new Map(); // 大圖資料夾 folderUrl      // key -> mainImage url
-let netMap   = new Map();      // key -> net folder url (optional)
-let netImagesMap = new Map();  // key -> net images urls
+let mainFolderMap = new Map();
+let netMap   = new Map();
+let netImagesMap = new Map();
 let isDriveLoaded = false;
 
 /* =======================================================
@@ -578,8 +583,7 @@ function hideLoading() {
 }
 
 /* =======================================================
-   ✅ Drive 載入（支援 mainImage + netImages + images + netGalleryUrl）
-   modelData.json 目前的網路圖存於 images[] (含 url)，因此一併相容。
+   Drive 載入
 ======================================================= */
 async function preloadDriveModelData() {
   try {
@@ -590,25 +594,22 @@ async function preloadDriveModelData() {
     driveMap.clear();
     netMap.clear();
     netImagesMap.clear();
+    mainFolderMap.clear();
 
     (data.models || []).forEach(m => {
       const key = String(m.mainModel || m.model || "").trim().toUpperCase();
       if (!key) return;
 
       if (m.mainImage) driveMap.set(key, m.mainImage);
-      if(m.folderUrl) mainFolderMap.set(key, m.folderUrl);
+      if (m.folderUrl) mainFolderMap.set(key, m.folderUrl);
 
-      // 網路圖資料夾 url（若 python 有輸出）
       const folderUrl = m.netGalleryUrl || m.netFolderUrl || m.folderUrl || m.folderLink || "";
       if (folderUrl) netMap.set(key, folderUrl);
 
-      // 主要網路圖來源：netImages[]（新格式）
       if (Array.isArray(m.netImages) && m.netImages.length) {
         netImagesMap.set(key, m.netImages.filter(Boolean));
         return;
       }
-
-      // 相容舊格式：images[]（每個物件有 url）
       if (Array.isArray(m.images) && m.images.length) {
         const urls = m.images.map(x => x?.url).filter(Boolean);
         if (urls.length) netImagesMap.set(key, urls);
@@ -628,7 +629,6 @@ async function preloadDriveModelData() {
   }
 }
 
-/* 取得商品大圖 */
 function getDriveMainImage(model, mainModel) {
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
@@ -641,14 +641,12 @@ function getDriveMainFolder(model, mainModel){
   return mainFolderMap.get(k1)||mainFolderMap.get(k2)||"";
 }
 
-/* 取得商品網路圖資料夾連結 */
 function getDriveNetGallery(model, mainModel) {
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
   return netMap.get(k1) || netMap.get(k2) || "";
 }
 
-/* 取得網路圖清單 */
 function getDriveNetImages(model, mainModel){
   const k1 = model?.toUpperCase().trim();
   const k2 = mainModel?.toUpperCase().trim();
@@ -658,48 +656,36 @@ function getDriveNetImages(model, mainModel){
 /* =======================================================
    Firestore 商品預載入
 ======================================================= */
-
 function getMainModel(model) {
   if (!model) return "";
   const raw = String(model).trim().toUpperCase();
   if (!raw) return "";
-
-  // e.g. ABC123D -> ABC123
   const m = raw.match(/^([A-Z]+[0-9]+)([A-Z]{1,3})$/);
   if (m) return m[1];
-
-  // e.g. ABC123-D -> ABC123
   if (raw.includes("-")) {
     const parts = raw.split("-");
     const last = parts[parts.length - 1];
     if (/^[A-Z]{1,3}$/.test(last)) return raw.replace(/-[A-Z]{1,3}$/, "");
   }
-
   return raw;
 }
 
-
 async function preloadProducts() {
-  // 1) Try cache first (non-sensitive)
   const cached = loadCache();
   if (cached && cached.length) {
     productCache = cached.map(p => ({
       ...p,
-      // ensure derived fields exist
       model: (p.model || "").trim(),
       mainModel: p.mainModel || getMainModel(p.model || ""),
       searchKey: (p.searchKey || `${p.model||""} ${p.mainModel||""} ${p.name||""}`.toLowerCase())
     }));
     isProductsLoaded = true;
-    isQuotesLoaded = false; // quotes still pending
+    isQuotesLoaded = false;
     console.log("✅ 使用本地快取商品：", productCache.length);
-
-    // Background refresh to pull quotes + latest fields
     refreshProductsFromFirestore();
     return;
   }
 
-  // 2) No cache → full load
   showLoading();
   isProductsLoaded = false;
   isQuotesLoaded = false;
@@ -707,127 +693,86 @@ async function preloadProducts() {
   try {
     const snap = await getDocs(collection(db, "Products"));
     const fullList = [];
-
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
-      const model     = (d.model || "").trim();
+      const model = (d.model || "").trim();
       const mainModel = getMainModel(model);
-
       let colorList = (d.colorList || "").trim();
       if (!colorList) {
         const suffix = model.toUpperCase().replace(mainModel, "");
         if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
       }
-
       const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
-
-      fullList.push({
-        ...d,
-        model,
-        mainModel,
-        colorList,
-        searchKey
-      });
+      fullList.push({ ...d, model, mainModel, colorList, searchKey });
     });
-
     productCache = fullList;
     isProductsLoaded = true;
     isQuotesLoaded = true;
 
-    // Save non-sensitive cache
     const safeList = fullList.map(p => {
       const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
       return c;
     });
     saveCache(safeList);
-
     console.log("Firestore 商品載入完成：", productCache.length);
-
   } catch (e) {
     alert("商品載入失敗！");
     console.error(e);
   }
-
   hideLoading();
 }
 
-/* =======================================================
-   Background refresh (pull latest + quotes)
-======================================================= */
 async function refreshProductsFromFirestore() {
   try {
     const snap = await getDocs(collection(db, "Products"));
     const fullList = [];
-
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
-      const model     = (d.model || "").trim();
+      const model = (d.model || "").trim();
       const mainModel = getMainModel(model);
-
       let colorList = (d.colorList || "").trim();
       if (!colorList) {
         const suffix = model.toUpperCase().replace(mainModel, "");
         if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
       }
-
       const searchKey = `${model} ${mainModel} ${d.name || ""}`.toLowerCase();
-
-      fullList.push({
-        ...d,
-        model,
-        mainModel,
-        colorList,
-        searchKey
-      });
+      fullList.push({ ...d, model, mainModel, colorList, searchKey });
     });
-
     productCache = fullList;
     isQuotesLoaded = true;
-
-    // Update safe cache
     const safeList = fullList.map(p => {
       const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
       return c;
     });
     saveCache(safeList);
-
     console.log("✅ 背景更新完成（含採購價）：", fullList.length);
   } catch(e) {
-    console.warn("背景更新失敗（不影響快取搜尋）", e);
+    console.warn("背景更新失敗", e);
   }
 }
 
-/* =======================================================
-   起訂量權限設定
-======================================================= */
 function setupQtySelectByLevel() {
   qtySelect.innerHTML = "";
   const emptyOpt = document.createElement("option");
   emptyOpt.value = "";
   emptyOpt.textContent = "不使用起訂量";
   qtySelect.appendChild(emptyOpt);
-
   const add = (v,t)=>{
     const o = document.createElement("option");
     o.value = v; o.textContent = t;
     qtySelect.appendChild(o);
   };
-
   if (userLevel >= 1) add("50", "50 個");
   if (userLevel >= 2) { add("100", "100 個"); add("300", "300 個"); }
   if (userLevel >= 3) { add("500", "500 個"); add("1000", "1000 個"); }
 }
 
-/* =======================================================
-   合併主型號
-======================================================= */
 function mergeByMainModel(list) {
   const map = {};
   list.forEach(item => {
     const main = item.mainModel || getMainModel(item.model);
-
     if (!map[main]) {
       map[main] = {
         ...item,
@@ -844,9 +789,6 @@ function mergeByMainModel(list) {
   return Object.values(map);
 }
 
-/* =======================================================
-   排序
-======================================================= */
 function applySorting(list) {
   const o = sortSelect.value;
   if (o === "minPriceAsc")  return list.sort((a,b)=> (a.minPrice||0) - (b.minPrice||0));
@@ -858,15 +800,11 @@ function applySorting(list) {
   return list;
 }
 
-/* =======================================================
-   搜尋功能（A/B/C）
-======================================================= */
 function searchProducts() {
   if (!isProductsLoaded) {
     alert("商品尚未載入完成，請稍等 1~2 秒再搜尋");
     return;
   }
-  // 若使用起訂量/預算篩選，需要採購價已同步完成
   const _qtyTmp = qtySelect.value;
   const _minTmp = minPriceInput.value.trim();
   const _maxTmp = maxPriceInput.value.trim();
@@ -882,10 +820,8 @@ function searchProducts() {
   const maxPraw = maxPriceInput.value.trim();
 
   showLoading();
-
   setTimeout(() => {
-
-    // A：只打關鍵字
+    // A
     if (key && !qty && !minPraw && !maxPraw) {
       const r = productCache.filter(p => (p.searchKey || "").includes(key));
       currentResultList = applySorting(mergeByMainModel(r));
@@ -893,51 +829,48 @@ function searchProducts() {
       hideLoading();
       return;
     }
-
-    // B：起訂量 + 預算（無關鍵字）
-    if (!key && qty && (minPraw || maxPraw)) {
+    // B
+    if (!key && qty && (minPraw && !maxPraw || !minPraw && maxPraw || minPraw && maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
       const costKey = `quote${qty}`;
-
       const r = productCache.filter(p => {
         const price = Number(p[costKey]) || 0;
         return price >= minP && price <= maxP;
       });
-
       currentResultList = applySorting(mergeByMainModel(r));
       renderResults(currentResultList);
       hideLoading();
       return;
     }
-
-    // C：三項都填
-    if (key && qty && (minPraw || maxPraw)) {
+    // C
+    if (key && qty && (minPraw && !maxPraw || !minPraw && maxPraw || minPraw && maxPraw)) {
       const minP = minPraw ? Number(minPraw) : 0;
       const maxP = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
       const costKey = `quote${qty}`;
-
       const r = productCache.filter(p => {
         const hitKey = (p.searchKey || "").includes(key);
         const price  = Number(p[costKey]) || 0;
         return hitKey && price >= minP && price <= maxP;
       });
-
       currentResultList = applySorting(mergeByMainModel(r));
       renderResults(currentResultList);
       hideLoading();
       return;
     }
-
+    
+    // Default fallback
+    if (!key && !qty) {
+        alert("請輸入關鍵字，或起訂量+預算，或三項都填滿。");
+        hideLoading();
+        return;
+    }
+    
     alert("請輸入關鍵字，或起訂量+預算，或三項都填滿。");
     hideLoading();
-
   }, 0);
 }
 
-/* =======================================================
-   渲染搜尋結果
-======================================================= */
 function renderResults(list) {
   resultBody.innerHTML = "";
   detailCard.style.display = "none";
@@ -947,11 +880,13 @@ function renderResults(list) {
   if (list.length === 0) {
     resultTable.style.display = "none";
     exportBtn.disabled = true;
+    pptToolbarBtn.disabled = true;
     return;
   }
 
   resultTable.style.display = "table";
   exportBtn.disabled = false;
+  pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
     const img = item.imageUrl || "https://placehold.co/120x120?text=No+Image";
@@ -1003,16 +938,11 @@ function renderResults(list) {
         showDetailMobile(item);
       });
     }
-
     resultBody.appendChild(tr);
   });
-
   bindCheckAll();
 }
 
-/* =======================================================
-   桌機右側詳細卡（含商品大圖按鈕 + 網路圖縮圖/下載）
-======================================================= */
 function showDetailDesktop(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
@@ -1024,7 +954,6 @@ function showDetailDesktop(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml = "";
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
   detailCard.style.display = "block";
@@ -1042,7 +971,6 @@ function showDetailDesktop(item) {
         ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>`
         : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>`
       }
-      
     </div>
 
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
@@ -1062,9 +990,6 @@ function showDetailDesktop(item) {
   `;
 }
 
-/* =======================================================
-   手機 bottom-sheet 詳細（同桌機）
-======================================================= */
 function showDetailMobile(item) {
   const img = item.imageUrl || "https://placehold.co/300x300?text=No+Image";
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
@@ -1076,7 +1001,6 @@ function showDetailMobile(item) {
   if (userLevel >= 2) priceBlock += `<div>100 個：${item.quote100 ?? "-"}</div><div>300 個：${item.quote300 ?? "-"}</div>`;
   if (userLevel >= 3) priceBlock += `<div>500 個：${item.quote500 ?? "-"}</div><div>1000 個：${item.quote1000 ?? "-"}</div>`;
 
-  const netThumbHtml = "";
   const netDownloadLink = netFolderUrl || (netImages[0] || "");
 
   sheetContent.innerHTML = `
@@ -1093,7 +1017,6 @@ function showDetailMobile(item) {
         ? `<a class="btn-blue" href="${netDownloadLink}" target="_blank">查看下載商品網路圖</a>`
         : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>`
       }
-      
     </div>
 
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
@@ -1114,9 +1037,6 @@ function showDetailMobile(item) {
   openSheet();
 }
 
-/* =======================================================
-   Mobile Sheet 控制
-======================================================= */
 function openSheet() {
   sheetBackdrop.classList.remove("hidden");
   mobileSheet.classList.remove("hidden");
@@ -1130,17 +1050,12 @@ function closeSheet() {
   }, 220);
 }
 
-/* =======================================================
-   全選勾選
-======================================================= */
 function bindCheckAll() {
   const rowChecks = document.querySelectorAll(".row-check");
-
   checkAllBox.onchange = () => {
     rowChecks.forEach(c => c.checked = checkAllBox.checked);
     updateMultiLineBtnState();
   };
-
   rowChecks.forEach(chk => {
     chk.onchange = () => {
       const all = document.querySelectorAll(".row-check");
@@ -1151,23 +1066,13 @@ function bindCheckAll() {
   });
 }
 
-/* 多選 Line 分享按鈕 */
-const toolbarEl = document.querySelector(".toolbar");
-const multiLineBtn = document.createElement("button");
-multiLineBtn.id = "multiLineBtn";
-multiLineBtn.className = "btn-secondary";
-multiLineBtn.textContent = "多選 LINE 分享";
-multiLineBtn.disabled = true;
-toolbarEl.insertBefore(multiLineBtn, exportBtn);
-
 function updateMultiLineBtnState() {
   const checked = document.querySelectorAll(".row-check:checked");
-  multiLineBtn.disabled = checked.length === 0;
+  if(multiLineBtn) {
+    multiLineBtn.disabled = checked.length === 0;
+  }
 }
 
-/* =======================================================
-   報價單按鈕控制
-======================================================= */
 function updateQuoteToolbarBtn() {
   if (quoteList.length > 0) {
     quoteToolbarBtn.style.display = "inline-block";
@@ -1179,12 +1084,10 @@ function updateQuoteToolbarBtn() {
 
 function renderQuoteList() {
   quoteListBody.innerHTML = "";
-
   if (quoteList.length === 0) {
     quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的</div>`;
     return;
   }
-
   quoteList.forEach((q, idx) => {
     const div = document.createElement("div");
     div.className = "quote-item";
@@ -1201,7 +1104,6 @@ function renderQuoteList() {
     `;
     quoteListBody.appendChild(div);
   });
-
   document.querySelectorAll(".quote-del").forEach(btn => {
     btn.onclick = (e) => {
       const i = Number(e.target.getAttribute("data-idx"));
@@ -1225,7 +1127,7 @@ function closeQuoteSheet() {
 }
 
 /* =======================================================
-   匯出 Excel（多選）
+   Excel Export Functionality
 ======================================================= */
 function exportSelectedExcel() {
   const checked = document.querySelectorAll(".row-check:checked");
@@ -1273,9 +1175,6 @@ function exportSelectedExcel() {
   XLSX.writeFile(wb, `KINYO_商品報價_${qty ? qty+'個' : '關鍵字搜尋'}.xlsx`);
 }
 
-/* =======================================================
-   報價單 Download Excel
-======================================================= */
 function downloadQuoteExcel() {
   if (quoteList.length === 0) { alert("報價單是空的"); return; }
 
@@ -1290,136 +1189,198 @@ function downloadQuoteExcel() {
 }
 
 /* =======================================================
-   加入報價單／LINE 分享
+   PPT Export Functionality (Integrated in Module)
 ======================================================= */
-document.addEventListener("click", (e) => {
 
-  /* 加入報價單 */
-  if (e.target.classList.contains("add-quote-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
+// Helper: Shuffle array
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
 
-    const qty = qtySelect.value || "50";
-    const ck  = `quote${qty}`;
-    const cost = item[ck] ?? item.quote50 ?? 0;
+// Helper: Pick random N items
+function pickRandom(arr, n){
+  if(!Array.isArray(arr)) return [];
+  const a = shuffleArray(arr.filter(Boolean));
+  return a.slice(0, n);
+}
 
-    quoteList.push({
-      model: item.model,
-      name: item.name,
-      price: cost,
-      qtyLabel: `${qty}個`,
-      count: 1
+// Helper: Fetch URL as DataURL
+async function fetchAsDataURL(url){
+  try{
+    const r = await fetch(url, {mode:"cors"});
+    if(!r.ok) return null;
+    const blob = await r.blob();
+    return await new Promise((resolve)=>{
+      const fr = new FileReader();
+      fr.onload = ()=>resolve(fr.result);
+      fr.onerror = ()=>resolve(null);
+      fr.readAsDataURL(blob);
     });
+  }catch(e){
+    return null;
+  }
+}
 
-    updateQuoteToolbarBtn();
-    alert(`已加入報價單（${qty}個：$${cost}）`);
+function getQuoteByTier(item, tier){
+  const key = "quote" + String(tier);
+  return (item && item[key] != null) ? item[key] : "";
+}
+
+async function buildProductSlide(pptx, item, tier){
+  const slide = pptx.addSlide();
+
+  // Top banner (Style B)
+  slide.addShape(pptx.ShapeType.rect, {
+    x:0.2, y:0.1, w:12.9, h:1.1,
+    fill:{color:"EAF2FF"},
+    line:{color:"BFD3FF", width:1}
+  });
+
+  slide.addText(`${item.model || ""}   ${item.name || ""}`, {
+    x:0.5, y:0.18, w:12.3, h:0.5,
+    fontFace:"Calibri", fontSize:26, bold:true, color:"1F2937"
+  });
+
+  const salePrice = item.marketPrice ?? item.salePrice ?? "";
+  const quoteVal  = getQuoteByTier(item, tier);
+
+  slide.addText(`賣場價：${salePrice}    ${tier} pcs 報價：${quoteVal}`, {
+    x:0.5, y:0.63, w:12.0, h:0.4,
+    fontFace:"Calibri", fontSize:16, bold:true, color:"111827"
+  });
+
+  // Images: take netImages random 6
+  // (Uses getDriveNetImages defined in this module scope)
+  const netImgs = pickRandom(getDriveNetImages(item.model, item.mainModel), 6);
+
+  const xs = [0.5, 4.7, 8.9];
+  const ys = [1.6, 4.1];
+  const w  = 3.6;
+  const h  = 2.2;
+
+  let idx = 0;
+  for(let r=0;r<2;r++){
+    for(let c=0;c<3;c++){
+      if(idx >= netImgs.length) break;
+      const url = netImgs[idx];
+      const dataUrl = await fetchAsDataURL(url);
+      if(dataUrl){
+        slide.addImage({ data: dataUrl, x: xs[c], y: ys[r], w, h });
+      }else{
+        // placeholder if image fails
+        slide.addShape(pptx.ShapeType.rect, {
+          x: xs[c], y: ys[r], w, h,
+          fill:{color:"F3F4F6"},
+          line:{color:"E5E7EB", width:1}
+        });
+        slide.addText("Image load failed", {
+          x: xs[c], y: ys[r]+0.9, w, h:0.3, fontSize:10, color:"6B7280", align:"center"
+        });
+      }
+      idx++;
+    }
+  }
+}
+
+async function exportSelectedPPT() {
+  // Use global PptxGenJS loaded via CDN script tag
+  if (typeof PptxGenJS === "undefined") {
+    alert("PPT 模組尚未載入，請稍後再試。");
     return;
   }
 
-  /* 單筆 LINE 分享 */
-  if (e.target.classList.contains("line-share-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
+  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+  if (checks.length < 1) {
+    alert("請至少勾選 1 個商品才能生成 PPT。");
+    return;
+  }
+  if (checks.length > 20) {
+    alert("最多只能勾選 20 個商品生成 PPT。");
+    return;
+  }
 
-    let costText = "";
-    if (userLevel >= 1) costText += `50個：${item.quote50 ?? "-"}\n`;
-    if (userLevel >= 2) costText += `100個：${item.quote100 ?? "-"}\n300個：${item.quote300 ?? "-"}\n`;
-    if (userLevel >= 3) costText += `500個：${item.quote500 ?? "-"}\n1000個：${item.quote1000 ?? "-"}\n`;
+  const tier = qtySelect.value || "50";
 
-    const text = `【${item.model}】${item.name}
-賣場售價：${item.marketPrice ?? "-"}
-末售價格：${item.minPrice ?? "-"}
---------------------
-採購價格：
-${costText}
-商品連結：${item.productUrl || "無"}`;
+  // Using currentResultList from module scope
+  const selectedItems = checks.map(cb => {
+      const model = cb.dataset.model;
 
+      let item = currentResultList.find(p => p.model === model);
+      if (!item) item = currentResultList.find(p => p.mainModel === model);
+      if (!item) item = currentResultList.find(
+        p => Array.isArray(p.models) && p.models.includes(model)
+      );
+
+      return item;
+  }).filter(Boolean);
+
+  if (selectedItems.length === 0) {
+    alert("找不到已勾選商品的資料，請重新搜尋後再試。");
+    return;
+  }
+
+  pptToolbarBtn.disabled = true;
+  pptToolbarBtn.textContent = "PPT 生成中...";
+
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = "LAYOUT_WIDE";
+    pptx.author = "KINYO";
+
+    for (const item of selectedItems) {
+      await buildProductSlide(pptx, item, tier);
+    }
+
+    await pptx.writeFile({ fileName: `KINYO_quote_${tier}pcs.pptx` });
+
+  } catch (e) {
+    console.error(e);
+    alert("PPT 生成失敗，請查看 Console。");
+  } finally {
+    pptToolbarBtn.disabled = false;
+    pptToolbarBtn.textContent = "生成 PPT（1–20）";
+  }
+}
+
+/* =======================================================
+   Event Listeners (Bind within Module)
+======================================================= */
+searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
+exportBtn.onclick = exportSelectedExcel;
+logoutBtn.onclick = () => signOut(auth);
+
+// Bind PPT button inside module so it can access exportSelectedPPT
+if(pptToolbarBtn) {
+  pptToolbarBtn.onclick = exportSelectedPPT;
+}
+if(downloadQuoteExcelBtn) {
+  downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
+}
+if(copyQuoteBtn) {
+  copyQuoteBtn.onclick = () => {
+    if (quoteList.length === 0) return alert("報價單是空的");
+    let text = "KINYO 報價單\n--------------------\n";
+    quoteList.forEach((q,i)=>{
+      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${q.price} x ${q.count}\n`;
+    });
+    text += "--------------------\n";
     navigator.clipboard.writeText(text)
-      .then(() => alert("已複製到剪貼簿"))
+      .then(() => alert("報價單已複製"))
       .catch(() => alert("複製失敗"));
-  }
-});
-
-/* 多選 LINE 分享 */
-multiLineBtn.onclick = () => {
-  const checked = document.querySelectorAll(".row-check:checked");
-  if (checked.length === 0) return;
-
-  let text = "KINYO 多品項報價\n--------------------\n";
-  Array.from(checked).forEach((c, i) => {
-    const model = c.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
-
-    const qty  = qtySelect.value || "50";
-    const ck   = `quote${qty}`;
-    const cost = item[ck] ?? item.quote50 ?? "-";
-
-    text += `${i+1}. 【${item.model}】${item.name}\n   ${qty}個：$${cost}\n`;
-  });
-
-  text += "--------------------\n";
-  navigator.clipboard.writeText(text)
-    .then(() => alert("多選報價已複製"))
-    .catch(() => alert("複製失敗"));
-};
-
-/* =======================================================
-   清除搜尋條件
-======================================================= */
-clearBtn.onclick = () => {
-  keywordInput.value = "";
-  qtySelect.value = "";
-  minPriceInput.value = "";
-  maxPriceInput.value = "";
-
-  resultBody.innerHTML = "";
-  resultTable.style.display = "none";
-  exportBtn.disabled = true;
-  multiLineBtn.disabled = true;
-  checkAllBox.checked = false;
-  detailCard.style.display = "none";
-};
-
-/* 排序變更 */
-sortSelect.onchange = () => {
-  if (currentResultList.length > 0) {
-    currentResultList = applySorting([...currentResultList]);
-    renderResults(currentResultList);
-  }
-};
-
-/* =======================================================
-   Sheet / Quote UI events
-======================================================= */
-sheetCloseBtn.onclick = closeSheet;
-quoteCloseBtn.onclick = closeQuoteSheet;
-
-sheetBackdrop.onclick = () => {
-  if (!mobileSheet.classList.contains("hidden")) closeSheet();
-  if (!quoteSheet.classList.contains("hidden")) closeQuoteSheet();
-};
-
-quoteToolbarBtn.onclick = openQuoteSheet;
-downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
-clearQuoteBtn.onclick = () => {
-  quoteList = [];
-  renderQuoteList();
-  updateQuoteToolbarBtn();
-};
-copyQuoteBtn.onclick = () => {
-  if (quoteList.length === 0) return alert("報價單是空的");
-  let text = "KINYO 報價單\n--------------------\n";
-  quoteList.forEach((q,i)=>{
-    text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：$${q.price} x ${q.count}\n`;
-  });
-  text += "--------------------\n";
-  navigator.clipboard.writeText(text)
-    .then(() => alert("報價單已複製"))
-    .catch(() => alert("複製失敗"));
-};
+  };
+}
+if(clearQuoteBtn) {
+  clearQuoteBtn.onclick = () => {
+    quoteList = [];
+    renderQuoteList();
+    updateQuoteToolbarBtn();
+  };
+}
 
 /* =======================================================
    Firebase Auth：登入後流程
@@ -1448,100 +1409,130 @@ onAuthStateChanged(auth, async (user) => {
   await preloadProducts();
 });
 
-/* 登出 */
-logoutBtn.onclick = () => signOut(auth);
+/* =======================================================
+   Quote Button Listeners inside Module
+======================================================= */
+// We need to attach these to window or bind them if they are in HTML onclicks,
+// but since we are generating HTML dynamically or binding via ID, it's fine.
+// The quoteSheet buttons (copy, download, clear) are static in HTML, so we bind them above.
+// The "add-quote-btn" are dynamic, so we use document event delegation below.
 
-/* 搜尋 / 匯出 */
-searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
-exportBtn.onclick = exportSelectedExcel;
+document.addEventListener("click", (e) => {
+  // Add to Quote
+  if (e.target.classList.contains("add-quote-btn")) {
+    const model = e.target.getAttribute("data-model");
+    const item  = currentResultList.find(p => p.model === model);
+    if (!item) return;
 
-</script>
+    const qty = qtySelect.value || "50";
+    const ck  = `quote${qty}`;
+    const cost = item[ck] ?? item.quote50 ?? 0;
 
-<script>
-/* ============================================
-   AutoVersion A+B 完整版（前端自動刷新版本）
-   - A: 偵測商品筆數變化
-   - B: 偵測最大 lastUpdated 變化
-   - 自動更新 cacheVersion.json（需 Token）
-============================================ */
-(async function(){
-
-  async function fetchFirestoreMeta() {
-    const app = self.firebaseApp;
-    const db = self.firebaseDB;
-    const snap = await firebase.firestore().collection("Products").get();
-    let count = snap.size;
-    let lastTimes = [];
-    snap.forEach(doc => {
-      const d = doc.data();
-      if (d.lastUpdated) lastTimes.push(d.lastUpdated.toMillis());
+    quoteList.push({
+      model: item.model,
+      name: item.name,
+      price: cost,
+      qtyLabel: `${qty}個`,
+      count: 1
     });
-    let maxUpdated = lastTimes.length ? Math.max(...lastTimes) : 0;
-    return { count, maxUpdated };
+
+    updateQuoteToolbarBtn();
+    alert(`已加入報價單（${qty}個：$${cost}）`);
+    return;
   }
 
-  async function fetchLocalCacheMeta() {
-    try {
-      const meta = JSON.parse(localStorage.getItem("KINYO_CACHE_META") || "{}");
-      return {
-        count: meta.count || 0,
-        maxUpdated: meta.maxUpdated || 0,
-        version: meta.version || 0
-      };
-    } catch { return { count:0, maxUpdated:0, version:0 }; }
+  // Line Share
+  if (e.target.classList.contains("line-share-btn")) {
+    const model = e.target.getAttribute("data-model");
+    const item  = currentResultList.find(p => p.model === model);
+    if (!item) return;
+
+    let costText = "";
+    if (userLevel >= 1) costText += `50個：${item.quote50 ?? "-"}\n`;
+    if (userLevel >= 2) costText += `100個：${item.quote100 ?? "-"}\n300個：${item.quote300 ?? "-"}\n`;
+    if (userLevel >= 3) costText += `500個：${item.quote500 ?? "-"}\n1000個：${item.quote1000 ?? "-"}\n`;
+
+    const text = `【${item.model}】${item.name}
+賣場售價：${item.marketPrice ?? "-"}
+末售價格：${item.minPrice ?? "-"}
+--------------------
+採購價格：
+${costText}
+商品連結：${item.productUrl || "無"}`;
+
+    navigator.clipboard.writeText(text)
+      .then(() => alert("已複製到剪貼簿"))
+      .catch(() => alert("複製失敗"));
   }
+});
 
-  async function saveLocalCacheMeta(data) {
-    localStorage.setItem("KINYO_CACHE_META", JSON.stringify(data));
-  }
+/* 多選 LINE 分享 */
+if(multiLineBtn) {
+  multiLineBtn.onclick = () => {
+    const checked = document.querySelectorAll(".row-check:checked");
+    if (checked.length === 0) return;
 
-  async function updateGithubVersion(newVersion) {
-    const token = localStorage.getItem("KINYO_GITHUB_TOKEN");
-    if (!token) return;
+    let text = "KINYO 多品項報價\n--------------------\n";
+    Array.from(checked).forEach((c, i) => {
+      const model = c.getAttribute("data-model");
+      const item  = currentResultList.find(p => p.model === model);
+      if (!item) return;
 
-    const fileUrl = "https://api.github.com/repos/sam-kinyo/kinyo-price/contents/cacheVersion.json";
+      const qty  = qtySelect.value || "50";
+      const ck   = `quote${qty}`;
+      const cost = item[ck] ?? item.quote50 ?? "-";
 
-    const fileRes = await fetch(fileUrl, { headers:{Authorization:`Bearer ${token}`} });
-    const fileJson = await fileRes.json();
-
-    const newContent = btoa(JSON.stringify({version:newVersion}, null, 2));
-
-    await fetch(fileUrl, {
-      method:"PUT",
-      headers:{
-        Authorization:`Bearer ${token}`,
-        "Content-Type":"application/json"
-      },
-      body: JSON.stringify({
-        message:`Auto update version to ${newVersion}`,
-        content:newContent,
-        sha:fileJson.sha
-      })
+      text += `${i+1}. 【${item.model}】${item.name}\n   ${qty}個：$${cost}\n`;
     });
-  }
 
-  try {
-    const remote = await fetchFirestoreMeta();
-    const local = await fetchLocalCacheMeta();
+    text += "--------------------\n";
+    navigator.clipboard.writeText(text)
+      .then(() => alert("多選報價已複製"))
+      .catch(() => alert("複製失敗"));
+  };
+}
 
-    if (remote.count !== local.count || remote.maxUpdated !== local.maxUpdated) {
-      const newVersion = (local.version||0) + 1;
-      await updateGithubVersion(newVersion);
-      await saveLocalCacheMeta({
-        count: remote.count,
-        maxUpdated: remote.maxUpdated,
-        version: newVersion
-      });
-      console.log("AutoVersion: version updated to", newVersion);
-    } else {
-      console.log("AutoVersion: no change");
+/* Clear Search */
+if(clearBtn) {
+  clearBtn.onclick = () => {
+    keywordInput.value = "";
+    qtySelect.value = "";
+    minPriceInput.value = "";
+    maxPriceInput.value = "";
+
+    resultBody.innerHTML = "";
+    resultTable.style.display = "none";
+    exportBtn.disabled = true;
+    if(pptToolbarBtn) pptToolbarBtn.disabled = true;
+    if(multiLineBtn) multiLineBtn.disabled = true;
+    checkAllBox.checked = false;
+    detailCard.style.display = "none";
+  };
+}
+
+/* Sort */
+if(sortSelect) {
+  sortSelect.onchange = () => {
+    if (currentResultList.length > 0) {
+      currentResultList = applySorting([...currentResultList]);
+      renderResults(currentResultList);
     }
-  } catch(e){
-    console.error("AutoVersion Error:", e);
-  }
+  };
+}
 
-})();
+/* Sheet & Quote UI */
+if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
+if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
+
+if(sheetBackdrop) {
+  sheetBackdrop.onclick = () => {
+    if (!mobileSheet.classList.contains("hidden")) closeSheet();
+    if (!quoteSheet.classList.contains("hidden")) closeQuoteSheet();
+  };
+}
+
+if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
+
 </script>
-
 </body>
 </html>
