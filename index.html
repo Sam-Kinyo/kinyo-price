@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.13.5）</title>
+<title>KINYO 查價系統（v4.13.7）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -185,6 +185,14 @@ th{background:#fafafa;text-align:left;}
   border-radius:14px;
   border:1px solid #e5e7eb;
   background:#fff;
+  cursor: pointer;
+}
+.model-cell {
+  cursor: pointer;
+}
+.model-cell:hover {
+  color: var(--primary-blue);
+  text-decoration: underline;
 }
 
 /* 價格標籤 */
@@ -395,7 +403,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.13.5）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.13.7）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -587,7 +595,7 @@ function hideLoading() {
   setTimeout(() => { centerLoadingBox.style.display = "none"; }, 0);
 }
 
-// 🚀 更新使用者狀態顯示 (用於搜尋中提示)
+// 🚀 更新使用者狀態顯示
 function updateUserDisplay(status) {
   if (!userInfoSpan) return;
   if (status === 'searching') {
@@ -614,17 +622,13 @@ async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
     }
 }
 
-// 🚀 智慧型號正規化 (與 Python 同步)
+// 🚀 智慧型號正規化
 function normalizeKey(key) {
     if (!key) return "";
-    // 1. Force Upper Case FIRST
     let base = key.split('.')[0].split('_')[0].toUpperCase();
-    // 2. Remove hyphens
     base = base.replace(/-/g, '');
-    // 3. Match Letters + Digits pattern
     let m = base.match(/^([a-zA-Z]+)(\d+)([a-zA-Z]*)$/);
     if (m) {
-        // Return Letters + Digits only (ignore color suffix in key)
         return (m[1] + m[2]);
     }
     return base;
@@ -639,7 +643,6 @@ async function preloadDriveModelData() {
     driveMap.clear(); netMap.clear(); netImagesMap.clear(); mainFolderMap.clear();
 
     (data.models || []).forEach(m => {
-      // 🚀 使用正規化後的 Key 存入 Map
       const rawKey = String(m.mainModel || m.model || "").trim();
       if (!rawKey) return;
       const key = normalizeKey(rawKey);
@@ -669,7 +672,7 @@ async function preloadDriveModelData() {
   }
 }
 
-// 🚀 Lookup Functions now use normalizeKey
+// 🚀 Lookup Functions
 function getDriveMainImage(model, mainModel) {
   const k1 = normalizeKey(model);
   const k2 = normalizeKey(mainModel);
@@ -885,8 +888,6 @@ function renderResults(list) {
 
   list.forEach(item => {
     let img = item.imageUrl;
-    // 🚀 Sync Image Logic: Prefer item.imageUrl (scraper)
-    // Fallback to Drive Image if scraper image missing/invalid
     if (!img || !img.startsWith("http")) {
       const driveImg = getDriveMainImage(item.model, item.mainModel);
       if (driveImg) img = driveImg;
@@ -907,10 +908,9 @@ function renderResults(list) {
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
-        <!-- Added onerror handler for broken images -->
         <img src="${img}" class="product-img" onerror="this.onerror=null;this.src='https://placehold.co/110x110?text=No+Image';">
       </td>
-      <td>${item.mainModel || "-"}</td>
+      <td class="model-cell">${item.mainModel || "-"}</td>
       <td>
         <div style="font-weight:700;margin-bottom:4px;">${item.name || "-"}</div>
         <div style="font-size:13px;color:#555;margin-bottom:4px;">顏色：${item.colorList || "-"}</div>
@@ -923,20 +923,42 @@ function renderResults(list) {
       <td style="text-align:right;">${item.minPrice ?? "-"}</td>
       <td style="text-align:right;">${item.marketPrice ?? "-"}</td>
     `;
-    if (window.innerWidth > 900) {
-      tr.addEventListener("mouseenter", () => {
+
+    const imgEl = tr.querySelector('.product-img');
+    const modelEl = tr.querySelector('.model-cell');
+
+    const openDetail = () => {
+      if (window.innerWidth > 900) {
         if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
         showDetailDesktop(item);
-      });
-      tr.addEventListener("mouseleave", () => {
-        window.hideDetailTimer = setTimeout(() => {
-          detailCard.style.display = "none";
-        }, 200); 
-      });
-      tr.addEventListener("click", (e)=> { if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return; showDetailDesktop(item); });
-    } else {
-      tr.addEventListener("click", (e)=> { if (e.target.tagName === "INPUT" || e.target.tagName === "BUTTON") return; showDetailMobile(item); });
+      } else {
+        showDetailMobile(item);
+      }
+    };
+
+    if (imgEl) {
+      imgEl.addEventListener('click', openDetail);
+      if (window.innerWidth > 900) {
+          imgEl.addEventListener('mouseenter', openDetail);
+          imgEl.addEventListener('mouseleave', () => {
+             window.hideDetailTimer = setTimeout(() => {
+               detailCard.style.display = "none";
+             }, 200); 
+          });
+      }
     }
+    if (modelEl) {
+      modelEl.addEventListener('click', openDetail);
+       if (window.innerWidth > 900) {
+          modelEl.addEventListener('mouseenter', openDetail);
+          modelEl.addEventListener('mouseleave', () => {
+             window.hideDetailTimer = setTimeout(() => {
+               detailCard.style.display = "none";
+             }, 200); 
+          });
+      }
+    }
+
     resultBody.appendChild(tr);
   });
   bindCheckAll();
@@ -944,22 +966,17 @@ function renderResults(list) {
 
 function showDetailDesktop(item) {
   let img = item.imageUrl;
-  // 🚀 Sync Image Logic with List: Prefer item.imageUrl
+  const driveImg = getDriveMainImage(item.model, item.mainModel);
+  if (driveImg) img = driveImg;
+  
   if (!img || !img.startsWith("http")) {
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) img = driveImg;
-    else img = "https://placehold.co/300x300?text=No+Image";
+    img = "https://placehold.co/300x300?text=No+Image";
   }
 
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
   const netImages = getDriveNetImages(item.model, item.mainModel);
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
-  // 雙重備援連結
-  // 優先用資料夾，沒有就用單圖連結 (Main Image)
-  const mainImgUrl = getDriveMainImage(item.model, item.mainModel);
-  const actMainLink = driveMainFolder || mainImgUrl;
-  
-  // 優先用資料夾，沒有就用第一張圖的連結
+  const actMainLink = driveMainFolder || driveImg;
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
   let priceBlock = "";
@@ -1058,7 +1075,6 @@ function shuffleArray(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--)
 
 function pickRandom(arr, n){ 
   if(!Array.isArray(arr) || arr.length === 0) return [];
-  // Logic 2: Array is already sorted by name in preload. Index 0 is _01.
   const first = arr[0]; 
   const others = arr.slice(1);
   const shuffledOthers = shuffleArray(others);
@@ -1151,6 +1167,49 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
+// 🚀 Re-inserted exportSelectedPPT function
+async function exportSelectedPPT() {
+  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
+  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
+  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
+  
+  const tier = qtySelect.value || "50";
+  const selectedItems = checks.map(cb => {
+      const model = cb.dataset.model;
+      let item = currentResultList.find(p => p.model === model);
+      if(!item) item = currentResultList.find(p => p.mainModel === model);
+      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
+      return item;
+  }).filter(Boolean);
+
+  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
+
+  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = "LAYOUT_4x3"; 
+    pptx.author = "KINYO Price System";
+    pptx.company = "KINYO";
+    pptx.title = `KINYO Quote ${tier}pcs`;
+
+    for (const item of selectedItems) {
+      await buildProductSlide(pptx, item, tier);
+    }
+    
+    const salesName = "郭庭豪";
+    const salesPhone = "0976-966333";
+    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
+
+  } catch (e) {
+    console.error(e);
+    alert("PPT 生成失敗，請查看 Console。");
+  } finally {
+    pptToolbarBtn.disabled = false;
+    pptToolbarBtn.textContent = "生成 PPT（1–20）";
+  }
+}
+
 /* =======================================================
    Event Listeners (Bind within Module)
 ======================================================= */
@@ -1158,7 +1217,6 @@ searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 logoutBtn.onclick = () => signOut(auth);
 
-// Bind PPT button inside module so it can access exportSelectedPPT
 if(pptToolbarBtn) {
   pptToolbarBtn.onclick = exportSelectedPPT;
 }
@@ -1217,7 +1275,6 @@ onAuthStateChanged(auth, async (user) => {
    Quote Button Listeners inside Module
 ======================================================= */
 document.addEventListener("click", (e) => {
-  // Add to Quote
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1240,7 +1297,6 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  // Line Share
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1264,19 +1320,13 @@ ${costText}
       .catch(() => alert("複製失敗"));
   }
 
-  // --- Click outside detailCard to close it ---
   const card = document.getElementById("detailCard");
   if (card && card.style.display !== "none") {
-    // If click is NOT inside the card AND NOT inside a table row (which opens it)
-    // Note: The button click itself (add-quote-btn) is inside a row, so we should check specific targets
-    // If clicking row-check, we don't close.
-    // If clicking outside table and card, close.
     if (!card.contains(e.target) && !e.target.closest("tr")) {
       card.style.display = "none";
     }
   }
 
-  // Add Listeners to detailCard itself for mouse enter/leave logic
   if(card && !card.hasAttribute("data-listeners-added")){
       card.setAttribute("data-listeners-added", "true");
       card.addEventListener("mouseenter", () => {
@@ -1290,7 +1340,6 @@ ${costText}
   }
 });
 
-/* 多選 LINE 分享 */
 if(multiLineBtn) {
   multiLineBtn.onclick = () => {
     const checked = document.querySelectorAll(".row-check:checked");
@@ -1316,7 +1365,6 @@ if(multiLineBtn) {
   };
 }
 
-/* Clear Search */
 if(clearBtn) {
   clearBtn.onclick = () => {
     keywordInput.value = "";
@@ -1334,7 +1382,6 @@ if(clearBtn) {
   };
 }
 
-/* Sort */
 if(sortSelect) {
   sortSelect.onchange = () => {
     if (currentResultList.length > 0) {
@@ -1344,7 +1391,6 @@ if(sortSelect) {
   };
 }
 
-/* Sheet & Quote UI */
 if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
 if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
 
