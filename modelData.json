@@ -1,6 +1,363 @@
 {
   "models": [
     {
+      "mainModel": "KY1793",
+      "mainImage": "https://drive.google.com/uc?id=1BV5Kk-j3ipy2AMVIOiE_gJhaS_gb_rnn",
+      "netImages": [
+        "https://drive.google.com/uc?id=1BV5Kk-j3ipy2AMVIOiE_gJhaS_gb_rnn",
+        "https://drive.google.com/uc?id=1aMiyXVfzTxvgocs-PxLvRbPdSyVDfgKX",
+        "https://drive.google.com/uc?id=1X81mahoDyc7EHHVBU5FctHSTet4eSOly",
+        "https://drive.google.com/uc?id=1bjsQSQN9rErgWC0ALAhpzdswwXHpyoJe",
+        "https://drive.google.com/uc?id=1zuCJppZ3wjPhMO86rqDFRqaGXCzpHj79",
+        "https://drive.google.com/uc?id=1vk8uogM5n-bQ60KpciDaxd6gNt8c-xxf"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1oBMe0FKB7O5DOHe4eEPQ0ClfxHXs0VrC",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1xM4XqZlK2MkPuo1pYyg0n0gKi4JrrGEx"
+    },
+    {
+      "mainModel": "QD4533",
+      "mainImage": "https://drive.google.com/uc?id=1HoXlsmHULUiWvA_pC-b-2jVgy5essrG-",
+      "netImages": [
+        "https://drive.google.com/uc?id=1HoXlsmHULUiWvA_pC-b-2jVgy5essrG-",
+        "https://drive.google.com/uc?id=1LTFo9m8r3oihDXDDTqb2sjb7BFmd9swE",
+        "https://drive.google.com/uc?id=16c5y7TGMQPoTgqhs3_rXCPjiJYBjkY7Z",
+        "https://drive.google.com/uc?id=19zc8K3dvsMHv8_phvmvgLtPumz_8SgW7",
+        "https://drive.google.com/uc?id=183eJ4pX-2J-ZCNG9HzyLKzu0qt649TJI",
+        "https://drive.google.com/uc?id=1eG1bMlVO0mK24Fph8HSVkLGPDLgnlSOo",
+        "https://drive.google.com/uc?id=12JcDP6ZKackZXK8XgsG8ADk2Rnh-1ZU1",
+        "https://drive.google.com/uc?id=11ZiKT-VR8KxagoXkUyZNOiBi_AL0SgD7",
+        "https://drive.google.com/uc?id=1PeqZEpJ-n1rwjFTaHnQX4isZJ0ZXPcgx",
+        "https://drive.google.com/uc?id=1MBXseCWa6HGiMEWs8l5D8wOCnrrg0Mzo",
+        "https://drive.google.com/uc?id=1lNTP0iAhH2D0GPhqCwPpUr9AMo4C-UYX",
+        "https://drive.google.com/uc?id=1q0kiQIZevE7biCD7hJnDLh-8PqppNV5t",
+        "https://drive.google.com/uc?id=18a5bObLzZA1mXHE4qYPfZdHLRkFfRpdQ",
+        "https://drive.google.com/uc?id=1X85SIBARymKsTFNUyfVzgRCxPbMHY_DF",
+        "https://drive.google.com/uc?id=1VrugGTJc_RFwCHcpb7fxLxX9Th44kRku",
+        "https://drive.google.com/uc?id=1GOmZEoTf8OSLfViDBYqr5NK3vW9HWXf_"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1LQsrya3-kficgVeQO_wMEFE9M-5ZUIc8",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1uYmX_zJBon22vLhZfolYMCkt48MfsaKs"
+    },
+    {
+      "mainModel": "CF1205",
+      "mainImage": "https://drive.google.com/uc?id=1xwdzFLgwTjlUMApvVvtpPNvJN5uo0V8x",
+      "netImages": [
+        "https://drive.google.com/uc?id=1xwdzFLgwTjlUMApvVvtpPNvJN5uo0V8x",
+        "https://drive.google.com/uc?id=1bfCtfeBf6mcPjAWBzFwvrXq0mG-8TK3w",
+        "https://drive.google.com/uc?id=1yLNaswH0Ghwqw1I0Hy7uOa2ij5bvqU8e",
+        "https://drive.google.com/uc?id=1ygh8DjROIrcc1kqKaz6b5dACI9yako2x",
+        "https://drive.google.com/uc?id=1-5f_3BjlRaFxwPbk8S8Ypub-gru2aHUq",
+        "https://drive.google.com/uc?id=1ltO1OcehYq7XJD_SFWr9OrJMhls4osMQ",
+        "https://drive.google.com/uc?id=1jNaRzHGNbi0jloEzHbPv8zGwKJy7DXDO",
+        "https://drive.google.com/uc?id=1PRBYfwAxD473eQaiR2SxA5ME-7IY7uE-"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1k8cKIweLJaueit7ur1QEjYN1SYvR90FX",
+      "netFolderUrl": "https://drive.google.com/drive/folders/18JV8z0_eoLm00YeTIwWZARPkxb6GL5uh"
+    },
+    {
+      "mainModel": "KVC6239",
+      "mainImage": "https://drive.google.com/uc?id=1OUwYkhPt-rM4iv2sGwaDCnSjzJG8SYLA",
+      "netImages": [
+        "https://drive.google.com/uc?id=1OUwYkhPt-rM4iv2sGwaDCnSjzJG8SYLA",
+        "https://drive.google.com/uc?id=1O7XKm7PODWmWCCnB7cgz7dBii7pRovMW",
+        "https://drive.google.com/uc?id=14rSNosRcsa6js6ppHxE0lsYHnxbcw01s",
+        "https://drive.google.com/uc?id=1p-ucBUefk5aDmnM6gYkdeLSoQe3U7SRJ",
+        "https://drive.google.com/uc?id=1Y-UIYneUURRsqqdxPIUH-dUJw9zKTaVL",
+        "https://drive.google.com/uc?id=1P61WJiriOBbv7840NTA-N5xYTY7lkltr",
+        "https://drive.google.com/uc?id=1quBosyFtI_qCP6K-JFgwoGDZ5YRnbMX2",
+        "https://drive.google.com/uc?id=1bkh9VDmPNEfFAeDnvgLHXV0_32YpnBYS",
+        "https://drive.google.com/uc?id=1AxY7wujWr0OK934HdInBsT2X6B8h520J",
+        "https://drive.google.com/uc?id=1fGCVRhY1YaITJatZj9QfyypZ2DcMx-YL",
+        "https://drive.google.com/uc?id=1__dCJUPq3fkI5b-lkDod_VHIDS3F4zOJ",
+        "https://drive.google.com/uc?id=1lwKTPaa7nkkBRkyhxk1xwutGuq0kR-vC",
+        "https://drive.google.com/uc?id=1uEoPSNo6mPrI2wRUf1gzDpUCjh7xdpjU",
+        "https://drive.google.com/uc?id=1tsM_sDtBWh_dxhfFlSMZj9eHkUblflcQ",
+        "https://drive.google.com/uc?id=1sa-5KkoJ67Mzf6xIClFn95ZKQ9XMfHRw"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1V5DbRWubxATLRsTPvRzWWg7jYZidQBwF",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1AvC9VF1aFCKz2W6O9IqV6R0s4Fzx0LXu"
+    },
+    {
+      "mainModel": "IAM2701",
+      "mainImage": "https://drive.google.com/uc?id=1ZRcHEM7HCmEeDQgzZa5yThYU6or9rjFy",
+      "netImages": [
+        "https://drive.google.com/uc?id=1ZRcHEM7HCmEeDQgzZa5yThYU6or9rjFy",
+        "https://drive.google.com/uc?id=1rx3uB-1UEWgMFozYiV0008FTy6SoV6I3",
+        "https://drive.google.com/uc?id=1Dwrk-59bPr-4tS7a2IKKv24W-NG_Cwcm",
+        "https://drive.google.com/uc?id=18Q95RSrTK5-EckCKCEDgm5UIApJUfY-I",
+        "https://drive.google.com/uc?id=10ld7CYTNxE5IV3hNb7lA7V6D3z5_-sTj",
+        "https://drive.google.com/uc?id=1MWGkXY0fBUoaupiIajTXi5zK3hRExEfj",
+        "https://drive.google.com/uc?id=1s_OslboKJkoOq1e8vcojnzZEdQOz8_lu",
+        "https://drive.google.com/uc?id=1tjznOJgwzrUxq0C9HqckZxAN83axBGU3",
+        "https://drive.google.com/uc?id=1VSB-nZgqdCLKDsO5gkbwicehPWCKlJl0",
+        "https://drive.google.com/uc?id=1OxA1ybrvPbpm_yooSBFyuLs2Ur6bhwxk",
+        "https://drive.google.com/uc?id=1xd0TQHMW9i0n9K9XLvgsahLcRcYglM8d",
+        "https://drive.google.com/uc?id=1bU_C1f6mj5k85eoABuxAucBT_o6Ae7dp",
+        "https://drive.google.com/uc?id=1j2hzCWYq6762246Ao9TtHeZyZPpDI8aV"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1REewrflW_O9mOFzCY6x1BGJJpMcgy0mi",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1m-B4uB1S1CRyZ_kXNHHM_INNXs0cuCXO"
+    },
+    {
+      "mainModel": "DS7360",
+      "mainImage": "https://drive.google.com/uc?id=1qRrowvs9zHbIHj53clriLIo4-KjIgQ4Z",
+      "netImages": [
+        "https://drive.google.com/uc?id=1qRrowvs9zHbIHj53clriLIo4-KjIgQ4Z",
+        "https://drive.google.com/uc?id=13Erb9i9eirTlcWcaD9i4WXqO9KdJ-JhG",
+        "https://drive.google.com/uc?id=1CzPu36i7ppmb1vRl9fi2QQBR59ulZgrI",
+        "https://drive.google.com/uc?id=1imOW00h_ifSRToHVuCbRKAJ-koJBtiqH",
+        "https://drive.google.com/uc?id=1Z1Ot8u85XsVzhk5iCLAuVEVOPTOtP36s",
+        "https://drive.google.com/uc?id=1YGkce3gdpRuXkz5XehQKdPx4zk6zcPA5",
+        "https://drive.google.com/uc?id=1P7RJWsJCDPuxmTV1i7_oomSV2yAbwLuM",
+        "https://drive.google.com/uc?id=18FwdutxP3ESIYoqiuVy4cniKNt2yYsTn",
+        "https://drive.google.com/uc?id=1f4f6_1nzBI8k263CdEnKJ-qPnHf0JB6_",
+        "https://drive.google.com/uc?id=1fGRpuD9aTzfpG8S7Ze2wqOyOVeCMjO0o",
+        "https://drive.google.com/uc?id=1QXfw02e2r-znx5NwLHZaf91DfzDahGXd",
+        "https://drive.google.com/uc?id=1C6X50R0syppck75vkKNWaLG0LUSzLzK3",
+        "https://drive.google.com/uc?id=1jHDr106Q0N_n4JIOrVfkr9jSB2oI9uao",
+        "https://drive.google.com/uc?id=1COD7r0tPwd6n4Hd4fZA-TXIW2qe7la9V",
+        "https://drive.google.com/uc?id=1Yeg2N_WYjlPJjJdnnY4xdyeeQReIo-uA",
+        "https://drive.google.com/uc?id=18ZWZmc5mea5j9QHmrMxCwBSJbuD698Ia",
+        "https://drive.google.com/uc?id=1c_XoXSDrmqRyqKSQnHBd8hTTD9I8iLMX",
+        "https://drive.google.com/uc?id=1_R90kibxLfz_aI5gQenX_pcMfvMkwjJI",
+        "https://drive.google.com/uc?id=1MVgfjKeq-T-tpczFfNyTLwIN_KviU2xq"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1fPnAE1atPC9fOIU7AQPJh_03uKN4g-xm",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1MGqp4Z_4nUf33tonMR-EO7F2EKIoSrQ-"
+    },
+    {
+      "mainModel": "AFO605",
+      "mainImage": "https://drive.google.com/uc?id=15RCSZMJ6yQNAL9qMnqR86Hb1eLQESbTv",
+      "netImages": [
+        "https://drive.google.com/uc?id=15RCSZMJ6yQNAL9qMnqR86Hb1eLQESbTv",
+        "https://drive.google.com/uc?id=1uoOckUXAqf1QUSwrtLexfrvwQpZh39ni",
+        "https://drive.google.com/uc?id=1Y77IdktPHwmrMpedQEuuN7OSHVElu-7o",
+        "https://drive.google.com/uc?id=1v2xfA_2FXD3hrR8kmjbwcZtog27NfEm9",
+        "https://drive.google.com/uc?id=12ErxhdjTexkhg-cT7j8BJgPtTG_ScLiu",
+        "https://drive.google.com/uc?id=1qG5yXJBmhqiqecSVYOcCCm7ypPfDB1tg",
+        "https://drive.google.com/uc?id=1OY-ubYOcxBvWmYDG-56qvnjH8qrT3-p0",
+        "https://drive.google.com/uc?id=1NVaS-Ok-9f9gsQ3SeL58MUoJHg6Km0uL",
+        "https://drive.google.com/uc?id=1LVfTGuji688HBVAZO5mg1hC-g8bXD1Tz",
+        "https://drive.google.com/uc?id=1Le5BeAuZobcFR_ibOVldN6Fv3ovDfEKd",
+        "https://drive.google.com/uc?id=1vHO8RgINJ544btxzwbGhcPEqHvYFZ2x6",
+        "https://drive.google.com/uc?id=17YTI7fjJkPY7JNx_7WpxoW9-O86Je7B8",
+        "https://drive.google.com/uc?id=16Hw_aICvfKwd7SK1gTzZKhX1clyChFyu"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1DwOu1ZkYj2fqAaSsi_8Vos7tQO7nCUQG",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1j092yHJMTZOTek3WkPTRfCarIuoD7OMJ"
+    },
+    {
+      "mainModel": "IAM2602",
+      "mainImage": "https://drive.google.com/uc?id=1B8LovKYdWxYSnJi16mmffPSu0lFqCgdY",
+      "netImages": [
+        "https://drive.google.com/uc?id=1B8LovKYdWxYSnJi16mmffPSu0lFqCgdY",
+        "https://drive.google.com/uc?id=1o-l5JhdmTQuoX1nqAbvTiDgTYSXs9G-c",
+        "https://drive.google.com/uc?id=1BS_yKBCHqkg8kKYudmOlHbqrNr0gk2dP",
+        "https://drive.google.com/uc?id=1IwB5HoLZnlCTYNuY6b2H0WpPu_SRYYNc",
+        "https://drive.google.com/uc?id=1BzO6thwuIpoK58GBROCGFSQ_iYTrKDe8",
+        "https://drive.google.com/uc?id=16A5vUeTCNKcBF1Vwo2a7SIPDSNNRGrD7",
+        "https://drive.google.com/uc?id=1hcdtGldysUXHRVINVRHQdqBsKn0VhtM5",
+        "https://drive.google.com/uc?id=1alktINODRulg69oAJrQ41byisZME9KR4",
+        "https://drive.google.com/uc?id=1sSwuVAawt7oFaECbMilU1-S_-eTI7rjk",
+        "https://drive.google.com/uc?id=1wNiPhlK7sZJXVhcd96Q0KNt9bjyeBJZG",
+        "https://drive.google.com/uc?id=1HlCLAU-xJJpBtpENGpULgk3mm8_9TNby"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1fHr0k92UKWYFrGg21hTMN6cJiT-veloS",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1fD1NRjswmlMsfFBmoE8J4W8lTziUp0Zh"
+    },
+    {
+      "mainModel": "WD220",
+      "mainImage": "https://drive.google.com/uc?id=1xWm8ekfeqtJUlERgzHfKcNHhk2WK7seD",
+      "netImages": [
+        "https://drive.google.com/uc?id=1xWm8ekfeqtJUlERgzHfKcNHhk2WK7seD",
+        "https://drive.google.com/uc?id=1iMJfQ8UEjFWVvObpmK2jXOCF870t_MeO",
+        "https://drive.google.com/uc?id=1SfWuiqPOuEWpF1-ny6JLiRIIxbw83zS_",
+        "https://drive.google.com/uc?id=1BnTMkFd0xtwfDqz89BoaNq2Rmykuk9h3",
+        "https://drive.google.com/uc?id=12F_CjrtGxZN7EvG40wIpS6pjCgqIhYLK",
+        "https://drive.google.com/uc?id=1dRj5UQnp-HLXuptLqrk8R4taGZDupmrL",
+        "https://drive.google.com/uc?id=1fMH9rNSi7awazwzKmrZVnMBoa7pvI9dT",
+        "https://drive.google.com/uc?id=16mZaPo5McQwi2MOBXRFZH2G-S0MpRWNi",
+        "https://drive.google.com/uc?id=1Qzb2xZeDyPu34D2eLQxu757P5nWstLLN",
+        "https://drive.google.com/uc?id=17b7ClfRKOIxwAItC0uCS-B9HMRxfOEWa",
+        "https://drive.google.com/uc?id=1j2UDOtUX4USADztEYTKxIrZcWADOMGyR"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1YiNpE52QXf8pW9CaWbO59LLyFkYgYAZC",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1pm96nxsmNsAHa_jIh4nCBWYuxvOC4w6A"
+    },
+    {
+      "mainModel": "CMH7930",
+      "mainImage": "https://drive.google.com/uc?id=1zCIcch8uYrbmGyAVftPKb5Bopu6tsX47",
+      "netImages": [
+        "https://drive.google.com/uc?id=1zCIcch8uYrbmGyAVftPKb5Bopu6tsX47",
+        "https://drive.google.com/uc?id=1cSIVEJ6w-f9-mnP8-F0dHkvpLOqxgkqA",
+        "https://drive.google.com/uc?id=14CeFJVmWuni71A9Rlxuk9YzWRaYOy26P",
+        "https://drive.google.com/uc?id=1QwueQjJ4zwxzEJcO-e10uaab87TipM1o",
+        "https://drive.google.com/uc?id=18puC0xtxDEoMtDMtHHf9ZyMRzaXj8JwZ",
+        "https://drive.google.com/uc?id=1OgkUPWXHNXTK44CWA8EhyDHGtA0gz5xA",
+        "https://drive.google.com/uc?id=1RXada0nurKGbhNHFjDvv70OpNGqTIjZg",
+        "https://drive.google.com/uc?id=1IHSO8OjmrQMiHDRGVBE7iBIqWDAPiz-2",
+        "https://drive.google.com/uc?id=1ogjF4tx-082w-JTH6u6vJfxicSBcCZHo",
+        "https://drive.google.com/uc?id=1ZadGyo8QM9nRdBIfy2eTBEh0-N1s58vH",
+        "https://drive.google.com/uc?id=1A9aa2TpPm5Mf7cHOqvjOnEBnIwWtgCKa",
+        "https://drive.google.com/uc?id=1qv8xvJFZ73CvsqSIHwuJAqAUNJ5gj7fP",
+        "https://drive.google.com/uc?id=1Ue79uyao9eyaLcjFgdR-RLoYRE0tOpDs",
+        "https://drive.google.com/uc?id=1w-bAo7Dx6OoGHiyvQbyQ_IfLTCLNyPAW",
+        "https://drive.google.com/uc?id=18rCa0nRx3jG2fGAcmsrwn24OVkMWEEzx",
+        "https://drive.google.com/uc?id=1fnwNAfEavJfiiTNUtoECJdoH7SJJ0ubm",
+        "https://drive.google.com/uc?id=1qwGjtZ8ebKzUS4-x-YTlZisP4y6Tasav",
+        "https://drive.google.com/uc?id=1epTJOu3DM171RAIo2jt5_tlHnw8A54Ni"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1tuv3EgWcJ6PoS9bp5xsca3S7OE78Hm7s",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1wzuCFBm__oE89AYdQjrNbQpcHeSfXMHu"
+    },
+    {
+      "mainModel": "CF1455",
+      "mainImage": "https://drive.google.com/uc?id=107tcfyuIWAiD36cvarVo4zdJ8gYvsBW3",
+      "netImages": [
+        "https://drive.google.com/uc?id=107tcfyuIWAiD36cvarVo4zdJ8gYvsBW3",
+        "https://drive.google.com/uc?id=1yhviBC41bvuOcGs47r_8kHIRWqy5l4Is",
+        "https://drive.google.com/uc?id=1XPbyJY4W4BPmlaHp_o9JyYRMdTPQZ9Vw",
+        "https://drive.google.com/uc?id=1Y6mV1lpAq31sSJu8-QNSaRyEVsUIs3mK",
+        "https://drive.google.com/uc?id=1dlflvWlGjUxX6ecQDu8CAYaXsCvwlaPw",
+        "https://drive.google.com/uc?id=10L0q9ZaCk55PBAcPjrgNSRuchPfrWQxd",
+        "https://drive.google.com/uc?id=1IJ_E5M-Wu0KeUuPBUSgP-OoOfkqkqPtT",
+        "https://drive.google.com/uc?id=1CCckKHKObTgEakr16i3G3dVp2NVl7RVq"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1qqXDDZ4iuOo4eBClEuu4k0Kafm-vmBpM",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1gOFZcrbbsM3C_jYSGLbKvP_ghkwy8-kn"
+    },
+    {
+      "mainModel": "HMH8490",
+      "mainImage": "https://drive.google.com/uc?id=1TThsLNORYe-SuXc2BHHYRDob8OxrQab0",
+      "netImages": [
+        "https://drive.google.com/uc?id=1TThsLNORYe-SuXc2BHHYRDob8OxrQab0",
+        "https://drive.google.com/uc?id=1rzHgLVLydu-JdOnfX0BXkk3BMo6GQg1_",
+        "https://drive.google.com/uc?id=12PJjVgYerHvAqo6yY75PO--6FaXy3XlL",
+        "https://drive.google.com/uc?id=1Q0cwAs6UFrcpzKtJJpQn1DZnWVIsaD0F",
+        "https://drive.google.com/uc?id=1np0QEqWqDCI4nyP3vCKYIsio7eC5kTSE",
+        "https://drive.google.com/uc?id=1Jsdvw98qxIPPUpf1Y-1seAxOR6dFalFM",
+        "https://drive.google.com/uc?id=1eCQsXWNcmuKwbquVa6OX8cb_8RVG1Mmf",
+        "https://drive.google.com/uc?id=1YuEhN0t4LlTJRypWzgWhIU0J8Nc7Ceuq",
+        "https://drive.google.com/uc?id=17Bl1OhI1aGzx8BaiZGVOpLR0sSvmdwXi",
+        "https://drive.google.com/uc?id=1GHXiu_yy9D4SQa5QP1CU_woEyTluh3ol"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1mQsMrAi3SkeQ2P_FwXd5-mglcBEIB6DR",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1w78MOt6s0NvASrDpoVu5HsjWeqwfS4qu"
+    },
+    {
+      "mainModel": "UF399",
+      "mainImage": "https://drive.google.com/uc?id=13sjJFXTelWgF5fVpm5ocjljGuu01o5ft",
+      "netImages": [
+        "https://drive.google.com/uc?id=13sjJFXTelWgF5fVpm5ocjljGuu01o5ft",
+        "https://drive.google.com/uc?id=1MfTRsta6yiXJuCAByWSyzmvwJiHI6okT",
+        "https://drive.google.com/uc?id=16GTJaZ4hqb-Xym2_HJJ1JzPHDHLIJqoC",
+        "https://drive.google.com/uc?id=1JbC4jwlRTbCz-Q9pDKpYrnvAtlHsJEk-",
+        "https://drive.google.com/uc?id=1O5bXujuRvG5KD6kWb5eudmcsv-dIp29O",
+        "https://drive.google.com/uc?id=1M47sS1lYKDQQBwRdJHimYPrNhlG5Lw2U",
+        "https://drive.google.com/uc?id=1K5CYNflFsH-GxsKZQ273B4QZ-jz_eHvf",
+        "https://drive.google.com/uc?id=1orsaW9pSikfMoeUmzOYe7XqRx4y__H3K",
+        "https://drive.google.com/uc?id=1nnG9r-nKrWf2nMRltb1JethMrrv4b3XA",
+        "https://drive.google.com/uc?id=1E_eib1-gP3fpyjvn5lOqTp5-Tivl1bK4",
+        "https://drive.google.com/uc?id=1zHSezDOddObjRlPh0wIUpee45cdHYeSb",
+        "https://drive.google.com/uc?id=1l5Pbs5WvvrKzQjcP-bAGhKCPOSCisvmL"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/15MLc_dRhTS8PIP12n7hXYT-HYqPd3Qry",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1SzkVtYokw1O92Z2blPRPW0Fp6jztuJVL"
+    },
+    {
+      "mainModel": "UF8625",
+      "mainImage": "https://drive.google.com/uc?id=1u-3TFRlprvU3wq4g3cswQqZCLUgDXpHx",
+      "netImages": [
+        "https://drive.google.com/uc?id=1u-3TFRlprvU3wq4g3cswQqZCLUgDXpHx",
+        "https://drive.google.com/uc?id=1qCc3JKzQz_dOH9nlGPCh7iM3ekd-Fto5",
+        "https://drive.google.com/uc?id=1kwHroXBaKl-GeDrppEHoA66D3PpN7iNm",
+        "https://drive.google.com/uc?id=1GvSEfYBXoel5P-eoNskqOqzzTHiUPvmP",
+        "https://drive.google.com/uc?id=1McQcioiUFLi_RQI-68ZdI4dkhXVJvO_V",
+        "https://drive.google.com/uc?id=1knOdNZCiI97u4oKOw0hAYLQrCqVbwRZu",
+        "https://drive.google.com/uc?id=1B40VhJ7ArCh5Y8WkVMZp56aoG1850oXe",
+        "https://drive.google.com/uc?id=1lL2WyWZq6l1hcZbGFEZ_505412JhaUsW",
+        "https://drive.google.com/uc?id=1w7YUwlxCQip2ivmdkheBHZ_5lLCm8zkj"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1680T_wia4n0kin0P706TYUIqgtqLpQQG",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1NknuoOK7veC7mNuElpK-pC5QHMjRLgun"
+    },
+    {
+      "mainModel": "KL8081",
+      "mainImage": "https://drive.google.com/uc?id=1jcad01STYvfPuX2xSRLSgCKorsalSzuu",
+      "netImages": [
+        "https://drive.google.com/uc?id=1jcad01STYvfPuX2xSRLSgCKorsalSzuu",
+        "https://drive.google.com/uc?id=1iXfLuh_zYtITNKEo29gFaIo4q7fv9JxN",
+        "https://drive.google.com/uc?id=1ncrHxxmIcVqqyItugAU6YZnq9E5ouzzE",
+        "https://drive.google.com/uc?id=1MbqsEJwdL6AuIpy1s0At7S9YPvp1F3fv",
+        "https://drive.google.com/uc?id=1GDauFb3jNHUEr0i7YHPqjF-BL5e6Y1Uw",
+        "https://drive.google.com/uc?id=1daWqdBkaHAViFkKZFrQSf2xbNTjCEf6k",
+        "https://drive.google.com/uc?id=1TGbHOwbHTXcC99RAXaQFQCoMVw6X_U6D",
+        "https://drive.google.com/uc?id=1TWbXuFRjLJ9ijoRXLGPco19h5TdH-N8q",
+        "https://drive.google.com/uc?id=1mWueJwZIqoHDRUucdyrdP6dfI_33TPQc",
+        "https://drive.google.com/uc?id=1rpg4_ycS89vR7C0ZkwHLB7jktLUczaDk"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/115862cNRV9CzRDaupSNKSTXgGkH9bpNE",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1HywgOcfr0-6IE1TOghMdJZHCQHglROjf"
+    },
+    {
+      "mainModel": "KH9630",
+      "mainImage": "https://drive.google.com/uc?id=1okQLOmaskXuCzPug7Q5hwYnh2e5FFMrz",
+      "netImages": [
+        "https://drive.google.com/uc?id=1okQLOmaskXuCzPug7Q5hwYnh2e5FFMrz",
+        "https://drive.google.com/uc?id=1jR7R8shpvgtScMx_W8k9AmBJZvabFpHd",
+        "https://drive.google.com/uc?id=19f5WT4ifbQSmzmYuqqVeZ2cok6kwJVm-",
+        "https://drive.google.com/uc?id=1YqAsoHlIXm_x7sE-aMVg0XMw8dZbS53S",
+        "https://drive.google.com/uc?id=1TFKAHweJscLUBGFGe0-8JfHtrXZbMitf",
+        "https://drive.google.com/uc?id=1N_P05sMaMIBHITa_veI5rsFqRhYq81pq",
+        "https://drive.google.com/uc?id=1x6Gy9bKf5YL3QkUZ25OWsE72hCfANt9I",
+        "https://drive.google.com/uc?id=1YWhFRA5ooLUVptYqoGT-VkD2yY7FgvNz",
+        "https://drive.google.com/uc?id=1usqGhsvItojHm4yuHFbXYWQarFTbqdPo",
+        "https://drive.google.com/uc?id=17FuP8DJzQzvDU9ipuCpRsFFxgBZic9Yq",
+        "https://drive.google.com/uc?id=1CctWBwQGKuNEshXo9N_a6T7nVvWTmJtU",
+        "https://drive.google.com/uc?id=1CXc-eIrdPEsFgEuunZv-53crwava3jHc",
+        "https://drive.google.com/uc?id=1D2XnaQJAV5haB90FNBQwF-2x2dcTQyvo"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1rHoCDMiNWPGJ3gF6-d-ABUvy-ICb0jx7",
+      "netFolderUrl": "https://drive.google.com/drive/folders/19VKtzJf7M5MLBaKM8ZuEnMQVKS5rPM2b"
+    },
+    {
+      "mainModel": "KHS3106",
+      "mainImage": "https://drive.google.com/uc?id=1CwleDK0FGgeceg4uyYF7eBX6I0LV_jhw",
+      "netImages": [
+        "https://drive.google.com/uc?id=1CwleDK0FGgeceg4uyYF7eBX6I0LV_jhw",
+        "https://drive.google.com/uc?id=1quPGf6ZfTgKkQg4-db3f-HVvNeXzHC3Z",
+        "https://drive.google.com/uc?id=14ezt2Eju-TKcjT2Ho6rqMA_SpVxHw9j5",
+        "https://drive.google.com/uc?id=1_xVTSi8NNAW9nqw2lEhj6hNB-dr4CqdP",
+        "https://drive.google.com/uc?id=1ZigLpX9dFuk1jD6IU8pPyZhPxF9iR3qr",
+        "https://drive.google.com/uc?id=1Q2p_hX72XcURxTFbK-URIb8-X_pRt5f1",
+        "https://drive.google.com/uc?id=1Le_E0jk-JPZm6h0TZlP5VLSnKExTf0Gj",
+        "https://drive.google.com/uc?id=1IBem1CS7FpO3ZCcrGbJskUOlRoze77Y5",
+        "https://drive.google.com/uc?id=1P_3SN0dkEGmN56nWltjZ7WhjycuzRTwE"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1YaF0eIw6QvkGkoUphSkVVt1p4_9kDG1O",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1AzjAC4yFqhIyIvWoObMDj84cefBkapAX"
+    },
+    {
+      "mainModel": "FP0779",
+      "mainImage": "https://drive.google.com/uc?id=1REYDgF0m9ZMWq1GjHeWlDRp1w0aYA97V",
+      "netImages": [
+        "https://drive.google.com/uc?id=1REYDgF0m9ZMWq1GjHeWlDRp1w0aYA97V",
+        "https://drive.google.com/uc?id=1YBasbIwgnoeZl7LDrM8Ib1m0SW7aXSbz",
+        "https://drive.google.com/uc?id=1xpEjel3C2SosAN8kkpfjx8NypdLSyuQg",
+        "https://drive.google.com/uc?id=1E6amcxOAvqvBdFUJH84luofKXAUC57zd",
+        "https://drive.google.com/uc?id=1zcFZJs5DPKpM_BY3DY0IuNvY1TjfRSLP",
+        "https://drive.google.com/uc?id=1MNSdpBbOtOtHPRBNejYwJUfVLpHDhmDW",
+        "https://drive.google.com/uc?id=1x1mR6IVcLWYQBiFLXLii7VkO1O-xuGqt",
+        "https://drive.google.com/uc?id=1-B2ConPI2vzL4Mj8Ra7QOZzVh6U-OIHy",
+        "https://drive.google.com/uc?id=1oXGm6OPN-0NDj4GT5-M21lRFZ9Q10Uou",
+        "https://drive.google.com/uc?id=1_zRjBMv41d6ZFqGtE4uuFsukuyDsl5_s",
+        "https://drive.google.com/uc?id=1A2MoP4B_XJcEV3-CPL3WDYtjymRzSc0V",
+        "https://drive.google.com/uc?id=14cYmyjsHGcXu4NQHlv9hAPp6P7RcgwSg"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1MvHNKVm4RXHZSijzd9VUfbbxtGnWcz-j",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1nGWoWj4DRkXCDuevzAm83NVJduO98riw"
+    },
+    {
       "mainModel": "HMH8460",
       "mainImage": "https://drive.google.com/uc?id=1AxFXoQmdVtEQ_KreNmcrR7iLvWS0903I",
       "netImages": [
