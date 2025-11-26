@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.2.8）</title>
+<title>KINYO 查價系統（v5.3.3）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -63,7 +63,15 @@ h1{margin:0 0 4px;}
   border-radius:999px;
   font-size:13px;
   transition: all 0.3s ease;
+  border: 1px solid transparent;
 }
+/* 雖然不顯示文字，但保留顏色區分以便內部識別 (可選) */
+.badge-lv0 { color: #666; border-color: #ddd; background: #f3f4f6; }
+.badge-lv1 { background: #dbeafe; color: #1e40af; }
+.badge-lv2 { background: #dcfce7; color: #15803d; }
+.badge-lv3 { background: #fef3c7; color: #92400e; }
+.badge-lv4 { background: #f3e8ff; color: #6b21a8; }
+
 .logout-btn{
   padding:6px 14px;
   border-radius:999px;
@@ -86,7 +94,7 @@ h1{margin:0 0 4px;}
 }
 .toolbar select{ flex:1; min-width: 120px; }
 
-/* 🚀 新增：工具列懸浮樣式 (當有勾選時觸發) */
+/* 工具列懸浮樣式 */
 .toolbar.fixed-active {
   position: fixed;
   bottom: 30px;
@@ -110,7 +118,6 @@ h1{margin:0 0 4px;}
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 
-/* 佔位區塊，防止懸浮時版面跳動 */
 #toolbarSpacer {
   height: 70px;
   display: none;
@@ -569,7 +576,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.2.8）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.3.3）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -723,7 +730,7 @@ const loginError = document.getElementById("loginError");
 
 let productCache = [];
 let currentResultList = [];
-let userLevel = 1;
+let userLevel = 0; // 預設為 0 (訪客)
 let currentUserEmail = "";
 let quoteList = [];
 let isProductsLoaded = false;
@@ -759,7 +766,7 @@ let netMap    = new Map();
 let netImagesMap = new Map();
 let isDriveLoaded = false;
 
-// 🚀 HELPER FUNCTIONS (Moved to Top for Safety)
+// 🚀 HELPER FUNCTIONS
 function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
@@ -776,17 +783,25 @@ function closeSheet() { mobileSheet.classList.remove("open"); setTimeout(() => {
 function openQuoteSheet() { sheetBackdrop.classList.remove("hidden"); quoteSheet.classList.remove("hidden"); requestAnimationFrame(() => quoteSheet.classList.add("open")); renderQuoteList(); }
 function closeQuoteSheet() { quoteSheet.classList.remove("open"); setTimeout(() => quoteSheet.classList.add("hidden"), 220); if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }
 
-// 🚀 更新使用者狀態顯示 (用於搜尋中提示)
+// 🚀 更新使用者狀態與等級顯示 (調整：不顯示等級名稱)
 function updateUserDisplay(status) {
   if (!userInfoSpan) return;
   if (status === 'searching') {
     userInfoSpan.textContent = "🔍 搜尋運算中...";
     userInfoSpan.style.background = "#fef9c3"; // Yellow
     userInfoSpan.style.color = "#854d0e";
+    userInfoSpan.className = "user-badge";
   } else {
-    userInfoSpan.textContent = `登入帳號：${currentUserEmail.replace(/@.*/, "")}`;
-    userInfoSpan.style.background = "#eef0f4";
-    userInfoSpan.style.color = "inherit";
+    // 依照等級給顏色，但只顯示 Email
+    let badgeClass = "badge-lv0";
+    if (userLevel === 1) badgeClass = "badge-lv1";
+    else if (userLevel === 2) badgeClass = "badge-lv2";
+    else if (userLevel >= 3) badgeClass = "badge-lv3";
+    
+    userInfoSpan.textContent = `${currentUserEmail.replace(/@.*/, "")}`;
+    userInfoSpan.className = `user-badge ${badgeClass}`;
+    userInfoSpan.style.background = ""; 
+    userInfoSpan.style.color = "";
   }
 }
 
@@ -803,23 +818,17 @@ async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
     }
 }
 
-// 🚀 智慧型號正規化 (與 Python 同步)
 function normalizeKey(key) {
     if (!key) return "";
-    // 1. Force Upper Case FIRST
     let base = key.split('.')[0].split('_')[0].toUpperCase();
-    // 2. Remove hyphens
     base = base.replace(/-/g, '');
-    // 3. Match Letters + Digits pattern
     let m = base.match(/^([a-zA-Z]+)(\d+)([a-zA-Z]*)$/);
     if (m) {
-        // Return Letters + Digits only (ignore color suffix in key)
         return (m[1] + m[2]);
     }
     return base;
 }
 
-// 🚀 隨機洗牌函式
 function shuffleArray(arr) {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
@@ -838,7 +847,6 @@ async function preloadDriveModelData() {
     driveMap.clear(); netMap.clear(); netImagesMap.clear(); mainFolderMap.clear();
 
     (data.models || []).forEach(m => {
-      // 🚀 使用正規化後的 Key 存入 Map
       const rawKey = String(m.mainModel || m.model || "").trim();
       if (!rawKey) return;
       const key = normalizeKey(rawKey);
@@ -868,7 +876,6 @@ async function preloadDriveModelData() {
   }
 }
 
-// 🚀 Lookup Functions now use normalizeKey
 function getDriveMainImage(model, mainModel) {
   const k1 = normalizeKey(model);
   const k2 = normalizeKey(mainModel);
@@ -978,16 +985,24 @@ async function refreshProductsFromFirestore() {
   } catch(e) { console.warn(e); }
 }
 
+// 🚀 更新：Level 0 不顯示任何起訂量選項
 function setupQtySelectByLevel() {
   qtySelect.innerHTML = "";
   const emptyOpt = document.createElement("option");
   emptyOpt.value = ""; emptyOpt.textContent = "不使用起訂量";
   qtySelect.appendChild(emptyOpt);
+  
   const add = (v,t)=>{
     const o = document.createElement("option"); o.value = v; o.textContent = t; qtySelect.appendChild(o);
   };
+  
+  // Level 1 (一般客戶): 僅 50個
   if (userLevel >= 1) add("50", "50 個");
+  
+  // Level 2 (中級): 增加 100, 300
   if (userLevel >= 2) { add("100", "100 個"); add("300", "300 個"); }
+  
+  // Level 3 (高級): 增加 500, 1000
   if (userLevel >= 3) { add("500", "500 個"); add("1000", "1000 個"); }
 }
 
@@ -1030,7 +1045,10 @@ function searchProducts() {
   const hasQty = !!qty;
   const hasBudget = !!minPraw || !!maxPraw;
 
-  if (hasBudget && !hasQty) {
+  // 🚀 修正搜尋邏輯：Level 0 允許價格區間搜尋（針對賣場價）
+  // 若 Level >= 1 且選了起訂量，則針對該數量報價搜尋
+  
+  if (hasBudget && !hasQty && userLevel >= 1) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
@@ -1061,9 +1079,17 @@ function searchProducts() {
     if (hasBudget) {
       const min = minPraw ? Number(minPraw) : 0;
       const max = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
-      const k = `quote${qty}`;
+      
       r = r.filter(p => {
-        const price = Number(p[k]) || 0;
+        let price = 0;
+        if (qty) {
+            // 有選起訂量 -> 抓報價
+            const k = `quote${qty}`;
+            price = Number(p[k]) || 0;
+        } else {
+            // 沒選起訂量 (Level 0 或其他 Level 未選) -> 抓賣場價
+            price = Number(p.marketPrice) || 0;
+        }
         return price >= min && price <= max;
       });
     }
@@ -1100,9 +1126,8 @@ function renderResults(list) {
     const tr = document.createElement("tr");
     let priceHtml = "";
 
-    // 🚀 隱藏報價邏輯：userLevel < 1 (即 0) 時，價格都顯示 ---
-    const showPrice = userLevel >= 1;
-    const getPrice = (p) => showPrice ? (item[p] ?? "-") : "---";
+    // 🚀 權限判斷邏輯 (Render)
+    const getPrice = (p) => (item[p] ?? "-");
 
     if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getPrice('quote50')}</span>`;
     if (userLevel >= 2) {
@@ -1113,6 +1138,10 @@ function renderResults(list) {
       priceHtml += `<span class="price-tag tag500">500個：${getPrice('quote500')}</span>`;
       priceHtml += `<span class="price-tag tag1000">1000個：${getPrice('quote1000')}</span>`;
     }
+
+    // 末售價格顯示控制：Level 0 隱藏
+    const showMinPrice = userLevel >= 1;
+
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
@@ -1128,8 +1157,8 @@ function renderResults(list) {
           <button class="btn-outline-add add-quote-btn" data-model="${item.model}">➕ 報價單</button>
         </div>
       </td>
-      <td style="text-align:right;">${showPrice ? (item.minPrice ?? "-") : "---"}</td>
-      <td style="text-align:right;">${showPrice ? (item.marketPrice ?? "-") : "---"}</td>
+      <td style="text-align:right;">${showMinPrice ? (item.minPrice ?? "-") : "---"}</td>
+      <td style="text-align:right;">${item.marketPrice ?? "-"}</td>
     `;
 
     const imgEl = tr.querySelector('.product-img');
@@ -1173,17 +1202,12 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
-  // 🚀 修正視窗空白問題：確保隱藏計時器已被清除
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
   let img = item.imageUrl;
-  // 🚀 關鍵修正區塊：同步圖片優先權
-  // 1. 優先使用 item.imageUrl (爬蟲圖)
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    // 2. 備援使用 Drive 圖
     if (driveImg) img = driveImg;
-    // 3. 都沒有則使用 Placeholder
     else img = "https://placehold.co/300x300?text=No+Image";
   }
 
@@ -1200,18 +1224,23 @@ function showDetailDesktop(item) {
           return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px;" onclick="window.open('${url}', '_blank')">`;
       }).join("");
       netThumbHtml = `<div class="net-gallery" style="grid-template-columns:repeat(6, 1fr); gap:4px; margin-top:8px;">${imgsHtml}</div>`;
-  } else {
-      netThumbHtml = `<div style="color:#999;font-size:13px;margin-top:6px;">無預覽圖</div>`;
   }
 
   // 🚀 隱藏報價邏輯 (詳細頁)
-  const showPrice = userLevel >= 1;
-  const getPrice = (p) => showPrice ? (item[p] ?? "-") : "---";
+  const getPrice = (p) => (item[p] ?? "-");
+  const showMinPrice = userLevel >= 1; // Level 1+ 才能看末售
 
+  // Construct Price Block (條列式)
   let quoteHtml = "";
   const tiers = [50, 100, 300, 500, 1000];
   tiers.forEach(t => {
-      if (userLevel >= (t >= 500 ? 3 : (t >= 100 ? 2 : 1))) {
+      // 判斷該數量級距是否對當前 UserLevel 可見
+      let isVisible = false;
+      if (userLevel >= 1 && t === 50) isVisible = true; // Lv1 可見 50
+      if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true; // Lv2 可見 100, 300
+      if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true; // Lv3 可見 500, 1000
+
+      if (isVisible) {
           quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
               <span style="color:#666;">${t}個</span>
               <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
@@ -1220,14 +1249,11 @@ function showDetailDesktop(item) {
   });
   
   detailCard.style.display = "block";
-  // 🚀 修正視窗空白問題：明確使用 ID 來關閉，避免 parentElement 錯位
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
     
-    <!-- Main Image -->
     <img src="${img}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
 
-    <!-- 1. Download Buttons -->
     <div style="margin-bottom:16px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載大圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無大圖</button>`}
@@ -1236,7 +1262,6 @@ function showDetailDesktop(item) {
       ${netThumbHtml}
     </div>
 
-    <!-- 2. Basic Info -->
     <div style="margin-bottom:16px; background:#f9fafb; padding:12px; border-radius:8px;">
       <div style="font-weight:700; font-size:16px; margin-bottom:8px; color:#111;">${item.name || "-"}</div>
       <div style="font-size:14px; line-height:1.8; color:#444;">
@@ -1247,7 +1272,6 @@ function showDetailDesktop(item) {
       </div>
     </div>
 
-    <!-- 3. Price Info -->
     <div style="margin-bottom:12px;">
       <div style="font-weight:700; margin-bottom:8px; border-left:4px solid #2563eb; padding-left:8px;">價格資訊</div>
       <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
@@ -1257,7 +1281,7 @@ function showDetailDesktop(item) {
         </div>
         <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
            <span>末售價格</span>
-           <span style="font-weight:bold; color:#dc2626;">${getPrice('minPrice')}</span>
+           <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
         </div>
         <div style="background:#f0f9ff; padding:8px 12px; border-radius:6px;">
            <div style="font-size:12px; color:#666; margin-bottom:4px; font-weight:600;">採購報價</div>
@@ -1266,7 +1290,6 @@ function showDetailDesktop(item) {
       </div>
     </div>
 
-    <!-- Actions -->
     <div style="display:flex; gap:8px; margin-top:16px;">
       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
@@ -1307,8 +1330,10 @@ function renderQuoteList() {
   quoteListBody.innerHTML = ""; if (quoteList.length === 0) { quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的</div>`; return; }
   quoteList.forEach((q, idx) => {
     const div = document.createElement("div"); div.className = "quote-item";
-    const showPrice = userLevel >= 1;
-    const priceDisplay = showPrice ? `$${q.price}` : "---";
+    
+    // Quote List 也需要依照權限顯示價格
+    const showPrice = true; // 報價單內通常顯示加入時的價格
+    const priceDisplay = `$${q.price}`;
 
     div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
     quoteListBody.appendChild(div);
@@ -1332,13 +1357,25 @@ function exportSelectedExcel() {
     const driveNetList = getDriveNetImages(item.model, item.mainModel);
     const baseRow = [item.model, item.mainModel, item.name, item.colorList || "", item.cartonQty || "", item.productUrl || "", driveMain || "", driveNetList.join(" | ")];
     let priceRow = [];
-    // 價格隱藏
-    const showPrice = userLevel >= 1;
+    
+    // Excel 匯出邏輯也需依照權限
+    const showMinPrice = userLevel >= 1;
+    
     if (qty) {
       const ck = `quote${qty}`;
-      priceRow = [showPrice ? (item[ck] ?? item.quote50 ?? "-") : "---", showPrice ? (item.minPrice ?? "-") : "---", showPrice ? (item.marketPrice ?? "-") : "---"];
+      // 判斷該數量報價是否可見
+      let canSeeQuote = false;
+      if (userLevel >= 1 && qty == 50) canSeeQuote = true;
+      if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
+      if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
+
+      priceRow = [
+          canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---", 
+          showMinPrice ? (item.minPrice ?? "-") : "---", 
+          item.marketPrice ?? "-"
+      ];
     } else {
-      priceRow = [showPrice ? (item.minPrice ?? "-") : "---", showPrice ? (item.marketPrice ?? "-") : "---"];
+      priceRow = [showMinPrice ? (item.minPrice ?? "-") : "---", item.marketPrice ?? "-"];
     }
     rows.push([...baseRow, ...priceRow]);
   });
@@ -1351,9 +1388,7 @@ function downloadQuoteExcel() {
   if (quoteList.length === 0) { alert("報價單是空的"); return; }
   const header = ["商品型號","商品名稱","採購規格","單價","數量"];
   const rows = [header];
-  // 價格隱藏
-  const showPrice = userLevel >= 1;
-  quoteList.forEach(q => rows.push([q.model, q.name, q.qtyLabel, showPrice ? q.price : "---", q.count]));
+  quoteList.forEach(q => rows.push([q.model, q.name, q.qtyLabel, q.price, q.count]));
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, "報價單");
@@ -1404,9 +1439,15 @@ function getQuoteByTier(item, tier){
 async function buildProductSlide(pptx, item, tier){
   const slide = pptx.addSlide();
   
-  // 🚀 隱藏報價邏輯 (PPT)
-  const showPrice = userLevel >= 1;
-  const getPrice = (p) => showPrice ? (item[p] ?? "-") : "N/A";
+  // PPT 顯示邏輯：依照權限顯示
+  const showMinPrice = userLevel >= 1;
+  let canSeeQuote = false;
+  // 簡單判斷：若使用者能選該 Tier，就能在 PPT 看到該 Tier 價格
+  if (userLevel >= 1 && tier == 50) canSeeQuote = true;
+  if (userLevel >= 2 && (tier == 100 || tier == 300)) canSeeQuote = true;
+  if (userLevel >= 3 && (tier == 500 || tier == 1000)) canSeeQuote = true;
+
+  const getPrice = (p) => (item[p] ?? "-");
   
   // 1. Header Area (White Background)
   const logoData = await fetchAsDataURL(COMPANY_LOGO_URL);
@@ -1420,14 +1461,14 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`${item.name || ""}`, { x:3.0, y:0.2, w:4.0, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
 
   // Quote Info (Right) - Stacked
-  const quoteVal = getQuoteByTier(item, tier);
-  // Market Price
   slide.addText(`賣場價: $${getPrice('marketPrice')}`, { x:7.2, y:0.2, w:2.5, h:0.4, fontSize:14, color:'6B7280', fontFace:"Microsoft JhengHei", align:'right' });
-  // Quote (Blue Qty, Red Price)
+  
+  // Quote (Blue Qty, Red Price) - Only if visible
+  const quoteText = canSeeQuote ? `$${getPrice('quote' + tier)}` : "---";
   slide.addText(
     [
       { text: `報價(${tier}pcs): `, options: { color:'1E3A8A', bold:true, fontSize:14 } },
-      { text: `$${getPrice('quote' + tier)}`, options: { color:'DC2626', bold:true, fontSize:20 } }
+      { text: quoteText, options: { color:'DC2626', bold:true, fontSize:20 } }
     ],
     { x:7.2, y:0.6, w:2.5, h:0.4, align:'right', fontFace:"Microsoft JhengHei" }
   );
@@ -1476,48 +1517,6 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
-  
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-      const model = cb.dataset.model;
-      let item = currentResultList.find(p => p.model === model);
-      if(!item) item = currentResultList.find(p => p.mainModel === model);
-      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-      return item;
-  }).filter(Boolean);
-
-  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
-
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; 
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-    
-    const salesName = "郭庭豪";
-    const salesPhone = "0976-966333";
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
-}
-
 /* =======================================================
    Event Listeners (Bind within Module)
 ======================================================= */
@@ -1536,8 +1535,7 @@ if(copyQuoteBtn) {
     if (quoteList.length === 0) return alert("報價單是空的");
     let text = "KINYO 報價單\n--------------------\n";
     quoteList.forEach((q,i)=>{
-      const showPrice = userLevel >= 1;
-      const priceDisplay = showPrice ? q.price : "---";
+      const priceDisplay = `$${q.price}`;
       text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n`;
     });
     text += "--------------------\n";
@@ -1631,20 +1629,28 @@ onAuthStateChanged(auth, async (user) => {
 
   currentUserEmail = user.email || "";
 
-  // 🚀 核心邏輯：判斷是否為展示帳號
-  if (currentUserEmail.toLowerCase() === 'show@kinyo.com') {
-      userLevel = 0; // 強制設定為最低等級
-  } else {
-      // 否則從 Firestore 抓取該用戶的實際等級
-      try {
-          const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
-          if (userDoc.exists()) userLevel = userDoc.data().level || 1;
-      } catch {
-          userLevel = 1;
+  // 預設權限為 0 (訪客/待審核)
+  userLevel = 0; 
+
+  try {
+      const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
+      if (userDoc.exists()) {
+          // 讀取 level 欄位，預設為 0
+          userLevel = userDoc.data().level ?? 0;
+      } else {
+          // 若資料庫無此人，視為新註冊用戶，維持 0
+          userLevel = 0;
       }
+  } catch (e) {
+      console.error("Auth Error:", e);
+      userLevel = 0;
   }
 
-  userInfoSpan.textContent = `登入帳號：${currentUserEmail.replace(/@.*/, "")}`;
+  // 特別保留展示帳號邏輯 (可選) - show@kinyo.com 設為 Level 0
+  if (currentUserEmail.toLowerCase() === 'show@kinyo.com') userLevel = 0;
+
+  // 更新 UI 顯示，包含等級標籤
+  updateUserDisplay('normal');
   logoutBtn.style.display = "inline-block";
 
   setupQtySelectByLevel();
@@ -1684,17 +1690,19 @@ document.addEventListener("click", (e) => {
     const item  = currentResultList.find(p => p.model === model);
     if (!item) return;
 
-    const showPrice = userLevel >= 1;
-    const getPrice = (p) => showPrice ? (item[p] ?? "-") : "---";
+    // 分享內容也需依照權限過濾
+    const showMinPrice = userLevel >= 1;
+    const getPrice = (p) => (item[p] ?? "-");
 
     let costText = "";
+    // Level 0 不顯示報價
     if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
     if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n100個：${getPrice('quote1000')}\n`;
+    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
 
     const text = `【${item.model}】${item.name}
 賣場售價：${getPrice('marketPrice')}
-末售價格：${getPrice('minPrice')}
+末售價格：${showMinPrice ? getPrice('minPrice') : '---'}
 --------------------
 採購價格：
 ${costText}
@@ -1741,12 +1749,16 @@ if (multiLineBtn) {
             const item = currentResultList.find(p => p.model === model);
             if (!item) return;
 
-            const showPrice = userLevel >= 1;
             const ck = `quote${qty}`;
             
-            // Logic to get quote, market price, and link
-            const cost = showPrice ? (item[ck] ?? item.quote50 ?? "-") : "---";
-            const market = showPrice ? (item.marketPrice ?? "-") : "---";
+            // 多選分享邏輯：依照權限顯示
+            let canSeeQuote = false;
+            if (userLevel >= 1 && qty == 50) canSeeQuote = true;
+            if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
+            if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
+
+            const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
+            const market = item.marketPrice ?? "-";
             const link = item.productUrl || "無連結";
 
             text += `${i + 1}. 【${item.model}】${item.name}\n`;
