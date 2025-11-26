@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.15.3）</title>
+<title>KINYO 查價系統（v4.15.4）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -408,7 +408,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.15.3）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.15.4）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -1210,6 +1210,49 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
+// 🚀 Re-inserted exportSelectedPPT function
+async function exportSelectedPPT() {
+  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
+  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
+  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
+  
+  const tier = qtySelect.value || "50";
+  const selectedItems = checks.map(cb => {
+      const model = cb.dataset.model;
+      let item = currentResultList.find(p => p.model === model);
+      if(!item) item = currentResultList.find(p => p.mainModel === model);
+      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
+      return item;
+  }).filter(Boolean);
+
+  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
+
+  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = "LAYOUT_4x3"; 
+    pptx.author = "KINYO Price System";
+    pptx.company = "KINYO";
+    pptx.title = `KINYO Quote ${tier}pcs`;
+
+    for (const item of selectedItems) {
+      await buildProductSlide(pptx, item, tier);
+    }
+    
+    const salesName = "郭庭豪";
+    const salesPhone = "0976-966333";
+    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
+
+  } catch (e) {
+    console.error(e);
+    alert("PPT 生成失敗，請查看 Console。");
+  } finally {
+    pptToolbarBtn.disabled = false;
+    pptToolbarBtn.textContent = "生成 PPT（1–20）";
+  }
+}
+
 /* =======================================================
    Event Listeners (Bind within Module)
 ======================================================= */
@@ -1218,7 +1261,6 @@ searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 logoutBtn.onclick = () => signOut(auth);
 
-// Bind PPT button inside module so it can access exportSelectedPPT
 if(pptToolbarBtn) {
   pptToolbarBtn.onclick = exportSelectedPPT;
 }
@@ -1276,13 +1318,7 @@ onAuthStateChanged(auth, async (user) => {
 /* =======================================================
    Quote Button Listeners inside Module
 ======================================================= */
-// We need to attach these to window or bind them if they are in HTML onclicks,
-// but since we are generating HTML dynamically or binding via ID, it's fine.
-// The quoteSheet buttons (copy, download, clear) are static in HTML, so we bind them above.
-// The "add-quote-btn" are dynamic, so we use document event delegation below.
-
 document.addEventListener("click", (e) => {
-  // Add to Quote
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1305,7 +1341,6 @@ document.addEventListener("click", (e) => {
     return;
   }
 
-  // Line Share
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1329,19 +1364,13 @@ ${costText}
       .catch(() => alert("複製失敗"));
   }
 
-  // --- Click outside detailCard to close it ---
   const card = document.getElementById("detailCard");
   if (card && card.style.display !== "none") {
-    // If click is NOT inside the card AND NOT inside a table row (which opens it)
-    // Note: The button click itself (add-quote-btn) is inside a row, so we should check specific targets
-    // If clicking row-check, we don't close.
-    // If clicking outside table and card, close.
     if (!card.contains(e.target) && !e.target.closest("tr")) {
       card.style.display = "none";
     }
   }
 
-  // Add Listeners to detailCard itself for mouse enter/leave logic
   if(card && !card.hasAttribute("data-listeners-added")){
       card.setAttribute("data-listeners-added", "true");
       card.addEventListener("mouseenter", () => {
@@ -1355,7 +1384,6 @@ ${costText}
   }
 });
 
-/* 多選 LINE 分享 */
 if(multiLineBtn) {
   multiLineBtn.onclick = () => {
     const checked = document.querySelectorAll(".row-check:checked");
@@ -1381,7 +1409,6 @@ if(multiLineBtn) {
   };
 }
 
-/* Clear Search */
 if(clearBtn) {
   clearBtn.onclick = () => {
     keywordInput.value = "";
@@ -1399,7 +1426,6 @@ if(clearBtn) {
   };
 }
 
-/* Sort */
 if(sortSelect) {
   sortSelect.onchange = () => {
     if (currentResultList.length > 0) {
@@ -1409,7 +1435,6 @@ if(sortSelect) {
   };
 }
 
-/* Sheet & Quote UI */
 if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
 if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
 
