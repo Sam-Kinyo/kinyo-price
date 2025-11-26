@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.14.1）</title>
+<title>KINYO 查價系統（v4.15.3）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -161,7 +161,7 @@ input,select{
 .btn-outline-add:hover{background:#dbeafe;}
 
 /* =========================================
-   表格與 RWD 卡片樣式 (核心修改)
+   表格
 ========================================= */
 table{
   width:100%;
@@ -213,119 +213,6 @@ th{background:#fafafa;text-align:left;}
 .tag1000{background:#fee2e2;color:#b91c1c;}
 
 /* =========================================
-   RWD 手機版面優化 (Card Layout)
-========================================= */
-@media (max-width: 768px) {
-  /* 隱藏表格標頭，改用卡片式顯示 */
-  table, thead, tbody, th, td, tr {
-    display: block;
-  }
-  thead tr {
-    position: absolute;
-    top: -9999px;
-    left: -9999px;
-  }
-  
-  /* 每一行變成一張卡片 */
-  tr {
-    margin-bottom: 16px;
-    border: 1px solid #e5e7eb;
-    border-radius: 16px;
-    background: #fff;
-    padding: 16px;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-    position: relative; /* For checkbox positioning */
-  }
-  
-  td {
-    border: none;
-    padding: 4px 0;
-    position: relative;
-    text-align: left !important; /* 強制靠左 */
-  }
-
-  /* 1. 勾選框 (左上角) */
-  td:nth-of-type(1) {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    width: auto;
-    z-index: 10;
-  }
-  
-  /* 2. 圖片 (放大置中) */
-  td:nth-of-type(2) {
-    text-align: center !important;
-    margin-bottom: 10px;
-  }
-  .product-img {
-    width: 160px; /* 手機版圖變大 */
-    height: 160px;
-  }
-
-  /* 3. 主型號 (灰色小字，置中) */
-  td:nth-of-type(3) {
-    font-size: 12px;
-    color: #888;
-    text-align: center !important;
-    margin-bottom: 4px;
-  }
-  
-  /* 4. 商品資訊 (名稱、顏色) */
-  td:nth-of-type(4) {
-    margin-bottom: 8px;
-  }
-
-  /* 5. 價格區塊 (末售 & 賣場) - 並排顯示 */
-  td:nth-of-type(5), td:nth-of-type(6) {
-    display: inline-block;
-    width: 48%;
-    background: #f9fafb;
-    padding: 8px;
-    border-radius: 8px;
-    margin-top: 8px;
-    font-weight: bold;
-    font-size: 14px;
-    box-sizing: border-box;
-  }
-  
-  /* 加上標題 */
-  td:nth-of-type(5)::before {
-    content: "末售：";
-    font-weight: normal;
-    color: #6b7280;
-  }
-  td:nth-of-type(6)::before {
-    content: "賣場：";
-    font-weight: normal;
-    color: #6b7280;
-  }
-  
-  /* 價格靠右對齊 */
-  td:nth-of-type(6) {
-    text-align: right !important;
-    float: right;
-  }
-
-  /* 調整按鈕容器 */
-  .price-tag-container + div {
-    margin-top: 12px;
-    display: flex;
-    gap: 8px;
-  }
-  .line-share-btn, .add-quote-btn {
-    flex: 1;
-    text-align: center;
-    padding: 10px 0;
-  }
-  
-  /* Detail Card & Sheet adjustments */
-  #detailCard {
-    display: none !important; /* Force sheet on mobile */
-  }
-}
-
-/* =========================================
    Loading
 ========================================= */
 #centerLoadingBox{
@@ -365,7 +252,7 @@ th{background:#fafafa;text-align:left;}
 }
 
 /* =========================================
-   Detail Card (Desktop)
+   Detail Card
 ========================================= */
 #detailCard{
   position:fixed;
@@ -481,6 +368,25 @@ th{background:#fafafa;text-align:left;}
 .quote-price{font-weight:700;color:#2563eb;}
 .quote-del{color:#999;cursor:pointer;padding:6px;font-size:16px;}
 .quote-del:hover{color:#ef4444;}
+
+/* =========================================
+   RWD
+========================================= */
+@media (max-width:900px){
+  #detailCard{display:none!important;}
+}
+@media (max-width:600px){
+  body{padding:14px;}
+  .search-box{padding:14px;}
+  input,select{font-size:14px;}
+  .product-img{width:90px;height:90px;}
+  th,td{padding:8px 6px;font-size:13px;}
+  .price-tag-container{
+    display:grid;grid-template-columns:repeat(2,1fr);
+    gap:4px 6px;margin-bottom:4px;
+  }
+  .price-tag{width:100%;text-align:center;margin:0;}
+}
 </style>
 </head>
 <body>
@@ -502,7 +408,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.14.1）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.15.3）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -986,7 +892,14 @@ function searchProducts() {
       });
     }
 
-    currentResultList = applySorting(mergeByMainModel(r));
+    // 🚀 隨機排序邏輯：如果沒有指定排序，就隨機洗牌
+    currentResultList = mergeByMainModel(r);
+    if (!sortSelect.value) {
+        currentResultList = shuffleArray(currentResultList);
+    } else {
+        currentResultList = applySorting(currentResultList);
+    }
+    
     renderResults(currentResultList);
     hideLoading();
     updateUserDisplay('normal');
@@ -1022,6 +935,7 @@ function renderResults(list) {
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
+        <!-- Added onerror handler for broken images -->
         <img src="${img}" class="product-img" onerror="this.onerror=null;this.src='https://placehold.co/110x110?text=No+Image';">
       </td>
       <td class="model-cell">${item.mainModel || "-"}</td>
@@ -1038,6 +952,7 @@ function renderResults(list) {
       <td style="text-align:right;">${item.marketPrice ?? "-"}</td>
     `;
 
+    // 🚀 修正事件綁定：只對圖片和型號綁定 Click/Hover
     const imgEl = tr.querySelector('.product-img');
     const modelEl = tr.querySelector('.model-cell');
 
@@ -1093,9 +1008,11 @@ function showDetailDesktop(item) {
   const actMainLink = driveMainFolder || driveImg;
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
+  // 🚀 New Feature: Show 6 Thumbnails below
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
       const imgsHtml = netImages.slice(0, 6).map(url => { 
+          // Use Weserv proxy for safe display
           const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
           return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer;" onclick="window.open('${url}', '_blank')">`;
       }).join("");
@@ -1120,6 +1037,7 @@ function showDetailDesktop(item) {
     <div style="margin-bottom:8px;">
       <div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>
       ${actNetLink ? `<a class="btn-blue" href="${actNetLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }
+      <!-- 🚀 Inserted Thumbnail Grid -->
       ${netThumbHtml}
     </div>
     <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
@@ -1131,7 +1049,7 @@ function showDetailDesktop(item) {
   `;
 }
 
-function showDetailMobile(item) { showDetailDesktop(item); openSheet(); document.getElementById("sheetContent").innerHTML = detailCard.innerHTML; }
+function showDetailMobile(item) { /* Reuse Desktop Logic for Content */ showDetailDesktop(item); openSheet(); document.getElementById("sheetContent").innerHTML = detailCard.innerHTML; }
 
 function openSheet() { sheetBackdrop.classList.remove("hidden"); mobileSheet.classList.remove("hidden"); requestAnimationFrame(() => mobileSheet.classList.add("open")); }
 function closeSheet() { mobileSheet.classList.remove("open"); setTimeout(() => { mobileSheet.classList.add("hidden"); if (quoteSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }, 220); }
@@ -1197,11 +1115,10 @@ function downloadQuoteExcel() {
 }
 
 // --- PPT Logic Updated (4:3 Style with Image Locking) ---
-function shuffleArray(arr){ const a = arr.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-
+// Helper: Pick random N items, but ensure index 0 (Main Image) is kept first
 function pickRandom(arr, n){ 
   if(!Array.isArray(arr) || arr.length === 0) return [];
-  const first = arr[0]; 
+  const first = arr[0]; // The Python script already ensures index 0 is _01
   const others = arr.slice(1);
   const shuffledOthers = shuffleArray(others);
   const pickedOthers = shuffledOthers.slice(0, n - 1); 
@@ -1296,10 +1213,12 @@ async function buildProductSlide(pptx, item, tier){
 /* =======================================================
    Event Listeners (Bind within Module)
 ======================================================= */
+// 🚀 Moved all Event Listeners to bottom to prevent ReferenceError
 searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 logoutBtn.onclick = () => signOut(auth);
 
+// Bind PPT button inside module so it can access exportSelectedPPT
 if(pptToolbarBtn) {
   pptToolbarBtn.onclick = exportSelectedPPT;
 }
@@ -1357,7 +1276,13 @@ onAuthStateChanged(auth, async (user) => {
 /* =======================================================
    Quote Button Listeners inside Module
 ======================================================= */
+// We need to attach these to window or bind them if they are in HTML onclicks,
+// but since we are generating HTML dynamically or binding via ID, it's fine.
+// The quoteSheet buttons (copy, download, clear) are static in HTML, so we bind them above.
+// The "add-quote-btn" are dynamic, so we use document event delegation below.
+
 document.addEventListener("click", (e) => {
+  // Add to Quote
   if (e.target.classList.contains("add-quote-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1380,6 +1305,7 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  // Line Share
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1403,13 +1329,19 @@ ${costText}
       .catch(() => alert("複製失敗"));
   }
 
+  // --- Click outside detailCard to close it ---
   const card = document.getElementById("detailCard");
   if (card && card.style.display !== "none") {
+    // If click is NOT inside the card AND NOT inside a table row (which opens it)
+    // Note: The button click itself (add-quote-btn) is inside a row, so we should check specific targets
+    // If clicking row-check, we don't close.
+    // If clicking outside table and card, close.
     if (!card.contains(e.target) && !e.target.closest("tr")) {
       card.style.display = "none";
     }
   }
 
+  // Add Listeners to detailCard itself for mouse enter/leave logic
   if(card && !card.hasAttribute("data-listeners-added")){
       card.setAttribute("data-listeners-added", "true");
       card.addEventListener("mouseenter", () => {
@@ -1423,6 +1355,7 @@ ${costText}
   }
 });
 
+/* 多選 LINE 分享 */
 if(multiLineBtn) {
   multiLineBtn.onclick = () => {
     const checked = document.querySelectorAll(".row-check:checked");
@@ -1448,6 +1381,7 @@ if(multiLineBtn) {
   };
 }
 
+/* Clear Search */
 if(clearBtn) {
   clearBtn.onclick = () => {
     keywordInput.value = "";
@@ -1465,6 +1399,7 @@ if(clearBtn) {
   };
 }
 
+/* Sort */
 if(sortSelect) {
   sortSelect.onchange = () => {
     if (currentResultList.length > 0) {
@@ -1474,6 +1409,7 @@ if(sortSelect) {
   };
 }
 
+/* Sheet & Quote UI */
 if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
 if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
 
