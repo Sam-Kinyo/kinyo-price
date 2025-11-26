@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.2.0）</title>
+<title>KINYO 查價系統（v5.2.1）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -538,7 +538,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.2.0）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.2.1）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -1134,6 +1134,9 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
+  // 🚀 修正視窗空白問題：確保隱藏計時器已被清除
+  if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
+
   let img = item.imageUrl;
   // 🚀 關鍵修正區塊：同步圖片優先權
   // 1. 優先使用 item.imageUrl (爬蟲圖)
@@ -1176,8 +1179,9 @@ function showDetailDesktop(item) {
   }
   
   detailCard.style.display = "block";
+  // 🚀 修正視窗空白問題：明確使用 ID 來關閉，避免 parentElement 錯位
   detailCard.innerHTML = `
-    <button class="card-close-btn" onclick="this.parentElement.style.display='none'">×</button>
+    <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
     <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
     <div style="margin-bottom:8px;">
       <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
@@ -1440,8 +1444,9 @@ if(copyQuoteBtn) {
       .catch(() => alert("複製失敗"));
   };
 }
-if(clearQuoteBtn) {
-  // 🚀 修正：綁定 clearBtn 
+
+// 🚀 修正清空按鈕邏輯：將清除搜尋條件和清除報價單分開處理
+if(clearBtn) {
   clearBtn.onclick = () => {
     keywordInput.value = "";
     qtySelect.value = "";
@@ -1455,6 +1460,20 @@ if(clearQuoteBtn) {
     if(multiLineBtn) multiLineBtn.disabled = true;
     checkAllBox.checked = false;
     detailCard.style.display = "none";
+  };
+}
+
+if(clearQuoteBtn) {
+  clearQuoteBtn.onclick = () => {
+    if(quoteList.length === 0) {
+        alert("報價單已經是空的");
+        return;
+    }
+    if(confirm("確定要清空報價單嗎？這將無法復原。")) {
+        quoteList = [];
+        renderQuoteList();
+        updateQuoteToolbarBtn();
+    }
   };
 }
 
