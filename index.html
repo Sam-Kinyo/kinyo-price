@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.0.0）</title>
+<title>KINYO 查價系統（v5.0.2）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -1061,13 +1061,9 @@ function renderResults(list) {
 
 function showDetailDesktop(item) {
   let img = item.imageUrl;
-  // 🚀 關鍵修正區塊：同步圖片優先權
-  // 1. 優先使用 item.imageUrl (爬蟲圖)
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    // 2. 備援使用 Drive 圖
     if (driveImg) img = driveImg;
-    // 3. 都沒有則使用 Placeholder
     else img = "https://placehold.co/300x300?text=No+Image";
   }
 
@@ -1362,12 +1358,11 @@ if(copyQuoteBtn) {
     });
     text += "--------------------\n";
     navigator.clipboard.writeText(text)
-      .then(() => alert("報價單已複製"))
+      .then(() => alert("已複製到剪貼簿"))
       .catch(() => alert("複製失敗"));
   };
 }
 if(clearQuoteBtn) {
-  // 🚀 修正：綁定 clearBtn 
   clearBtn.onclick = () => {
     keywordInput.value = "";
     qtySelect.value = "";
@@ -1381,138 +1376,6 @@ if(clearQuoteBtn) {
     if(multiLineBtn) multiLineBtn.disabled = true;
     checkAllBox.checked = false;
     detailCard.style.display = "none";
-  };
-}
-
-/* =======================================================
-   Firebase Auth：登入後流程
-======================================================= */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  currentUserEmail = user.email || "";
-
-  // 🚀 核心邏輯：判斷是否為展示帳號
-  if (currentUserEmail.toLowerCase() === 'show@kinyo.com') {
-      userLevel = 0; // 強制設定為最低等級
-  } else {
-      // 否則從 Firestore 抓取該用戶的實際等級
-      try {
-          const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
-          if (userDoc.exists()) userLevel = userDoc.data().level || 1;
-      } catch {
-          userLevel = 1;
-      }
-  }
-
-  userInfoSpan.textContent = `登入帳號：${currentUserEmail.replace(/@.*/, "")}`;
-  logoutBtn.style.display = "inline-block";
-
-  setupQtySelectByLevel();
-
-  await preloadDriveModelData();
-  await preloadProducts();
-});
-
-/* =======================================================
-   Quote Button Listeners inside Module
-======================================================= */
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("add-quote-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
-
-    const qty = qtySelect.value || "50";
-    const ck  = `quote${qty}`;
-    const cost = item[ck] ?? item.quote50 ?? 0;
-
-    quoteList.push({
-      model: item.model,
-      name: item.name,
-      price: cost,
-      qtyLabel: `${qty}個`,
-      count: 1
-    });
-
-    updateQuoteToolbarBtn();
-    alert(`已加入報價單（${qty}個：$${cost}）`);
-    return;
-  }
-
-  if (e.target.classList.contains("line-share-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
-
-    const showPrice = userLevel >= 1;
-    const getPrice = (p) => showPrice ? (item[p] ?? "-") : "---";
-
-    let costText = "";
-    if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
-    if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n100個：${getPrice('quote1000')}\n`;
-
-    const text = `【${item.model}】${item.name}
-賣場售價：${getPrice('marketPrice')}
-末售價格：${getPrice('minPrice')}
---------------------
-採購價格：
-${costText}
-商品連結：${item.productUrl || "無"}`;
-
-    navigator.clipboard.writeText(text)
-      .then(() => alert("已複製到剪貼簿"))
-      .catch(() => alert("複製失敗"));
-  }
-
-  const card = document.getElementById("detailCard");
-  if (card && card.style.display !== "none") {
-    if (!card.contains(e.target) && !e.target.closest("tr")) {
-      card.style.display = "none";
-    }
-  }
-
-  if(card && !card.hasAttribute("data-listeners-added")){
-      card.setAttribute("data-listeners-added", "true");
-      card.addEventListener("mouseenter", () => {
-        if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
-      });
-      card.addEventListener("mouseleave", () => {
-        window.hideDetailTimer = setTimeout(() => {
-          card.style.display = "none";
-        }, 200);
-      });
-  }
-});
-
-if(multiLineBtn) {
-  // 🚀 修復：multiLineBtn 綁定
-  multiLineBtn.onclick = () => {
-    const checked = document.querySelectorAll(".row-check:checked");
-    if (checked.length === 0) return;
-
-    let text = "KINYO 多品項報價\n--------------------\n";
-    Array.from(checked).forEach((c, i) => {
-      const model = c.getAttribute("data-model");
-      const item  = currentResultList.find(p => p.model === model);
-      if (!item) return;
-
-      const qty  = qtySelect.value || "50";
-      const ck   = `quote${qty}`;
-      const showPrice = userLevel >= 1;
-      const cost = showPrice ? (item[ck] ?? item.quote50 ?? "-") : "---";
-
-      text += `${i+1}. 【${item.model}】${item.name}\n   ${qty}個：$${cost}\n`;
-    });
-
-    text += "--------------------\n";
-    navigator.clipboard.writeText(text)
-      .then(() => alert("多選報價已複製"))
-      .catch(() => alert("複製失敗"));
   };
 }
 
