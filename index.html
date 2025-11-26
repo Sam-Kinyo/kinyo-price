@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.2.4）</title>
+<title>KINYO 查價系統（v5.2.5）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -569,7 +569,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.2.4）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.2.5）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -1166,17 +1166,12 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
-  // 🚀 修正視窗空白問題：確保隱藏計時器已被清除
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
   let img = item.imageUrl;
-  // 🚀 關鍵修正區塊：同步圖片優先權
-  // 1. 優先使用 item.imageUrl (爬蟲圖)
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    // 2. 備援使用 Drive 圖
     if (driveImg) img = driveImg;
-    // 3. 都沒有則使用 Placeholder
     else img = "https://placehold.co/300x300?text=No+Image";
   }
 
@@ -1190,28 +1185,27 @@ function showDetailDesktop(item) {
   if (netImages && netImages.length > 0) {
       const imgsHtml = netImages.slice(0, 6).map(url => { 
           const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
-          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer;" onclick="window.open('${url}', '_blank')">`;
+          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px;" onclick="window.open('${url}', '_blank')">`;
       }).join("");
-      netThumbHtml = `<div class="net-gallery">${imgsHtml}</div>`;
-  } else {
-      netThumbHtml = `<div style="color:#999;font-size:13px;margin-top:6px;">無預覽圖</div>`;
+      netThumbHtml = `<div class="net-gallery" style="grid-template-columns:repeat(6, 1fr); gap:4px; margin-top:8px;">${imgsHtml}</div>`;
   }
 
-  // 🚀 隱藏報價邏輯 (詳細頁)
   const showPrice = userLevel >= 1;
   const getPrice = (p) => showPrice ? (item[p] ?? "-") : "---";
 
-  let priceBlock = "";
-  if (userLevel >= 1) priceBlock += `<div>50 個：${getPrice('quote50')}</div>`;
-  if (userLevel >= 2) {
-    priceBlock += `<div>100 個：${getPrice('quote100')}</div><div>300 個：${getPrice('quote300')}</div>`;
-  }
-  if (userLevel >= 3) {
-    priceBlock += `<div>500 個：${getPrice('quote500')}</div><div>1000 個：${getPrice('quote1000')}</div>`;
-  }
-  
+  // Construct Price Block
+  let quoteHtml = "";
+  const tiers = [50, 100, 300, 500, 1000];
+  tiers.forEach(t => {
+      if (userLevel >= (t >= 500 ? 3 : (t >= 100 ? 2 : 1))) {
+          quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
+              <span style="color:#666;">${t}個</span>
+              <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
+          </div>`;
+      }
+  });
+
   detailCard.style.display = "block";
-  // 🚀 修正視窗空白問題：明確使用 ID 來關閉，避免 parentElement 錯位
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
     
@@ -1269,48 +1263,6 @@ function showDetailMobile(item) { showDetailDesktop(item); openSheet(); document
 
 function openSheet() { sheetBackdrop.classList.remove("hidden"); mobileSheet.classList.remove("hidden"); requestAnimationFrame(() => mobileSheet.classList.add("open")); }
 function closeSheet() { mobileSheet.classList.remove("open"); setTimeout(() => { mobileSheet.classList.add("hidden"); if (quoteSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }, 220); }
-
-function bindCheckAll() {
-  const rowChecks = document.querySelectorAll(".row-check");
-  checkAllBox.onchange = () => { rowChecks.forEach(c => c.checked = checkAllBox.checked); updateMultiLineBtnState(); };
-  rowChecks.forEach(chk => { chk.onchange = () => { const all = document.querySelectorAll(".row-check"); const checked = document.querySelectorAll(".row-check:checked"); checkAllBox.checked = (all.length === checked.length); updateMultiLineBtnState(); }; });
-}
-
-// 🚀 修正：當勾選時觸發工具列浮動 (Fixed Active)
-function updateMultiLineBtnState() { 
-  const checked = document.querySelectorAll(".row-check:checked");
-  const hasChecked = checked.length > 0;
-  
-  if(multiLineBtn) multiLineBtn.disabled = !hasChecked;
-  if(exportBtn) exportBtn.disabled = !hasChecked; // 同步匯出按鈕狀態
-  
-  const toolbar = document.querySelector('.toolbar');
-  const spacer = document.getElementById('toolbarSpacer');
-  
-  if (hasChecked) {
-    toolbar.classList.add('fixed-active');
-    if(spacer) spacer.style.display = 'block';
-  } else {
-    toolbar.classList.remove('fixed-active');
-    if(spacer) spacer.style.display = 'none';
-  }
-}
-
-function updateQuoteToolbarBtn() { if (quoteList.length > 0) { quoteToolbarBtn.style.display = "inline-block"; quoteToolbarBtn.textContent = `報價單（${quoteList.length}）`; } else { quoteToolbarBtn.style.display = "none"; } }
-function renderQuoteList() {
-  quoteListBody.innerHTML = ""; if (quoteList.length === 0) { quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的</div>`; return; }
-  quoteList.forEach((q, idx) => {
-    const div = document.createElement("div"); div.className = "quote-item";
-    const showPrice = userLevel >= 1;
-    const priceDisplay = showPrice ? `$${q.price}` : "---";
-
-    div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
-    quoteListBody.appendChild(div);
-  });
-  document.querySelectorAll(".quote-del").forEach(btn => { btn.onclick = (e) => { const i = Number(e.target.getAttribute("data-idx")); quoteList.splice(i, 1); renderQuoteList(); updateQuoteToolbarBtn(); }; });
-}
-function openQuoteSheet() { sheetBackdrop.classList.remove("hidden"); quoteSheet.classList.remove("hidden"); requestAnimationFrame(() => quoteSheet.classList.add("open")); renderQuoteList(); }
-function closeQuoteSheet() { quoteSheet.classList.remove("open"); setTimeout(() => quoteSheet.classList.add("hidden"), 220); if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }
 
 /* Export Functions */
 function exportSelectedExcel() {
@@ -1470,48 +1422,6 @@ async function buildProductSlide(pptx, item, tier){
 
   // 4. Footer
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
-}
-
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
-  
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-      const model = cb.dataset.model;
-      let item = currentResultList.find(p => p.model === model);
-      if(!item) item = currentResultList.find(p => p.mainModel === model);
-      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-      return item;
-  }).filter(Boolean);
-
-  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
-
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; 
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-    
-    const salesName = "郭庭豪";
-    const salesPhone = "0976-966333";
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
 }
 
 /* =======================================================
