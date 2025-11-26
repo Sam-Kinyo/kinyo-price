@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.2.5）</title>
+<title>KINYO 查價系統（v5.2.6）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -569,7 +569,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.2.5）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.2.6）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -1422,6 +1422,48 @@ async function buildProductSlide(pptx, item, tier){
 
   // 4. Footer
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
+}
+
+async function exportSelectedPPT() {
+  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
+  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
+  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
+  
+  const tier = qtySelect.value || "50";
+  const selectedItems = checks.map(cb => {
+      const model = cb.dataset.model;
+      let item = currentResultList.find(p => p.model === model);
+      if(!item) item = currentResultList.find(p => p.mainModel === model);
+      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
+      return item;
+  }).filter(Boolean);
+
+  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
+
+  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
+  try {
+    const pptx = new PptxGenJS();
+    pptx.layout = "LAYOUT_4x3"; 
+    pptx.author = "KINYO Price System";
+    pptx.company = "KINYO";
+    pptx.title = `KINYO Quote ${tier}pcs`;
+
+    for (const item of selectedItems) {
+      await buildProductSlide(pptx, item, tier);
+    }
+    
+    const salesName = "郭庭豪";
+    const salesPhone = "0976-966333";
+    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
+
+  } catch (e) {
+    console.error(e);
+    alert("PPT 生成失敗，請查看 Console。");
+  } finally {
+    pptToolbarBtn.disabled = false;
+    pptToolbarBtn.textContent = "生成 PPT（1–20）";
+  }
 }
 
 /* =======================================================
