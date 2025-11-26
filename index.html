@@ -1166,17 +1166,12 @@ function renderResults(list) {
 }
 
 function showDetailDesktop(item) {
-  // 🚀 修正視窗空白問題：確保隱藏計時器已被清除
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
   let img = item.imageUrl;
-  // 🚀 關鍵修正區塊：同步圖片優先權
-  // 1. 優先使用 item.imageUrl (爬蟲圖)
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    // 2. 備援使用 Drive 圖
     if (driveImg) img = driveImg;
-    // 3. 都沒有則使用 Placeholder
     else img = "https://placehold.co/300x300?text=No+Image";
   }
 
@@ -1190,47 +1185,77 @@ function showDetailDesktop(item) {
   if (netImages && netImages.length > 0) {
       const imgsHtml = netImages.slice(0, 6).map(url => { 
           const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
-          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer;" onclick="window.open('${url}', '_blank')">`;
+          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px;" onclick="window.open('${url}', '_blank')">`;
       }).join("");
-      netThumbHtml = `<div class="net-gallery">${imgsHtml}</div>`;
-  } else {
-      netThumbHtml = `<div style="color:#999;font-size:13px;margin-top:6px;">無預覽圖</div>`;
+      netThumbHtml = `<div class="net-gallery" style="grid-template-columns:repeat(6, 1fr); gap:4px; margin-top:8px;">${imgsHtml}</div>`;
   }
 
-  // 🚀 隱藏報價邏輯 (詳細頁)
   const showPrice = userLevel >= 1;
   const getPrice = (p) => showPrice ? (item[p] ?? "-") : "---";
 
-  let priceBlock = "";
-  if (userLevel >= 1) priceBlock += `<div>50 個：${getPrice('quote50')}</div>`;
-  if (userLevel >= 2) {
-    priceBlock += `<div>100 個：${getPrice('quote100')}</div><div>300 個：${getPrice('quote300')}</div>`;
-  }
-  if (userLevel >= 3) {
-    priceBlock += `<div>500 個：${getPrice('quote500')}</div><div>1000 個：${getPrice('quote1000')}</div>`;
-  }
-  
+  // Construct Price Block
+  let quoteHtml = "";
+  const tiers = [50, 100, 300, 500, 1000];
+  tiers.forEach(t => {
+      if (userLevel >= (t >= 500 ? 3 : (t >= 100 ? 2 : 1))) {
+          quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
+              <span style="color:#666;">${t}個</span>
+              <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
+          </div>`;
+      }
+  });
+
   detailCard.style.display = "block";
-  // 🚀 修正視窗空白問題：明確使用 ID 來關閉，避免 parentElement 錯位
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
-    <img src="${img}" style="width:100%;border-radius:10px;border:1px solid #eee;margin-bottom:8px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
-    <div style="margin-bottom:8px;">
-      <div style="font-weight:700;margin-bottom:6px;">商品大圖</div>
-      ${actMainLink ? `<a class="btn-blue" href="${actMainLink}" target="_blank">查看下載商品大圖</a>` : `<div style="color:#999;font-size:13px;">商品大圖尚未提供</div>` }
-    </div>
-    <div style="margin-bottom:8px;">
-      <div style="font-weight:700;margin-bottom:6px;">商品網路圖</div>
-      ${actNetLink ? `<a class="btn-blue" href="${actNetLink}" target="_blank">查看下載商品網路圖</a>` : `<div style="color:#999;font-size:13px;">網路圖尚未提供</div>` }
-      <!-- 🚀 Inserted Thumbnail Grid -->
+    
+    <!-- Main Image -->
+    <img src="${img}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
+
+    <!-- 1. Download Buttons -->
+    <div style="margin-bottom:16px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載大圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無大圖</button>`}
+        ${actNetLink ? `<a href="${actNetLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載網路圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無網路圖</button>`}
+      </div>
       ${netThumbHtml}
     </div>
-    <div style="font-weight:700;font-size:16px;margin-bottom:6px;">${item.name || "-"}</div>
-    <div style="font-size:14px;line-height:1.6;margin-bottom:10px;">
-      <strong>主型號：</strong>${item.mainModel || "-"}<br><strong>顏色：</strong>${item.colorList || "-"}<br><strong>賣場：</strong>${showPrice ? (item.marketPrice ?? "-") : "---"}<br><strong>末售：</strong>${showPrice ? (item.minPrice ?? "-") : "---"}<br><strong>網址：</strong>${item.productUrl ? `<a href="${item.productUrl}" target="_blank">前往</a>` : "-"}
+
+    <!-- 2. Basic Info -->
+    <div style="margin-bottom:16px; background:#f9fafb; padding:12px; border-radius:8px;">
+      <div style="font-weight:700; font-size:16px; margin-bottom:8px; color:#111;">${item.name || "-"}</div>
+      <div style="font-size:14px; line-height:1.8; color:#444;">
+        <div><span style="color:#888;">顏色：</span> ${item.colorList || "-"}</div>
+        <div><span style="color:#888;">箱入數：</span> ${item.cartonQty || "-"}</div>
+        <div><span style="color:#888;">國際條碼：</span> ${item.barcode || item.internationalBarcode || "-"}</div>
+        <div><span style="color:#888;">連結：</span> ${item.productUrl ? `<a href="${item.productUrl}" target="_blank" style="color:#2563eb;text-decoration:underline;">開啟網頁</a>` : "-"}</div>
+      </div>
     </div>
-    <div style="font-weight:700;margin-bottom:6px;">採購價格</div><div style="line-height:1.6;">${priceBlock}</div>
-    <div style="display:flex; gap:8px; margin-top:12px;"><button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button><button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button></div>
+
+    <!-- 3. Price Info -->
+    <div style="margin-bottom:12px;">
+      <div style="font-weight:700; margin-bottom:8px; border-left:4px solid #2563eb; padding-left:8px;">價格資訊</div>
+      <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+           <span>賣場售價</span>
+           <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+           <span>末售價格</span>
+           <span style="font-weight:bold; color:#dc2626;">${getPrice('minPrice')}</span>
+        </div>
+        <div style="background:#f0f9ff; padding:8px 12px; border-radius:6px;">
+           <div style="font-size:12px; color:#666; margin-bottom:4px; font-weight:600;">採購報價</div>
+           ${quoteHtml || '<div style="color:#999; font-size:12px;">無權限查看報價</div>'}
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex; gap:8px; margin-top:16px;">
+      <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
+      <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
+    </div>
   `;
 }
 
@@ -1423,48 +1448,6 @@ async function buildProductSlide(pptx, item, tier){
 
   // 4. Footer
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
-}
-
-async function exportSelectedPPT() {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
-  
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-      const model = cb.dataset.model;
-      let item = currentResultList.find(p => p.model === model);
-      if(!item) item = currentResultList.find(p => p.mainModel === model);
-      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-      return item;
-  }).filter(Boolean);
-
-  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
-
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
-  try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; 
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
-    }
-    
-    const salesName = "郭庭豪";
-    const salesPhone = "0976-966333";
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
-  }
 }
 
 /* =======================================================
