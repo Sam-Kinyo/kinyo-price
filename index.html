@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v4.15.9）</title>
+<title>KINYO 查價系統（v4.15.10）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -472,7 +472,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.15.7）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.15.4）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -828,7 +828,7 @@ async function preloadProducts() {
     isProductsLoaded = true;
     isQuotesLoaded = true;
     const safeList = fullList.map(p => {
-      c = { ...p };
+      const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
       return c;
     });
@@ -979,8 +979,6 @@ function renderResults(list) {
 
   list.forEach(item => {
     let img = item.imageUrl;
-    // 🚀 Sync Image Logic: Prefer item.imageUrl (scraper)
-    // Fallback to Drive Image if scraper image missing/invalid
     if (!img || !img.startsWith("http")) {
       const driveImg = getDriveMainImage(item.model, item.mainModel);
       if (driveImg) img = driveImg;
@@ -1365,7 +1363,7 @@ if(copyQuoteBtn) {
     });
     text += "--------------------\n";
     navigator.clipboard.writeText(text)
-      .then(() => alert("已複製到剪貼簿"))
+      .then(() => alert("報價單已複製"))
       .catch(() => alert("複製失敗"));
   };
 }
