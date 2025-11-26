@@ -901,7 +901,7 @@ async function preloadProducts() {
     isProductsLoaded = true;
     isQuotesLoaded = true;
     const safeList = fullList.map(p => {
-      c = { ...p };
+      const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
       return c;
     });
@@ -1458,47 +1458,14 @@ if(clearQuoteBtn) {
   };
 }
 
-// Login Button Click Logic
-if(doLoginBtn) {
-  doLoginBtn.onclick = async () => {
-    const email = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
-    
-    if(!email || !password) {
-      loginError.textContent = "請輸入帳號和密碼";
-      loginError.style.display = "block";
-      return;
-    }
-
-    loginError.style.display = "none";
-    doLoginBtn.disabled = true;
-    doLoginBtn.textContent = "登入中...";
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // Success: onAuthStateChanged will handle the UI update
-    } catch (error) {
-      console.error(error);
-      loginError.textContent = "登入失敗：請檢查帳號密碼";
-      loginError.style.display = "block";
-      doLoginBtn.disabled = false;
-      doLoginBtn.textContent = "登入";
-    }
-  };
-}
-
 /* =======================================================
    Firebase Auth：登入後流程
 ======================================================= */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    // Show Login Overlay instead of redirecting
-    if(loginOverlay) loginOverlay.style.display = "flex";
+    window.location.href = "login.html";
     return;
   }
-  
-  // Hide Login Overlay if user is logged in
-  if(loginOverlay) loginOverlay.style.display = "none";
 
   currentUserEmail = user.email || "";
 
@@ -1561,7 +1528,7 @@ document.addEventListener("click", (e) => {
     let costText = "";
     if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
     if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
+    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n100個：${getPrice('quote1000')}\n`;
 
     const text = `【${item.model}】${item.name}
 賣場售價：${getPrice('marketPrice')}
