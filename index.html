@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.0.0）</title>
+<title>KINYO 查價系統（v4.15.10）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -472,7 +472,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v4.15.7）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v4.15.4）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -719,7 +719,7 @@ function shuffleArray(arr) {
 
 async function preloadDriveModelData() {
   try {
-    const res = await fetch(`./modelData.json?v=${Date.now()`, { cache: "no-store" });
+    const res = await fetch(`./modelData.json?v=${Date.now()}`, { cache: "no-store" });
     if (!res.ok) throw new Error("modelData.json 讀取失敗");
     const data = await res.json();
 
@@ -1081,7 +1081,6 @@ function showDetailDesktop(item) {
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
       const imgsHtml = netImages.slice(0, 6).map(url => { 
-          // Use Weserv proxy for safe display
           const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
           return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer;" onclick="window.open('${url}', '_blank')">`;
       }).join("");
@@ -1134,7 +1133,7 @@ function closeSheet() { mobileSheet.classList.remove("open"); setTimeout(() => {
 function bindCheckAll() {
   const rowChecks = document.querySelectorAll(".row-check");
   checkAllBox.onchange = () => { rowChecks.forEach(c => c.checked = checkAllBox.checked); updateMultiLineBtnState(); };
-  rowChecks.forEach(chk => { chk.onchange = () => { const all = document.querySelectorAll(".row-check"); const checked = document.querySelectorAll(".row-check:checked"); checkAllBox.checked = (all.length === checked.length); updateMultiLineBtnState(); }; };
+  rowChecks.forEach(chk => { chk.onchange = () => { const all = document.querySelectorAll(".row-check"); const checked = document.querySelectorAll(".row-check:checked"); checkAllBox.checked = (all.length === checked.length); updateMultiLineBtnState(); }; });
 }
 function updateMultiLineBtnState() { const checked = document.querySelectorAll(".row-check:checked"); if(multiLineBtn) multiLineBtn.disabled = checked.length === 0; }
 
