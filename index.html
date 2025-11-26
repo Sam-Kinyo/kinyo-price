@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.0.0）</title>
+<title>KINYO 查價系統（v5.1.0）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -360,6 +360,61 @@ th{background:#fafafa;text-align:left;}
 .quote-del:hover{color:#ef4444;}
 
 /* =========================================
+   Login Overlay
+========================================= */
+#loginOverlay {
+  position: fixed;
+  inset: 0;
+  background: #f5f6f8;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+.login-card {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+}
+.login-card h2 {
+  margin-top: 0;
+  color: var(--primary);
+}
+.login-input {
+  width: 100%;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-sizing: border-box;
+}
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--primary-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+.login-btn:hover {
+  background: #1d4ed8;
+}
+.login-error {
+  color: #ef4444;
+  margin-top: 10px;
+  font-size: 14px;
+  display: none;
+}
+
+/* =========================================
    RWD
 ========================================= */
 @media (max-width:900px){
@@ -454,6 +509,18 @@ th{background:#fafafa;text-align:left;}
 </head>
 <body>
 
+<!-- Login Overlay -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h2>KINYO 查價系統</h2>
+    <p style="color:#666;margin-bottom:20px;">請輸入帳號密碼登入</p>
+    <input type="email" id="loginEmail" class="login-input" placeholder="電子信箱">
+    <input type="password" id="loginPassword" class="login-input" placeholder="密碼">
+    <button id="doLoginBtn" class="login-btn">登入</button>
+    <div id="loginError" class="login-error"></div>
+  </div>
+</div>
+
 <!-- Loading -->
 <div id="centerLoadingBox">
   <div id="centerLoadingCard">
@@ -471,7 +538,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.0.0）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.1.0）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -564,7 +631,7 @@ const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IM
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, getDocs, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -580,40 +647,47 @@ const app  = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 const auth = getAuth(app);
 
-const searchForm     = document.getElementById("searchForm");
-const keywordInput   = document.getElementById("keyword");
-const qtySelect      = document.getElementById("qtySelect");
-const minPriceInput  = document.getElementById("minPrice");
-const maxPriceInput  = document.getElementById("maxPrice");
-const sortSelect     = document.getElementById("sortSelect");
-const exportBtn      = document.getElementById("exportBtn");
-const pptToolbarBtn  = document.getElementById("pptToolbarBtn");
-const multiLineBtn   = document.getElementById("multiLineBtn");
-const clearBtn       = document.getElementById("clearBtn");
+const searchForm      = document.getElementById("searchForm");
+const keywordInput    = document.getElementById("keyword");
+const qtySelect       = document.getElementById("qtySelect");
+const minPriceInput   = document.getElementById("minPrice");
+const maxPriceInput   = document.getElementById("maxPrice");
+const sortSelect      = document.getElementById("sortSelect");
+const exportBtn       = document.getElementById("exportBtn");
+const pptToolbarBtn   = document.getElementById("pptToolbarBtn");
+const multiLineBtn    = document.getElementById("multiLineBtn");
+const clearBtn        = document.getElementById("clearBtn");
 
-const resultTable    = document.getElementById("resultTable");
-const resultBody     = document.getElementById("resultBody");
-const checkAllBox    = document.getElementById("checkAll");
-const detailCard     = document.getElementById("detailCard");
+const resultTable     = document.getElementById("resultTable");
+const resultBody      = document.getElementById("resultBody");
+const checkAllBox     = document.getElementById("checkAll");
+const detailCard      = document.getElementById("detailCard");
 
-const userInfoSpan   = document.getElementById("userInfo");
-const logoutBtn      = document.getElementById("logoutBtn");
+const userInfoSpan    = document.getElementById("userInfo");
+const logoutBtn       = document.getElementById("logoutBtn");
 
-const sheetBackdrop  = document.getElementById("sheetBackdrop");
-const mobileSheet    = document.getElementById("mobileDetailSheet");
-const sheetContent   = document.getElementById("sheetContent");
-const sheetCloseBtn  = document.getElementById("sheetCloseBtn");
+const sheetBackdrop   = document.getElementById("sheetBackdrop");
+const mobileSheet     = document.getElementById("mobileDetailSheet");
+const sheetContent    = document.getElementById("sheetContent");
+const sheetCloseBtn   = document.getElementById("sheetCloseBtn");
 
-const quoteSheet     = document.getElementById("quoteSheet");
-const quoteCloseBtn  = document.getElementById("quoteCloseBtn");
-const quoteListBody  = document.getElementById("quoteListBody");
-const copyQuoteBtn   = document.getElementById("copyQuoteBtn");
-const clearQuoteBtn  = document.getElementById("clearQuoteBtn");
+const quoteSheet      = document.getElementById("quoteSheet");
+const quoteCloseBtn   = document.getElementById("quoteCloseBtn");
+const quoteListBody   = document.getElementById("quoteListBody");
+const copyQuoteBtn    = document.getElementById("copyQuoteBtn");
+const clearQuoteBtn   = document.getElementById("clearQuoteBtn");
 const downloadQuoteExcelBtn = document.getElementById("downloadQuoteExcelBtn");
 const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
 
 const centerLoadingBox = document.getElementById("centerLoadingBox");
 const centerLoadingBar = document.getElementById("centerLoadingBar");
+
+// Login Elements
+const loginOverlay = document.getElementById("loginOverlay");
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const doLoginBtn = document.getElementById("doLoginBtn");
+const loginError = document.getElementById("loginError");
 
 let productCache = [];
 let currentResultList = [];
@@ -649,7 +723,7 @@ function saveCache(data) {
 
 let driveMap = new Map();
 let mainFolderMap = new Map();
-let netMap   = new Map();
+let netMap    = new Map();
 let netImagesMap = new Map();
 let isDriveLoaded = false;
 
@@ -1384,14 +1458,47 @@ if(clearQuoteBtn) {
   };
 }
 
+// Login Button Click Logic
+if(doLoginBtn) {
+  doLoginBtn.onclick = async () => {
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+    
+    if(!email || !password) {
+      loginError.textContent = "請輸入帳號和密碼";
+      loginError.style.display = "block";
+      return;
+    }
+
+    loginError.style.display = "none";
+    doLoginBtn.disabled = true;
+    doLoginBtn.textContent = "登入中...";
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // Success: onAuthStateChanged will handle the UI update
+    } catch (error) {
+      console.error(error);
+      loginError.textContent = "登入失敗：請檢查帳號密碼";
+      loginError.style.display = "block";
+      doLoginBtn.disabled = false;
+      doLoginBtn.textContent = "登入";
+    }
+  };
+}
+
 /* =======================================================
    Firebase Auth：登入後流程
 ======================================================= */
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    window.location.href = "login.html";
+    // Show Login Overlay instead of redirecting
+    if(loginOverlay) loginOverlay.style.display = "flex";
     return;
   }
+  
+  // Hide Login Overlay if user is logged in
+  if(loginOverlay) loginOverlay.style.display = "none";
 
   currentUserEmail = user.email || "";
 
@@ -1454,7 +1561,7 @@ document.addEventListener("click", (e) => {
     let costText = "";
     if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
     if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n100個：${getPrice('quote1000')}\n`;
+    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
 
     const text = `【${item.model}】${item.name}
 賣場售價：${getPrice('marketPrice')}
@@ -1489,31 +1596,43 @@ ${costText}
   }
 });
 
-if(multiLineBtn) {
-  // 🚀 修復：multiLineBtn 綁定
-  multiLineBtn.onclick = () => {
-    const checked = document.querySelectorAll(".row-check:checked");
-    if (checked.length === 0) return;
+if (multiLineBtn) {
+    multiLineBtn.onclick = () => {
+        const checked = document.querySelectorAll(".row-check:checked");
+        if (checked.length === 0) {
+            alert("請先勾選要分享的商品");
+            return;
+        }
 
-    let text = "KINYO 多品項報價\n--------------------\n";
-    Array.from(checked).forEach((c, i) => {
-      const model = c.getAttribute("data-model");
-      const item  = currentResultList.find(p => p.model === model);
-      if (!item) return;
+        const qty = qtySelect.value || "50";
+        let text = `KINYO 多品項報價（起訂量：${qty}個）\n--------------------\n`;
 
-      const qty  = qtySelect.value || "50";
-      const ck   = `quote${qty}`;
-      const showPrice = userLevel >= 1;
-      const cost = showPrice ? (item[ck] ?? item.quote50 ?? "-") : "---";
+        Array.from(checked).forEach((c, i) => {
+            const model = c.getAttribute("data-model");
+            const item = currentResultList.find(p => p.model === model);
+            if (!item) return;
 
-      text += `${i+1}. 【${item.model}】${item.name}\n   ${qty}個：$${cost}\n`;
-    });
+            const showPrice = userLevel >= 1;
+            const ck = `quote${qty}`;
+            
+            // Logic to get quote, market price, and link
+            const cost = showPrice ? (item[ck] ?? item.quote50 ?? "-") : "---";
+            const market = showPrice ? (item.marketPrice ?? "-") : "---";
+            const link = item.productUrl || "無連結";
 
-    text += "--------------------\n";
-    navigator.clipboard.writeText(text)
-      .then(() => alert("多選報價已複製"))
-      .catch(() => alert("複製失敗"));
-  };
+            text += `${i + 1}. 【${item.model}】${item.name}\n`;
+            text += `   💰 ${qty}個報價：$${cost}\n`;
+            text += `   🛒 賣場售價：$${market}\n`;
+            text += `   🔗 商品連結：${link}\n\n`;
+        });
+
+        text += "--------------------\n";
+        text += "以上報價僅供參考，實際以最終確認為主。";
+
+        navigator.clipboard.writeText(text)
+            .then(() => alert(`已複製 ${checked.length} 項商品的報價資訊！請直接在 LINE 貼上。`))
+            .catch(() => alert("複製失敗，請手動複製。"));
+    };
 }
 
 if(sortSelect) {
