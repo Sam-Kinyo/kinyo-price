@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.5.3）</title>
+<title>KINYO 查價系統（v5.5.4）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -576,7 +576,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.5.3）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.5.4）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -825,6 +825,16 @@ function updateMultiLineBtnState() {
     toolbar.classList.remove('fixed-active');
     if(spacer) spacer.style.display = 'none';
   }
+}
+
+// 🚀 補回遺失的 updateQuoteToolbarBtn 函式
+function updateQuoteToolbarBtn() { 
+  if (quoteList.length > 0) { 
+    quoteToolbarBtn.style.display = "inline-block"; 
+    quoteToolbarBtn.textContent = `報價單（${quoteList.length}）`; 
+  } else { 
+    quoteToolbarBtn.style.display = "none"; 
+  } 
 }
 
 function bindCheckAll() {
@@ -1490,7 +1500,7 @@ async function exportSelectedPPT(source = 'checked') {
   }
 }
 
-// 🚀 補回遺失的 exportSelectedExcel 函式
+// 🚀 重新加入 exportSelectedExcel 函式 (避免遺失)
 function exportSelectedExcel() {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
