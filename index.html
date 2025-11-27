@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.5.4）</title>
+<title>KINYO 查價系統（v5.5.5）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -576,7 +576,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.5.4）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.5.5）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -768,7 +768,7 @@ let netMap    = new Map();
 let netImagesMap = new Map();
 let isDriveLoaded = false;
 
-// 🚀 HELPER FUNCTIONS
+// 🚀 HELPER FUNCTIONS (Moved to Top)
 function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
@@ -784,6 +784,52 @@ function closeSheet() { mobileSheet.classList.remove("open"); setTimeout(() => {
 
 function openQuoteSheet() { sheetBackdrop.classList.remove("hidden"); quoteSheet.classList.remove("hidden"); requestAnimationFrame(() => quoteSheet.classList.add("open")); renderQuoteList(); }
 function closeQuoteSheet() { quoteSheet.classList.remove("open"); setTimeout(() => quoteSheet.classList.add("hidden"), 220); if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }
+
+// 🚀 更新報價單按鈕狀態 (Moved to Top)
+function updateQuoteToolbarBtn() { 
+  if (quoteList.length > 0) { 
+    quoteToolbarBtn.style.display = "inline-block"; 
+    quoteToolbarBtn.textContent = `報價單（${quoteList.length}）`; 
+  } else { 
+    quoteToolbarBtn.style.display = "none"; 
+  } 
+}
+
+// 🚀 更新多選按鈕與浮動工具列 (Moved to Top)
+function updateMultiLineBtnState() { 
+  const checked = document.querySelectorAll(".row-check:checked");
+  const hasChecked = checked.length > 0;
+  
+  if(multiLineBtn) multiLineBtn.disabled = !hasChecked;
+  if(exportBtn) exportBtn.disabled = !hasChecked; // 同步匯出按鈕狀態
+  
+  const toolbar = document.querySelector('.toolbar');
+  const spacer = document.getElementById('toolbarSpacer');
+  
+  if (hasChecked) {
+    toolbar.classList.add('fixed-active');
+    if(spacer) spacer.style.display = 'block';
+  } else {
+    toolbar.classList.remove('fixed-active');
+    if(spacer) spacer.style.display = 'none';
+  }
+}
+
+// 🚀 渲染報價單列表 (Moved to Top)
+function renderQuoteList() {
+  quoteListBody.innerHTML = ""; if (quoteList.length === 0) { quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的</div>`; return; }
+  quoteList.forEach((q, idx) => {
+    const div = document.createElement("div"); div.className = "quote-item";
+    
+    // Quote List 也需要依照權限顯示價格
+    const showPrice = true; // 報價單內通常顯示加入時的價格
+    const priceDisplay = `$${q.price}`;
+
+    div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
+    quoteListBody.appendChild(div);
+  });
+  document.querySelectorAll(".quote-del").forEach(btn => { btn.onclick = (e) => { const i = Number(e.target.getAttribute("data-idx")); quoteList.splice(i, 1); renderQuoteList(); updateQuoteToolbarBtn(); }; });
+}
 
 // 🚀 更新使用者狀態顯示
 function updateUserDisplay(status) {
@@ -805,42 +851,6 @@ function updateUserDisplay(status) {
     userInfoSpan.style.background = ""; 
     userInfoSpan.style.color = "";
   }
-}
-
-// 🚀 修正：當勾選時觸發工具列浮動 (Fixed Active)
-function updateMultiLineBtnState() { 
-  const checked = document.querySelectorAll(".row-check:checked");
-  const hasChecked = checked.length > 0;
-  
-  if(multiLineBtn) multiLineBtn.disabled = !hasChecked;
-  if(exportBtn) exportBtn.disabled = !hasChecked; // 同步匯出按鈕狀態
-  
-  const toolbar = document.querySelector('.toolbar');
-  const spacer = document.getElementById('toolbarSpacer');
-  
-  if (hasChecked) {
-    toolbar.classList.add('fixed-active');
-    if(spacer) spacer.style.display = 'block';
-  } else {
-    toolbar.classList.remove('fixed-active');
-    if(spacer) spacer.style.display = 'none';
-  }
-}
-
-// 🚀 補回遺失的 updateQuoteToolbarBtn 函式
-function updateQuoteToolbarBtn() { 
-  if (quoteList.length > 0) { 
-    quoteToolbarBtn.style.display = "inline-block"; 
-    quoteToolbarBtn.textContent = `報價單（${quoteList.length}）`; 
-  } else { 
-    quoteToolbarBtn.style.display = "none"; 
-  } 
-}
-
-function bindCheckAll() {
-  const rowChecks = document.querySelectorAll(".row-check");
-  checkAllBox.onchange = () => { rowChecks.forEach(c => c.checked = checkAllBox.checked); updateMultiLineBtnState(); };
-  rowChecks.forEach(chk => { chk.onchange = () => { const all = document.querySelectorAll(".row-check"); const checked = document.querySelectorAll(".row-check:checked"); checkAllBox.checked = (all.length === checked.length); updateMultiLineBtnState(); }; });
 }
 
 // 🚀 Firestore Retry Helper
