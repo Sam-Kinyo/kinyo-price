@@ -55,6 +55,53 @@
       "netFolderUrl": "https://drive.google.com/drive/folders/1JEeviidO-f7J8bCK0SHmnTz5kcRLO89G"
     },
     {
+      "mainModel": "REP10",
+      "mainImage": "https://drive.google.com/uc?id=1G3SRH9ttF_6TwSVM6DWCv_jS1SuK19yr",
+      "netImages": [
+        "https://drive.google.com/uc?id=1G3SRH9ttF_6TwSVM6DWCv_jS1SuK19yr",
+        "https://drive.google.com/uc?id=1Z91LLyVpUYurq_rHyJlDiX9jcqLwc2jL",
+        "https://drive.google.com/uc?id=1mvtpVFSRISGVxN7KnhaiR7L1ybZCwz2v",
+        "https://drive.google.com/uc?id=1HDq8OL-QfHpxuMmgiq1gMBB2nB4KQDwg",
+        "https://drive.google.com/uc?id=1tVe1C0fu30N0uxoOwUjfGuWj0mv3kioh",
+        "https://drive.google.com/uc?id=1IWRvehVUP-vekijwwzRmti33zkDj8_vy",
+        "https://drive.google.com/uc?id=1X2-ykPsMaGD6NUnvCm1qThT_a3yPcNed",
+        "https://drive.google.com/uc?id=1TXoBBdiLzzipaFOnoePtI063GcCeZ7RA"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1qjs7B7MoEE84hbRKORnqMEyN14ldamRY",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1WU0CsQVRJNd4aKirIqvF1Gz5bwWP_DC-"
+    },
+    {
+      "mainModel": "REP15",
+      "mainImage": "https://drive.google.com/uc?id=1kuxtkl7gRMSqBcqcm0EqbCrApfAH1lXE",
+      "netImages": [
+        "https://drive.google.com/uc?id=1kuxtkl7gRMSqBcqcm0EqbCrApfAH1lXE",
+        "https://drive.google.com/uc?id=1x-eYXRvyw4JE5GYTL8HS50AZidFfDd0m",
+        "https://drive.google.com/uc?id=1BZWDrCemEcOjeKOZUAcAmsSyB-GqU9Ok",
+        "https://drive.google.com/uc?id=11hQEqUfrFsLxCX9xqy_4O00i1ZIE3bPh",
+        "https://drive.google.com/uc?id=1_2E1Y_99Ax5OTeUGiMjKQShVOnMtUniB",
+        "https://drive.google.com/uc?id=16tArthFBMVuBjv8kIvIw-mfLNbjKL3jx",
+        "https://drive.google.com/uc?id=1rnca4DUlX9S7pU3x_Dp-GiJof0sWNxMI"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1F8WZqKAgMVJqEd8Rthhv7c4nVugx7yVz",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1REFe3Jf9AMRW9spmMJZxbLus6QiHqf_W"
+    },
+    {
+      "mainModel": "REP18",
+      "mainImage": "https://drive.google.com/uc?id=1rqsoKndcT7ncvi9gMaI6kYYY8wWlRYEN",
+      "netImages": [
+        "https://drive.google.com/uc?id=1rqsoKndcT7ncvi9gMaI6kYYY8wWlRYEN",
+        "https://drive.google.com/uc?id=1Up51o8uEC8iFYWZzwWRk9QoTmFcOcH68",
+        "https://drive.google.com/uc?id=1XXx5Ous81vthUb8WToZ8ivcgiG1FUeod",
+        "https://drive.google.com/uc?id=1Q17h0TW5WK9DN8dbm4ASBVpSvRHF4AE5",
+        "https://drive.google.com/uc?id=13fZfx04912QwsdVIpQpiQcyKFZWv7uPo",
+        "https://drive.google.com/uc?id=17fP0mZCAeZ4i8dHkxzZrbudcN1R8WDZb",
+        "https://drive.google.com/uc?id=1YxrEqkDiHZQESS3DK9HOhRXBXuWgFKXs",
+        "https://drive.google.com/uc?id=1gW_ygKMDid0dT1anFqekDZHcDMY5dtm4"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1o9_ZVRBK249dmdn0r_mAAMovK58crkUu",
+      "netFolderUrl": "https://drive.google.com/drive/folders/1w9sNztMl371rQnaUkMMCtX1X0QTX7cQZ"
+    },
+    {
       "mainModel": "KY1793",
       "mainImage": "https://drive.google.com/uc?id=1BV5Kk-j3ipy2AMVIOiE_gJhaS_gb_rnn",
       "netImages": [
