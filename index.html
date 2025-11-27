@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.5.9）</title>
+<title>KINYO 查價系統（v5.6.0）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -94,27 +94,35 @@ h1{margin:0 0 4px;}
 }
 .toolbar select{ flex:1; min-width: 120px; }
 
-/* 工具列懸浮樣式 */
+/* 工具列懸浮樣式 - 改為置頂且與搜尋列等寬 */
 .toolbar.fixed-active {
   position: fixed;
-  bottom: 30px;
+  top: 24px; /* 改為置頂，距離與 body padding 一致 */
   left: 50%;
   transform: translateX(-50%);
+  bottom: auto; /* 清除底部定位 */
+  
   z-index: 2000;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.98); /* 稍微增加不透明度 */
   backdrop-filter: blur(10px);
   padding: 12px 20px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+  
+  /* 陰影改為向下 */
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   border: 1px solid rgba(0,0,0,0.1);
-  border-radius: 24px;
-  width: auto;
-  max-width: 92%;
-  justify-content: center;
-  animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  
+  /* 寬度與圓角調整 */
+  width: calc(100% - 48px); /* 扣除 body 的左右 padding (24px * 2) */
+  max-width: 980px; /* 與主容器最大寬度一致 */
+  border-radius: 12px; /* 改為 12px 以匹配搜尋框風格 */
+  
+  justify-content: flex-start; /* 內容靠左對齊 */
+  animation: popDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-@keyframes popUp {
-  from { transform: translate(-50%, 100%); opacity: 0; }
+/* 改為從上方滑入的動畫 */
+@keyframes popDown {
+  from { transform: translate(-50%, -120%); opacity: 0; }
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 
@@ -463,6 +471,12 @@ th{background:#fafafa;text-align:left;}
   .search-box{padding:14px;}
   input,select{font-size:14px;}
   
+  /* 手機版工具列調整 */
+  .toolbar.fixed-active {
+    width: calc(100% - 28px); /* 14px padding * 2 */
+    top: 14px;
+  }
+
   /* RWD Card View Styles */
   thead { display: none; }
   table, tbody, tr, td { display: block; width: 100%; }
@@ -576,7 +590,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.5.9）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.6.0）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
