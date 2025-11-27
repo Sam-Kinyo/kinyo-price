@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.6.2）</title>
+<title>KINYO 查價系統（v5.6.3）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -587,7 +587,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.6.2）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.6.3）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -623,6 +623,7 @@ th{background:#fafafa;text-align:left;}
     <option value="alphaAsc">主型號：A → Z</option>
     <option value="alphaDesc">主型號：Z → A</option>
   </select>
+  <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
   <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
@@ -707,6 +708,7 @@ const sortSelect      = document.getElementById("sortSelect");
 const exportBtn       = document.getElementById("exportBtn");
 const pptToolbarBtn   = document.getElementById("pptToolbarBtn");
 const multiLineBtn    = document.getElementById("multiLineBtn");
+const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
 
 const resultTable     = document.getElementById("resultTable");
@@ -912,6 +914,7 @@ function updateMultiLineBtnState() {
   if(multiLineBtn) multiLineBtn.disabled = !hasCheckedItems;
   if(exportBtn) exportBtn.disabled = !hasCheckedItems; 
   if(pptToolbarBtn) pptToolbarBtn.disabled = !hasCheckedItems; 
+  if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = !hasCheckedItems; // 🚀 同步更新「加入候選清單」按鈕
   
   // 立即呼叫一次滾動檢查，確保當下位置正確
   updateToolbarScrollState();
@@ -1757,6 +1760,7 @@ if(clearBtn) {
     exportBtn.disabled = true;
     if(pptToolbarBtn) pptToolbarBtn.disabled = true;
     if(multiLineBtn) multiLineBtn.disabled = true;
+    if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = true; // 🚀 更新按鈕狀態
     checkAllBox.checked = false;
     detailCard.style.display = "none";
   };
@@ -1875,16 +1879,24 @@ document.addEventListener("click", (e) => {
     const ck  = `quote${qty}`;
     const cost = item[ck] ?? item.quote50 ?? 0;
 
-    quoteList.push({
-      model: item.model,
-      name: item.name,
-      price: cost,
-      qtyLabel: `${qty}個`,
-      count: 1
-    });
+    // Check if item already exists in quote list with same qty
+    const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === `${qty}個`);
+    
+    if (existingIndex > -1) {
+        quoteList[existingIndex].count += 1;
+        alert(`已更新報價單：${item.name} (數量: ${quoteList[existingIndex].count})`);
+    } else {
+        quoteList.push({
+          model: item.model,
+          name: item.name,
+          price: cost,
+          qtyLabel: `${qty}個`,
+          count: 1
+        });
+        alert(`已加入報價單（${qty}個：$${cost}）`);
+    }
 
     updateQuoteToolbarBtn();
-    alert(`已加入報價單（${qty}個：$${cost}）`);
     return;
   }
 
@@ -1935,6 +1947,49 @@ ${costText}
       });
   }
 });
+
+// 🚀 新增：批次加入候選清單按鈕邏輯
+if (batchAddQuoteBtn) {
+    batchAddQuoteBtn.onclick = () => {
+        const checked = document.querySelectorAll(".row-check:checked");
+        if (checked.length === 0) {
+            alert("請先勾選要加入候選清單的商品");
+            return;
+        }
+
+        const qty = qtySelect.value || "50";
+        let addedCount = 0;
+
+        Array.from(checked).forEach(c => {
+            const model = c.getAttribute("data-model");
+            const item = currentResultList.find(p => p.model === model);
+            if (!item) return;
+
+            const ck = `quote${qty}`;
+            const cost = item[ck] ?? item.quote50 ?? 0;
+            const qtyLabel = `${qty}個`;
+
+            // Check duplicate
+            const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === qtyLabel);
+
+            if (existingIndex > -1) {
+                quoteList[existingIndex].count += 1;
+            } else {
+                quoteList.push({
+                    model: item.model,
+                    name: item.name,
+                    price: cost,
+                    qtyLabel: qtyLabel,
+                    count: 1
+                });
+            }
+            addedCount++;
+        });
+
+        updateQuoteToolbarBtn();
+        alert(`已成功將 ${addedCount} 項商品加入候選清單！`);
+    };
+}
 
 if (multiLineBtn) {
     multiLineBtn.onclick = () => {
