@@ -785,7 +785,7 @@ function closeSheet() { mobileSheet.classList.remove("open"); setTimeout(() => {
 function openQuoteSheet() { sheetBackdrop.classList.remove("hidden"); quoteSheet.classList.remove("hidden"); requestAnimationFrame(() => quoteSheet.classList.add("open")); renderQuoteList(); }
 function closeQuoteSheet() { quoteSheet.classList.remove("open"); setTimeout(() => quoteSheet.classList.add("hidden"), 220); if (mobileSheet.classList.contains("hidden")) sheetBackdrop.classList.add("hidden"); }
 
-// 🚀 更新使用者狀態顯示 (用於搜尋中提示)
+// 🚀 更新使用者狀態顯示
 function updateUserDisplay(status) {
   if (!userInfoSpan) return;
   if (status === 'searching') {
@@ -805,6 +805,32 @@ function updateUserDisplay(status) {
     userInfoSpan.style.background = ""; 
     userInfoSpan.style.color = "";
   }
+}
+
+// 🚀 修正：當勾選時觸發工具列浮動 (Fixed Active)
+function updateMultiLineBtnState() { 
+  const checked = document.querySelectorAll(".row-check:checked");
+  const hasChecked = checked.length > 0;
+  
+  if(multiLineBtn) multiLineBtn.disabled = !hasChecked;
+  if(exportBtn) exportBtn.disabled = !hasChecked; // 同步匯出按鈕狀態
+  
+  const toolbar = document.querySelector('.toolbar');
+  const spacer = document.getElementById('toolbarSpacer');
+  
+  if (hasChecked) {
+    toolbar.classList.add('fixed-active');
+    if(spacer) spacer.style.display = 'block';
+  } else {
+    toolbar.classList.remove('fixed-active');
+    if(spacer) spacer.style.display = 'none';
+  }
+}
+
+function bindCheckAll() {
+  const rowChecks = document.querySelectorAll(".row-check");
+  checkAllBox.onchange = () => { rowChecks.forEach(c => c.checked = checkAllBox.checked); updateMultiLineBtnState(); };
+  rowChecks.forEach(chk => { chk.onchange = () => { const all = document.querySelectorAll(".row-check"); const checked = document.querySelectorAll(".row-check:checked"); checkAllBox.checked = (all.length === checked.length); updateMultiLineBtnState(); }; });
 }
 
 // 🚀 Firestore Retry Helper
@@ -1307,9 +1333,6 @@ async function buildProductSlide(pptx, item, tier, customInfo = null){
   const slide = pptx.addSlide();
   
   // PPT 顯示邏輯：依照權限顯示
-  // 如果是從報價單生成 (customInfo 存在)，則直接使用報價單的價格
-  // 如果是從搜尋結果生成，則需檢查權限
-  
   const showMinPrice = userLevel >= 1;
   let canSeeQuote = false;
   if (customInfo) {
@@ -1467,7 +1490,7 @@ async function exportSelectedPPT(source = 'checked') {
   }
 }
 
-// 🚀 重新加入 exportSelectedExcel 函式 (避免遺失)
+// 🚀 補回遺失的 exportSelectedExcel 函式
 function exportSelectedExcel() {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
@@ -1621,12 +1644,6 @@ if(doLoginBtn) {
       await signInWithEmailAndPassword(auth, email, password);
       // Success: onAuthStateChanged will handle the UI update
     } catch (error) {
-      // 🚀 忽略這個特定的非致命錯誤
-      if (error.message && error.message.includes("message channel closed")) {
-          console.warn("Ignored non-fatal auth error:", error);
-          return;
-      }
-      
       console.error(error);
       loginError.textContent = "登入失敗：請檢查帳號密碼";
       loginError.style.display = "block";
