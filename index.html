@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.6.0）</title>
+<title>KINYO 查價系統（v5.6.1）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -94,33 +94,30 @@ h1{margin:0 0 4px;}
 }
 .toolbar select{ flex:1; min-width: 120px; }
 
-/* 工具列懸浮樣式 - 改為置頂且與搜尋列等寬 */
+/* 工具列懸浮樣式 - 置頂且與搜尋列等寬 */
 .toolbar.fixed-active {
   position: fixed;
-  top: 24px; /* 改為置頂，距離與 body padding 一致 */
+  top: 24px;
   left: 50%;
   transform: translateX(-50%);
-  bottom: auto; /* 清除底部定位 */
+  bottom: auto;
   
   z-index: 2000;
-  background: rgba(255, 255, 255, 0.98); /* 稍微增加不透明度 */
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(10px);
   padding: 12px 20px;
   
-  /* 陰影改為向下 */
   box-shadow: 0 4px 20px rgba(0,0,0,0.15);
   border: 1px solid rgba(0,0,0,0.1);
   
-  /* 寬度與圓角調整 */
-  width: calc(100% - 48px); /* 扣除 body 的左右 padding (24px * 2) */
-  max-width: 980px; /* 與主容器最大寬度一致 */
-  border-radius: 12px; /* 改為 12px 以匹配搜尋框風格 */
+  width: calc(100% - 48px);
+  max-width: 980px;
+  border-radius: 12px;
   
-  justify-content: flex-start; /* 內容靠左對齊 */
+  justify-content: flex-start;
   animation: popDown 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-/* 改為從上方滑入的動畫 */
 @keyframes popDown {
   from { transform: translate(-50%, -120%); opacity: 0; }
   to { transform: translate(-50%, 0); opacity: 1; }
@@ -473,7 +470,7 @@ th{background:#fafafa;text-align:left;}
   
   /* 手機版工具列調整 */
   .toolbar.fixed-active {
-    width: calc(100% - 28px); /* 14px padding * 2 */
+    width: calc(100% - 28px);
     top: 14px;
   }
 
@@ -590,7 +587,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.6.0）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.6.1）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -879,6 +876,7 @@ function updateMultiLineBtnState() {
   
   if(multiLineBtn) multiLineBtn.disabled = !hasChecked;
   if(exportBtn) exportBtn.disabled = !hasChecked; 
+  if(pptToolbarBtn) pptToolbarBtn.disabled = !hasChecked; // 確保 PPT 按鈕狀態更新
   
   const toolbar = document.querySelector('.toolbar');
   const spacer = document.getElementById('toolbarSpacer');
@@ -1535,7 +1533,7 @@ async function buildProductSlide(pptx, item, tier, customInfo = null){
   slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
 }
 
-// 🚀 重新加入 exportSelectedPPT 函式 (避免遺失)
+// 🚀 重新加入 exportSelectedPPT 函式 (批量分檔邏輯)
 async function exportSelectedPPT(source = 'checked') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
   
@@ -1543,6 +1541,7 @@ async function exportSelectedPPT(source = 'checked') {
   let tier = qtySelect.value || "50";
   let isFromQuoteList = false;
 
+  // 1. 收集選取的商品
   if (source === 'quote') {
       if (quoteList.length === 0) { alert("報價單是空的"); return; }
       selectedItems = quoteList.map(q => {
@@ -1559,7 +1558,6 @@ async function exportSelectedPPT(source = 'checked') {
   } else {
       const checks = Array.from(document.querySelectorAll(".row-check:checked"));
       if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-      if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
       
       selectedItems = checks.map(cb => {
           const model = cb.dataset.model;
@@ -1572,25 +1570,47 @@ async function exportSelectedPPT(source = 'checked') {
 
   if (selectedItems.length === 0) { alert("找不到商品資料，無法生成 PPT。"); return; }
 
+  // 2. 設定按鈕狀態
   const btn = source === 'quote' ? pptFromQuoteBtn : pptToolbarBtn;
   const originalText = btn.textContent;
   btn.disabled = true; 
-  btn.textContent = "PPT 生成中...";
 
   try {
-    const pptx = new PptxGenJS();
-    pptx.layout = "LAYOUT_4x3"; 
-    pptx.author = "KINYO Price System";
-    pptx.company = "KINYO";
-    pptx.title = `KINYO Quote`;
-
-    for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier, item.customQuoteInfo);
+    // 3. 🚀 批次處理邏輯：每 13 個一組
+    const CHUNK_SIZE = 13;
+    const batches = [];
+    for (let i = 0; i < selectedItems.length; i += CHUNK_SIZE) {
+        batches.push(selectedItems.slice(i, i + CHUNK_SIZE));
     }
-    
+
+    // 4. 迴圈生成每個檔案
     const salesName = "郭庭豪";
     const salesPhone = "0976-966333";
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-@${salesName}-@${salesPhone}.pptx` });
+
+    for (let i = 0; i < batches.length; i++) {
+        // 更新按鈕文字，顯示進度
+        btn.textContent = `生成中 (${i + 1}/${batches.length})...`;
+
+        const pptx = new PptxGenJS();
+        pptx.layout = "LAYOUT_4x3"; 
+        pptx.author = "KINYO Price System";
+        pptx.company = "KINYO";
+        pptx.title = `KINYO Quote`;
+
+        const currentBatch = batches[i];
+        for (const item of currentBatch) {
+            await buildProductSlide(pptx, item, tier, item.customQuoteInfo);
+        }
+        
+        // 檔名加上 Part 後綴 (如果超過一份)
+        let filename = `KINYO-商品推薦報價-@${salesName}-@${salesPhone}`;
+        if (batches.length > 1) {
+            filename += `_Part${i + 1}`;
+        }
+        filename += ".pptx";
+
+        await pptx.writeFile({ fileName: filename });
+    }
 
   } catch (e) {
     console.error(e);
