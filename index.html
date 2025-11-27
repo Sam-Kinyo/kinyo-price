@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.5.7）</title>
+<title>KINYO 查價系統（v5.5.6）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -576,7 +576,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.5.7）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.5.6）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -1349,6 +1349,106 @@ function showDetailDesktop(item) {
   `;
 }
 
+function getQuoteByTier(item, tier){ 
+  const key = "quote" + String(tier); 
+  return (item && item[key] != null) ? item[key] : ""; 
+}
+
+async function buildProductSlide(pptx, item, tier, customInfo = null){
+  const slide = pptx.addSlide();
+  
+  // PPT 顯示邏輯：依照權限顯示
+  const showMinPrice = userLevel >= 1;
+  let canSeeQuote = false;
+  if (customInfo) {
+      canSeeQuote = true; // 報價單內的項目視為已確認可見
+  } else {
+      if (userLevel >= 1 && tier == 50) canSeeQuote = true;
+      if (userLevel >= 2 && (tier == 100 || tier == 300)) canSeeQuote = true;
+      if (userLevel >= 3 && (tier == 500 || tier == 1000)) canSeeQuote = true;
+  }
+
+  const getPrice = (p) => (item[p] ?? "-");
+  
+  // 1. Header Area (White Background)
+  const logoData = await fetchAsDataURL(COMPANY_LOGO_URL);
+  if(logoData){
+    slide.addImage({ data: logoData, x:0.4, y:0.2, w:2.4, h:1.2, sizing: { type:'contain' } });
+  } else {
+    slide.addText("KINYO", { x:0.4, y:0.3, fontSize:24, bold:true, color:'000000' });
+  }
+  
+  // Title (Middle-Left) - Black Text
+  slide.addText(`${item.name || ""}`, { x:3.0, y:0.2, w:4.0, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
+
+  // Quote Info (Right) - Stacked
+  slide.addText(`賣場價: $${getPrice('marketPrice')}`, { x:7.2, y:0.2, w:2.5, h:0.4, fontSize:14, color:'6B7280', fontFace:"Microsoft JhengHei", align:'right' });
+  
+  // Quote (Blue Qty, Red Price) - Only if visible
+  let quoteText = "---";
+  let tierLabel = `${tier}pcs`;
+
+  if (customInfo) {
+      // 使用報價單內的資訊
+      quoteText = `$${customInfo.price}`;
+      tierLabel = customInfo.qtyLabel || `${tier}pcs`;
+  } else if (canSeeQuote) {
+      // 使用搜尋結果的資訊
+      quoteText = `$${getPrice('quote' + tier)}`;
+  }
+
+  slide.addText(
+    [
+      { text: `報價(${tierLabel}): `, options: { color:'1E3A8A', bold:true, fontSize:14 } },
+      { text: quoteText, options: { color:'DC2626', bold:true, fontSize:20 } }
+    ],
+    { x:7.2, y:0.6, w:2.5, h:0.4, align:'right', fontFace:"Microsoft JhengHei" }
+  );
+
+  // Divider Line
+  slide.addShape(pptx.ShapeType.line, { x:0.4, y:1.2, w:9.2, h:0, line:{color:'E5E7EB', width:1} });
+
+  // 3. Images Grid (2x3) - 4:3 Layout
+  const netImgs = getDriveNetImages(item.model, item.mainModel) || [];
+  const netImgsPicked = pickRandom(netImgs, 6);
+
+  const startY = 1.5; 
+  const w = 2.8; const h = 2.4; 
+  
+  const colX = [0.4, 3.6, 6.8];
+  const rowY = [startY, startY + h + 0.3];
+
+  let idx = 0;
+  for(let r=0; r<2; r++){
+    for(let c=0; c<3; c++){
+      if(idx >= netImgsPicked.length) break;
+      const url = netImgsPicked[idx];
+      
+      slide.addShape(pptx.ShapeType.rect, { 
+        x:colX[c], y:rowY[r], w:w, h:h, 
+        fill:{color:'FFFFFF'}, 
+        line:{color:'E5E7EB', width:1},
+        shadow: { type:'outer', angle:45, blur:8, offset:3, color:'000000', opacity:0.15 } 
+      });
+
+      const dataUrl = await fetchAsDataURL(url);
+      if(dataUrl){
+        slide.addImage({ 
+          data:dataUrl, 
+          x:colX[c]+0.1, y:rowY[r]+0.1, w:w-0.2, h:h-0.2,
+          sizing: { type: 'contain', w:w-0.2, h:h-0.2 } 
+        });
+      } else {
+        slide.addText("No Image", { x:colX[c], y:rowY[r]+1, w:w, align:'center', fontSize:12, color:'9CA3AF' });
+      }
+      idx++;
+    }
+  }
+
+  // 4. Footer
+  slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
+}
+
 // 🚀 重新加入 exportSelectedPPT 函式 (避免遺失)
 async function exportSelectedPPT(source = 'checked') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
@@ -1471,39 +1571,302 @@ function downloadQuoteExcel() {
   XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-// --- PPT Logic Updated (4:3 Style with Image Locking) ---
-// Helper: Pick random N items, but ensure index 0 (Main Image) is kept first
-function pickRandom(arr, n){ 
-  if(!Array.isArray(arr) || arr.length === 0) return [];
-  const first = arr[0]; // The Python script already ensures index 0 is _01
-  const others = arr.slice(1);
-  const shuffledOthers = shuffleArray(others);
-  const pickedOthers = shuffledOthers.slice(0, n - 1); 
-  return [first, ...pickedOthers];
+/* =======================================================
+   Event Listeners (Bind within Module)
+======================================================= */
+searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
+exportBtn.onclick = exportSelectedExcel;
+logoutBtn.onclick = () => {
+    if(confirm("確定要登出嗎？")) {
+        signOut(auth).then(() => {
+            window.location.reload();
+        }).catch((error) => {
+            console.error("登出錯誤:", error);
+            alert("登出發生錯誤，請重新整理網頁");
+        });
+    }
+};
+
+if(pptToolbarBtn) {
+  pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
+}
+if(pptFromQuoteBtn) {
+  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote');
+}
+if(downloadQuoteExcelBtn) {
+  downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
+}
+if(copyQuoteBtn) {
+  copyQuoteBtn.onclick = () => {
+    if (quoteList.length === 0) return alert("報價單是空的");
+    let text = "KINYO 報價單\n--------------------\n";
+    quoteList.forEach((q,i)=>{
+      const priceDisplay = `$${q.price}`;
+      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n`;
+    });
+    text += "--------------------\n";
+    navigator.clipboard.writeText(text)
+      .then(() => alert("報價單已複製"))
+      .catch(() => alert("複製失敗"));
+  };
 }
 
-async function fetchAsDataURL(url){
-  if(!url) return null;
-  let targetUrl = url;
-  if (url.includes("drive.google.com") && url.includes("/file/d/")) {
-    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) targetUrl = `https://drive.google.com/uc?id=${match[1]}`;
-  } else if (url.includes("drive.google.com") && url.includes("id=")) {
-      const match = url.match(/id=([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) targetUrl = `https://drive.google.com/uc?id=${match[1]}`;
-  }
-  try{ 
-    const proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(targetUrl); 
-    const r = await fetch(proxyUrl); 
-    if(!r.ok) return null; 
-    const blob = await r.blob(); 
-    return await new Promise((resolve)=>{ 
-      const fr = new FileReader(); 
-      fr.onload = ()=>resolve(fr.result); 
-      fr.onerror = ()=>resolve(null); 
-      fr.readAsDataURL(blob); 
-    }); 
-  } catch(e){ 
-    return null; 
-  }
+// 🚀 修正清空按鈕邏輯：將清除搜尋條件和清除報價單分開處理
+if(clearBtn) {
+  clearBtn.onclick = () => {
+    keywordInput.value = "";
+    qtySelect.value = "";
+    minPriceInput.value = "";
+    maxPriceInput.value = "";
+
+    resultBody.innerHTML = "";
+    resultTable.style.display = "none";
+    exportBtn.disabled = true;
+    if(pptToolbarBtn) pptToolbarBtn.disabled = true;
+    if(multiLineBtn) multiLineBtn.disabled = true;
+    checkAllBox.checked = false;
+    detailCard.style.display = "none";
+  };
 }
+
+if(clearQuoteBtn) {
+  clearQuoteBtn.onclick = () => {
+    if(quoteList.length === 0) {
+        alert("報價單已經是空的");
+        return;
+    }
+    if(confirm("確定要清空報價單嗎？這將無法復原。")) {
+        quoteList = [];
+        renderQuoteList();
+        updateQuoteToolbarBtn();
+    }
+  };
+}
+
+// Login Button Click Logic
+if(doLoginBtn) {
+  doLoginBtn.onclick = async () => {
+    let email = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+    
+    // 🚀 自動補全 @kinyo.com
+    if (email && !email.includes('@')) {
+        email += '@kinyo.com';
+    }
+
+    if(!email || !password) {
+      loginError.textContent = "請輸入帳號和密碼";
+      loginError.style.display = "block";
+      return;
+    }
+
+    loginError.style.display = "none";
+    doLoginBtn.disabled = true;
+    doLoginBtn.textContent = "登入中...";
+
+    try {
+      // 🚀 移除 setPersistence，改回單純登入
+      await signInWithEmailAndPassword(auth, email, password);
+      // Success: onAuthStateChanged will handle the UI update
+    } catch (error) {
+      // 🚀 忽略這個特定的非致命錯誤
+      if (error.message && error.message.includes("message channel closed")) {
+          console.warn("Ignored non-fatal auth error:", error);
+          return;
+      }
+      
+      console.error(error);
+      loginError.textContent = "登入失敗：請檢查帳號密碼";
+      loginError.style.display = "block";
+      doLoginBtn.disabled = false;
+      doLoginBtn.textContent = "登入";
+    }
+  };
+}
+
+/* =======================================================
+   Firebase Auth：登入後流程
+======================================================= */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    // Show Login Overlay instead of redirecting
+    if(loginOverlay) loginOverlay.style.display = "flex";
+    return;
+  }
+  
+  // Hide Login Overlay if user is logged in
+  if(loginOverlay) loginOverlay.style.display = "none";
+
+  currentUserEmail = user.email || "";
+
+  // 預設權限為 0 (訪客/待審核)
+  userLevel = 0; 
+
+  try {
+      const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
+      if (userDoc.exists()) {
+          // 讀取 level 欄位，預設為 0
+          userLevel = userDoc.data().level ?? 0;
+      } else {
+          // 若資料庫無此人，視為新註冊用戶，維持 0
+          userLevel = 0;
+      }
+  } catch (e) {
+      console.error("Auth Error:", e);
+      userLevel = 0;
+  }
+
+  // 特別保留展示帳號邏輯 (可選) - show@kinyo.com 設為 Level 0
+  if (currentUserEmail.toLowerCase() === 'show@kinyo.com') userLevel = 0;
+
+  // 更新 UI 顯示，包含等級標籤
+  updateUserDisplay('normal');
+  logoutBtn.style.display = "inline-block";
+
+  setupQtySelectByLevel();
+
+  await preloadDriveModelData();
+  await preloadProducts();
+});
+
+/* =======================================================
+   Quote Button Listeners inside Module
+======================================================= */
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("add-quote-btn")) {
+    const model = e.target.getAttribute("data-model");
+    const item  = currentResultList.find(p => p.model === model);
+    if (!item) return;
+
+    const qty = qtySelect.value || "50";
+    const ck  = `quote${qty}`;
+    const cost = item[ck] ?? item.quote50 ?? 0;
+
+    quoteList.push({
+      model: item.model,
+      name: item.name,
+      price: cost,
+      qtyLabel: `${qty}個`,
+      count: 1
+    });
+
+    updateQuoteToolbarBtn();
+    alert(`已加入報價單（${qty}個：$${cost}）`);
+    return;
+  }
+
+  if (e.target.classList.contains("line-share-btn")) {
+    const model = e.target.getAttribute("data-model");
+    const item  = currentResultList.find(p => p.model === model);
+    if (!item) return;
+
+    // 分享內容也需依照權限過濾
+    const showMinPrice = userLevel >= 1;
+    const getPrice = (p) => (item[p] ?? "-");
+
+    let costText = "";
+    // Level 0 不顯示報價
+    if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
+    if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
+    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
+
+    const text = `【${item.model}】${item.name}
+賣場售價：${getPrice('marketPrice')}
+末售價格：${showMinPrice ? getPrice('minPrice') : '---'}
+--------------------
+採購價格：
+${costText}
+商品連結：${item.productUrl || "無"}`;
+
+    navigator.clipboard.writeText(text)
+      .then(() => alert("已複製到剪貼簿"))
+      .catch(() => alert("複製失敗"));
+  }
+
+  const card = document.getElementById("detailCard");
+  if (card && card.style.display !== "none") {
+    if (!card.contains(e.target) && !e.target.closest("tr")) {
+      card.style.display = "none";
+    }
+  }
+
+  if(card && !card.hasAttribute("data-listeners-added")){
+      card.setAttribute("data-listeners-added", "true");
+      card.addEventListener("mouseenter", () => {
+        if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
+      });
+      card.addEventListener("mouseleave", () => {
+        window.hideDetailTimer = setTimeout(() => {
+          card.style.display = "none";
+        }, 200);
+      });
+  }
+});
+
+if (multiLineBtn) {
+    multiLineBtn.onclick = () => {
+        const checked = document.querySelectorAll(".row-check:checked");
+        if (checked.length === 0) {
+            alert("請先勾選要分享的商品");
+            return;
+        }
+
+        const qty = qtySelect.value || "50";
+        let text = `KINYO 多品項報價（起訂量：${qty}個）\n--------------------\n`;
+
+        Array.from(checked).forEach((c, i) => {
+            const model = c.getAttribute("data-model");
+            const item = currentResultList.find(p => p.model === model);
+            if (!item) return;
+
+            const ck = `quote${qty}`;
+            
+            // 多選分享邏輯：依照權限顯示
+            let canSeeQuote = false;
+            if (userLevel >= 1 && qty == 50) canSeeQuote = true;
+            if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
+            if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
+
+            const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
+            const market = item.marketPrice ?? "-";
+            const link = item.productUrl || "無連結";
+
+            text += `${i + 1}. 【${item.model}】${item.name}\n`;
+            text += `   💰 ${qty}個報價：$${cost}\n`;
+            text += `   🛒 賣場售價：$${market}\n`;
+            text += `   🔗 商品連結：${link}\n\n`;
+        });
+
+        text += "--------------------\n";
+        text += "以上報價僅供參考，實際以最終確認為主。";
+
+        navigator.clipboard.writeText(text)
+            .then(() => alert(`已複製 ${checked.length} 項商品的報價資訊！請直接在 LINE 貼上。`))
+            .catch(() => alert("複製失敗，請手動複製。"));
+    };
+}
+
+if(sortSelect) {
+  sortSelect.onchange = () => {
+    if (currentResultList.length > 0) {
+      currentResultList = applySorting([...currentResultList]);
+      renderResults(currentResultList);
+    }
+  };
+}
+
+if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
+if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
+
+if(sheetBackdrop) {
+  sheetBackdrop.onclick = () => {
+    if (!mobileSheet.classList.contains("hidden")) closeSheet();
+    if (!quoteSheet.classList.contains("hidden")) closeQuoteSheet();
+  };
+}
+
+if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
+
+</script>
+</body>
+</html>
