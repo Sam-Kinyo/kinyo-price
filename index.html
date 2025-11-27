@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.4.5）</title>
+<title>KINYO 查價系統（v5.5.3）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -576,7 +576,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.4.5）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.5.3）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -654,7 +654,8 @@ th{background:#fafafa;text-align:left;}
     <div id="quoteListBody" style="flex:1;overflow-y:auto;"></div>
 
     <div style="border-top:1px solid #eee; padding-top:12px; margin-top:10px;">
-      <button id="copyQuoteBtn" class="btn-primary" style="width:100%;">複製整張報價單 (LINE)</button>
+      <button id="pptFromQuoteBtn" class="btn-primary" style="width:100%;">生成 PPT (依報價單內容)</button>
+      <button id="copyQuoteBtn" class="btn-secondary" style="width:100%;margin-top:8px;">複製整張報價單 (LINE)</button>
       <button id="downloadQuoteExcelBtn" class="btn-secondary" style="width:100%;margin-top:8px;">下載 Excel 報價單</button>
       <button id="clearQuoteBtn" class="btn-secondary" style="width:100%;margin-top:8px;color:#ef4444;border-color:#ef4444;">清空報價單</button>
     </div>
@@ -717,6 +718,7 @@ const copyQuoteBtn    = document.getElementById("copyQuoteBtn");
 const clearQuoteBtn   = document.getElementById("clearQuoteBtn");
 const downloadQuoteExcelBtn = document.getElementById("downloadQuoteExcelBtn");
 const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
+const pptFromQuoteBtn = document.getElementById("pptFromQuoteBtn");
 
 const centerLoadingBox = document.getElementById("centerLoadingBox");
 const centerLoadingBar = document.getElementById("centerLoadingBar");
@@ -1046,7 +1048,6 @@ function searchProducts() {
   const hasBudget = !!minPraw || !!maxPraw;
 
   // 🚀 修正搜尋邏輯：Level 0 允許價格區間搜尋（針對賣場價）
-  // 若 Level >= 1 且選了起訂量，則針對該數量報價搜尋
   
   if (hasBudget && !hasQty && userLevel >= 1) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
@@ -1094,7 +1095,7 @@ function searchProducts() {
       });
     }
 
-    // 🚀 隨機排序邏輯：如果沒有指定排序，就隨機洗牌
+    // 🚀 隨機排序邏輯
     currentResultList = mergeByMainModel(r);
     if (!sortSelect.value) {
         currentResultList = shuffleArray(currentResultList);
@@ -1297,155 +1298,27 @@ function showDetailDesktop(item) {
   `;
 }
 
-function showDetailMobile(item) { showDetailDesktop(item); openSheet(); document.getElementById("sheetContent").innerHTML = detailCard.innerHTML; }
-
-function bindCheckAll() {
-  const rowChecks = document.querySelectorAll(".row-check");
-  checkAllBox.onchange = () => { rowChecks.forEach(c => c.checked = checkAllBox.checked); updateMultiLineBtnState(); };
-  rowChecks.forEach(chk => { chk.onchange = () => { const all = document.querySelectorAll(".row-check"); const checked = document.querySelectorAll(".row-check:checked"); checkAllBox.checked = (all.length === checked.length); updateMultiLineBtnState(); }; });
-}
-
-// 🚀 修正：當勾選時觸發工具列浮動 (Fixed Active)
-function updateMultiLineBtnState() { 
-  const checked = document.querySelectorAll(".row-check:checked");
-  const hasChecked = checked.length > 0;
-  
-  if(multiLineBtn) multiLineBtn.disabled = !hasChecked;
-  if(exportBtn) exportBtn.disabled = !hasChecked; // 同步匯出按鈕狀態
-  
-  const toolbar = document.querySelector('.toolbar');
-  const spacer = document.getElementById('toolbarSpacer');
-  
-  if (hasChecked) {
-    toolbar.classList.add('fixed-active');
-    if(spacer) spacer.style.display = 'block';
-  } else {
-    toolbar.classList.remove('fixed-active');
-    if(spacer) spacer.style.display = 'none';
-  }
-}
-
-function updateQuoteToolbarBtn() { if (quoteList.length > 0) { quoteToolbarBtn.style.display = "inline-block"; quoteToolbarBtn.textContent = `報價單（${quoteList.length}）`; } else { quoteToolbarBtn.style.display = "none"; } }
-function renderQuoteList() {
-  quoteListBody.innerHTML = ""; if (quoteList.length === 0) { quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的</div>`; return; }
-  quoteList.forEach((q, idx) => {
-    const div = document.createElement("div"); div.className = "quote-item";
-    
-    // Quote List 也需要依照權限顯示價格
-    const showPrice = true; // 報價單內通常顯示加入時的價格
-    const priceDisplay = `$${q.price}`;
-
-    div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
-    quoteListBody.appendChild(div);
-  });
-  document.querySelectorAll(".quote-del").forEach(btn => { btn.onclick = (e) => { const i = Number(e.target.getAttribute("data-idx")); quoteList.splice(i, 1); renderQuoteList(); updateQuoteToolbarBtn(); }; });
-}
-
-/* Export Functions */
-function exportSelectedExcel() {
-  const checked = document.querySelectorAll(".row-check:checked");
-  if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
-  const selectedModels = Array.from(checked).map(c => c.getAttribute("data-model"));
-  const baseHeader = ["商品型號","主型號","商品名稱","顏色列表","箱入數","商品連結","商品大圖","網路圖"];
-  const qty = qtySelect.value;
-  let priceHeader = qty ? [`${qty}個`, "末售", "賣場"] : ["末售", "賣場"];
-  const rows = [[...baseHeader, ...priceHeader]];
-  selectedModels.forEach(m => {
-    const item = currentResultList.find(p => p.model === m);
-    if (!item) return;
-    const driveMain = getDriveMainImage(item.model, item.mainModel);
-    const driveNetList = getDriveNetImages(item.model, item.mainModel);
-    const baseRow = [item.model, item.mainModel, item.name, item.colorList || "", item.cartonQty || "", item.productUrl || "", driveMain || "", driveNetList.join(" | ")];
-    let priceRow = [];
-    
-    // Excel 匯出邏輯也需依照權限
-    const showMinPrice = userLevel >= 1;
-    
-    if (qty) {
-      const ck = `quote${qty}`;
-      // 判斷該數量報價是否可見
-      let canSeeQuote = false;
-      if (userLevel >= 1 && qty == 50) canSeeQuote = true;
-      if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
-      if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
-
-      priceRow = [
-          canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---", 
-          showMinPrice ? (item.minPrice ?? "-") : "---", 
-          item.marketPrice ?? "-"
-      ];
-    } else {
-      priceRow = [showMinPrice ? (item.minPrice ?? "-") : "---", item.marketPrice ?? "-"];
-    }
-    rows.push([...baseRow, ...priceRow]);
-  });
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "報價");
-  XLSX.writeFile(wb, `KINYO_商品報價_${qty ? qty+'個' : '關鍵字搜尋'}.xlsx`);
-}
-function downloadQuoteExcel() {
-  if (quoteList.length === 0) { alert("報價單是空的"); return; }
-  const header = ["商品型號","商品名稱","採購規格","單價","數量"];
-  const rows = [header];
-  quoteList.forEach(q => rows.push([q.model, q.name, q.qtyLabel, q.price, q.count]));
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "報價單");
-  XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-// --- PPT Logic Updated (4:3 Style with Image Locking) ---
-// Helper: Pick random N items, but ensure index 0 (Main Image) is kept first
-function pickRandom(arr, n){ 
-  if(!Array.isArray(arr) || arr.length === 0) return [];
-  const first = arr[0]; // The Python script already ensures index 0 is _01
-  const others = arr.slice(1);
-  const shuffledOthers = shuffleArray(others);
-  const pickedOthers = shuffledOthers.slice(0, n - 1); 
-  return [first, ...pickedOthers];
-}
-
-async function fetchAsDataURL(url){
-  if(!url) return null;
-  let targetUrl = url;
-  if (url.includes("drive.google.com") && url.includes("/file/d/")) {
-    const match = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) targetUrl = `https://drive.google.com/uc?id=${match[1]}`;
-  } else if (url.includes("drive.google.com") && url.includes("id=")) {
-      const match = url.match(/id=([a-zA-Z0-9_-]+)/);
-      if (match && match[1]) targetUrl = `https://drive.google.com/uc?id=${match[1]}`;
-  }
-  try{ 
-    const proxyUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(targetUrl); 
-    const r = await fetch(proxyUrl); 
-    if(!r.ok) return null; 
-    const blob = await r.blob(); 
-    return await new Promise((resolve)=>{ 
-      const fr = new FileReader(); 
-      fr.onload = ()=>resolve(fr.result); 
-      fr.onerror = ()=>resolve(null); 
-      fr.readAsDataURL(blob); 
-    }); 
-  } catch(e){ 
-    return null; 
-  }
-}
 function getQuoteByTier(item, tier){ 
   const key = "quote" + String(tier); 
   return (item && item[key] != null) ? item[key] : ""; 
 }
 
-async function buildProductSlide(pptx, item, tier){
+async function buildProductSlide(pptx, item, tier, customInfo = null){
   const slide = pptx.addSlide();
   
   // PPT 顯示邏輯：依照權限顯示
+  // 如果是從報價單生成 (customInfo 存在)，則直接使用報價單的價格
+  // 如果是從搜尋結果生成，則需檢查權限
+  
   const showMinPrice = userLevel >= 1;
   let canSeeQuote = false;
-  // 簡單判斷：若使用者能選該 Tier，就能在 PPT 看到該 Tier 價格
-  if (userLevel >= 1 && tier == 50) canSeeQuote = true;
-  if (userLevel >= 2 && (tier == 100 || tier == 300)) canSeeQuote = true;
-  if (userLevel >= 3 && (tier == 500 || tier == 1000)) canSeeQuote = true;
+  if (customInfo) {
+      canSeeQuote = true; // 報價單內的項目視為已確認可見
+  } else {
+      if (userLevel >= 1 && tier == 50) canSeeQuote = true;
+      if (userLevel >= 2 && (tier == 100 || tier == 300)) canSeeQuote = true;
+      if (userLevel >= 3 && (tier == 500 || tier == 1000)) canSeeQuote = true;
+  }
 
   const getPrice = (p) => (item[p] ?? "-");
   
@@ -1464,10 +1337,21 @@ async function buildProductSlide(pptx, item, tier){
   slide.addText(`賣場價: $${getPrice('marketPrice')}`, { x:7.2, y:0.2, w:2.5, h:0.4, fontSize:14, color:'6B7280', fontFace:"Microsoft JhengHei", align:'right' });
   
   // Quote (Blue Qty, Red Price) - Only if visible
-  const quoteText = canSeeQuote ? `$${getPrice('quote' + tier)}` : "---";
+  let quoteText = "---";
+  let tierLabel = `${tier}pcs`;
+
+  if (customInfo) {
+      // 使用報價單內的資訊
+      quoteText = `$${customInfo.price}`;
+      tierLabel = customInfo.qtyLabel || `${tier}pcs`;
+  } else if (canSeeQuote) {
+      // 使用搜尋結果的資訊
+      quoteText = `$${getPrice('quote' + tier)}`;
+  }
+
   slide.addText(
     [
-      { text: `報價(${tier}pcs): `, options: { color:'1E3A8A', bold:true, fontSize:14 } },
+      { text: `報價(${tierLabel}): `, options: { color:'1E3A8A', bold:true, fontSize:14 } },
       { text: quoteText, options: { color:'DC2626', bold:true, fontSize:20 } }
     ],
     { x:7.2, y:0.6, w:2.5, h:0.4, align:'right', fontFace:"Microsoft JhengHei" }
@@ -1518,46 +1402,125 @@ async function buildProductSlide(pptx, item, tier){
 }
 
 // 🚀 重新加入 exportSelectedPPT 函式 (避免遺失)
-async function exportSelectedPPT() {
+async function exportSelectedPPT(source = 'checked') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-  if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-  if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
   
-  const tier = qtySelect.value || "50";
-  const selectedItems = checks.map(cb => {
-      const model = cb.dataset.model;
-      let item = currentResultList.find(p => p.model === model);
-      if(!item) item = currentResultList.find(p => p.mainModel === model);
-      if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-      return item;
-  }).filter(Boolean);
+  let selectedItems = [];
+  let tier = qtySelect.value || "50";
+  let isFromQuoteList = false;
 
-  if (selectedItems.length === 0) { alert("找不到已勾選商品的資料，請重新搜尋後再試。"); return; }
+  if (source === 'quote') {
+      if (quoteList.length === 0) { alert("報價單是空的"); return; }
+      selectedItems = quoteList.map(q => {
+          let fullItem = currentResultList.find(p => p.model === q.model) || productCache.find(p => p.model === q.model);
+          if (!fullItem) {
+               fullItem = { ...q, imageUrl: '', netImages: [] }; 
+          }
+          return { 
+              ...fullItem, 
+              customQuoteInfo: { price: q.price, qtyLabel: q.qtyLabel } 
+          };
+      });
+      isFromQuoteList = true;
+  } else {
+      const checks = Array.from(document.querySelectorAll(".row-check:checked"));
+      if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
+      if (checks.length > 20) { alert("最多只能勾選 20 個商品生成 PPT。"); return; }
+      
+      selectedItems = checks.map(cb => {
+          const model = cb.dataset.model;
+          let item = currentResultList.find(p => p.model === model);
+          if(!item) item = currentResultList.find(p => p.mainModel === model);
+          if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
+          return item;
+      }).filter(Boolean);
+  }
 
-  pptToolbarBtn.disabled = true; pptToolbarBtn.textContent = "PPT 生成中...";
+  if (selectedItems.length === 0) { alert("找不到商品資料，無法生成 PPT。"); return; }
+
+  const btn = source === 'quote' ? pptFromQuoteBtn : pptToolbarBtn;
+  const originalText = btn.textContent;
+  btn.disabled = true; 
+  btn.textContent = "PPT 生成中...";
+
   try {
     const pptx = new PptxGenJS();
     pptx.layout = "LAYOUT_4x3"; 
     pptx.author = "KINYO Price System";
     pptx.company = "KINYO";
-    pptx.title = `KINYO Quote ${tier}pcs`;
+    pptx.title = `KINYO Quote`;
 
     for (const item of selectedItems) {
-      await buildProductSlide(pptx, item, tier);
+      await buildProductSlide(pptx, item, tier, item.customQuoteInfo);
     }
     
     const salesName = "郭庭豪";
     const salesPhone = "0976-966333";
-    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-數量${tier}-@${salesName}-@${salesPhone}.pptx` });
+    await pptx.writeFile({ fileName: `KINYO-商品推薦報價-@${salesName}-@${salesPhone}.pptx` });
 
   } catch (e) {
     console.error(e);
     alert("PPT 生成失敗，請查看 Console。");
   } finally {
-    pptToolbarBtn.disabled = false;
-    pptToolbarBtn.textContent = "生成 PPT（1–20）";
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
+}
+
+// 🚀 重新加入 exportSelectedExcel 函式 (避免遺失)
+function exportSelectedExcel() {
+  const checked = document.querySelectorAll(".row-check:checked");
+  if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
+  const selectedModels = Array.from(checked).map(c => c.getAttribute("data-model"));
+  const baseHeader = ["商品型號","主型號","商品名稱","顏色列表","箱入數","商品連結","商品大圖","網路圖"];
+  const qty = qtySelect.value;
+  let priceHeader = qty ? [`${qty}個`, "末售", "賣場"] : ["末售", "賣場"];
+  const rows = [[...baseHeader, ...priceHeader]];
+  selectedModels.forEach(m => {
+    const item = currentResultList.find(p => p.model === m);
+    if (!item) return;
+    const driveMain = getDriveMainImage(item.model, item.mainModel);
+    const driveNetList = getDriveNetImages(item.model, item.mainModel);
+    const baseRow = [item.model, item.mainModel, item.name, item.colorList || "", item.cartonQty || "", item.productUrl || "", driveMain || "", driveNetList.join(" | ")];
+    let priceRow = [];
+    
+    // Excel 匯出邏輯也需依照權限
+    const showMinPrice = userLevel >= 1;
+    
+    if (qty) {
+      const ck = `quote${qty}`;
+      // 判斷該數量報價是否可見
+      let canSeeQuote = false;
+      if (userLevel >= 1 && qty == 50) canSeeQuote = true;
+      if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
+      if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
+
+      priceRow = [
+          canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---", 
+          showMinPrice ? (item.minPrice ?? "-") : "---", 
+          item.marketPrice ?? "-"
+      ];
+    } else {
+      priceRow = [showMinPrice ? (item.minPrice ?? "-") : "---", item.marketPrice ?? "-"];
+    }
+    rows.push([...baseRow, ...priceRow]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "報價");
+  XLSX.writeFile(wb, `KINYO_商品報價_${qty ? qty+'個' : '關鍵字搜尋'}.xlsx`);
+}
+
+// 🚀 補回遺失的 downloadQuoteExcel 函式
+function downloadQuoteExcel() {
+  if (quoteList.length === 0) { alert("報價單是空的"); return; }
+  const header = ["商品型號","商品名稱","採購規格","單價","數量"];
+  const rows = [header];
+  quoteList.forEach(q => rows.push([q.model, q.name, q.qtyLabel, q.price, q.count]));
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb, ws, "報價單");
+  XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 /* =======================================================
@@ -1565,7 +1528,6 @@ async function exportSelectedPPT() {
 ======================================================= */
 searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
-// 🚀 修正登出錯誤：強制重新整理頁面以解決 classifier.js 錯誤
 logoutBtn.onclick = () => {
     if(confirm("確定要登出嗎？")) {
         signOut(auth).then(() => {
@@ -1578,7 +1540,10 @@ logoutBtn.onclick = () => {
 };
 
 if(pptToolbarBtn) {
-  pptToolbarBtn.onclick = exportSelectedPPT;
+  pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
+}
+if(pptFromQuoteBtn) {
+  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote');
 }
 if(downloadQuoteExcelBtn) {
   downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
@@ -1652,9 +1617,16 @@ if(doLoginBtn) {
     doLoginBtn.textContent = "登入中...";
 
     try {
+      // 🚀 移除 setPersistence，改回單純登入
       await signInWithEmailAndPassword(auth, email, password);
       // Success: onAuthStateChanged will handle the UI update
     } catch (error) {
+      // 🚀 忽略這個特定的非致命錯誤
+      if (error.message && error.message.includes("message channel closed")) {
+          console.warn("Ignored non-fatal auth error:", error);
+          return;
+      }
+      
       console.error(error);
       loginError.textContent = "登入失敗：請檢查帳號密碼";
       loginError.style.display = "block";
