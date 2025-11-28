@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.9.3 總表完全對應版）</title>
+<title>KINYO 查價系統（v5.9.4 穩定修復版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -594,7 +594,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.9.3 總表完全對應版 —— 支援 自訂表頭 / 產品同步 / 庫存計算
+  v5.9.4 穩定修復版 —— 修正空值寫入錯誤 & 增強資料清洗
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -1431,7 +1431,6 @@ function renderResults(list) {
         <div style="font-weight:700;margin-bottom:4px;">${item.name || "-"}</div>
         <div style="font-size:13px;color:#555;margin-bottom:4px;">顏色：${item.colorList || "-"}</div>
         <div class="price-tag-container" style="font-size:13px;margin-bottom:4px;">${priceHtml}</div>
-        ${stockHtml}
         <div style="display:flex; gap:6px;">
           <button class="line-share-btn" data-model="${item.model}" style="margin-top:6px;padding:6px 10px;font-size:12px;background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">LINE</button>
           <button class="btn-outline-add add-quote-btn" data-model="${item.model}">➕ 報價單</button>
