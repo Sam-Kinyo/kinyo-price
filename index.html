@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.9.6 智慧同步版）</title>
+<title>KINYO 查價系統（v5.9.7 穩定修復版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -594,7 +594,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.9.6 智慧同步版 —— 智慧欄位防護 & 自動上下架機制
+  v5.9.7 穩定修復版 —— 修正 PPT 生成錯誤 & 條碼比對邏輯
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -1713,6 +1713,83 @@ function showDetailDesktop(item) {
   `;
 }
 
+async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
+    const slide = pptx.addSlide();
+
+    // Background & Styling
+    slide.background = { color: "FFFFFF" };
+
+    // Title (Product Name)
+    slide.addText(item.name || "未命名商品", {
+        x: 0.5, y: 0.5, w: 9.0, h: 0.6,
+        fontSize: 24, bold: true, color: "111827", fontFace: "微軟正黑體"
+    });
+
+    // Main Image (Left)
+    let imgUrl = item.imageUrl;
+    if (!imgUrl || !imgUrl.startsWith("http")) {
+        // Fallback logic
+        const driveImg = getDriveMainImage(item.model, item.mainModel);
+        if (driveImg) imgUrl = driveImg;
+        else imgUrl = "https://placehold.co/400x400?text=No+Image";
+    }
+    
+    // Try to fetch image as data URL to avoid CORS issues in PPT
+    try {
+        const base64 = await fetchAsDataURL(imgUrl);
+        if (base64) {
+             slide.addImage({ data: base64, x: 0.5, y: 1.3, w: 4.5, h: 4.5 });
+        } else {
+             slide.addText("圖片載入失敗", { x: 0.5, y: 3.0, w: 4.5, h: 0.5, align: 'center', color: '999999' });
+        }
+    } catch(e) {
+        slide.addText("圖片載入失敗", { x: 0.5, y: 3.0, w: 4.5, h: 0.5, align: 'center', color: '999999' });
+    }
+
+    // Product Info (Right)
+    const startX = 5.2;
+    let currY = 1.3;
+    const gap = 0.45;
+    
+    const addField = (label, val, highlight=false) => {
+        slide.addText(label, { x: startX, y: currY, w: 1.5, h: 0.4, fontSize: 14, color: "666666", fontFace: "微軟正黑體" });
+        slide.addText(val || "-", { 
+            x: startX + 1.6, y: currY, w: 3.5, h: 0.4, 
+            fontSize: 14, color: highlight ? "DC2626" : "000000", bold: highlight, fontFace: "微軟正黑體" 
+        });
+        currY += gap;
+    };
+
+    addField("型號", item.model);
+    addField("主型號", item.mainModel);
+    addField("國際條碼", item.internationalBarcode || item.barcode); // 🌟 Use new logic here too
+    addField("箱入數", item.cartonQty);
+    addField("顏色", item.colorList);
+    
+    currY += 0.2; // spacer
+
+    // Price Info
+    addField("賣場售價", `$${item.marketPrice}`);
+    
+    if (customQuoteInfo) {
+        // From Quote List
+        addField("採購規格", customQuoteInfo.qtyLabel, true);
+        addField("採購單價", `$${customQuoteInfo.price}`, true);
+    } else {
+        // From Checkbox selection
+        // Check tier
+        const quoteKey = `quote${tier}`;
+        const price = item[quoteKey] || item.quote50 || "-";
+        addField(`報價 (${tier}個)`, `$${price}`, true);
+    }
+    
+    // Footer / Disclaimer
+    slide.addText("※ 報價有效期限 14 天，實際交易以最終合約為準。", {
+        x: 0.5, y: 7.0, w: 9.0, h: 0.4,
+        fontSize: 10, color: "9CA3AF", align: "center", fontFace: "微軟正黑體"
+    });
+}
+
 async function exportSelectedPPT(source = 'checked') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
   
@@ -1980,7 +2057,8 @@ async function saveInventoryToFirestore(invMap) {
 
     try {
         for (const product of productCache) {
-            const bc = (product.barcode || product.internationalBarcode || "").trim();
+            // 🌟 優先使用 internationalBarcode 進行比對
+            const bc = (product.internationalBarcode || product.barcode || "").trim();
             if(bc && invMap.has(bc)) {
                 const newQty = invMap.get(bc);
                 const docRef = doc(db, "Products", product.id);
@@ -2273,7 +2351,8 @@ if(inventoryUpload) {
                     // Collect first 10 for preview
                     if(previewData.length < 10) {
                         // Find product name for better context
-                        const matchedProduct = productCache.find(p => (p.barcode || p.internationalBarcode) == bc);
+                        // 🌟 優先使用 internationalBarcode 進行比對，修復 "barcode mismatch" 問題
+                        const matchedProduct = productCache.find(p => (p.internationalBarcode || p.barcode) == bc);
                         previewData.push({
                             bc: bc,
                             name: matchedProduct ? matchedProduct.name : "(無對應商品)",
