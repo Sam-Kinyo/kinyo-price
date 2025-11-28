@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.6.3）</title>
+<title>KINYO 查價系統（v5.6.5）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -587,7 +587,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  郭庭豪嘔心瀝血之作（v5.6.3）　任何建議：0976-966-333
+  郭庭豪嘔心瀝血之作（v5.6.5）　任何建議：0976-966-333
 </div>
 
 <form id="searchForm" class="search-box">
@@ -1357,6 +1357,96 @@ function renderResults(list) {
   bindCheckAll();
 }
 
+function showDetailMobile(item) {
+  const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
+  const netImages = getDriveNetImages(item.model, item.mainModel);
+  const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
+  const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
+  const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
+
+  let img = item.imageUrl;
+  if (!img || !img.startsWith("http")) {
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    if (driveImg) img = driveImg;
+    else img = "https://placehold.co/300x300?text=No+Image";
+  }
+
+  // Quote logic
+  const getPrice = (p) => (item[p] ?? "-");
+  const showMinPrice = userLevel >= 1;
+
+  let quoteHtml = "";
+  const tiers = [50, 100, 300, 500, 1000];
+  tiers.forEach(t => {
+      let isVisible = false;
+      if (userLevel >= 1 && t === 50) isVisible = true;
+      if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
+      if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
+
+      if (isVisible) {
+          quoteHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee;">
+              <span style="color:#666;">${t}個</span>
+              <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
+          </div>`;
+      }
+  });
+
+  // Net images grid for mobile
+  let netThumbHtml = "";
+  if (netImages && netImages.length > 0) {
+      const imgsHtml = netImages.slice(0, 6).map(url => { 
+          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
+          return `<img src="${displayUrl}" loading="lazy" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${url}', '_blank')">`;
+      }).join("");
+      netThumbHtml = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">${imgsHtml}</div>`;
+  }
+
+  const sheetContent = document.getElementById("sheetContent");
+  sheetContent.innerHTML = `
+    <div style="text-align:center; margin-bottom:16px;">
+      <img src="${img}" style="max-height:200px; max-width:100%; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1);" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
+    </div>
+    
+    <div style="font-weight:700; font-size:18px; margin-bottom:8px;">${item.name || "-"}</div>
+    <div style="color:#666; font-size:14px; margin-bottom:16px;">
+       <div>型號：${item.model}</div>
+       <div>主型號：${item.mainModel}</div>
+       <div>顏色：${item.colorList || "-"}</div>
+       <div>箱入數：${item.cartonQty || "-"}</div>
+       <div>國際條碼：${item.barcode || item.internationalBarcode || "-"}</div>
+    </div>
+
+    <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
+       <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
+       <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span>賣場售價</span>
+          <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
+       </div>
+       <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+          <span>末售價格</span>
+          <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
+       </div>
+       ${quoteHtml ? `<div style="background:#fff; padding:8px; border-radius:6px; margin-top:8px; border:1px solid #eee;">${quoteHtml}</div>` : ''}
+    </div>
+
+    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
+        ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載大圖</a>` : ''}
+        ${actNetLink ? `<a href="${actNetLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載網路圖</a>` : ''}
+    </div>
+
+    ${netThumbHtml}
+
+    <div style="height:20px;"></div>
+    <div style="display:flex; gap:10px;">
+       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
+       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
+    </div>
+    <div style="height:30px;"></div>
+  `;
+
+  openSheet();
+}
+
 function showDetailDesktop(item) {
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
@@ -1900,6 +1990,7 @@ document.addEventListener("click", (e) => {
     return;
   }
 
+  // 🚀 關鍵修改：單筆 Line 分享按鈕邏輯
   if (e.target.classList.contains("line-share-btn")) {
     const model = e.target.getAttribute("data-model");
     const item  = currentResultList.find(p => p.model === model);
@@ -1910,10 +2001,30 @@ document.addEventListener("click", (e) => {
     const getPrice = (p) => (item[p] ?? "-");
 
     let costText = "";
-    // Level 0 不顯示報價
-    if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
-    if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-    if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
+    // 取得當前是否有數量篩選
+    const currentQty = qtySelect.value; 
+
+    if (currentQty) {
+        // 如果有指定數量，只顯示該數量級距的報價
+        const k = `quote${currentQty}`;
+        let canSee = false;
+        
+        // 嚴格權限檢查
+        if (userLevel >= 1 && currentQty == 50) canSee = true;
+        if (userLevel >= 2 && (currentQty == 100 || currentQty == 300)) canSee = true;
+        if (userLevel >= 3 && (currentQty == 500 || currentQty == 1000)) canSee = true;
+        
+        if(canSee) {
+             costText += `${currentQty}個：${getPrice(k)}\n`;
+        } else {
+             costText += `${currentQty}個：(無權限)\n`;
+        }
+    } else {
+        // 如果沒有指定數量，顯示所有可見級距 (預設行為)
+        if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
+        if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
+        if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
+    }
 
     const text = `【${item.model}】${item.name}
 賣場售價：${getPrice('marketPrice')}
