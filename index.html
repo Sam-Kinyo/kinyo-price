@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.9.7 穩定修復版）</title>
+<title>KINYO 查價系統（v5.9.8 智慧圖片版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -594,7 +594,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.9.7 穩定修復版 —— 修正 PPT 生成錯誤 & 條碼比對邏輯
+  v5.9.8 智慧圖片版 —— 智慧圖片遞補 (網圖 > No Image)
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -1379,11 +1379,19 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
+    // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
     let img = item.imageUrl;
+    const netImages = getDriveNetImages(item.model, item.mainModel);
+
     if (!img || !img.startsWith("http")) {
       const driveImg = getDriveMainImage(item.model, item.mainModel);
-      if (driveImg) img = driveImg;
-      else img = "https://placehold.co/110x110?text=No+Image";
+      if (driveImg) {
+          img = driveImg;
+      } else if (netImages && netImages.length > 0) {
+          img = netImages[0];
+      } else {
+          img = "https://placehold.co/110x110?text=No+Image";
+      }
     }
   
     const tr = document.createElement("tr");
@@ -1487,11 +1495,17 @@ function showDetailMobile(item) {
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
+  // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) img = driveImg;
-    else img = "https://placehold.co/300x300?text=No+Image";
+    if (driveImg) {
+        img = driveImg;
+    } else if (netImages && netImages.length > 0) {
+        img = netImages[0];
+    } else {
+        img = "https://placehold.co/300x300?text=No+Image";
+    }
   }
 
   const getPrice = (p) => (item[p] ?? "-");
@@ -1597,18 +1611,24 @@ function showDetailMobile(item) {
 function showDetailDesktop(item) {
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
-  let img = item.imageUrl;
-  if (!img || !img.startsWith("http")) {
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) img = driveImg;
-    else img = "https://placehold.co/300x300?text=No+Image";
-  }
-
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
-  const netImages = getDriveNetImages(item.model, item.mainModel);
+  const netImages = getDriveNetImages(item.model, item.mainModel); // Retrieve net images
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
+
+  // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
+  let img = item.imageUrl;
+  if (!img || !img.startsWith("http")) {
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    if (driveImg) {
+        img = driveImg;
+    } else if (netImages && netImages.length > 0) {
+        img = netImages[0];
+    } else {
+        img = "https://placehold.co/300x300?text=No+Image";
+    }
+  }
 
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
@@ -1726,12 +1746,20 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     });
 
     // Main Image (Left)
+    // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
     let imgUrl = item.imageUrl;
+    const netImages = getDriveNetImages(item.model, item.mainModel);
+
     if (!imgUrl || !imgUrl.startsWith("http")) {
         // Fallback logic
         const driveImg = getDriveMainImage(item.model, item.mainModel);
-        if (driveImg) imgUrl = driveImg;
-        else imgUrl = "https://placehold.co/400x400?text=No+Image";
+        if (driveImg) {
+            imgUrl = driveImg;
+        } else if (netImages && netImages.length > 0) {
+            imgUrl = netImages[0];
+        } else {
+            imgUrl = "https://placehold.co/400x400?text=No+Image";
+        }
     }
     
     // Try to fetch image as data URL to avoid CORS issues in PPT
