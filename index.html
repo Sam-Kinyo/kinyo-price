@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.7.2 極速版）</title>
+<title>KINYO 查價系統（v5.8.2 庫存區間版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -266,6 +266,38 @@ th{background:#fafafa;text-align:left;}
     border-radius: 4px;
     margin-bottom: 4px;
     border: 1px solid #e2e8f0;
+}
+
+/* 庫存標籤 (新) */
+.stock-badge {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-top: 4px;
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+    transition: all 0.3s;
+}
+/* 低庫存 / 100個以內 */
+.stock-low {
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+/* 中庫存 / 300~500個 */
+.stock-mid {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+}
+/* 高庫存 / 1000個 */
+.stock-high {
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
 }
 
 /* =========================================
@@ -537,7 +569,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.7.2 極速版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v5.8.2 庫存區間版 —— 安全庫存(打9折) & 區間顯示
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -555,7 +587,20 @@ th{background:#fafafa;text-align:left;}
 
   <div class="search-row">
     <label>起訂量（可不選）</label>
-    <select id="qtySelect"></select>
+    <div style="display:flex; gap:10px;">
+        <select id="qtySelect" style="flex:1;">
+            <!-- Options added by JS -->
+        </select>
+        <!-- 預設隱藏，Level 2 以上才顯示 -->
+        <select id="stockFilter" style="flex:1; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
+            <option value="">📦 不限庫存</option>
+            <option value="1">📦 現貨 > 0</option>
+            <option value="50">📦 現貨 > 50 (少量)</option>
+            <option value="100">📦 現貨 > 100 (批發)</option>
+            <option value="300">📦 現貨 > 300 (大宗)</option>
+            <option value="500">📦 現貨 > 500 (專案)</option>
+        </select>
+    </div>
   </div>
 
   <div class="search-row">
@@ -570,6 +615,9 @@ th{background:#fafafa;text-align:left;}
   <button id="clearBtn" type="button" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </form>
 
+<!-- Hidden File Input for Inventory -->
+<input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
     <option value="">不排序 (隨機)</option>
@@ -580,6 +628,10 @@ th{background:#fafafa;text-align:left;}
     <option value="alphaAsc">主型號：A → Z</option>
     <option value="alphaDesc">主型號：Z → A</option>
   </select>
+  
+  <!-- 預設隱藏，Level 4 才顯示 -->
+  <button id="importInventoryBtn" class="btn-secondary" style="color:#059669; border-color:#059669; background:#ecfdf5; font-weight:bold; display:none;">📥 匯入並更新資料庫</button>
+
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
   <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
@@ -639,7 +691,7 @@ th{background:#fafafa;text-align:left;}
 const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn/view?usp=drive_link"; 
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, writeBatch, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -660,6 +712,7 @@ const searchForm      = document.getElementById("searchForm");
 const categorySelect  = document.getElementById("categorySelect");
 const keywordInput    = document.getElementById("keyword");
 const qtySelect       = document.getElementById("qtySelect");
+const stockFilter     = document.getElementById("stockFilter");
 const minPriceInput   = document.getElementById("minPrice");
 const maxPriceInput   = document.getElementById("maxPrice");
 const sortSelect      = document.getElementById("sortSelect");
@@ -668,6 +721,8 @@ const pptToolbarBtn   = document.getElementById("pptToolbarBtn");
 const multiLineBtn    = document.getElementById("multiLineBtn");
 const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
+const importInventoryBtn = document.getElementById("importInventoryBtn");
+const inventoryUpload = document.getElementById("inventoryUpload");
 
 const resultTable     = document.getElementById("resultTable");
 const resultBody      = document.getElementById("resultBody");
@@ -713,7 +768,7 @@ const CACHE_TTL = 1000 * 60 * 60 * 6;
 
 function getCacheKey() {
   const mail = (currentUserEmail || "guest").toLowerCase();
-  return `KINYO_SAFE_CACHE_V572_${mail}`; // 🚀 Update Cache Key for V5.7.2
+  return `KINYO_SAFE_CACHE_V580_${mail}`; // 🚀 Update Cache Key for V5.8.0
 }
 
 function loadCache() {
@@ -743,10 +798,23 @@ let isDriveLoaded = false;
      HELPER FUNCTIONS
    ==================================================== 🚀 */
 
+function getInventoryRangeLabel(qty) {
+    if (qty === null || qty === undefined || qty === "") return null;
+    const val = parseInt(qty, 10);
+    if (isNaN(val)) return null;
+
+    if (val > 1000) return "1000個以上";
+    if (val <= 100) return "100個以內";
+    if (val <= 300) return "300個以內";
+    if (val <= 500) return "500個以內";
+    if (val <= 1000) return "1000個以內";
+    return "1000個以上";
+}
+
 function getGoogleDriveId(url) {
   if (!url) return null;
   const patterns = [
-    /\/d\/([a-zA-Z0-9_-]+)/,      
+    /\/d\/([a-zA-Z0-9_-]+)/,       
     /id=([a-zA-Z0-9_-]+)/,        
     /open\?id=([a-zA-Z0-9_-]+)/   
   ];
@@ -901,6 +969,23 @@ function updateUserDisplay(status) {
   }
 }
 
+// 🚀 Updates UI permissions based on user level
+function updatePermissions() {
+    // 1. Level 4 Only: Import Inventory
+    if (userLevel >= 4) {
+        importInventoryBtn.style.display = 'inline-block';
+    } else {
+        importInventoryBtn.style.display = 'none';
+    }
+
+    // 2. Level 2+ Only: Stock Filter
+    if (userLevel >= 2) {
+        stockFilter.style.display = 'block'; 
+    } else {
+        stockFilter.style.display = 'none';
+    }
+}
+
 async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
     for (let i = 0; i < retries; i++) {
         try {
@@ -1047,6 +1132,9 @@ async function preloadProducts() {
     const fullList = [];
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
+      // 🚀 Important: Save Doc ID for updates
+      const id = docSnap.id;
+      
       const model = (d.model || "").trim();
       const mainModel = getMainModel(model);
       let colorList = (d.colorList || "").trim();
@@ -1058,7 +1146,7 @@ async function preloadProducts() {
       const category = d.category ? String(d.category).trim() : "";
       const netSalesPermission = d.netSalesPermission ? String(d.netSalesPermission).trim() : "";
       
-      fullList.push({ ...d, model, mainModel, colorList, searchKey, category, netSalesPermission });
+      fullList.push({ id, ...d, model, mainModel, colorList, searchKey, category, netSalesPermission });
     });
     productCache = fullList;
     isProductsLoaded = true;
@@ -1083,6 +1171,8 @@ async function refreshProductsFromFirestore() {
     const fullList = [];
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
+      const id = docSnap.id;
+      
       const model = (d.model || "").trim();
       const mainModel = getMainModel(model);
       let colorList = (d.colorList || "").trim();
@@ -1094,7 +1184,7 @@ async function refreshProductsFromFirestore() {
       const category = d.category ? String(d.category).trim() : "";
       const netSalesPermission = d.netSalesPermission ? String(d.netSalesPermission).trim() : "";
       
-      fullList.push({ ...d, model, mainModel, colorList, searchKey, category, netSalesPermission });
+      fullList.push({ id, ...d, model, mainModel, colorList, searchKey, category, netSalesPermission });
     });
     productCache = fullList;
     isQuotesLoaded = true;
@@ -1136,6 +1226,12 @@ function mergeByMainModel(list) {
       const incoming = (item.colorList || "").split(" / ").filter(Boolean);
       map[main].colorList = [...new Set([...exist, ...incoming])].join(" / ");
     }
+    
+    if(item.inventory) {
+        if(!map[main].inventory || parseInt(item.inventory) > parseInt(map[main].inventory)) {
+            map[main].inventory = item.inventory;
+        }
+    }
   });
   return Object.values(map);
 }
@@ -1159,24 +1255,21 @@ function searchProducts() {
   const minPraw = minPriceInput.value.trim();
   const maxPraw = maxPriceInput.value.trim();
   const cat = categorySelect.value; 
+  const stockReq = stockFilter.value; // Get stock requirement
   
   const hasKey = !!key;
   const hasQty = !!qty;
   const hasBudget = !!minPraw || !!maxPraw;
   const hasCat = !!cat; 
+  const hasStockReq = !!stockReq;
 
   if (hasBudget && !hasQty && userLevel >= 1) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
   
-  if (hasQty && !hasKey && !hasBudget && !hasCat) {
-    alert("選擇起訂量後，請輸入「關鍵字」或「預算區間」！");
-    return;
-  }
-  
-  if (!hasKey && !hasQty && !hasBudget && !hasCat) {
-    alert("請輸入搜尋條件（關鍵字、分類、起訂量、預算）");
+  if (hasQty && !hasKey && !hasBudget && !hasCat && !hasStockReq) {
+    alert("請輸入搜尋條件（關鍵字、分類、起訂量、預算或庫存需求）");
     return;
   }
 
@@ -1195,6 +1288,15 @@ function searchProducts() {
 
     if (hasKey) {
       r = r.filter(p => (p.searchKey || "").includes(key));
+    }
+
+    // 🚀 Stock Filter Logic
+    if (hasStockReq) {
+        const minStock = parseInt(stockReq, 10);
+        r = r.filter(p => {
+            const inv = parseInt(p.inventory || 0, 10);
+            return inv >= minStock;
+        });
     }
 
     if (hasBudget) {
@@ -1235,16 +1337,10 @@ function renderResults(list) {
 
   list.forEach(item => {
     let img = item.imageUrl;
-    // 優先順序：1. 爬蟲圖 2. 網路圖第一張 3. Drive主圖 4. 預設圖
     if (!img || !img.startsWith("http")) {
-      const netImages = getDriveNetImages(item.model, item.mainModel);
-      if (netImages && netImages.length > 0) {
-        img = netImages[0];
-      } else {
-        const driveImg = getDriveMainImage(item.model, item.mainModel);
-        if (driveImg) img = driveImg;
-        else img = "https://placehold.co/110x110?text=No+Image";
-      }
+      const driveImg = getDriveMainImage(item.model, item.mainModel);
+      if (driveImg) img = driveImg;
+      else img = "https://placehold.co/110x110?text=No+Image";
     }
   
     const tr = document.createElement("tr");
@@ -1265,6 +1361,21 @@ function renderResults(list) {
     const showMinPrice = userLevel >= 1;
 
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
+    
+    // 🚀 Stock Logic - Level 2+ only
+    let stockHtml = "";
+    if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+        const label = getInventoryRangeLabel(item.inventory);
+        const qtyVal = parseInt(item.inventory, 10);
+        let badgeClass = "stock-mid";
+        
+        if (qtyVal <= 100) badgeClass = "stock-low";
+        else if (qtyVal > 1000) badgeClass = "stock-high";
+
+        if(label) {
+            stockHtml = `<div class="stock-badge ${badgeClass}">📦 ${label}</div>`;
+        }
+    }
 
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
@@ -1277,6 +1388,7 @@ function renderResults(list) {
         <div style="font-weight:700;margin-bottom:4px;">${item.name || "-"}</div>
         <div style="font-size:13px;color:#555;margin-bottom:4px;">顏色：${item.colorList || "-"}</div>
         <div class="price-tag-container" style="font-size:13px;margin-bottom:4px;">${priceHtml}</div>
+        ${stockHtml}
         <div style="display:flex; gap:6px;">
           <button class="line-share-btn" data-model="${item.model}" style="margin-top:6px;padding:6px 10px;font-size:12px;background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">LINE</button>
           <button class="btn-outline-add add-quote-btn" data-model="${item.model}">➕ 報價單</button>
@@ -1334,16 +1446,10 @@ function showDetailMobile(item) {
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
   let img = item.imageUrl;
-  // Priority Logic Update
   if (!img || !img.startsWith("http")) {
-      const netImgsForDisplay = getDriveNetImages(item.model, item.mainModel);
-      if (netImgsForDisplay && netImgsForDisplay.length > 0) {
-          img = netImgsForDisplay[0];
-      } else {
-          const driveImg = getDriveMainImage(item.model, item.mainModel);
-          if (driveImg) img = driveImg;
-          else img = "https://placehold.co/300x300?text=No+Image";
-      }
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    if (driveImg) img = driveImg;
+    else img = "https://placehold.co/300x300?text=No+Image";
   }
 
   const getPrice = (p) => (item[p] ?? "-");
@@ -1373,6 +1479,24 @@ function showDetailMobile(item) {
       }).join("");
       netThumbHtml = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">${imgsHtml}</div>`;
   }
+  
+  // 🚀 Stock Logic - Level 2+ only
+  let stockHtml = "";
+  if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+        const label = getInventoryRangeLabel(item.inventory);
+        const qtyVal = parseInt(item.inventory, 10);
+        let color = "#b45309"; // mid
+        let bg = "#fffbeb";
+
+        if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
+        else if(qtyVal > 1000) { color = "#15803d"; bg = "#f0fdf4"; }
+
+        if(label) {
+            stockHtml = `<div style="margin-bottom:16px; background:${bg}; color:${color}; border:1px solid ${color}; padding:8px; border-radius:8px; text-align:center; font-weight:bold;">
+            📦 庫存：${label}
+            </div>`;
+        }
+  }
 
   const sheetContent = document.getElementById("sheetContent");
   sheetContent.innerHTML = `
@@ -1386,6 +1510,8 @@ function showDetailMobile(item) {
         ${item.category ? `<span style="background:#f3f4f6; color:#4b5563; padding:4px 8px; border-radius:4px; font-size:12px;">分類：${item.category}</span>` : ""}
         ${item.netSalesPermission ? `<span style="background:#e0e7ff; color:#3730a3; padding:4px 8px; border-radius:4px; font-size:12px;">權限：${item.netSalesPermission}</span>` : ""}
     </div>
+
+    ${stockHtml}
 
     <div style="color:#666; font-size:14px; margin-bottom:16px;">
        <div>型號：${item.model}</div>
@@ -1430,16 +1556,10 @@ function showDetailDesktop(item) {
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
   let img = item.imageUrl;
-  // Priority Logic Update
   if (!img || !img.startsWith("http")) {
-      const netImgsForDisplay = getDriveNetImages(item.model, item.mainModel);
-      if (netImgsForDisplay && netImgsForDisplay.length > 0) {
-          img = netImgsForDisplay[0];
-      } else {
-          const driveImg = getDriveMainImage(item.model, item.mainModel);
-          if (driveImg) img = driveImg;
-          else img = "https://placehold.co/300x300?text=No+Image";
-      }
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    if (driveImg) img = driveImg;
+    else img = "https://placehold.co/300x300?text=No+Image";
   }
 
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
@@ -1476,6 +1596,24 @@ function showDetailDesktop(item) {
       }
   });
   
+  // 🚀 Stock Logic - Level 2+ only
+  let stockHtml = "";
+  if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+        const label = getInventoryRangeLabel(item.inventory);
+        const qtyVal = parseInt(item.inventory, 10);
+        let color = "#b45309"; 
+        let bg = "#fffbeb";
+
+        if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
+        else if(qtyVal > 1000) { color = "#15803d"; bg = "#f0fdf4"; }
+
+        if(label) {
+            stockHtml = `<div style="margin-bottom:12px; background:${bg}; color:${color}; border:1px solid ${color}; padding:6px; border-radius:6px; font-size:13px; font-weight:bold;">
+            📦 庫存：${label}
+            </div>`;
+        }
+  }
+  
   detailCard.style.display = "block";
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
@@ -1497,6 +1635,8 @@ function showDetailDesktop(item) {
         ${item.category ? `<span style="background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-right:6px;">分類: ${item.category}</span>` : ""}
         ${item.netSalesPermission ? `<span style="background:#dbeafe; padding:2px 6px; border-radius:4px; color:#1e40af;">網路權限: ${item.netSalesPermission}</span>` : ""}
       </div>
+      
+      ${stockHtml}
 
       <div style="font-size:14px; line-height:1.8; color:#444;">
         <div><span style="color:#888;">顏色：</span> ${item.colorList || "-"}</div>
@@ -1574,6 +1714,8 @@ async function buildProductSlide(pptx, item, tier, customInfo = null){
     ],
     { x:7.2, y:0.6, w:2.5, h:0.4, align:'right', fontFace:"Microsoft JhengHei" }
   );
+  
+  // 🚫 Inventory text removed from slide per request
 
   slide.addShape(pptx.ShapeType.line, { x:0.4, y:1.2, w:9.2, h:0, line:{color:'E5E7EB', width:1} });
 
@@ -1712,7 +1854,7 @@ function exportSelectedExcel() {
   
   const baseHeader = ["商品型號","主型號","分類","商品名稱","顏色列表","網路權限","箱入數","商品連結","商品大圖","網路圖"];
   const qty = qtySelect.value;
-  let priceHeader = qty ? [`${qty}個`, "末售", "賣場"] : ["末售", "賣場"];
+  let priceHeader = qty ? [`${qty}個`, "末售", "賣場", "庫存"] : ["末售", "賣場", "庫存"];
   const rows = [[...baseHeader, ...priceHeader]];
   selectedModels.forEach(m => {
     const item = currentResultList.find(p => p.model === m);
@@ -1724,6 +1866,7 @@ function exportSelectedExcel() {
     let priceRow = [];
     
     const showMinPrice = userLevel >= 1;
+    const stock = getInventoryRangeLabel(item.inventory) || "-";
     
     if (qty) {
       const ck = `quote${qty}`;
@@ -1735,10 +1878,11 @@ function exportSelectedExcel() {
       priceRow = [
           canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---", 
           showMinPrice ? (item.minPrice ?? "-") : "---", 
-          item.marketPrice ?? "-"
+          item.marketPrice ?? "-",
+          stock
       ];
     } else {
-      priceRow = [showMinPrice ? (item.minPrice ?? "-") : "---", item.marketPrice ?? "-"];
+      priceRow = [showMinPrice ? (item.minPrice ?? "-") : "---", item.marketPrice ?? "-", stock];
     }
     rows.push([...baseRow, ...priceRow]);
   });
@@ -1775,6 +1919,146 @@ logoutBtn.onclick = () => {
     }
 };
 
+if(importInventoryBtn) {
+    importInventoryBtn.onclick = () => {
+        if(!confirm("確定要匯入庫存表嗎？\n這將會更新資料庫中的庫存數據。\n(系統將自動計算：[成品倉+專賣倉]*0.9 作為安全庫存)")) return;
+        inventoryUpload.value = ''; // Reset
+        inventoryUpload.click();
+    };
+}
+
+async function saveInventoryToFirestore(invMap) {
+    if(!productCache || productCache.length === 0) {
+        alert("尚未載入產品資料，無法比對更新。");
+        return;
+    }
+
+    importInventoryBtn.disabled = true;
+    importInventoryBtn.textContent = "更新中...";
+    
+    let updatedCount = 0;
+    let batch = writeBatch(db);
+    let opCount = 0;
+    const BATCH_LIMIT = 400; // Safe limit below 500
+
+    try {
+        for (const product of productCache) {
+            const bc = (product.barcode || product.internationalBarcode || "").trim();
+            if(bc && invMap.has(bc)) {
+                const newQty = invMap.get(bc);
+                const docRef = doc(db, "Products", product.id);
+                batch.update(docRef, { inventory: newQty });
+                
+                opCount++;
+                updatedCount++;
+
+                if (opCount >= BATCH_LIMIT) {
+                    await batch.commit();
+                    batch = writeBatch(db); // Reset batch
+                    opCount = 0;
+                }
+            }
+        }
+
+        if (opCount > 0) {
+            await batch.commit();
+        }
+
+        alert(`資料庫更新完成！\n共更新了 ${updatedCount} 筆商品的庫存數據。\n系統將自動重新整理以顯示最新數據。`);
+        window.location.reload();
+
+    } catch (e) {
+        console.error("Batch update failed", e);
+        alert("更新資料庫時發生錯誤，請檢查 Console 或聯絡管理員。");
+    } finally {
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入並更新資料庫";
+    }
+}
+
+if(inventoryUpload) {
+    inventoryUpload.onchange = (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const data = evt.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); // Array of arrays
+
+                // Logic: Find headers for "條碼", "成品倉", "專賣倉", "庫存(可用量)"
+                let barcodeIdx = -1;
+                let finishedIdx = -1;
+                let exclusiveIdx = -1;
+                let fallbackIdx = -1; // "庫存(可用量)"
+
+                // Scan first 10 rows for headers
+                for(let r=0; r<Math.min(jsonData.length, 10); r++) {
+                    const row = jsonData[r];
+                    for(let c=0; c<row.length; c++) {
+                        const cell = String(row[c]).trim();
+                        if(cell === "條碼" || cell === "國際條碼") barcodeIdx = c;
+                        if(cell === "成品倉") finishedIdx = c;
+                        if(cell === "專賣倉") exclusiveIdx = c;
+                        if(cell.includes("庫存") && cell.includes("可用量")) fallbackIdx = c;
+                    }
+                }
+
+                if (barcodeIdx === -1) {
+                    alert("錯誤：找不到「條碼」欄位，請檢查 Excel 格式。");
+                    return;
+                }
+
+                const tempMap = new Map();
+                let count = 0;
+
+                jsonData.forEach((row, index) => {
+                    // Skip header rows or empty rows
+                    if(!row[barcodeIdx]) return;
+                    
+                    const rawBarcode = row[barcodeIdx];
+                    if(String(rawBarcode).includes("條碼")) return; // skip header itself
+
+                    let totalQty = 0;
+
+                    // Logic: (成品倉 + 專賣倉) * 0.9
+                    if(finishedIdx !== -1 && exclusiveIdx !== -1) {
+                        const fin = parseInt(row[finishedIdx], 10) || 0;
+                        const exc = parseInt(row[exclusiveIdx], 10) || 0;
+                        totalQty = Math.floor((fin + exc) * 0.9);
+                    } 
+                    // Fallback Logic: (庫存可用量) * 0.9
+                    else if (fallbackIdx !== -1) {
+                        const fb = parseInt(row[fallbackIdx], 10) || 0;
+                        totalQty = Math.floor(fb * 0.9);
+                    } else {
+                        return; // No stock data found
+                    }
+
+                    const bc = String(rawBarcode).trim();
+                    tempMap.set(bc, totalQty);
+                    count++;
+                });
+
+                if(count > 0) {
+                    saveInventoryToFirestore(tempMap);
+                } else {
+                    alert("未在檔案中找到有效的庫存數據。");
+                }
+                
+            } catch(err) {
+                console.error(err);
+                alert("讀取檔案失敗，請確認格式是否正確。");
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+}
+
+
 if(pptToolbarBtn) {
   pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
 }
@@ -1806,6 +2090,7 @@ if(clearBtn) {
     qtySelect.value = "";
     minPriceInput.value = "";
     maxPriceInput.value = "";
+    stockFilter.value = "";
     categorySelect.value = ""; 
 
     resultBody.innerHTML = "";
@@ -1835,16 +2120,6 @@ if(clearQuoteBtn) {
 
 // Login Button Click Logic
 if(doLoginBtn) {
-  // Add Enter key support
-  const handleEnter = (e) => {
-    if (e.key === "Enter") {
-      doLoginBtn.click();
-    }
-  };
-  
-  if(loginEmail) loginEmail.addEventListener("keyup", handleEnter);
-  if(loginPassword) loginPassword.addEventListener("keyup", handleEnter);
-
   doLoginBtn.onclick = async () => {
     let email = loginEmail.value.trim();
     const password = loginPassword.value.trim();
@@ -1912,6 +2187,9 @@ onAuthStateChanged(auth, async (user) => {
   logoutBtn.style.display = "inline-block";
 
   setupQtySelectByLevel();
+  
+  // 🚀 Trigger permissions update after level is loaded
+  updatePermissions();
 
   await preloadDriveModelData();
   await preloadProducts();
