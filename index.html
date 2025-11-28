@@ -1235,10 +1235,16 @@ function renderResults(list) {
 
   list.forEach(item => {
     let img = item.imageUrl;
+    // 優先順序：1. 爬蟲圖 2. 網路圖第一張 3. Drive主圖 4. 預設圖
     if (!img || !img.startsWith("http")) {
-      const driveImg = getDriveMainImage(item.model, item.mainModel);
-      if (driveImg) img = driveImg;
-      else img = "https://placehold.co/110x110?text=No+Image";
+      const netImages = getDriveNetImages(item.model, item.mainModel);
+      if (netImages && netImages.length > 0) {
+        img = netImages[0];
+      } else {
+        const driveImg = getDriveMainImage(item.model, item.mainModel);
+        if (driveImg) img = driveImg;
+        else img = "https://placehold.co/110x110?text=No+Image";
+      }
     }
   
     const tr = document.createElement("tr");
@@ -1328,10 +1334,16 @@ function showDetailMobile(item) {
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
   let img = item.imageUrl;
+  // Priority Logic Update
   if (!img || !img.startsWith("http")) {
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) img = driveImg;
-    else img = "https://placehold.co/300x300?text=No+Image";
+      const netImgsForDisplay = getDriveNetImages(item.model, item.mainModel);
+      if (netImgsForDisplay && netImgsForDisplay.length > 0) {
+          img = netImgsForDisplay[0];
+      } else {
+          const driveImg = getDriveMainImage(item.model, item.mainModel);
+          if (driveImg) img = driveImg;
+          else img = "https://placehold.co/300x300?text=No+Image";
+      }
   }
 
   const getPrice = (p) => (item[p] ?? "-");
@@ -1418,10 +1430,16 @@ function showDetailDesktop(item) {
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
   let img = item.imageUrl;
+  // Priority Logic Update
   if (!img || !img.startsWith("http")) {
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) img = driveImg;
-    else img = "https://placehold.co/300x300?text=No+Image";
+      const netImgsForDisplay = getDriveNetImages(item.model, item.mainModel);
+      if (netImgsForDisplay && netImgsForDisplay.length > 0) {
+          img = netImgsForDisplay[0];
+      } else {
+          const driveImg = getDriveMainImage(item.model, item.mainModel);
+          if (driveImg) img = driveImg;
+          else img = "https://placehold.co/300x300?text=No+Image";
+      }
   }
 
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
@@ -1817,6 +1835,16 @@ if(clearQuoteBtn) {
 
 // Login Button Click Logic
 if(doLoginBtn) {
+  // Add Enter key support
+  const handleEnter = (e) => {
+    if (e.key === "Enter") {
+      doLoginBtn.click();
+    }
+  };
+  
+  if(loginEmail) loginEmail.addEventListener("keyup", handleEnter);
+  if(loginPassword) loginPassword.addEventListener("keyup", handleEnter);
+
   doLoginBtn.onclick = async () => {
     let email = loginEmail.value.trim();
     const password = loginPassword.value.trim();
