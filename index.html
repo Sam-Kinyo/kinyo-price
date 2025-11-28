@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.9.8 智慧圖片版）</title>
+<title>KINYO 查價系統（v5.9.10 六格畫廊修復版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -594,7 +594,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.9.8 智慧圖片版 —— 智慧圖片遞補 (網圖 > No Image)
+  v5.9.10 六格畫廊修復版 —— 完美還原照片排版 (智慧切換模式)
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -1735,86 +1735,126 @@ function showDetailDesktop(item) {
 
 async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     const slide = pptx.addSlide();
-
-    // Background & Styling
     slide.background = { color: "FFFFFF" };
 
-    // Title (Product Name)
-    slide.addText(item.name || "未命名商品", {
-        x: 0.5, y: 0.5, w: 9.0, h: 0.6,
-        fontSize: 24, bold: true, color: "111827", fontFace: "微軟正黑體"
+    // --- 1. Gather Images ---
+    let mainImg = item.imageUrl;
+    const netImages = getDriveNetImages(item.model, item.mainModel);
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    
+    if (!mainImg || !mainImg.startsWith("http")) {
+        if(driveImg) mainImg = driveImg;
+        else if(netImages && netImages.length > 0) mainImg = netImages[0];
+        else mainImg = "https://placehold.co/400x400?text=No+Image";
+    }
+
+    let allImages = [mainImg];
+    if(netImages && netImages.length > 0) {
+        const others = netImages.filter(url => url !== mainImg);
+        allImages = allImages.concat(others);
+    }
+    // Remove duplicates and empty
+    allImages = [...new Set(allImages)].filter(Boolean);
+
+    // --- 2. Smart Layout Switch ---
+    const useGalleryMode = allImages.length >= 3;
+
+    // --- 3. Header Section (Common) ---
+    // Logo
+    try {
+        const logoUrl = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn"; 
+        const logoB64 = await fetchAsDataURL(logoUrl);
+        if(logoB64) slide.addImage({ data: logoB64, x: 0.2, y: 0.2, w: 1.5, h: 0.6 }); 
+    } catch(e) {}
+
+    // Title
+    slide.addText(`${item.model} ${item.name}`, {
+        x: 1.8, y: 0.2, w: 6.0, h: 0.6,
+        fontSize: 20, bold: true, color: "000000", fontFace: "微軟正黑體", valign: "middle"
     });
 
-    // Main Image (Left)
-    // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
-    let imgUrl = item.imageUrl;
-    const netImages = getDriveNetImages(item.model, item.mainModel);
-
-    if (!imgUrl || !imgUrl.startsWith("http")) {
-        // Fallback logic
-        const driveImg = getDriveMainImage(item.model, item.mainModel);
-        if (driveImg) {
-            imgUrl = driveImg;
-        } else if (netImages && netImages.length > 0) {
-            imgUrl = netImages[0];
-        } else {
-            imgUrl = "https://placehold.co/400x400?text=No+Image";
-        }
-    }
-    
-    // Try to fetch image as data URL to avoid CORS issues in PPT
-    try {
-        const base64 = await fetchAsDataURL(imgUrl);
-        if (base64) {
-             slide.addImage({ data: base64, x: 0.5, y: 1.3, w: 4.5, h: 4.5 });
-        } else {
-             slide.addText("圖片載入失敗", { x: 0.5, y: 3.0, w: 4.5, h: 0.5, align: 'center', color: '999999' });
-        }
-    } catch(e) {
-        slide.addText("圖片載入失敗", { x: 0.5, y: 3.0, w: 4.5, h: 0.5, align: 'center', color: '999999' });
-    }
-
-    // Product Info (Right)
-    const startX = 5.2;
-    let currY = 1.3;
-    const gap = 0.45;
-    
-    const addField = (label, val, highlight=false) => {
-        slide.addText(label, { x: startX, y: currY, w: 1.5, h: 0.4, fontSize: 14, color: "666666", fontFace: "微軟正黑體" });
-        slide.addText(val || "-", { 
-            x: startX + 1.6, y: currY, w: 3.5, h: 0.4, 
-            fontSize: 14, color: highlight ? "DC2626" : "000000", bold: highlight, fontFace: "微軟正黑體" 
-        });
-        currY += gap;
-    };
-
-    addField("型號", item.model);
-    addField("主型號", item.mainModel);
-    addField("國際條碼", item.internationalBarcode || item.barcode); // 🌟 Use new logic here too
-    addField("箱入數", item.cartonQty);
-    addField("顏色", item.colorList);
-    
-    currY += 0.2; // spacer
-
-    // Price Info
-    addField("賣場售價", `$${item.marketPrice}`);
-    
+    // Prices
+    let quoteText = "", quotePrice = "";
     if (customQuoteInfo) {
-        // From Quote List
-        addField("採購規格", customQuoteInfo.qtyLabel, true);
-        addField("採購單價", `$${customQuoteInfo.price}`, true);
+        quoteText = `報價(${customQuoteInfo.qtyLabel}):`;
+        quotePrice = `$${customQuoteInfo.price}`;
     } else {
-        // From Checkbox selection
-        // Check tier
         const quoteKey = `quote${tier}`;
-        const price = item[quoteKey] || item.quote50 || "-";
-        addField(`報價 (${tier}個)`, `$${price}`, true);
+        const p = item[quoteKey] || item.quote50 || "-";
+        quoteText = `報價(${tier}個):`;
+        quotePrice = `$${p}`;
     }
-    
-    // Footer / Disclaimer
-    slide.addText("※ 報價有效期限 14 天，實際交易以最終合約為準。", {
-        x: 0.5, y: 7.0, w: 9.0, h: 0.4,
-        fontSize: 10, color: "9CA3AF", align: "center", fontFace: "微軟正黑體"
+
+    slide.addText(`賣場價: $${item.marketPrice}`, {
+        x: 7.5, y: 0.2, w: 2.3, h: 0.3,
+        fontSize: 12, color: "888888", align: "right", fontFace: "微軟正黑體"
+    });
+    slide.addText(quoteText, {
+        x: 7.0, y: 0.5, w: 1.8, h: 0.4,
+        fontSize: 14, color: "2563eb", align: "right", fontFace: "微軟正黑體", bold:true
+    });
+    slide.addText(quotePrice, {
+        x: 8.8, y: 0.5, w: 1.0, h: 0.4,
+        fontSize: 18, color: "DC2626", align: "right", fontFace: "微軟正黑體", bold:true
+    });
+
+    // --- 4. Content Body ---
+    if (useGalleryMode) {
+        // === Gallery Mode (6 Grid) ===
+        const displayImages = allImages.slice(0, 6);
+        const startY = 1.2;
+        const marginX = 0.5;
+        const gridW = 9.0; 
+        const cols = 3;
+        const gap = 0.2;
+        const imgW = (gridW - (gap * (cols - 1))) / cols; // ~2.86
+        const imgH = 2.4; 
+
+        for (let i = 0; i < displayImages.length; i++) {
+            const url = displayImages[i];
+            const r = Math.floor(i / cols);
+            const c = i % cols;
+            const x = marginX + c * (imgW + gap);
+            const y = startY + r * (imgH + gap);
+
+            try {
+                const b64 = await fetchAsDataURL(url);
+                if(b64) slide.addImage({ data: b64, x: x, y: y, w: imgW, h: imgH, sizing: { type: "contain", w: imgW, h: imgH } });
+            } catch(e) {}
+        }
+
+    } else {
+        // === Standard Mode (Left Image / Right Text) ===
+        // Image
+        try {
+            const b64 = await fetchAsDataURL(mainImg);
+            if(b64) slide.addImage({ data: b64, x: 0.5, y: 1.5, w: 4.5, h: 4.5, sizing: { type: "contain", w: 4.5, h: 4.5 } });
+        } catch(e) {}
+
+        // Info Text
+        const labelX = 5.2;
+        const valX = 6.6;
+        let currY = 1.8;
+        const gap = 0.6;
+
+        const addRow = (label, val) => {
+            slide.addText(label, { x: labelX, y: currY, w: 1.4, h: 0.4, fontSize: 14, color: "666666", fontFace: "微軟正黑體" });
+            slide.addText(val || "-", { x: valX, y: currY, w: 3.2, h: 0.4, fontSize: 14, color: "000000", fontFace: "微軟正黑體" });
+            currY += gap;
+        };
+
+        addRow("型號", item.model);
+        addRow("主型號", item.mainModel);
+        addRow("國際條碼", item.internationalBarcode || item.barcode);
+        addRow("箱入數", item.cartonQty);
+        addRow("顏色", item.colorList);
+    }
+
+    // 5. Footer
+    const dateStr = new Date().toISOString().split('T')[0];
+    slide.addText(`KINYO | 生成日期: ${dateStr}`, {
+        x: 0.5, y: 7.0, w: 5.0, h: 0.3,
+        fontSize: 10, color: "AAAAAA", fontFace: "微軟正黑體"
     });
 }
 
