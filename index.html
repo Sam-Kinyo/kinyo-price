@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.8.2 庫存區間版）</title>
+<title>KINYO 查價系統（v5.8.3 匯入檢查版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -536,6 +536,24 @@ th{background:#fafafa;text-align:left;}
   td:nth-of-type(6)::before { content: "賣場價格"; font-weight: normal; color: #6b7280; }
   td { border-bottom: none !important; }
 }
+
+/* =========================================
+   Preview Overlay
+========================================= */
+#previewOverlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5); 
+    display: none; align-items: center; justify-content: center; z-index: 4000;
+}
+.preview-card {
+    background: white; width: 90%; max-width: 800px; max-height: 80vh;
+    border-radius: 12px; padding: 20px; display: flex; flex-direction: column;
+}
+.preview-header { font-weight: bold; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
+.preview-body { flex: 1; overflow-y: auto; margin-bottom: 10px; font-size: 13px; }
+.preview-footer { display: flex; justify-content: flex-end; gap: 10px; }
+.preview-table { width: 100%; border-collapse: collapse; }
+.preview-table th, .preview-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+.preview-table th { background: #f3f4f6; }
 </style>
 </head>
 <body>
@@ -550,6 +568,22 @@ th{background:#fafafa;text-align:left;}
     <button id="doLoginBtn" class="login-btn">登入</button>
     <div id="loginError" class="login-error"></div>
   </div>
+</div>
+
+<!-- Preview Overlay -->
+<div id="previewOverlay">
+    <div class="preview-card">
+        <div class="preview-header">
+            匯入預覽檢查 (前 10 筆資料)
+        </div>
+        <div class="preview-body" id="previewContent">
+            <!-- Table will be injected here -->
+        </div>
+        <div class="preview-footer">
+            <button id="cancelImportBtn" class="btn-secondary">取消</button>
+            <button id="confirmImportBtn" class="btn-primary">確認寫入資料庫</button>
+        </div>
+    </div>
 </div>
 
 <!-- Loading -->
@@ -569,7 +603,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.8.2 庫存區間版 —— 安全庫存(打9折) & 區間顯示
+  v5.8.3 匯入檢查版 —— 安全庫存(打9折) & 匯入前預覽
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -755,6 +789,12 @@ const loginPassword = document.getElementById("loginPassword");
 const doLoginBtn = document.getElementById("doLoginBtn");
 const loginError = document.getElementById("loginError");
 
+// Preview Elements
+const previewOverlay = document.getElementById("previewOverlay");
+const previewContent = document.getElementById("previewContent");
+const cancelImportBtn = document.getElementById("cancelImportBtn");
+const confirmImportBtn = document.getElementById("confirmImportBtn");
+
 let productCache = [];
 let currentResultList = [];
 let userLevel = 0; 
@@ -763,12 +803,13 @@ let quoteList = [];
 let isProductsLoaded = false;
 let isQuotesLoaded = false;
 let hasCheckedItems = false;
+let pendingInventoryMap = new Map(); // Store parsed data waiting for confirmation
 
 const CACHE_TTL = 1000 * 60 * 60 * 6; 
 
 function getCacheKey() {
   const mail = (currentUserEmail || "guest").toLowerCase();
-  return `KINYO_SAFE_CACHE_V580_${mail}`; // 🚀 Update Cache Key for V5.8.0
+  return `KINYO_SAFE_CACHE_V580_${mail}`; // Reuse key
 }
 
 function loadCache() {
@@ -825,7 +866,6 @@ function getGoogleDriveId(url) {
   return null;
 }
 
-// 🚀 優化：設定圖片寬度為 400px，品質 70，大幅加速下載
 async function fetchAsDataURL(url) {
   if (!url) return null;
   let targetUrl = url;
@@ -838,7 +878,6 @@ async function fetchAsDataURL(url) {
        targetUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&output=jpg&w=400&q=70";
     }
   } else {
-      // 非 Drive 連結也加上壓縮參數
       if(targetUrl.includes("weserv.nl")) {
           if(!targetUrl.includes("&w=")) targetUrl += "&w=400&q=70";
       } else {
@@ -1132,7 +1171,6 @@ async function preloadProducts() {
     const fullList = [];
     snap.forEach(docSnap => {
       const d = docSnap.data() || {};
-      // 🚀 Important: Save Doc ID for updates
       const id = docSnap.id;
       
       const model = (d.model || "").trim();
@@ -1919,11 +1957,29 @@ logoutBtn.onclick = () => {
     }
 };
 
+// Open File Dialog
 if(importInventoryBtn) {
     importInventoryBtn.onclick = () => {
-        if(!confirm("確定要匯入庫存表嗎？\n這將會更新資料庫中的庫存數據。\n(系統將自動計算：[成品倉+專賣倉]*0.9 作為安全庫存)")) return;
         inventoryUpload.value = ''; // Reset
         inventoryUpload.click();
+    };
+}
+
+// Cancel Import
+if(cancelImportBtn) {
+    cancelImportBtn.onclick = () => {
+        previewOverlay.style.display = "none";
+        pendingInventoryMap.clear();
+        inventoryUpload.value = ''; 
+    };
+}
+
+// Confirm Import
+if(confirmImportBtn) {
+    confirmImportBtn.onclick = () => {
+        if(pendingInventoryMap.size === 0) return;
+        previewOverlay.style.display = "none";
+        saveInventoryToFirestore(pendingInventoryMap);
     };
 }
 
@@ -1939,7 +1995,7 @@ async function saveInventoryToFirestore(invMap) {
     let updatedCount = 0;
     let batch = writeBatch(db);
     let opCount = 0;
-    const BATCH_LIMIT = 400; // Safe limit below 500
+    const BATCH_LIMIT = 400; 
 
     try {
         for (const product of productCache) {
@@ -1969,7 +2025,18 @@ async function saveInventoryToFirestore(invMap) {
 
     } catch (e) {
         console.error("Batch update failed", e);
-        alert("更新資料庫時發生錯誤，請檢查 Console 或聯絡管理員。");
+        if (e.code === 'permission-denied') {
+             alert(
+                "❌ 權限錯誤 (Permission Denied)\n\n" +
+                "Firebase 資料庫拒絕了寫入請求。\n" +
+                "這通常是因為 Firestore Rules 設定為「唯讀」或未授權寫入。\n\n" +
+                "解決方法：\n" +
+                "1. 前往 Firebase Console > Firestore Database > Rules\n" +
+                "2. 將 Products 集合的 write 權限改為允許 (例如: allow write: if request.auth != null;)"
+            );
+        } else {
+            alert(`更新資料庫時發生錯誤 (Code: ${e.code})：\n${e.message}\n請檢查 Console 或聯絡管理員。`);
+        }
     } finally {
         importInventoryBtn.disabled = false;
         importInventoryBtn.textContent = "📥 匯入並更新資料庫";
@@ -1987,15 +2054,15 @@ if(inventoryUpload) {
                 const data = evt.target.result;
                 const workbook = XLSX.read(data, { type: 'binary' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); // Array of arrays
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
 
-                // Logic: Find headers for "條碼", "成品倉", "專賣倉", "庫存(可用量)"
+                // --- HEADER DETECTION ---
                 let barcodeIdx = -1;
                 let finishedIdx = -1;
                 let exclusiveIdx = -1;
-                let fallbackIdx = -1; // "庫存(可用量)"
+                let fallbackIdx = -1;
 
-                // Scan first 10 rows for headers
+                // Scan first 10 rows
                 for(let r=0; r<Math.min(jsonData.length, 10); r++) {
                     const row = jsonData[r];
                     for(let c=0; c<row.length; c++) {
@@ -2012,39 +2079,89 @@ if(inventoryUpload) {
                     return;
                 }
 
-                const tempMap = new Map();
+                pendingInventoryMap.clear();
+                let previewData = [];
                 let count = 0;
 
+                // --- DATA PARSING ---
                 jsonData.forEach((row, index) => {
-                    // Skip header rows or empty rows
                     if(!row[barcodeIdx]) return;
-                    
                     const rawBarcode = row[barcodeIdx];
-                    if(String(rawBarcode).includes("條碼")) return; // skip header itself
+                    if(String(rawBarcode).includes("條碼")) return;
 
                     let totalQty = 0;
+                    let finishedVal = 0;
+                    let exclusiveVal = 0;
+                    let source = "";
 
-                    // Logic: (成品倉 + 專賣倉) * 0.9
                     if(finishedIdx !== -1 && exclusiveIdx !== -1) {
-                        const fin = parseInt(row[finishedIdx], 10) || 0;
-                        const exc = parseInt(row[exclusiveIdx], 10) || 0;
-                        totalQty = Math.floor((fin + exc) * 0.9);
+                        finishedVal = parseInt(row[finishedIdx], 10) || 0;
+                        exclusiveVal = parseInt(row[exclusiveIdx], 10) || 0;
+                        totalQty = Math.floor((finishedVal + exclusiveVal) * 0.9);
+                        source = "成品+專賣";
                     } 
-                    // Fallback Logic: (庫存可用量) * 0.9
                     else if (fallbackIdx !== -1) {
                         const fb = parseInt(row[fallbackIdx], 10) || 0;
                         totalQty = Math.floor(fb * 0.9);
+                        source = "庫存(可用量)";
                     } else {
-                        return; // No stock data found
+                        return; 
                     }
 
                     const bc = String(rawBarcode).trim();
-                    tempMap.set(bc, totalQty);
+                    pendingInventoryMap.set(bc, totalQty);
                     count++;
+
+                    // Collect first 10 for preview
+                    if(previewData.length < 10) {
+                        // Find product name for better context
+                        const matchedProduct = productCache.find(p => (p.barcode || p.internationalBarcode) == bc);
+                        previewData.push({
+                            bc: bc,
+                            name: matchedProduct ? matchedProduct.name : "(無對應商品)",
+                            fin: finishedVal,
+                            exc: exclusiveVal,
+                            rawTotal: (finishedVal + exclusiveVal),
+                            final: totalQty,
+                            src: source
+                        });
+                    }
                 });
 
                 if(count > 0) {
-                    saveInventoryToFirestore(tempMap);
+                    // Show Preview Modal
+                    let tableHtml = `<table class="preview-table">
+                        <thead>
+                            <tr>
+                                <th>條碼</th>
+                                <th>商品名稱 (系統)</th>
+                                <th>成品倉</th>
+                                <th>專賣倉</th>
+                                <th>原始總和</th>
+                                <th style="color:#2563eb;">安全庫存 (90%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                    
+                    previewData.forEach(row => {
+                        tableHtml += `<tr>
+                            <td>${row.bc}</td>
+                            <td>${row.name}</td>
+                            <td>${row.fin}</td>
+                            <td>${row.exc}</td>
+                            <td>${row.rawTotal}</td>
+                            <td style="font-weight:bold; color:#2563eb;">${row.final}</td>
+                        </tr>`;
+                    });
+                    tableHtml += `</tbody></table>
+                    <div style="margin-top:10px; color:#666;">
+                        共解析出 ${count} 筆有效資料。<br>
+                        確認無誤後，請點擊下方按鈕寫入資料庫。
+                    </div>`;
+
+                    previewContent.innerHTML = tableHtml;
+                    previewOverlay.style.display = "flex";
+
                 } else {
                     alert("未在檔案中找到有效的庫存數據。");
                 }
