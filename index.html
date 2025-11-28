@@ -1770,7 +1770,8 @@ if(copyQuoteBtn) {
     let text = "KINYO 報價單\n--------------------\n";
     quoteList.forEach((q,i)=>{
       const priceDisplay = `$${q.price}`;
-      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n`;
+      const link = q.productUrl ? `   🔗 連結：${q.productUrl}\n` : "";
+      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n${link}`;
     });
     text += "--------------------\n";
     navigator.clipboard.writeText(text)
@@ -1910,7 +1911,8 @@ document.addEventListener("click", (e) => {
           name: item.name,
           price: cost,
           qtyLabel: `${qty}個`,
-          count: 1
+          count: 1,
+          productUrl: item.productUrl || ""
         });
         alert(`已加入報價單（${qty}個：$${cost}）`);
     }
@@ -2012,7 +2014,8 @@ if (batchAddQuoteBtn) {
                     name: item.name,
                     price: cost,
                     qtyLabel: qtyLabel,
-                    count: 1
+                    count: 1,
+                    productUrl: item.productUrl || ""
                 });
             }
             addedCount++;
