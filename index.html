@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.9.1 總表同步版）</title>
+<title>KINYO 查價系統（v5.9.3 總表完全對應版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -542,6 +542,9 @@ th{background:#fafafa;text-align:left;}
 .preview-table { width: 100%; border-collapse: collapse; }
 .preview-table th, .preview-table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
 .preview-table th { background: #f3f4f6; }
+.field-badge {
+    background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;
+}
 </style>
 </head>
 <body>
@@ -591,7 +594,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.9.1 總表同步版 —— 產品/庫存 雙模匯入系統
+  v5.9.3 總表完全對應版 —— 支援 自訂表頭 / 產品同步 / 庫存計算
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -715,7 +718,7 @@ th{background:#fafafa;text-align:left;}
 const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn/view?usp=drive_link"; 
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, initializeFirestore, query, where } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1293,7 +1296,7 @@ function searchProducts() {
   const minPraw = minPriceInput.value.trim();
   const maxPraw = maxPriceInput.value.trim();
   const cat = categorySelect.value; 
-  const stockReq = stockFilter.value; // Get stock requirement
+  const stockReq = stockFilter.value; 
   
   const hasKey = !!key;
   const hasQty = !!qty;
@@ -1331,7 +1334,6 @@ function searchProducts() {
       r = r.filter(p => (p.searchKey || "").includes(key));
     }
 
-    // 🚀 Stock Filter Logic
     if (hasStockReq) {
         const minStock = parseInt(stockReq, 10);
         r = r.filter(p => {
@@ -1712,100 +1714,6 @@ function showDetailDesktop(item) {
   `;
 }
 
-async function buildProductSlide(pptx, item, tier, customInfo = null){
-  const slide = pptx.addSlide();
-  
-  const showMinPrice = userLevel >= 1;
-  let canSeeQuote = false;
-  if (customInfo) {
-      canSeeQuote = true; 
-  } else {
-      if (userLevel >= 1 && tier == 50) canSeeQuote = true;
-      if (userLevel >= 2 && (tier == 100 || tier == 300)) canSeeQuote = true;
-      if (userLevel >= 3 && (tier == 500 || tier == 1000)) canSeeQuote = true;
-  }
-
-  const getPrice = (p) => (item[p] ?? "-");
-  
-  const logoData = await fetchAsDataURL(COMPANY_LOGO_URL);
-  if(logoData){
-    slide.addImage({ data: logoData, x:0.4, y:0.2, w:2.4, h:1.2, sizing: { type:'contain' } });
-  } else {
-    slide.addText("KINYO", { x:0.4, y:0.3, fontSize:24, bold:true, color:'000000' });
-  }
-  
-  slide.addText(`${item.name || ""}`, { x:3.0, y:0.2, w:4.0, h:0.8, fontFace:"Microsoft JhengHei", fontSize:24, bold:true, color:'000000', valign:'middle' });
-
-  slide.addText(`賣場價: $${getPrice('marketPrice')}`, { x:7.2, y:0.2, w:2.5, h:0.4, fontSize:14, color:'6B7280', fontFace:"Microsoft JhengHei", align:'right' });
-  
-  let quoteText = "---";
-  let tierLabel = `${tier}pcs`;
-
-  if (customInfo) {
-      quoteText = `$${customInfo.price}`;
-      tierLabel = customInfo.qtyLabel || `${tier}pcs`;
-  } else if (canSeeQuote) {
-      quoteText = `$${getPrice('quote' + tier)}`;
-  }
-
-  slide.addText(
-    [
-      { text: `報價(${tierLabel}): `, options: { color:'1E3A8A', bold:true, fontSize:14 } },
-      { text: quoteText, options: { color:'DC2626', bold:true, fontSize:20 } }
-    ],
-    { x:7.2, y:0.6, w:2.5, h:0.4, align:'right', fontFace:"Microsoft JhengHei" }
-  );
-  
-  // 🚫 Inventory text removed from slide per request
-
-  slide.addShape(pptx.ShapeType.line, { x:0.4, y:1.2, w:9.2, h:0, line:{color:'E5E7EB', width:1} });
-
-  const netImgs = getDriveNetImages(item.model, item.mainModel) || [];
-  let netImgsPicked = [];
-
-  if (netImgs.length > 0) {
-      const firstImg = netImgs[0];
-      const otherImgs = netImgs.slice(1);
-      const randomOthers = pickRandom(otherImgs, 5);
-      netImgsPicked = [firstImg, ...randomOthers];
-  }
-
-  const startY = 1.5; 
-  const w = 2.8; const h = 2.4; 
-  
-  const colX = [0.4, 3.6, 6.8];
-  const rowY = [startY, startY + h + 0.3];
-
-  let idx = 0;
-  for(let r=0; r<2; r++){
-    for(let c=0; c<3; c++){
-      if(idx >= netImgsPicked.length) break;
-      const url = netImgsPicked[idx];
-      
-      slide.addShape(pptx.ShapeType.rect, { 
-        x:colX[c], y:rowY[r], w:w, h:h, 
-        fill:{color:'FFFFFF'}, 
-        line:{color:'E5E7EB', width:1},
-        shadow: { type:'outer', angle:45, blur:8, offset:3, color:'000000', opacity:0.15 } 
-      });
-
-      const dataUrl = await fetchAsDataURL(url);
-      if(dataUrl){
-        slide.addImage({ 
-          data:dataUrl, 
-          x:colX[c]+0.1, y:rowY[r]+0.1, w:w-0.2, h:h-0.2,
-          sizing: { type: 'contain', w:w-0.2, h:h-0.2 } 
-        });
-      } else {
-        slide.addText("No Image", { x:colX[c], y:rowY[r]+1, w:w, align:'center', fontSize:12, color:'9CA3AF' });
-      }
-      idx++;
-    }
-  }
-
-  slide.addText(`KINYO | 生成日期: ${new Date().toLocaleDateString()}`, { x:0.4, y:7.0, fontSize:10, color:'9CA3AF' });
-}
-
 async function exportSelectedPPT(source = 'checked') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
   
@@ -2138,7 +2046,9 @@ if(productUpload) {
                     model: -1, name: -1, 
                     market: -1, min: -1, 
                     q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1,
-                    cat: -1, color: -1, barcode: -1, box: -1
+                    cat: -1, color: -1, barcode: -1, box: -1,
+                    // New fields
+                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1
                 };
 
                 // Scan first 10 rows for headers
@@ -2150,18 +2060,25 @@ if(productUpload) {
                         if(cell === 'name' || cell === '品名' || cell === '產品名稱') h.name = c;
                         if(cell.includes('賣場') || cell.includes('建議售價')) h.market = c;
                         if(cell.includes('末售') || cell.includes('底價')) h.min = c;
+                        if(cell.includes('團購')) h.groupBuy = c; // New field for Group Buy Price
                         
-                        // Quotes - strict check or contain
-                        if(cell === '50' || cell === 'quote50') h.q50 = c;
-                        if(cell === '100' || cell === 'quote100') h.q100 = c;
-                        if(cell === '300' || cell === 'quote300') h.q300 = c;
-                        if(cell === '500' || cell === 'quote500') h.q500 = c;
-                        if(cell === '1000' || cell === 'quote1000') h.q1000 = c;
+                        // Quotes - specific handling for user's file format
+                        if (cell.includes('50') && !cell.includes('500') && (cell.includes('報價') || cell.includes('quote') || cell === '50')) h.q50 = c;
+                        if (cell.includes('100') && !cell.includes('1000') && (cell.includes('報價') || cell.includes('quote') || cell === '100')) h.q100 = c;
+                        if (cell.includes('300') && (cell.includes('報價') || cell.includes('quote') || cell === '300')) h.q300 = c;
+                        if (cell.includes('500') && (cell.includes('報價') || cell.includes('quote') || cell === '500')) h.q500 = c;
+                        if (cell.includes('1000') && (cell.includes('報價') || cell.includes('quote') || cell === '1000')) h.q1000 = c;
 
                         if(cell.includes('顏色')) h.color = c;
                         if(cell.includes('分類') || cell.includes('類別') || cell === 'category') h.cat = c;
-                        if(cell.includes('條碼') || cell === 'barcode') h.barcode = c;
+                        if(cell.includes('條碼') || cell === 'barcode' || cell === '國際條碼') h.barcode = c;
                         if(cell.includes('箱入') || cell.includes('carton')) h.box = c;
+
+                        // New Fields
+                        if (cell.includes('網站') || cell.includes('網址') || cell.includes('url') || cell.includes('link') || cell.includes('對應網站')) h.url = c;
+                        if (cell.includes('權限') || cell.includes('permission')) h.perm = c;
+                        if (cell.includes('bsmi')) h.bsmi = c;
+                        if (cell.includes('ncc')) h.ncc = c;
                     }
                 }
 
@@ -2188,22 +2105,28 @@ if(productUpload) {
                     if(h.name !== -1) obj.name = row[h.name];
                     if(h.market !== -1) obj.marketPrice = row[h.market];
                     if(h.min !== -1) obj.minPrice = row[h.min];
+                    if(h.groupBuy !== -1) obj.groupBuyPrice = row[h.groupBuy]; // Store Group Buy Price
+                    
                     if(h.q50 !== -1) obj.quote50 = row[h.q50];
                     if(h.q100 !== -1) obj.quote100 = row[h.q100];
                     if(h.q300 !== -1) obj.quote300 = row[h.q300];
                     if(h.q500 !== -1) obj.quote500 = row[h.q500];
                     if(h.q1000 !== -1) obj.quote1000 = row[h.q1000];
+                    
                     if(h.cat !== -1) obj.category = row[h.cat];
                     if(h.color !== -1) obj.colorList = row[h.color];
-                    if(h.barcode !== -1) obj.internationalBarcode = row[h.barcode]; // standardized field name
+                    if(h.barcode !== -1) obj.internationalBarcode = row[h.barcode]; 
                     if(h.box !== -1) obj.cartonQty = row[h.box];
+
+                    // New Fields
+                    if(h.url !== -1) obj.productUrl = row[h.url];
+                    if(h.perm !== -1) obj.netSalesPermission = row[h.perm];
+                    if(h.bsmi !== -1) obj.bsmi = row[h.bsmi];
+                    if(h.ncc !== -1) obj.ncc = row[h.ncc];
 
                     obj.model = modelVal;
                     // Auto-generate mainModel
-                    const m = modelVal.match(/^([a-zA-Z]+)(\d+)([a-zA-Z]*)$/); // simple regex
-                    // Fallback to existing logic in main code or just use model
-                    // Let's use simple logic: if "-" exists split, else use whole
-                    obj.mainModel = modelVal.split('-')[0]; // Simple heuristic for now
+                    obj.mainModel = modelVal.split('-')[0]; // Simple heuristic
 
                     const existing = productCache.find(p => p.model === modelVal);
                     
@@ -2234,6 +2157,22 @@ if(productUpload) {
                     <span style="color:blue">更新 ${stats.update}</span> | 
                     <span style="color:red">下架 ${stats.remove}</span>
                 </div>
+                
+                <div style="margin-bottom:10px; font-size:12px; color:#666;">
+                    ✅ 抓到欄位：
+                    ${h.model!==-1?`<span class="field-badge">型號</span>`:''}
+                    ${h.name!==-1?`<span class="field-badge">品名</span>`:''}
+                    ${h.market!==-1?`<span class="field-badge">賣場價</span>`:''}
+                    ${h.min!==-1?`<span class="field-badge">末售價</span>`:''}
+                    ${h.q50!==-1?`<span class="field-badge">50個</span>`:''}
+                    ${h.q100!==-1?`<span class="field-badge">100個</span>`:''}
+                    ${h.cat!==-1?`<span class="field-badge">分類</span>`:''}
+                    ${h.barcode!==-1?`<span class="field-badge">條碼</span>`:''}
+                    ${h.url!==-1?`<span class="field-badge">網站</span>`:''}
+                    ${h.perm!==-1?`<span class="field-badge">權限</span>`:''}
+                    ${h.bsmi!==-1?`<span class="field-badge">BSMI</span>`:''}
+                </div>
+
                 <table class="preview-table">
                     <thead><tr><th>動作</th><th>型號</th><th>品名</th><th>備註</th></tr></thead>
                     <tbody>`;
@@ -2360,7 +2299,15 @@ if(inventoryUpload) {
                 if(count > 0) {
                     // Show Preview Modal
                     previewHeader.textContent = "庫存匯入預覽";
-                    let tableHtml = `<table class="preview-table">
+                    let tableHtml = `
+                    <div style="margin-bottom:10px; font-size:12px; color:#666;">
+                        ✅ 抓到欄位：
+                        ${barcodeIdx!==-1?`<span class="field-badge">條碼</span>`:''}
+                        ${finishedIdx!==-1?`<span class="field-badge">成品倉</span>`:''}
+                        ${exclusiveIdx!==-1?`<span class="field-badge">專賣倉</span>`:''}
+                        ${fallbackIdx!==-1?`<span class="field-badge">庫存(可用量)</span>`:''}
+                    </div>
+                    <table class="preview-table">
                         <thead>
                             <tr>
                                 <th>條碼</th>
