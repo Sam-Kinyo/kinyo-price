@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.9.10 六格畫廊修復版）</title>
+<title>KINYO 查價系統（v6.1 純淨畫廊版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -46,6 +46,8 @@ h1{margin:0 0 4px;}
   color:var(--muted);
   margin-bottom:18px;
   font-size:14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 /* =========================================
@@ -594,7 +596,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.9.10 六格畫廊修復版 —— 完美還原照片排版 (智慧切換模式)
+  v6.1 純淨畫廊版 —— 專注於圖片展示的提案神器
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -1737,29 +1739,31 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     const slide = pptx.addSlide();
     slide.background = { color: "FFFFFF" };
 
-    // --- 1. Gather Images ---
-    let mainImg = item.imageUrl;
-    const netImages = getDriveNetImages(item.model, item.mainModel);
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
+    // --- 1. Image Logic: Strict "Net Image 1 at Top-Left" ---
+    // Get all available net images
+    const netImages = getDriveNetImages(item.model, item.mainModel) || [];
     
-    if (!mainImg || !mainImg.startsWith("http")) {
-        if(driveImg) mainImg = driveImg;
-        else if(netImages && netImages.length > 0) mainImg = netImages[0];
-        else mainImg = "https://placehold.co/400x400?text=No+Image";
-    }
+    // Prepare the list of 6 images
+    let imagesToDisplay = [];
+    
+    // Add Net Images first (up to 6)
+    imagesToDisplay = [...netImages];
 
-    let allImages = [mainImg];
-    if(netImages && netImages.length > 0) {
-        const others = netImages.filter(url => url !== mainImg);
-        allImages = allImages.concat(others);
-    }
-    // Remove duplicates and empty
-    allImages = [...new Set(allImages)].filter(Boolean);
+    // If we don't have enough net images, fill with other sources
+    const driveMain = getDriveMainImage(item.model, item.mainModel);
+    const rawImg = item.imageUrl;
 
-    // --- 2. Smart Layout Switch ---
-    const useGalleryMode = allImages.length >= 3;
+    // Helper to add unique
+    const addUnique = (url) => {
+        if(url && !imagesToDisplay.includes(url) && imagesToDisplay.length < 6) {
+            imagesToDisplay.push(url);
+        }
+    };
 
-    // --- 3. Header Section (Common) ---
+    addUnique(driveMain);
+    if(rawImg && rawImg.startsWith('http')) addUnique(rawImg);
+
+    // --- 2. Header Section (Common) ---
     // Logo
     try {
         const logoUrl = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn"; 
@@ -1767,13 +1771,14 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
         if(logoB64) slide.addImage({ data: logoB64, x: 0.2, y: 0.2, w: 1.5, h: 0.6 }); 
     } catch(e) {}
 
-    // Title
-    slide.addText(`${item.model} ${item.name}`, {
-        x: 1.8, y: 0.2, w: 6.0, h: 0.6,
+    // Title (Name ONLY, No Model)
+    // 🌟 這裡確保只顯示品名
+    slide.addText(item.name || "未命名商品", {
+        x: 1.8, y: 0.2, w: 5.5, h: 0.6,
         fontSize: 20, bold: true, color: "000000", fontFace: "微軟正黑體", valign: "middle"
     });
 
-    // Prices
+    // Pricing
     let quoteText = "", quotePrice = "";
     if (customQuoteInfo) {
         quoteText = `報價(${customQuoteInfo.qtyLabel}):`;
@@ -1798,20 +1803,19 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
         fontSize: 18, color: "DC2626", align: "right", fontFace: "微軟正黑體", bold:true
     });
 
-    // --- 4. Content Body ---
-    if (useGalleryMode) {
-        // === Gallery Mode (6 Grid) ===
-        const displayImages = allImages.slice(0, 6);
-        const startY = 1.2;
-        const marginX = 0.5;
-        const gridW = 9.0; 
-        const cols = 3;
-        const gap = 0.2;
-        const imgW = (gridW - (gap * (cols - 1))) / cols; // ~2.86
-        const imgH = 2.4; 
+    // --- 3. Grid Generation (Fixed 2x3 Gallery) ---
+    const startY = 1.2;
+    const marginX = 0.5;
+    const gridW = 9.0; 
+    const cols = 3;
+    const gap = 0.2;
+    const imgW = (gridW - (gap * (cols - 1))) / cols; // ~2.86
+    const imgH = 2.4; 
 
-        for (let i = 0; i < displayImages.length; i++) {
-            const url = displayImages[i];
+    // Fill slots. If we have fewer than 6 images, we just stop filling.
+    for (let i = 0; i < 6; i++) {
+        if (i < imagesToDisplay.length) {
+            const url = imagesToDisplay[i];
             const r = Math.floor(i / cols);
             const c = i % cols;
             const x = marginX + c * (imgW + gap);
@@ -1822,35 +1826,9 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
                 if(b64) slide.addImage({ data: b64, x: x, y: y, w: imgW, h: imgH, sizing: { type: "contain", w: imgW, h: imgH } });
             } catch(e) {}
         }
-
-    } else {
-        // === Standard Mode (Left Image / Right Text) ===
-        // Image
-        try {
-            const b64 = await fetchAsDataURL(mainImg);
-            if(b64) slide.addImage({ data: b64, x: 0.5, y: 1.5, w: 4.5, h: 4.5, sizing: { type: "contain", w: 4.5, h: 4.5 } });
-        } catch(e) {}
-
-        // Info Text
-        const labelX = 5.2;
-        const valX = 6.6;
-        let currY = 1.8;
-        const gap = 0.6;
-
-        const addRow = (label, val) => {
-            slide.addText(label, { x: labelX, y: currY, w: 1.4, h: 0.4, fontSize: 14, color: "666666", fontFace: "微軟正黑體" });
-            slide.addText(val || "-", { x: valX, y: currY, w: 3.2, h: 0.4, fontSize: 14, color: "000000", fontFace: "微軟正黑體" });
-            currY += gap;
-        };
-
-        addRow("型號", item.model);
-        addRow("主型號", item.mainModel);
-        addRow("國際條碼", item.internationalBarcode || item.barcode);
-        addRow("箱入數", item.cartonQty);
-        addRow("顏色", item.colorList);
     }
 
-    // 5. Footer
+    // 4. Footer
     const dateStr = new Date().toISOString().split('T')[0];
     slide.addText(`KINYO | 生成日期: ${dateStr}`, {
         x: 0.5, y: 7.0, w: 5.0, h: 0.3,
@@ -1898,7 +1876,8 @@ async function exportSelectedPPT(source = 'checked') {
   btn.disabled = true; 
 
   try {
-    const CHUNK_SIZE = 20; // 🚀 加大批次處理量至 20
+    // 🌟 Batch Processing: All lines start together in chunks
+    const CHUNK_SIZE = 20; 
     const batches = [];
     for (let i = 0; i < selectedItems.length; i += CHUNK_SIZE) {
         batches.push(selectedItems.slice(i, i + CHUNK_SIZE));
