@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.8.3 匯入檢查版）</title>
+<title>KINYO 查價系統（v5.9.1 總表同步版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -268,7 +268,7 @@ th{background:#fafafa;text-align:left;}
     border: 1px solid #e2e8f0;
 }
 
-/* 庫存標籤 (新) */
+/* 庫存標籤 */
 .stock-badge {
     display: inline-block;
     font-size: 13px;
@@ -282,23 +282,11 @@ th{background:#fafafa;text-align:left;}
     transition: all 0.3s;
 }
 /* 低庫存 / 100個以內 */
-.stock-low {
-    background: #fef2f2;
-    color: #b91c1c;
-    border: 1px solid #fecaca;
-}
+.stock-low { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 /* 中庫存 / 300~500個 */
-.stock-mid {
-    background: #fffbeb;
-    color: #b45309;
-    border: 1px solid #fde68a;
-}
+.stock-mid { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
 /* 高庫存 / 1000個 */
-.stock-high {
-    background: #f0fdf4;
-    color: #15803d;
-    border: 1px solid #bbf7d0;
-}
+.stock-high { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 
 /* =========================================
    Loading
@@ -545,7 +533,7 @@ th{background:#fafafa;text-align:left;}
     display: none; align-items: center; justify-content: center; z-index: 4000;
 }
 .preview-card {
-    background: white; width: 90%; max-width: 800px; max-height: 80vh;
+    background: white; width: 90%; max-width: 900px; max-height: 80vh;
     border-radius: 12px; padding: 20px; display: flex; flex-direction: column;
 }
 .preview-header { font-weight: bold; font-size: 18px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px;}
@@ -573,8 +561,8 @@ th{background:#fafafa;text-align:left;}
 <!-- Preview Overlay -->
 <div id="previewOverlay">
     <div class="preview-card">
-        <div class="preview-header">
-            匯入預覽檢查 (前 10 筆資料)
+        <div class="preview-header" id="previewHeader">
+            匯入預覽檢查
         </div>
         <div class="preview-body" id="previewContent">
             <!-- Table will be injected here -->
@@ -603,7 +591,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.8.3 匯入檢查版 —— 安全庫存(打9折) & 匯入前預覽
+  v5.9.1 總表同步版 —— 產品/庫存 雙模匯入系統
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -649,8 +637,9 @@ th{background:#fafafa;text-align:left;}
   <button id="clearBtn" type="button" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </form>
 
-<!-- Hidden File Input for Inventory -->
+<!-- Hidden File Inputs -->
 <input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+<input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
@@ -664,7 +653,8 @@ th{background:#fafafa;text-align:left;}
   </select>
   
   <!-- 預設隱藏，Level 4 才顯示 -->
-  <button id="importInventoryBtn" class="btn-secondary" style="color:#059669; border-color:#059669; background:#ecfdf5; font-weight:bold; display:none;">📥 匯入並更新資料庫</button>
+  <button id="importInventoryBtn" class="btn-secondary" style="color:#059669; border-color:#059669; background:#ecfdf5; font-weight:bold; display:none;">📥 匯入庫存表 (條碼比對)</button>
+  <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
@@ -725,7 +715,7 @@ th{background:#fafafa;text-align:left;}
 const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn/view?usp=drive_link"; 
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-import { getFirestore, collection, getDocs, doc, getDoc, updateDoc, writeBatch, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, initializeFirestore, query, where } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
@@ -756,7 +746,9 @@ const multiLineBtn    = document.getElementById("multiLineBtn");
 const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
 const importInventoryBtn = document.getElementById("importInventoryBtn");
+const importProductBtn   = document.getElementById("importProductBtn");
 const inventoryUpload = document.getElementById("inventoryUpload");
+const productUpload   = document.getElementById("productUpload");
 
 const resultTable     = document.getElementById("resultTable");
 const resultBody      = document.getElementById("resultBody");
@@ -791,6 +783,7 @@ const loginError = document.getElementById("loginError");
 
 // Preview Elements
 const previewOverlay = document.getElementById("previewOverlay");
+const previewHeader  = document.getElementById("previewHeader");
 const previewContent = document.getElementById("previewContent");
 const cancelImportBtn = document.getElementById("cancelImportBtn");
 const confirmImportBtn = document.getElementById("confirmImportBtn");
@@ -803,7 +796,11 @@ let quoteList = [];
 let isProductsLoaded = false;
 let isQuotesLoaded = false;
 let hasCheckedItems = false;
-let pendingInventoryMap = new Map(); // Store parsed data waiting for confirmation
+
+// Import state
+let currentImportMode = ""; // 'inventory' or 'product'
+let pendingInventoryMap = new Map(); 
+let pendingProductData = []; // Array of objects containing { action, data, id? }
 
 const CACHE_TTL = 1000 * 60 * 60 * 6; 
 
@@ -1010,11 +1007,13 @@ function updateUserDisplay(status) {
 
 // 🚀 Updates UI permissions based on user level
 function updatePermissions() {
-    // 1. Level 4 Only: Import Inventory
+    // 1. Level 4 Only: Import Inventory & Product Data
     if (userLevel >= 4) {
         importInventoryBtn.style.display = 'inline-block';
+        importProductBtn.style.display = 'inline-block'; 
     } else {
         importInventoryBtn.style.display = 'none';
+        importProductBtn.style.display = 'none'; 
     }
 
     // 2. Level 2+ Only: Stock Filter
@@ -1128,7 +1127,8 @@ function getMainModel(model) {
 function updateCategoryOptions() {
   const cats = new Set();
   productCache.forEach(p => {
-    if(p.category) cats.add(p.category.trim());
+    // Only show category if status is not inactive
+    if(p.status !== 'inactive' && p.category) cats.add(p.category.trim());
   });
   
   const sortedCats = Array.from(cats).sort();
@@ -1319,6 +1319,9 @@ function searchProducts() {
 
   setTimeout(() => {
     let r = productCache;
+
+    // 🚀 Filter out inactive products
+    r = r.filter(p => p.status !== 'inactive');
 
     if (hasCat) {
         r = r.filter(p => p.category === cat);
@@ -1965,22 +1968,92 @@ if(importInventoryBtn) {
     };
 }
 
+if(importProductBtn) {
+    importProductBtn.onclick = () => {
+        productUpload.value = ''; // Reset
+        productUpload.click();
+    }
+}
+
 // Cancel Import
 if(cancelImportBtn) {
     cancelImportBtn.onclick = () => {
         previewOverlay.style.display = "none";
         pendingInventoryMap.clear();
+        pendingProductData = [];
         inventoryUpload.value = ''; 
+        productUpload.value = '';
     };
 }
 
 // Confirm Import
 if(confirmImportBtn) {
     confirmImportBtn.onclick = () => {
-        if(pendingInventoryMap.size === 0) return;
-        previewOverlay.style.display = "none";
-        saveInventoryToFirestore(pendingInventoryMap);
+        if(currentImportMode === 'inventory') {
+            if(pendingInventoryMap.size === 0) return;
+            previewOverlay.style.display = "none";
+            saveInventoryToFirestore(pendingInventoryMap);
+        } else if(currentImportMode === 'product') {
+            if(pendingProductData.length === 0) return;
+            previewOverlay.style.display = "none";
+            saveProductDataToFirestore(pendingProductData);
+        }
     };
+}
+
+async function saveProductDataToFirestore(actions) {
+    if(!productCache) {
+        alert("資料載入異常，請重新整理。");
+        return;
+    }
+
+    importProductBtn.disabled = true;
+    importProductBtn.textContent = "同步中...";
+    
+    let batch = writeBatch(db);
+    let opCount = 0;
+    const BATCH_LIMIT = 400; 
+    let successCount = 0;
+
+    try {
+        for(const item of actions) {
+            if(item.action === 'add') {
+                const newDocRef = doc(collection(db, "Products")); // auto-id
+                batch.set(newDocRef, { ...item.data, status: 'active', inventory: 0 }); // Default active
+                opCount++;
+            } else if(item.action === 'update') {
+                const docRef = doc(db, "Products", item.id);
+                // Ensure we update status to active if it was inactive
+                batch.update(docRef, { ...item.data, status: 'active' }); 
+                opCount++;
+            } else if(item.action === 'remove') {
+                const docRef = doc(db, "Products", item.id);
+                batch.update(docRef, { status: 'inactive' });
+                opCount++;
+            }
+
+            if(opCount >= BATCH_LIMIT) {
+                await batch.commit();
+                batch = writeBatch(db);
+                opCount = 0;
+            }
+            successCount++;
+        }
+
+        if(opCount > 0) {
+            await batch.commit();
+        }
+
+        alert(`產品總表同步完成！\n共處理了 ${successCount} 筆變更。\n系統將自動重新整理。`);
+        window.location.reload();
+
+    } catch(e) {
+        console.error(e);
+        alert("寫入資料庫時發生錯誤，請檢查 Console。");
+    } finally {
+        importProductBtn.disabled = false;
+        importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
+    }
 }
 
 async function saveInventoryToFirestore(invMap) {
@@ -2043,10 +2116,166 @@ async function saveInventoryToFirestore(invMap) {
     }
 }
 
+// ----------------------------------------------------
+// PRODUCT IMPORT LOGIC (Raw Data)
+// ----------------------------------------------------
+if(productUpload) {
+    productUpload.onchange = (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        currentImportMode = 'product';
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const data = evt.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
+
+                // Header Mapping
+                let h = {
+                    model: -1, name: -1, 
+                    market: -1, min: -1, 
+                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1,
+                    cat: -1, color: -1, barcode: -1, box: -1
+                };
+
+                // Scan first 10 rows for headers
+                for(let r=0; r<Math.min(jsonData.length, 10); r++) {
+                    const row = jsonData[r];
+                    for(let c=0; c<row.length; c++) {
+                        const cell = String(row[c] || "").trim().toLowerCase();
+                        if(cell === 'model' || cell === '型號' || cell === '產品') h.model = c;
+                        if(cell === 'name' || cell === '品名' || cell === '產品名稱') h.name = c;
+                        if(cell.includes('賣場') || cell.includes('建議售價')) h.market = c;
+                        if(cell.includes('末售') || cell.includes('底價')) h.min = c;
+                        
+                        // Quotes - strict check or contain
+                        if(cell === '50' || cell === 'quote50') h.q50 = c;
+                        if(cell === '100' || cell === 'quote100') h.q100 = c;
+                        if(cell === '300' || cell === 'quote300') h.q300 = c;
+                        if(cell === '500' || cell === 'quote500') h.q500 = c;
+                        if(cell === '1000' || cell === 'quote1000') h.q1000 = c;
+
+                        if(cell.includes('顏色')) h.color = c;
+                        if(cell.includes('分類') || cell.includes('類別') || cell === 'category') h.cat = c;
+                        if(cell.includes('條碼') || cell === 'barcode') h.barcode = c;
+                        if(cell.includes('箱入') || cell.includes('carton')) h.box = c;
+                    }
+                }
+
+                if(h.model === -1) {
+                    alert("錯誤：找不到「型號」欄位，無法進行同步比對。");
+                    return;
+                }
+
+                // Process Data
+                let excelModels = new Set();
+                let actions = [];
+                let stats = { add: 0, update: 0, remove: 0 };
+
+                // 1. Identify Add & Update
+                jsonData.forEach((row) => {
+                    const rawModel = row[h.model];
+                    if(!rawModel || String(rawModel).includes("型號")) return; // Skip empty or header
+
+                    const modelVal = String(rawModel).trim();
+                    excelModels.add(modelVal);
+
+                    // Build object
+                    let obj = {};
+                    if(h.name !== -1) obj.name = row[h.name];
+                    if(h.market !== -1) obj.marketPrice = row[h.market];
+                    if(h.min !== -1) obj.minPrice = row[h.min];
+                    if(h.q50 !== -1) obj.quote50 = row[h.q50];
+                    if(h.q100 !== -1) obj.quote100 = row[h.q100];
+                    if(h.q300 !== -1) obj.quote300 = row[h.q300];
+                    if(h.q500 !== -1) obj.quote500 = row[h.q500];
+                    if(h.q1000 !== -1) obj.quote1000 = row[h.q1000];
+                    if(h.cat !== -1) obj.category = row[h.cat];
+                    if(h.color !== -1) obj.colorList = row[h.color];
+                    if(h.barcode !== -1) obj.internationalBarcode = row[h.barcode]; // standardized field name
+                    if(h.box !== -1) obj.cartonQty = row[h.box];
+
+                    obj.model = modelVal;
+                    // Auto-generate mainModel
+                    const m = modelVal.match(/^([a-zA-Z]+)(\d+)([a-zA-Z]*)$/); // simple regex
+                    // Fallback to existing logic in main code or just use model
+                    // Let's use simple logic: if "-" exists split, else use whole
+                    obj.mainModel = modelVal.split('-')[0]; // Simple heuristic for now
+
+                    const existing = productCache.find(p => p.model === modelVal);
+                    
+                    if(existing) {
+                        actions.push({ action: 'update', id: existing.id, data: obj, model: modelVal });
+                        stats.update++;
+                    } else {
+                        actions.push({ action: 'add', data: obj, model: modelVal });
+                        stats.add++;
+                    }
+                });
+
+                // 2. Identify Remove (Items in DB but not in Excel)
+                // Filter DB items that are currently active
+                productCache.forEach(p => {
+                    if(p.status !== 'inactive' && !excelModels.has(p.model)) {
+                        actions.push({ action: 'remove', id: p.id, model: p.model, name: p.name });
+                        stats.remove++;
+                    }
+                });
+
+                pendingProductData = actions;
+
+                // Show Preview
+                previewHeader.textContent = "產品總表同步預覽";
+                let tableHtml = `<div style="margin-bottom:10px; font-weight:bold;">
+                    預計變更：<span style="color:green">新增 ${stats.add}</span> | 
+                    <span style="color:blue">更新 ${stats.update}</span> | 
+                    <span style="color:red">下架 ${stats.remove}</span>
+                </div>
+                <table class="preview-table">
+                    <thead><tr><th>動作</th><th>型號</th><th>品名</th><th>備註</th></tr></thead>
+                    <tbody>`;
+                
+                // Show top 20 changes
+                actions.slice(0, 20).forEach(a => {
+                    let color = a.action === 'add' ? 'green' : (a.action === 'remove' ? 'red' : 'blue');
+                    let label = a.action === 'add' ? '新增' : (a.action === 'remove' ? '下架' : '更新');
+                    let name = a.data ? a.data.name : a.name;
+                    tableHtml += `<tr>
+                        <td style="color:${color};font-weight:bold;">${label}</td>
+                        <td>${a.model}</td>
+                        <td>${name || '-'}</td>
+                        <td>${a.action==='remove'?'將隱藏於前台':''}</td>
+                    </tr>`;
+                });
+                
+                if(actions.length > 20) {
+                    tableHtml += `<tr><td colspan="4" style="text-align:center;">... 還有 ${actions.length - 20} 筆變更 ...</td></tr>`;
+                }
+
+                tableHtml += `</tbody></table>`;
+                previewContent.innerHTML = tableHtml;
+                previewOverlay.style.display = "flex";
+
+            } catch(e) {
+                console.error(e);
+                alert("檔案讀取失敗");
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+}
+
+// ----------------------------------------------------
+// INVENTORY IMPORT LOGIC
+// ----------------------------------------------------
 if(inventoryUpload) {
     inventoryUpload.onchange = (e) => {
         const file = e.target.files[0];
         if(!file) return;
+        currentImportMode = 'inventory';
 
         const reader = new FileReader();
         reader.onload = (evt) => {
@@ -2130,6 +2359,7 @@ if(inventoryUpload) {
 
                 if(count > 0) {
                     // Show Preview Modal
+                    previewHeader.textContent = "庫存匯入預覽";
                     let tableHtml = `<table class="preview-table">
                         <thead>
                             <tr>
