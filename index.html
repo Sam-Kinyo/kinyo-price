@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v5.9.4 穩定修復版）</title>
+<title>KINYO 查價系統（v5.9.6 智慧同步版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -594,7 +594,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v5.9.4 穩定修復版 —— 修正空值寫入錯誤 & 增強資料清洗
+  v5.9.6 智慧同步版 —— 智慧欄位防護 & 自動上下架機制
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -836,7 +836,7 @@ let netImagesMap = new Map();
 let isDriveLoaded = false;
 
 /* 🚀 ====================================================
-     HELPER FUNCTIONS
+      HELPER FUNCTIONS
    ==================================================== 🚀 */
 
 function getInventoryRangeLabel(qty) {
@@ -855,9 +855,9 @@ function getInventoryRangeLabel(qty) {
 function getGoogleDriveId(url) {
   if (!url) return null;
   const patterns = [
-    /\/d\/([a-zA-Z0-9_-]+)/,       
-    /id=([a-zA-Z0-9_-]+)/,        
-    /open\?id=([a-zA-Z0-9_-]+)/   
+    /\/d\/([a-zA-Z0-9_-]+)/,        
+    /id=([a-zA-Z0-9_-]+)/,          
+    /open\?id=([a-zA-Z0-9_-]+)/    
   ];
   for (let p of patterns) {
     const m = url.match(p);
@@ -1930,7 +1930,8 @@ async function saveProductDataToFirestore(actions) {
                 opCount++;
             } else if(item.action === 'update') {
                 const docRef = doc(db, "Products", item.id);
-                // Ensure we update status to active if it was inactive
+                // 🌟 Smart Update: Only update fields present in item.data
+                // item.data contains only non-empty fields from Excel
                 batch.update(docRef, { ...item.data, status: 'active' }); 
                 opCount++;
             } else if(item.action === 'remove') {
@@ -2024,7 +2025,7 @@ async function saveInventoryToFirestore(invMap) {
 }
 
 // ----------------------------------------------------
-// PRODUCT IMPORT LOGIC (Raw Data)
+// PRODUCT IMPORT LOGIC (Smart Sync)
 // ----------------------------------------------------
 if(productUpload) {
     productUpload.onchange = (e) => {
@@ -2059,9 +2060,9 @@ if(productUpload) {
                         if(cell === 'name' || cell === '品名' || cell === '產品名稱') h.name = c;
                         if(cell.includes('賣場') || cell.includes('建議售價')) h.market = c;
                         if(cell.includes('末售') || cell.includes('底價')) h.min = c;
-                        if(cell.includes('團購')) h.groupBuy = c; // New field for Group Buy Price
+                        if(cell.includes('團購')) h.groupBuy = c; 
                         
-                        // Quotes - specific handling for user's file format
+                        // Quotes
                         if (cell.includes('50') && !cell.includes('500') && (cell.includes('報價') || cell.includes('quote') || cell === '50')) h.q50 = c;
                         if (cell.includes('100') && !cell.includes('1000') && (cell.includes('報價') || cell.includes('quote') || cell === '100')) h.q100 = c;
                         if (cell.includes('300') && (cell.includes('報價') || cell.includes('quote') || cell === '300')) h.q300 = c;
@@ -2091,6 +2092,9 @@ if(productUpload) {
                 let actions = [];
                 let stats = { add: 0, update: 0, remove: 0 };
 
+                // 🌟 Smart Check Helper
+                const hasVal = (v) => v !== undefined && v !== null && String(v).trim() !== "";
+
                 // 1. Identify Add & Update
                 jsonData.forEach((row) => {
                     const rawModel = row[h.model];
@@ -2099,32 +2103,30 @@ if(productUpload) {
                     const modelVal = String(rawModel).trim();
                     excelModels.add(modelVal);
 
-                    // Build object
+                    // Build object - Only include if value exists!
                     let obj = {};
-                    if(h.name !== -1) obj.name = row[h.name];
-                    if(h.market !== -1) obj.marketPrice = row[h.market];
-                    if(h.min !== -1) obj.minPrice = row[h.min];
-                    if(h.groupBuy !== -1) obj.groupBuyPrice = row[h.groupBuy]; // Store Group Buy Price
+                    if(h.name !== -1 && hasVal(row[h.name])) obj.name = row[h.name];
+                    if(h.market !== -1 && hasVal(row[h.market])) obj.marketPrice = row[h.market];
+                    if(h.min !== -1 && hasVal(row[h.min])) obj.minPrice = row[h.min];
+                    if(h.groupBuy !== -1 && hasVal(row[h.groupBuy])) obj.groupBuyPrice = row[h.groupBuy];
                     
-                    if(h.q50 !== -1) obj.quote50 = row[h.q50];
-                    if(h.q100 !== -1) obj.quote100 = row[h.q100];
-                    if(h.q300 !== -1) obj.quote300 = row[h.q300];
-                    if(h.q500 !== -1) obj.quote500 = row[h.q500];
-                    if(h.q1000 !== -1) obj.quote1000 = row[h.q1000];
+                    if(h.q50 !== -1 && hasVal(row[h.q50])) obj.quote50 = row[h.q50];
+                    if(h.q100 !== -1 && hasVal(row[h.q100])) obj.quote100 = row[h.q100];
+                    if(h.q300 !== -1 && hasVal(row[h.q300])) obj.quote300 = row[h.q300];
+                    if(h.q500 !== -1 && hasVal(row[h.q500])) obj.quote500 = row[h.q500];
+                    if(h.q1000 !== -1 && hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
                     
-                    if(h.cat !== -1) obj.category = row[h.cat];
-                    if(h.color !== -1) obj.colorList = row[h.color];
-                    if(h.barcode !== -1) obj.internationalBarcode = row[h.barcode]; 
-                    if(h.box !== -1) obj.cartonQty = row[h.box];
+                    if(h.cat !== -1 && hasVal(row[h.cat])) obj.category = row[h.cat];
+                    if(h.color !== -1 && hasVal(row[h.color])) obj.colorList = row[h.color];
+                    if(h.barcode !== -1 && hasVal(row[h.barcode])) obj.internationalBarcode = row[h.barcode]; 
+                    if(h.box !== -1 && hasVal(row[h.box])) obj.cartonQty = row[h.box];
 
-                    // New Fields
-                    if(h.url !== -1) obj.productUrl = row[h.url];
-                    if(h.perm !== -1) obj.netSalesPermission = row[h.perm];
-                    if(h.bsmi !== -1) obj.bsmi = row[h.bsmi];
-                    if(h.ncc !== -1) obj.ncc = row[h.ncc];
+                    if(h.url !== -1 && hasVal(row[h.url])) obj.productUrl = row[h.url];
+                    if(h.perm !== -1 && hasVal(row[h.perm])) obj.netSalesPermission = row[h.perm];
+                    if(h.bsmi !== -1 && hasVal(row[h.bsmi])) obj.bsmi = row[h.bsmi];
+                    if(h.ncc !== -1 && hasVal(row[h.ncc])) obj.ncc = row[h.ncc];
 
                     obj.model = modelVal;
-                    // Auto-generate mainModel
                     obj.mainModel = modelVal.split('-')[0]; // Simple heuristic
 
                     const existing = productCache.find(p => p.model === modelVal);
@@ -2139,8 +2141,8 @@ if(productUpload) {
                 });
 
                 // 2. Identify Remove (Items in DB but not in Excel)
-                // Filter DB items that are currently active
                 productCache.forEach(p => {
+                    // If active in DB but NOT in Excel list -> Remove (Inactive)
                     if(p.status !== 'inactive' && !excelModels.has(p.model)) {
                         actions.push({ action: 'remove', id: p.id, model: p.model, name: p.name });
                         stats.remove++;
@@ -2150,26 +2152,15 @@ if(productUpload) {
                 pendingProductData = actions;
 
                 // Show Preview
-                previewHeader.textContent = "產品總表同步預覽";
+                previewHeader.textContent = "產品總表同步預覽 (智慧同步)";
                 let tableHtml = `<div style="margin-bottom:10px; font-weight:bold;">
                     預計變更：<span style="color:green">新增 ${stats.add}</span> | 
-                    <span style="color:blue">更新 ${stats.update}</span> | 
-                    <span style="color:red">下架 ${stats.remove}</span>
+                    <span style="color:blue">智慧更新 ${stats.update}</span> | 
+                    <span style="color:red">下架 (Inactive) ${stats.remove}</span>
                 </div>
                 
                 <div style="margin-bottom:10px; font-size:12px; color:#666;">
-                    ✅ 抓到欄位：
-                    ${h.model!==-1?`<span class="field-badge">型號</span>`:''}
-                    ${h.name!==-1?`<span class="field-badge">品名</span>`:''}
-                    ${h.market!==-1?`<span class="field-badge">賣場價</span>`:''}
-                    ${h.min!==-1?`<span class="field-badge">末售價</span>`:''}
-                    ${h.q50!==-1?`<span class="field-badge">50個</span>`:''}
-                    ${h.q100!==-1?`<span class="field-badge">100個</span>`:''}
-                    ${h.cat!==-1?`<span class="field-badge">分類</span>`:''}
-                    ${h.barcode!==-1?`<span class="field-badge">條碼</span>`:''}
-                    ${h.url!==-1?`<span class="field-badge">網站</span>`:''}
-                    ${h.perm!==-1?`<span class="field-badge">權限</span>`:''}
-                    ${h.bsmi!==-1?`<span class="field-badge">BSMI</span>`:''}
+                    ℹ️ 系統將自動忽略 Excel 中的空白欄位，保留資料庫原有數值。
                 </div>
 
                 <table class="preview-table">
@@ -2185,7 +2176,7 @@ if(productUpload) {
                         <td style="color:${color};font-weight:bold;">${label}</td>
                         <td>${a.model}</td>
                         <td>${name || '-'}</td>
-                        <td>${a.action==='remove'?'將隱藏於前台':''}</td>
+                        <td>${a.action==='remove'?'隱藏於前台': (a.action==='update' ? '更新有填寫的欄位' : '全新建立')}</td>
                     </tr>`;
                 });
                 
