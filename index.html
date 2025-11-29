@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.5 專業提案版）</title>
+<title>KINYO 查價系統（v6.3 庫存視覺優化版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -295,7 +295,7 @@ th{background:#fafafa;text-align:left;}
     transition: all 0.3s;
 }
 
-/* 視覺顏色分級 (v6.3/v6.5 標準) */
+/* 視覺顏色分級 (v6.3 標準) */
 /* 紅色 (<= 100) */
 .stock-low { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 /* 橘色 (101 - 500) */
@@ -611,7 +611,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.5 專業提案版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.3 庫存視覺優化版 —— 七段式庫存 (顏色顯示)
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -736,7 +736,7 @@ const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IM
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -862,10 +862,10 @@ function getInventoryRangeLabel(qty) {
     if (isNaN(val)) return null;
 
     if (val <= 30) return "30個以內";
-    if (val <= 100) return "31-100個";
-    if (val <= 500) return "101-500個";
-    if (val <= 800) return "501-800個";
-    if (val <= 1200) return "801-1200個";
+    if (val <= 100) return "100個以內";
+    if (val <= 500) return "500個以內";
+    if (val <= 800) return "800個以內";
+    if (val <= 1200) return "1200個以內";
     return "1200個以上";
 }
 
