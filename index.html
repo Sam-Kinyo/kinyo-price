@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.9 登入核心修復版）</title>
+<title>KINYO 查價系統（v7.1 登入修復版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -611,7 +611,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.9 登入核心修復版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v7.0 登入修復版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -736,7 +736,7 @@ const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IM
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -751,15 +751,6 @@ const firebaseConfig = {
 const app  = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 const auth = getAuth(app);
-
-// 🌟 立即設定持久化，解決自動登出問題
-setPersistence(auth, browserLocalPersistence)
-  .then(() => {
-    console.log("✅ Firebase Auth Persistence set to LOCAL");
-  })
-  .catch((error) => {
-    console.error("❌ Persistence error:", error);
-  });
 
 const searchForm      = document.getElementById("searchForm");
 const categorySelect  = document.getElementById("categorySelect");
@@ -807,7 +798,7 @@ const centerLoadingBar = document.getElementById("centerLoadingBar");
 const loginOverlay = document.getElementById("loginOverlay");
 const loginEmail = document.getElementById("loginEmail");
 const loginPassword = document.getElementById("loginPassword");
-const doLoginBtn = document.getElementById("doLoginBtn");
+// Removed duplicate declaration
 const loginError = document.getElementById("loginError");
 
 // Preview Elements
@@ -871,10 +862,10 @@ function getInventoryRangeLabel(qty) {
     if (isNaN(val)) return null;
 
     if (val <= 30) return "30個以內";
-    if (val <= 100) return "100個以內";
-    if (val <= 500) return "500個以內";
-    if (val <= 800) return "800個以內";
-    if (val <= 1200) return "1200個以內";
+    if (val <= 100) return "31-100個";
+    if (val <= 500) return "101-500個";
+    if (val <= 800) return "501-800個";
+    if (val <= 1200) return "801-1200個";
     return "1200個以上";
 }
 
@@ -1659,6 +1650,7 @@ function showDetailDesktop(item) {
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
+  // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
@@ -1777,74 +1769,104 @@ function showDetailDesktop(item) {
   `;
 }
 
-// NOTE: In v6.3, buildProductSlide was using a simpler layout (Left Image / Right Text)
-// The user specifically requested v6.3 logic for STOCK and DISPLAY, but kept other features.
-// I will ensure the PPT logic remains functional.
-
 async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     const slide = pptx.addSlide();
     slide.background = { color: "FFFFFF" };
 
-    // Standard Layout (Left Image, Right Text)
-    let imgUrl = item.imageUrl;
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (!imgUrl || !imgUrl.startsWith("http")) {
-        if(driveImg) imgUrl = driveImg;
-        else imgUrl = "https://placehold.co/400x400?text=No+Image";
-    }
+    // --- 1. Image Logic: Strict "Net Image 1 at Top-Left" ---
+    // Get all available net images
+    const netImages = getDriveNetImages(item.model, item.mainModel) || [];
     
-    try {
-        const base64 = await fetchAsDataURL(imgUrl);
-        if (base64) {
-             slide.addImage({ data: base64, x: 0.5, y: 1.3, w: 4.5, h: 4.5 });
-        } else {
-             slide.addText("圖片載入失敗", { x: 0.5, y: 3.0, w: 4.5, h: 0.5, align: 'center', color: '999999' });
+    // Prepare the list of 6 images
+    let imagesToDisplay = [];
+    
+    // Add Net Images first (up to 6)
+    imagesToDisplay = [...netImages];
+
+    // If we don't have enough net images, fill with other sources
+    const driveMain = getDriveMainImage(item.model, item.mainModel);
+    const rawImg = item.imageUrl;
+
+    // Helper to add unique
+    const addUnique = (url) => {
+        if(url && !imagesToDisplay.includes(url) && imagesToDisplay.length < 6) {
+            imagesToDisplay.push(url);
         }
-    } catch(e) {
-        slide.addText("圖片載入失敗", { x: 0.5, y: 3.0, w: 4.5, h: 0.5, align: 'center', color: '999999' });
-    }
-
-    // Title
-    slide.addText(`${item.model} ${item.name}`, {
-        x: 0.5, y: 0.4, w: 9.0, h: 0.6,
-        fontSize: 20, bold: true, color: "111827", fontFace: "微軟正黑體"
-    });
-
-    const startX = 5.2;
-    let currY = 1.3;
-    const gap = 0.45;
-    
-    const addField = (label, val, highlight=false) => {
-        slide.addText(label, { x: startX, y: currY, w: 1.5, h: 0.4, fontSize: 14, color: "666666", fontFace: "微軟正黑體" });
-        slide.addText(val || "-", { 
-            x: startX + 1.6, y: currY, w: 3.5, h: 0.4, 
-            fontSize: 14, color: highlight ? "DC2626" : "000000", bold: highlight, fontFace: "微軟正黑體" 
-        });
-        currY += gap;
     };
 
-    addField("型號", item.model);
-    addField("主型號", item.mainModel);
-    addField("國際條碼", item.internationalBarcode || item.barcode);
-    addField("箱入數", item.cartonQty);
-    addField("顏色", item.colorList);
-    
-    currY += 0.2; 
+    addUnique(driveMain);
+    if(rawImg && rawImg.startsWith('http')) addUnique(rawImg);
 
-    addField("賣場售價", `$${item.marketPrice}`);
-    
+    // --- 2. Header Section (Common) ---
+    // Logo
+    try {
+        const logoUrl = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn"; 
+        const logoB64 = await fetchAsDataURL(logoUrl);
+        if(logoB64) slide.addImage({ data: logoB64, x: 0.2, y: 0.2, w: 1.5, h: 0.6 }); 
+    } catch(e) {}
+
+    // Title (Name ONLY, No Model)
+    // 🌟 這裡確保只顯示品名
+    slide.addText(item.name || "未命名商品", {
+        x: 1.8, y: 0.2, w: 5.5, h: 0.6,
+        fontSize: 20, bold: true, color: "000000", fontFace: "微軟正黑體", valign: "middle"
+    });
+
+    // Pricing
+    let quoteText = "", quotePrice = "";
     if (customQuoteInfo) {
-        addField("採購規格", customQuoteInfo.qtyLabel, true);
-        addField("採購單價", `$${customQuoteInfo.price}`, true);
+        quoteText = `報價(${customQuoteInfo.qtyLabel}):`;
+        quotePrice = `$${customQuoteInfo.price}`;
     } else {
         const quoteKey = `quote${tier}`;
-        const price = item[quoteKey] || item.quote50 || "-";
-        addField(`報價 (${tier}個)`, `$${price}`, true);
+        const p = item[quoteKey] || item.quote50 || "-";
+        quoteText = `報價(${tier}個):`;
+        quotePrice = `$${p}`;
     }
-    
-    slide.addText("※ 報價有效期限 14 天，實際交易以最終合約為準。", {
-        x: 0.5, y: 7.0, w: 9.0, h: 0.4,
-        fontSize: 10, color: "9CA3AF", align: "center", fontFace: "微軟正黑體"
+
+    slide.addText(`賣場價: $${item.marketPrice}`, {
+        x: 7.5, y: 0.2, w: 2.3, h: 0.3,
+        fontSize: 12, color: "888888", align: "right", fontFace: "微軟正黑體"
+    });
+    slide.addText(quoteText, {
+        x: 7.0, y: 0.5, w: 1.8, h: 0.4,
+        fontSize: 14, color: "2563eb", align: "right", fontFace: "微軟正黑體", bold:true
+    });
+    slide.addText(quotePrice, {
+        x: 8.8, y: 0.5, w: 1.0, h: 0.4,
+        fontSize: 18, color: "DC2626", align: "right", fontFace: "微軟正黑體", bold:true
+    });
+
+    // --- 3. Grid Generation (Fixed 2x3 Gallery) ---
+    const startY = 1.2;
+    const marginX = 0.5;
+    const gridW = 9.0; 
+    const cols = 3;
+    const gap = 0.2;
+    const imgW = (gridW - (gap * (cols - 1))) / cols; // ~2.86
+    const imgH = 2.4; 
+
+    // Fill slots. If we have fewer than 6 images, we just stop filling.
+    for (let i = 0; i < 6; i++) {
+        if (i < imagesToDisplay.length) {
+            const url = imagesToDisplay[i];
+            const r = Math.floor(i / cols);
+            const c = i % cols;
+            const x = marginX + c * (imgW + gap);
+            const y = startY + r * (imgH + gap);
+
+            try {
+                const b64 = await fetchAsDataURL(url);
+                if(b64) slide.addImage({ data: b64, x: x, y: y, w: imgW, h: imgH, sizing: { type: "contain", w: imgW, h: imgH } });
+            } catch(e) {}
+        }
+    }
+
+    // 4. Footer
+    const dateStr = new Date().toISOString().split('T')[0];
+    slide.addText(`KINYO | 生成日期: ${dateStr}`, {
+        x: 0.5, y: 7.0, w: 5.0, h: 0.3,
+        fontSize: 10, color: "AAAAAA", fontFace: "微軟正黑體"
     });
 }
 
@@ -1888,7 +1910,8 @@ async function exportSelectedPPT(source = 'checked') {
   btn.disabled = true; 
 
   try {
-    const CHUNK_SIZE = 20;
+    // 🌟 Batch Processing: All lines start together in chunks
+    const CHUNK_SIZE = 20; 
     const batches = [];
     for (let i = 0; i < selectedItems.length; i += CHUNK_SIZE) {
         batches.push(selectedItems.slice(i, i + CHUNK_SIZE));
@@ -2363,6 +2386,47 @@ onAuthStateChanged(auth, async (user) => {
         if(loginOverlay) loginOverlay.style.display = "flex";
     }
 });
+
+// Login Button Click Logic - Revised for v7.0
+const doLoginBtn = document.getElementById("doLoginBtn");
+if(doLoginBtn) {
+  doLoginBtn.onclick = async () => {
+    console.log("Login button clicked"); // Debug log
+    let email = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+    
+    if (email && !email.includes('@')) {
+        email += '@kinyo.com';
+    }
+
+    if(!email || !password) {
+      loginError.textContent = "請輸入帳號和密碼";
+      loginError.style.display = "block";
+      return;
+    }
+
+    loginError.style.display = "none";
+    doLoginBtn.disabled = true;
+    doLoginBtn.textContent = "登入中...";
+
+    try {
+      // Standard sign in without persistence setting
+      await signInWithEmailAndPassword(auth, email, password);
+      // onAuthStateChanged will handle the UI update
+    } catch (error) {
+      if (error.message && error.message.includes("message channel closed")) {
+          console.warn("Ignored non-fatal auth error:", error);
+          return;
+      }
+      
+      console.error("Login error:", error);
+      loginError.textContent = "登入失敗：請檢查帳號密碼";
+      loginError.style.display = "block";
+      doLoginBtn.disabled = false;
+      doLoginBtn.textContent = "登入";
+    }
+  };
+}
 
 </script>
 </body>
