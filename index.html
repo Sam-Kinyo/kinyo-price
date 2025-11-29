@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.2 精準庫存版）</title>
+<title>KINYO 查價系統（v6.4 完美特助版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -270,7 +270,18 @@ th{background:#fafafa;text-align:left;}
     border: 1px solid #e2e8f0;
 }
 
-/* 庫存標籤 */
+/* 庫存標籤 - 列表用 */
+.stock-inline-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: bold;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+    vertical-align: middle;
+}
+
+/* 庫存標籤 - 詳情用 */
 .stock-badge {
     display: inline-block;
     font-size: 13px;
@@ -283,13 +294,15 @@ th{background:#fafafa;text-align:left;}
     border: 1px solid #bbf7d0;
     transition: all 0.3s;
 }
-/* 低庫存 (0-100) */
+
+/* 視覺顏色分級 */
+/* 紅色 (<= 100) */
 .stock-low { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-/* 中庫存 (101-300) */
+/* 橘色 (101 - 500) */
 .stock-mid { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-/* 藍色庫存 (301-800) */
+/* 藍色 (501 - 800) */
 .stock-blue { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
-/* 高庫存 (801+) */
+/* 綠色 (> 800) */
 .stock-high { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
 
 /* =========================================
@@ -598,7 +611,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.2 精準庫存版 —— 七段式庫存分級 & 六格畫廊 PPT
+  v6.4 完美特助版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -850,11 +863,10 @@ function getInventoryRangeLabel(qty) {
 
     if (val <= 30) return "30個以內";
     if (val <= 100) return "31-100個";
-    if (val <= 300) return "101-300個";
-    if (val <= 500) return "301-500個";
+    if (val <= 500) return "101-500個";
     if (val <= 800) return "501-800個";
     if (val <= 1200) return "801-1200個";
-    return "1201個以上";
+    return "1200個以上";
 }
 
 function getGoogleDriveId(url) {
@@ -1425,12 +1437,35 @@ function renderResults(list) {
         const qtyVal = parseInt(item.inventory, 10);
         let badgeClass = "stock-mid"; // Default
         
-        if (qtyVal <= 100) badgeClass = "stock-low";
-        else if (qtyVal <= 800 && qtyVal > 300) badgeClass = "stock-blue";
-        else if (qtyVal > 800) badgeClass = "stock-high";
+        if (qtyVal <= 30) badgeClass = "stock-low";
+        else if (qtyVal <= 100) badgeClass = "stock-low";
+        else if (qtyVal <= 500) badgeClass = "stock-mid";
+        else if (qtyVal <= 800) badgeClass = "stock-blue";
+        else if (qtyVal <= 1200) badgeClass = "stock-high";
+        else badgeClass = "stock-high";
 
         if(label) {
+            // stockHtml used for detail view, we also want an inline badge for list view
             stockHtml = `<div class="stock-badge ${badgeClass}">📦 ${label}</div>`;
+        }
+    }
+
+    // 🌟 Inline Stock Badge (New)
+    let inlineStockBadge = "";
+    if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+        const label = getInventoryRangeLabel(item.inventory);
+        const qtyVal = parseInt(item.inventory, 10);
+        let badgeClass = "stock-mid";
+        
+        if (qtyVal <= 30) badgeClass = "stock-low";
+        else if (qtyVal <= 100) badgeClass = "stock-low";
+        else if (qtyVal <= 500) badgeClass = "stock-mid";
+        else if (qtyVal <= 800) badgeClass = "stock-blue";
+        else if (qtyVal <= 1200) badgeClass = "stock-high";
+        else badgeClass = "stock-high";
+
+        if(label) {
+            inlineStockBadge = `<span class="stock-inline-badge ${badgeClass}">${label}</span>`;
         }
     }
 
@@ -1443,7 +1478,10 @@ function renderResults(list) {
       <td>
         ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;">${item.name || "-"}</div>
-        <div style="font-size:13px;color:#555;margin-bottom:4px;">顏色：${item.colorList || "-"}</div>
+        <div style="font-size:13px;color:#555;margin-bottom:4px;">
+            顏色：${item.colorList || "-"} 
+            ${inlineStockBadge} 
+        </div>
         <div class="price-tag-container" style="font-size:13px;margin-bottom:4px;">${priceHtml}</div>
         <div style="display:flex; gap:6px;">
           <button class="line-share-btn" data-model="${item.model}" style="margin-top:6px;padding:6px 10px;font-size:12px;background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">LINE</button>
@@ -1550,9 +1588,11 @@ function showDetailMobile(item) {
         let color = "#b45309"; // mid
         let bg = "#fffbeb";
 
-        if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
-        else if(qtyVal > 300 && qtyVal <= 800) { color = "#1e40af"; bg = "#eff6ff"; }
-        else if(qtyVal > 800) { color = "#15803d"; bg = "#f0fdf4"; }
+        if(qtyVal <= 30) { color = "#b91c1c"; bg = "#fef2f2"; }
+        else if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
+        else if(qtyVal <= 500) { color = "#b45309"; bg = "#fffbeb"; }
+        else if(qtyVal <= 800) { color = "#1e40af"; bg = "#eff6ff"; }
+        else { color = "#15803d"; bg = "#f0fdf4"; }
 
         if(label) {
             stockHtml = `<div style="margin-bottom:16px; background:${bg}; color:${color}; border:1px solid ${color}; padding:8px; border-radius:8px; text-align:center; font-weight:bold;">
@@ -1673,9 +1713,11 @@ function showDetailDesktop(item) {
         let color = "#b45309"; 
         let bg = "#fffbeb";
 
-        if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
-        else if(qtyVal > 300 && qtyVal <= 800) { color = "#1e40af"; bg = "#eff6ff"; }
-        else if(qtyVal > 800) { color = "#15803d"; bg = "#f0fdf4"; }
+        if(qtyVal <= 30) { color = "#b91c1c"; bg = "#fef2f2"; }
+        else if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
+        else if(qtyVal <= 500) { color = "#b45309"; bg = "#fffbeb"; }
+        else if(qtyVal <= 800) { color = "#1e40af"; bg = "#eff6ff"; }
+        else { color = "#15803d"; bg = "#f0fdf4"; }
 
         if(label) {
             stockHtml = `<div style="margin-bottom:12px; background:${bg}; color:${color}; border:1px solid ${color}; padding:6px; border-radius:6px; font-size:13px; font-weight:bold;">
@@ -2404,7 +2446,8 @@ if(inventoryUpload) {
                     // Collect first 10 for preview
                     if(previewData.length < 10) {
                         // Find product name for better context
-                        const matchedProduct = productCache.find(p => (p.barcode || p.internationalBarcode) == bc);
+                        // 🌟 優先使用 internationalBarcode 進行比對，修復 "barcode mismatch" 問題
+                        const matchedProduct = productCache.find(p => (p.internationalBarcode || p.barcode) == bc);
                         previewData.push({
                             bc: bc,
                             name: matchedProduct ? matchedProduct.name : "(無對應商品)",
