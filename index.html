@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.5.2 VIP 智慧校正版）</title>
+<title>KINYO 查價系統（v6.5.3 登入修復版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -627,7 +627,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.5.2 VIP 智慧校正版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.5.3 登入修復版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -2573,8 +2573,18 @@ const tierMapping = {
 };
 
 onAuthStateChanged(auth, async (user) => {
+  // 🚀 登入按鈕重置邏輯 (v6.5.3 修復)
   if (!user) {
-    if(loginOverlay) loginOverlay.style.display = "flex";
+    if(loginOverlay) {
+        loginOverlay.style.display = "flex";
+        if(doLoginBtn) {
+            doLoginBtn.disabled = false;
+            doLoginBtn.textContent = "登入";
+        }
+        if(loginEmail) loginEmail.value = "";
+        if(loginPassword) loginPassword.value = "";
+        if(loginError) loginError.style.display = "none";
+    }
     return;
   }
   
