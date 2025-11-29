@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.5.1 VIP 雲端管理版）</title>
+<title>KINYO 查價系統（v6.5.2 VIP 智慧校正版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -627,7 +627,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.5.1 VIP 雲端管理版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.5.2 VIP 智慧校正版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -836,7 +836,7 @@ let isQuotesLoaded = false;
 let hasCheckedItems = false;
 
 // VIP State
-let currentVipSettings = null; // { tier: "quote1000", label: "專屬價格" }
+let currentVipSettings = null; // { tier: "priceVipA", label: "專屬價格" }
 
 // Import state
 let currentImportMode = ""; 
@@ -2566,6 +2566,12 @@ if(productUpload) {
 /* =======================================================
    Firebase Auth：登入後流程
 ======================================================= */
+const tierMapping = {
+    "VIP_A": "priceVipA", "VIPA": "priceVipA", "專案A": "priceVipA",
+    "VIP_B": "priceVipB", "VIPB": "priceVipB", "專案B": "priceVipB",
+    "VIP_C": "priceVipC", "VIPC": "priceVipC", "專案C": "priceVipC"
+};
+
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
     if(loginOverlay) loginOverlay.style.display = "flex";
@@ -2584,11 +2590,16 @@ onAuthStateChanged(auth, async (user) => {
           const userData = userDoc.data();
           userLevel = userData.level ?? 0;
           
-          // 🚀 Step 1: Dynamic VIP Check from Database (v6.5)
-          // Checks if user document has vipTier field (e.g. "priceVipA")
+          // 🚀 Step 1: Dynamic VIP Check from Database (v6.5.2 Smart Mapping)
           if (userData.vipTier) {
+              let rawTier = userData.vipTier.trim();
+              
+              // Auto-fix mapping
+              if(tierMapping[rawTier]) rawTier = tierMapping[rawTier];
+              else if(tierMapping[rawTier.toUpperCase()]) rawTier = tierMapping[rawTier.toUpperCase()];
+
               currentVipSettings = {
-                  tier: userData.vipTier,
+                  tier: rawTier,
                   label: userData.vipLabel || "VIP 專屬價"
               };
               console.log("VIP Mode Activated via Database:", currentVipSettings);
