@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.1 純淨畫廊版）</title>
+<title>KINYO 查價系統（v6.1 庫存強化版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -270,25 +270,38 @@ th{background:#fafafa;text-align:left;}
     border: 1px solid #e2e8f0;
 }
 
-/* 庫存標籤 */
-.stock-badge {
-    display: inline-block;
-    font-size: 13px;
-    font-weight: bold;
-    padding: 3px 8px;
-    border-radius: 6px;
-    margin-top: 4px;
-    background: #f0fdf4;
-    color: #15803d;
-    border: 1px solid #bbf7d0;
-    transition: all 0.3s;
+/* =========================================
+   新增：庫存分級視覺標籤 (Level 2+)
+========================================= */
+.stock-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  margin-left: 8px; /* 與顏色文字保持距離 */
+  vertical-align: middle;
+  border: 1px solid transparent;
 }
-/* 低庫存 / 100個以內 */
-.stock-low { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
-/* 中庫存 / 300~500個 */
-.stock-mid { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-/* 高庫存 / 1000個 */
-.stock-high { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+/* 1. 小於 30 (紅色 - 警戒) */
+.st-crit { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+/* 2. 小於 100 (橘紅 - 少量) */
+.st-low  { background: #ffedd5; color: #9a3412; border-color: #fdba74; }
+
+/* 3. 小於 400 (橘黃 - 普通) */
+.st-warn { background: #fff7ed; color: #b45309; border-color: #fed7aa; }
+
+/* 4. 小於 800 (草綠 - 充足) */
+.st-mid  { background: #ecfccb; color: #3f6212; border-color: #bef264; }
+
+/* 5. 小於 1200 (綠色 - 豐富) */
+.st-good { background: #dcfce7; color: #166534; border-color: #86efac; }
+
+/* 6. 大於 1200 (深綠 - 極多) */
+.st-high { background: #ccfbf1; color: #0f766e; border-color: #5eead4; }
+
 
 /* =========================================
    Loading
@@ -596,7 +609,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.1 純淨畫廊版 —— 專注於圖片展示的提案神器
+  v6.1 庫存強化版 —— 專注於圖片展示的提案神器
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -841,11 +854,27 @@ let isDriveLoaded = false;
       HELPER FUNCTIONS
    ==================================================== 🚀 */
 
+/* 🚀 修改後的庫存判斷邏輯 */
+function getInventoryStatus(qty) {
+  if (qty === null || qty === undefined || qty === "") return null;
+  const val = parseInt(qty, 10);
+  if (isNaN(val)) return null;
+
+  if (val < 30)   return { label: "庫存 < 30",   cls: "st-crit" };
+  if (val < 100)  return { label: "庫存 < 100",  cls: "st-low" };
+  if (val < 400)  return { label: "庫存 < 400",  cls: "st-warn" };
+  if (val < 800)  return { label: "庫存 < 800",  cls: "st-mid" };
+  if (val <= 1200) return { label: "庫存 < 1200", cls: "st-good" };
+  
+  // 大於等於 1201 (含)
+  return { label: "庫存 > 1201", cls: "st-high" };
+}
+
 function getInventoryRangeLabel(qty) {
+   // 保留舊函式供其他地方使用 (如果有的話)，但主要邏輯已移至 getInventoryStatus
     if (qty === null || qty === undefined || qty === "") return null;
     const val = parseInt(qty, 10);
     if (isNaN(val)) return null;
-
     if (val > 1000) return "1000個以上";
     if (val <= 100) return "100個以內";
     if (val <= 300) return "300個以內";
@@ -859,7 +888,7 @@ function getGoogleDriveId(url) {
   const patterns = [
     /\/d\/([a-zA-Z0-9_-]+)/,        
     /id=([a-zA-Z0-9_-]+)/,          
-    /open\?id=([a-zA-Z0-9_-]+)/    
+    /open\?id=([a-zA-Z0-9_-]+)/     
   ];
   for (let p of patterns) {
     const m = url.match(p);
@@ -1415,18 +1444,12 @@ function renderResults(list) {
 
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
     
-    // 🚀 Stock Logic - Level 2+ only
-    let stockHtml = "";
-    if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
-        const label = getInventoryRangeLabel(item.inventory);
-        const qtyVal = parseInt(item.inventory, 10);
-        let badgeClass = "stock-mid";
-        
-        if (qtyVal <= 100) badgeClass = "stock-low";
-        else if (qtyVal > 1000) badgeClass = "stock-high";
-
-        if(label) {
-            stockHtml = `<div class="stock-badge ${badgeClass}">📦 ${label}</div>`;
+    // 🚀 新增：庫存顯示邏輯 (Level 2+ 且有庫存資料)
+    let stockTagHtml = "";
+    if (userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+        const status = getInventoryStatus(item.inventory);
+        if (status) {
+            stockTagHtml = `<span class="stock-tag ${status.cls}">${status.label}</span>`;
         }
     }
 
@@ -1439,7 +1462,13 @@ function renderResults(list) {
       <td>
         ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;">${item.name || "-"}</div>
-        <div style="font-size:13px;color:#555;margin-bottom:4px;">顏色：${item.colorList || "-"}</div>
+        
+        <!-- 🌟 修改這裡：將庫存標籤 (stockTagHtml) 放在顏色後面 -->
+        <div style="font-size:13px;color:#555;margin-bottom:4px; display:flex; align-items:center;">
+            顏色：${item.colorList || "-"}
+            ${stockTagHtml}
+        </div>
+
         <div class="price-tag-container" style="font-size:13px;margin-bottom:4px;">${priceHtml}</div>
         <div style="display:flex; gap:6px;">
           <button class="line-share-btn" data-model="${item.model}" style="margin-top:6px;padding:6px 10px;font-size:12px;background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">LINE</button>
@@ -1538,20 +1567,22 @@ function showDetailMobile(item) {
       netThumbHtml = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">${imgsHtml}</div>`;
   }
   
-  // 🚀 Stock Logic - Level 2+ only
+  // 🚀 Stock Logic - Level 2+ only (Detail View)
   let stockHtml = "";
   if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
-        const label = getInventoryRangeLabel(item.inventory);
-        const qtyVal = parseInt(item.inventory, 10);
-        let color = "#b45309"; // mid
-        let bg = "#fffbeb";
-
-        if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
-        else if(qtyVal > 1000) { color = "#15803d"; bg = "#f0fdf4"; }
-
-        if(label) {
-            stockHtml = `<div style="margin-bottom:16px; background:${bg}; color:${color}; border:1px solid ${color}; padding:8px; border-radius:8px; text-align:center; font-weight:bold;">
-            📦 庫存：${label}
+        const status = getInventoryStatus(item.inventory);
+        // Map status cls back to colors for inline styles (since sheet is isolated)
+        let bg = "#fffbeb", color = "#b45309";
+        if(status) {
+             if(status.cls === 'st-crit') { bg="#fee2e2"; color="#991b1b"; }
+             else if(status.cls === 'st-low') { bg="#ffedd5"; color="#9a3412"; }
+             else if(status.cls === 'st-warn') { bg="#fff7ed"; color="#b45309"; }
+             else if(status.cls === 'st-mid') { bg="#ecfccb"; color="#3f6212"; }
+             else if(status.cls === 'st-good') { bg="#dcfce7"; color="#166534"; }
+             else if(status.cls === 'st-high') { bg="#ccfbf1"; color="#0f766e"; }
+             
+             stockHtml = `<div style="margin-bottom:16px; background:${bg}; color:${color}; border:1px solid ${color}; padding:8px; border-radius:8px; text-align:center; font-weight:bold;">
+            📦 ${status.label}
             </div>`;
         }
   }
@@ -1660,20 +1691,22 @@ function showDetailDesktop(item) {
       }
   });
   
-  // 🚀 Stock Logic - Level 2+ only
+  // 🚀 Stock Logic - Level 2+ only (Desktop Detail)
   let stockHtml = "";
   if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
-        const label = getInventoryRangeLabel(item.inventory);
-        const qtyVal = parseInt(item.inventory, 10);
-        let color = "#b45309"; 
-        let bg = "#fffbeb";
-
-        if(qtyVal <= 100) { color = "#b91c1c"; bg = "#fef2f2"; }
-        else if(qtyVal > 1000) { color = "#15803d"; bg = "#f0fdf4"; }
-
-        if(label) {
-            stockHtml = `<div style="margin-bottom:12px; background:${bg}; color:${color}; border:1px solid ${color}; padding:6px; border-radius:6px; font-size:13px; font-weight:bold;">
-            📦 庫存：${label}
+        const status = getInventoryStatus(item.inventory);
+        // Map status cls back to colors
+        let bg = "#fffbeb", color = "#b45309";
+        if(status) {
+             if(status.cls === 'st-crit') { bg="#fee2e2"; color="#991b1b"; }
+             else if(status.cls === 'st-low') { bg="#ffedd5"; color="#9a3412"; }
+             else if(status.cls === 'st-warn') { bg="#fff7ed"; color="#b45309"; }
+             else if(status.cls === 'st-mid') { bg="#ecfccb"; color="#3f6212"; }
+             else if(status.cls === 'st-good') { bg="#dcfce7"; color="#166534"; }
+             else if(status.cls === 'st-high') { bg="#ccfbf1"; color="#0f766e"; }
+             
+             stockHtml = `<div style="margin-bottom:12px; background:${bg}; color:${color}; border:1px solid ${color}; padding:6px; border-radius:6px; font-size:13px; font-weight:bold;">
+            📦 ${status.label}
             </div>`;
         }
   }
