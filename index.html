@@ -611,7 +611,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.4 完美特助版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.6 完美特助版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -874,7 +874,7 @@ function getGoogleDriveId(url) {
   const patterns = [
     /\/d\/([a-zA-Z0-9_-]+)/,        
     /id=([a-zA-Z0-9_-]+)/,          
-    /open\?id=([a-zA-Z0-9_-]+)/    
+    /open\?id=([a-zA-Z0-9_-]+)/     
   ];
   for (let p of patterns) {
     const m = url.match(p);
@@ -1784,103 +1784,172 @@ function showDetailDesktop(item) {
 }
 
 async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
+    // 1. 設定投影片背景與基本參數
     const slide = pptx.addSlide();
     slide.background = { color: "FFFFFF" };
 
-    // --- 1. Image Logic: Strict "Net Image 1 at Top-Left" ---
-    // Get all available net images
+    // =========================================================
+    // 邏輯處理：圖片準備 (維持原本優秀的遞補邏輯)
+    // =========================================================
     const netImages = getDriveNetImages(item.model, item.mainModel) || [];
+    let imagesToDisplay = [...netImages]; // 先放網路圖
     
-    // Prepare the list of 6 images
-    let imagesToDisplay = [];
-    
-    // Add Net Images first (up to 6)
-    imagesToDisplay = [...netImages];
-
-    // If we don't have enough net images, fill with other sources
+    // 如果網路圖不夠 6 張，補上主圖與 Drive 圖
     const driveMain = getDriveMainImage(item.model, item.mainModel);
     const rawImg = item.imageUrl;
-
-    // Helper to add unique
+    
     const addUnique = (url) => {
         if(url && !imagesToDisplay.includes(url) && imagesToDisplay.length < 6) {
             imagesToDisplay.push(url);
         }
     };
-
     addUnique(driveMain);
     if(rawImg && rawImg.startsWith('http')) addUnique(rawImg);
 
-    // --- 2. Header Section (Common) ---
-    // Logo
+    // =========================================================
+    // 需求 1 & 2：Logo 放大 + 品名優化
+    // =========================================================
+    
+    // --- 1. Logo (放大版) ---
     try {
         const logoUrl = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn"; 
         const logoB64 = await fetchAsDataURL(logoUrl);
-        if(logoB64) slide.addImage({ data: logoB64, x: 0.2, y: 0.2, w: 1.5, h: 0.6 }); 
+        if(logoB64) {
+            // 寬度從 1.5 改為 2.3 (放大 1.5 倍)，位置固定左上
+            slide.addImage({ 
+                data: logoB64, 
+                x: 0.3, y: 0.3, w: 2.3, h: 0.9 
+            }); 
+        }
     } catch(e) {}
 
-    // Title (Name ONLY, No Model)
-    // 🌟 這裡確保只顯示品名
-    slide.addText(item.name || "未命名商品", {
-        x: 1.8, y: 0.2, w: 5.5, h: 0.6,
-        fontSize: 20, bold: true, color: "000000", fontFace: "微軟正黑體", valign: "middle"
+    // --- 2. 品名處理 (濾除 *xxx* 與自動縮放) ---
+    // Regex: 移除字尾的 *...* (例如 *停產* 或 *專案*)
+    let cleanName = (item.name || "未命名商品").replace(/\s*\*.*?\*$/, '').trim();
+    
+    // 智慧字體大小計算
+    let nameFontSize = 28; // 預設大字體
+    if (cleanName.length > 15) nameFontSize = 24; // 字數稍多
+    if (cleanName.length > 25) nameFontSize = 20; // 字數很多
+    if (cleanName.length > 40) nameFontSize = 18; // 字數超多
+    
+    // 顯示品名 (位置在 Logo 下方，營造層次感)
+    slide.addText(cleanName, {
+        x: 0.3, y: 1.3, w: 6.0, h: 0.8, // 寬度給足，避免換行太醜
+        fontSize: nameFontSize, 
+        bold: true, 
+        color: "111827", 
+        fontFace: "微軟正黑體", 
+        valign: "top" // 靠上對齊
+    });
+    
+    // 顯示型號 (小字，輔助確認用)
+    slide.addText(`型號: ${item.model}`, {
+        x: 0.3, y: 1.3 + 0.6, w: 5.0, h: 0.4,
+        fontSize: 12, color: "6B7280", fontFace: "Arial"
     });
 
-    // Pricing
-    let quoteText = "", quotePrice = "";
+    // =========================================================
+    // 需求 3：報價專業化 (右側資訊卡)
+    // =========================================================
+    
+    // 準備價格文字
+    let quoteLabel = "", quotePriceStr = "";
     if (customQuoteInfo) {
-        quoteText = `報價(${customQuoteInfo.qtyLabel}):`;
-        quotePrice = `$${customQuoteInfo.price}`;
+        quoteLabel = `專案報價 (${customQuoteInfo.qtyLabel})`;
+        quotePriceStr = `$${customQuoteInfo.price}`;
     } else {
+        quoteLabel = `批發報價 (${tier}個)`;
         const quoteKey = `quote${tier}`;
         const p = item[quoteKey] || item.quote50 || "-";
-        quoteText = `報價(${tier}個):`;
-        quotePrice = `$${p}`;
+        quotePriceStr = `$${p}`;
     }
 
-    slide.addText(`賣場價: $${item.marketPrice}`, {
-        x: 7.5, y: 0.2, w: 2.3, h: 0.3,
-        fontSize: 12, color: "888888", align: "right", fontFace: "微軟正黑體"
+    // 價格字體自動縮放
+    let priceFontSize = 36;
+    if (quotePriceStr.length > 6) priceFontSize = 32; // 金額過大時縮小
+    if (quotePriceStr.length > 9) priceFontSize = 28;
+
+    // A. 賣場價 (灰色、較小、右上角)
+    slide.addText("賣場市價", {
+        x: 6.5, y: 0.4, w: 3.2, h: 0.3,
+        fontSize: 11, color: "9CA3AF", align: "right", fontFace: "微軟正黑體"
     });
-    slide.addText(quoteText, {
-        x: 7.0, y: 0.5, w: 1.8, h: 0.4,
-        fontSize: 14, color: "2563eb", align: "right", fontFace: "微軟正黑體", bold:true
-    });
-    slide.addText(quotePrice, {
-        x: 8.8, y: 0.5, w: 1.0, h: 0.4,
-        fontSize: 18, color: "DC2626", align: "right", fontFace: "微軟正黑體", bold:true
+    slide.addText(`$${item.marketPrice}`, {
+        x: 6.5, y: 0.7, w: 3.2, h: 0.3,
+        fontSize: 14, color: "6B7280", align: "right", fontFace: "Arial", bold: true,
+        strike: true // 刪除線效果
     });
 
-    // --- 3. Grid Generation (Fixed 2x3 Gallery) ---
-    const startY = 1.2;
-    const marginX = 0.5;
-    const gridW = 9.0; 
-    const cols = 3;
-    const gap = 0.2;
-    const imgW = (gridW - (gap * (cols - 1))) / cols; // ~2.86
-    const imgH = 2.4; 
+    // B. 報價 (強調色、超大、右側主視覺)
+    slide.addText(quoteLabel, {
+        x: 5.5, y: 1.1, w: 4.2, h: 0.4,
+        fontSize: 14, color: "2563EB", align: "right", fontFace: "微軟正黑體", bold: true
+    });
+    slide.addText(quotePriceStr, {
+        x: 5.5, y: 1.5, w: 4.2, h: 0.6,
+        fontSize: priceFontSize, color: "DC2626", align: "right", fontFace: "Arial", bold: true
+    });
 
-    // Fill slots. If we have fewer than 6 images, we just stop filling.
+    // 分隔線 (區隔資訊區與圖片區)
+    slide.addShape(pptx.shapes.LINE, { 
+        x: 0.3, y: 2.3, w: 9.4, h: 0, 
+        line: { color: "E5E7EB", width: 1 } 
+    });
+
+    // =========================================================
+    // 需求 4：滿版型錄畫廊 (Gallery Layout)
+    // =========================================================
+    
+    // 格線設定：利用剩餘空間 (約 7.5 - 2.4 = 5.1 inch 高度)
+    // 目標：2 列 x 3 行，間距極小，營造拼貼感
+    const startY = 2.45; // 圖片起始 Y
+    const totalW = 10.0; // 投影片總寬
+    const marginX = 0.3; // 左右邊距
+    const gap = 0.08;    // 極小間距 (美觀)
+    
+    const availableW = totalW - (marginX * 2);
+    const imgW = (availableW - (gap * 2)) / 3; // 三欄寬度
+    const imgH = 2.35; // 固定高度 (兩列剛好佔滿下方)
+
+    // 迴圈填入圖片
     for (let i = 0; i < 6; i++) {
         if (i < imagesToDisplay.length) {
             const url = imagesToDisplay[i];
-            const r = Math.floor(i / cols);
-            const c = i % cols;
+            
+            // 計算格線座標
+            const r = Math.floor(i / 3); // 第幾列 (0 或 1)
+            const c = i % 3;             // 第幾行 (0, 1, 2)
+            
             const x = marginX + c * (imgW + gap);
             const y = startY + r * (imgH + gap);
 
             try {
                 const b64 = await fetchAsDataURL(url);
-                if(b64) slide.addImage({ data: b64, x: x, y: y, w: imgW, h: imgH, sizing: { type: "contain", w: imgW, h: imgH } });
+                if(b64) {
+                    // 使用 contain 確保商品全貌可見，但置中對齊
+                    // 背景加一個極淡的灰框，讓留白處不尷尬，更有型錄感
+                    slide.addShape(pptx.shapes.RECT, {
+                        x: x, y: y, w: imgW, h: imgH,
+                        fill: { color: "F9FAFB" }, // 極淡灰背景
+                        line: { color: "E5E7EB", width: 0.5 } // 細框
+                    });
+
+                    slide.addImage({ 
+                        data: b64, 
+                        x: x, y: y, w: imgW, h: imgH, 
+                        sizing: { type: "contain", w: imgW, h: imgH, align: "center", valign: "middle" } 
+                    });
+                }
             } catch(e) {}
         }
     }
 
-    // 4. Footer
+    // 頁尾資訊
     const dateStr = new Date().toISOString().split('T')[0];
-    slide.addText(`KINYO | 生成日期: ${dateStr}`, {
-        x: 0.5, y: 7.0, w: 5.0, h: 0.3,
-        fontSize: 10, color: "AAAAAA", fontFace: "微軟正黑體"
+    slide.addText(`KINYO 產品報價單 | 生成日期: ${dateStr} | 業務: 郭庭豪`, {
+        x: 0.3, y: 7.2, w: 5.0, h: 0.3,
+        fontSize: 9, color: "D1D5DB", fontFace: "微軟正黑體"
     });
 }
 
@@ -2860,4 +2929,3 @@ if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
 </script>
 </body>
 </html>
-```
