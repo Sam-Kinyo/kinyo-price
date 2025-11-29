@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.5.3 登入修復版）</title>
+<title>KINYO 查價系統（v6.6 VIP 重製版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -627,7 +627,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.5.3 登入修復版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.6 VIP 重製版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -836,7 +836,7 @@ let isQuotesLoaded = false;
 let hasCheckedItems = false;
 
 // VIP State
-let currentVipSettings = null; // { tier: "priceVipA", label: "專屬價格" }
+let currentVipSettings = null; 
 
 // Import state
 let currentImportMode = ""; 
@@ -847,7 +847,7 @@ const CACHE_TTL = 1000 * 60 * 60 * 6;
 
 function getCacheKey() {
   const mail = (currentUserEmail || "guest").toLowerCase();
-  return `KINYO_SAFE_CACHE_V580_${mail}`; // Reuse key
+  return `KINYO_SAFE_CACHE_V580_${mail}`; 
 }
 
 function loadCache() {
@@ -900,7 +900,6 @@ function getVipDisplayPrice(rawPrice) {
 }
 
 function getInventoryRangeLabel(qty) {
-   // 保留舊函式供其他地方使用
     if (qty === null || qty === undefined || qty === "") return null;
     const val = parseInt(qty, 10);
     if (isNaN(val)) return null;
@@ -1058,7 +1057,7 @@ function updateUserDisplay(status) {
   } else {
     // Check VIP first
     if(currentVipSettings) {
-        userInfoSpan.textContent = "👑 VIP 客戶";
+        userInfoSpan.textContent = currentVipSettings.label || "👑 VIP 客戶";
         userInfoSpan.className = "user-badge badge-vip";
     } else {
         let badgeClass = "badge-lv0";
