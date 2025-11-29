@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.4 VIP 智慧顯示版）</title>
+<title>KINYO 查價系統（v6.5 VIP 雲端管理版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -627,7 +627,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.4 VIP 智慧顯示版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.5 VIP 雲端管理版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -750,21 +750,6 @@ th{background:#fafafa;text-align:left;}
    1. 設定您的 LOGO 網址
 ======================================================= */
 const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn/view?usp=drive_link"; 
-
-/* =======================================================
-   2. VIP 客戶專屬設定 (請在此處填寫您的客戶 Email)
-   tier 對應到資料庫的欄位： priceVipA / priceVipB / priceVipC
-======================================================= */
-const VIP_CONFIG = {
-    // 範例：將 "vip1@client.com" 設定為看到「專案A」的價格
-    "vip1@client.com": { tier: "priceVipA", label: "🔥 專屬合約價 (A)" },
-    
-    // 範例：將 "vip2@client.com" 設定為看到「專案B」的價格
-    "vip2@client.com": { tier: "priceVipB", label: "🤝 經銷夥伴價 (B)" },
-    
-    // 範例：將 "vip3@client.com" 設定為看到「專案C」的價格
-    "vip3@client.com": { tier: "priceVipC", label: "💎 核心客戶價 (C)" }
-};
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
@@ -1383,7 +1368,9 @@ function searchProducts() {
   // VIP Logic: Force qty search if in VIP mode (effectively acting as if that tier is selected)
   let qty = qtySelect.value;
   if (currentVipSettings) {
-      qty = currentVipSettings.tier.replace("quote", ""); // e.g. "1000"
+      // VIP doesn't use standard qty, but we need a value to proceed. 
+      // Use "vip" as placeholder, but logic relies on currentVipSettings.
+      qty = "vip"; 
   }
 
   const minPraw = minPriceInput.value.trim();
@@ -1442,7 +1429,10 @@ function searchProducts() {
       
       r = r.filter(p => {
         let price = 0;
-        if (qty) {
+        if(currentVipSettings) {
+             const vipPriceRaw = p[currentVipSettings.tier];
+             if(vipPriceRaw && !isNaN(vipPriceRaw)) price = Number(vipPriceRaw);
+        } else if (qty && qty !== "vip") {
             const k = `quote${qty}`;
             price = Number(p[k]) || 0;
         } else {
@@ -2555,249 +2545,6 @@ if(productUpload) {
     };
 }
 
-// ----------------------------------------------------
-// INVENTORY IMPORT LOGIC
-// ----------------------------------------------------
-if(inventoryUpload) {
-    inventoryUpload.onchange = (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        currentImportMode = 'inventory';
-
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                const data = evt.target.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
-
-                // --- HEADER DETECTION ---
-                let barcodeIdx = -1;
-                let finishedIdx = -1;
-                let exclusiveIdx = -1;
-                let fallbackIdx = -1;
-
-                // Scan first 10 rows
-                for(let r=0; r<Math.min(jsonData.length, 10); r++) {
-                    const row = jsonData[r];
-                    for(let c=0; c<row.length; c++) {
-                        const cell = String(row[c]).trim();
-                        if(cell === "條碼" || cell === "國際條碼") barcodeIdx = c;
-                        if(cell === "成品倉") finishedIdx = c;
-                        if(cell === "專賣倉") exclusiveIdx = c;
-                        if(cell.includes("庫存") && cell.includes("可用量")) fallbackIdx = c;
-                    }
-                }
-
-                if (barcodeIdx === -1) {
-                    alert("錯誤：找不到「條碼」欄位，請檢查 Excel 格式。");
-                    return;
-                }
-
-                pendingInventoryMap.clear();
-                let previewData = [];
-                let count = 0;
-
-                // --- DATA PARSING ---
-                jsonData.forEach((row, index) => {
-                    if(!row[barcodeIdx]) return;
-                    const rawBarcode = row[barcodeIdx];
-                    if(String(rawBarcode).includes("條碼")) return;
-
-                    let totalQty = 0;
-                    let finishedVal = 0;
-                    let exclusiveVal = 0;
-                    let source = "";
-
-                    if(finishedIdx !== -1 && exclusiveIdx !== -1) {
-                        finishedVal = parseInt(row[finishedIdx], 10) || 0;
-                        exclusiveVal = parseInt(row[exclusiveIdx], 10) || 0;
-                        totalQty = Math.floor((finishedVal + exclusiveVal) * 0.9);
-                        source = "成品+專賣";
-                    } 
-                    else if (fallbackIdx !== -1) {
-                        const fb = parseInt(row[fallbackIdx], 10) || 0;
-                        totalQty = Math.floor(fb * 0.9);
-                        source = "庫存(可用量)";
-                    } else {
-                        return; 
-                    }
-
-                    const bc = String(rawBarcode).trim();
-                    pendingInventoryMap.set(bc, totalQty);
-                    count++;
-
-                    // Collect first 10 for preview
-                    if(previewData.length < 10) {
-                        // Find product name for better context
-                        // 🌟 優先使用 internationalBarcode 進行比對，修復 "barcode mismatch" 問題
-                        const matchedProduct = productCache.find(p => (p.internationalBarcode || p.barcode) == bc);
-                        previewData.push({
-                            bc: bc,
-                            name: matchedProduct ? matchedProduct.name : "(無對應商品)",
-                            fin: finishedVal,
-                            exc: exclusiveVal,
-                            rawTotal: (finishedVal + exclusiveVal),
-                            final: totalQty,
-                            src: source
-                        });
-                    }
-                });
-
-                if(count > 0) {
-                    // Show Preview Modal
-                    previewHeader.textContent = "庫存匯入預覽";
-                    let tableHtml = `
-                    <div style="margin-bottom:10px; font-size:12px; color:#666;">
-                        ✅ 抓到欄位：
-                        ${barcodeIdx!==-1?`<span class="field-badge">條碼</span>`:''}
-                        ${finishedIdx!==-1?`<span class="field-badge">成品倉</span>`:''}
-                        ${exclusiveIdx!==-1?`<span class="field-badge">專賣倉</span>`:''}
-                        ${fallbackIdx!==-1?`<span class="field-badge">庫存(可用量)</span>`:''}
-                    </div>
-                    <table class="preview-table">
-                        <thead>
-                            <tr>
-                                <th>條碼</th>
-                                <th>商品名稱 (系統)</th>
-                                <th>成品倉</th>
-                                <th>專賣倉</th>
-                                <th>原始總和</th>
-                                <th style="color:#2563eb;">安全庫存 (90%)</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-                    
-                    previewData.forEach(row => {
-                        tableHtml += `<tr>
-                            <td>${row.bc}</td>
-                            <td>${row.name}</td>
-                            <td>${row.fin}</td>
-                            <td>${row.exc}</td>
-                            <td>${row.rawTotal}</td>
-                            <td style="font-weight:bold; color:#2563eb;">${row.final}</td>
-                        </tr>`;
-                    });
-                    tableHtml += `</tbody></table>
-                    <div style="margin-top:10px; color:#666;">
-                        共解析出 ${count} 筆有效資料。<br>
-                        確認無誤後，請點擊下方按鈕寫入資料庫。
-                    </div>`;
-
-                    previewContent.innerHTML = tableHtml;
-                    previewOverlay.style.display = "flex";
-
-                } else {
-                    alert("未在檔案中找到有效的庫存數據。");
-                }
-                
-            } catch(err) {
-                console.error(err);
-                alert("讀取檔案失敗，請確認格式是否正確。");
-            }
-        };
-        reader.readAsBinaryString(file);
-    };
-}
-
-
-if(pptToolbarBtn) {
-  pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
-}
-if(pptFromQuoteBtn) {
-  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote');
-}
-if(downloadQuoteExcelBtn) {
-  downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
-}
-if(copyQuoteBtn) {
-  copyQuoteBtn.onclick = () => {
-    if (quoteList.length === 0) return alert("報價單是空的");
-    let text = "KINYO 報價單\n--------------------\n";
-    quoteList.forEach((q,i)=>{
-      const priceDisplay = (String(q.price).includes("請洽")) ? q.price : `$${q.price}`;
-      const link = q.productUrl ? `   🔗 連結：${q.productUrl}\n` : "";
-      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n${link}`;
-    });
-    text += "--------------------\n";
-    navigator.clipboard.writeText(text)
-      .then(() => alert("報價單已複製"))
-      .catch(() => alert("複製失敗"));
-  };
-}
-
-if(clearBtn) {
-  clearBtn.onclick = () => {
-    keywordInput.value = "";
-    qtySelect.value = "";
-    minPriceInput.value = "";
-    maxPriceInput.value = "";
-    stockFilter.value = "";
-    categorySelect.value = ""; 
-
-    resultBody.innerHTML = "";
-    resultTable.style.display = "none";
-    exportBtn.disabled = true;
-    if(pptToolbarBtn) pptToolbarBtn.disabled = true;
-    if(multiLineBtn) multiLineBtn.disabled = true;
-    if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = true; 
-    checkAllBox.checked = false;
-    detailCard.style.display = "none";
-  };
-}
-
-if(clearQuoteBtn) {
-  clearQuoteBtn.onclick = () => {
-    if(quoteList.length === 0) {
-        alert("報價單已經是空的");
-        return;
-    }
-    if(confirm("確定要清空報價單嗎？這將無法復原。")) {
-        quoteList = [];
-        renderQuoteList();
-        updateQuoteToolbarBtn();
-    }
-  };
-}
-
-// Login Button Click Logic
-if(doLoginBtn) {
-  doLoginBtn.onclick = async () => {
-    let email = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
-    
-    if (email && !email.includes('@')) {
-        email += '@kinyo.com';
-    }
-
-    if(!email || !password) {
-      loginError.textContent = "請輸入帳號和密碼";
-      loginError.style.display = "block";
-      return;
-    }
-
-    loginError.style.display = "none";
-    doLoginBtn.disabled = true;
-    doLoginBtn.textContent = "登入中...";
-
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      if (error.message && error.message.includes("message channel closed")) {
-          console.warn("Ignored non-fatal auth error:", error);
-          return;
-      }
-      
-      console.error(error);
-      loginError.textContent = "登入失敗：請檢查帳號密碼";
-      loginError.style.display = "block";
-      doLoginBtn.disabled = false;
-      doLoginBtn.textContent = "登入";
-    }
-  };
-}
-
 /* =======================================================
    Firebase Auth：登入後流程
 ======================================================= */
@@ -2813,31 +2560,35 @@ onAuthStateChanged(auth, async (user) => {
   userLevel = 0; 
   currentVipSettings = null; // Reset on login
 
-  // 🚀 Step 1: Check VIP Config first
-  if (VIP_CONFIG[currentUserEmail]) {
-      currentVipSettings = VIP_CONFIG[currentUserEmail];
-      console.log("VIP Mode Activated:", currentVipSettings);
-      // Hide Qty Select
-      if(qtySearchRow) qtySearchRow.style.display = 'none';
-  } else {
-      if(qtySearchRow) qtySearchRow.style.display = 'block';
-  }
-
   try {
       const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
       if (userDoc.exists()) {
-          userLevel = userDoc.data().level ?? 0;
+          const userData = userDoc.data();
+          userLevel = userData.level ?? 0;
+          
+          // 🚀 Step 1: Dynamic VIP Check from Database (v6.5)
+          // Checks if user document has vipTier field (e.g. "priceVipA")
+          if (userData.vipTier) {
+              currentVipSettings = {
+                  tier: userData.vipTier,
+                  label: userData.vipLabel || "VIP 專屬價"
+              };
+              console.log("VIP Mode Activated via Database:", currentVipSettings);
+              
+              // Hide Qty Select for VIPs
+              if(qtySearchRow) qtySearchRow.style.display = 'none';
+              
+              // Force min level 1 for VIPs so they can see basic info
+              if (userLevel < 1) userLevel = 1;
+          } else {
+              if(qtySearchRow) qtySearchRow.style.display = 'block';
+          }
       } else {
           userLevel = 0;
       }
   } catch (e) {
       console.error("Auth Error:", e);
       userLevel = 0;
-  }
-
-  // Force level 1 at least if VIP, so they can see prices
-  if (currentVipSettings && userLevel < 1) {
-      userLevel = 1;
   }
 
   if (currentUserEmail.toLowerCase() === 'show@kinyo.com') userLevel = 0;
@@ -2853,260 +2604,6 @@ onAuthStateChanged(auth, async (user) => {
   await preloadDriveModelData();
   await preloadProducts();
 });
-
-/* =======================================================
-   Quote Button Listeners inside Module
-======================================================= */
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("add-quote-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
-
-    let qty, ck, cost;
-
-    // VIP Logic for "Add to Quote"
-    if(currentVipSettings) {
-        qty = currentVipSettings.tier.replace("quote", ""); // e.g. "1000"
-        ck = currentVipSettings.tier;
-        const vipRaw = item[ck];
-        cost = getVipDisplayPrice(vipRaw);
-    } else {
-        qty = qtySelect.value || "50";
-        ck  = `quote${qty}`;
-        cost = item[ck] ?? item.quote50 ?? 0;
-    }
-
-    const qtyLabel = currentVipSettings ? currentVipSettings.label : `${qty}個`;
-
-    const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === qtyLabel);
-    
-    if (existingIndex > -1) {
-        quoteList[existingIndex].count += 1;
-        alert(`已更新報價單：${item.name} (數量: ${quoteList[existingIndex].count})`);
-    } else {
-        quoteList.push({
-          model: item.model,
-          name: item.name,
-          price: cost,
-          qtyLabel: qtyLabel,
-          count: 1,
-          productUrl: item.productUrl || ""
-        });
-        alert(`已加入報價單（${qtyLabel}：${cost}）`);
-    }
-
-    updateQuoteToolbarBtn();
-    return;
-  }
-
-  if (e.target.classList.contains("line-share-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
-
-    const showMinPrice = userLevel >= 1 && !currentVipSettings;
-    const getPrice = (p) => (item[p] ?? "-");
-
-    let costText = "";
-    
-    if (currentVipSettings) {
-        // VIP Share Text
-        const vipRaw = item[currentVipSettings.tier];
-        costText += `${currentVipSettings.label}：${getVipDisplayPrice(vipRaw)}\n`;
-    } else {
-        // Standard Share Text
-        const currentQty = qtySelect.value; 
-        if (currentQty) {
-            const k = `quote${currentQty}`;
-            let canSee = false;
-            if (userLevel >= 1 && currentQty == 50) canSee = true;
-            if (userLevel >= 2 && (currentQty == 100 || currentQty == 300)) canSee = true;
-            if (userLevel >= 3 && (currentQty == 500 || currentQty == 1000)) canSee = true;
-            
-            if(canSee) {
-                  costText += `${currentQty}個：${getPrice(k)}\n`;
-            } else {
-                  costText += `${currentQty}個：(無權限)\n`;
-            }
-        } else {
-            if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
-            if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-            if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
-        }
-    }
-
-    const text = `【${item.model}】${item.name}
-賣場售價：${getPrice('marketPrice')}
-${showMinPrice ? `末售價格：${getPrice('minPrice')}\n` : ''}--------------------
-專屬優惠：
-${costText}
-商品連結：${item.productUrl || "無"}`;
-
-    navigator.clipboard.writeText(text)
-      .then(() => alert("已複製到剪貼簿"))
-      .catch(() => alert("複製失敗"));
-  }
-
-  const card = document.getElementById("detailCard");
-  if (card && card.style.display !== "none") {
-    if (!card.contains(e.target) && !e.target.closest("tr")) {
-      card.style.display = "none";
-    }
-  }
-
-  if(card && !card.hasAttribute("data-listeners-added")){
-      card.setAttribute("data-listeners-added", "true");
-      card.addEventListener("mouseenter", () => {
-        if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
-      });
-      card.addEventListener("mouseleave", () => {
-        window.hideDetailTimer = setTimeout(() => {
-          card.style.display = "none";
-        }, 200);
-      });
-  }
-});
-
-if (batchAddQuoteBtn) {
-    batchAddQuoteBtn.onclick = () => {
-        const checked = document.querySelectorAll(".row-check:checked");
-        if (checked.length === 0) {
-            alert("請先勾選要加入候選清單的商品");
-            return;
-        }
-
-        let qty, ck, qtyLabel;
-        if(currentVipSettings) {
-            qty = currentVipSettings.tier.replace("quote", "");
-            ck = currentVipSettings.tier;
-            qtyLabel = currentVipSettings.label;
-        } else {
-            qty = qtySelect.value || "50";
-            ck = `quote${qty}`;
-            qtyLabel = `${qty}個`;
-        }
-
-        let addedCount = 0;
-
-        Array.from(checked).forEach(c => {
-            const model = c.getAttribute("data-model");
-            const item = currentResultList.find(p => p.model === model);
-            if (!item) return;
-
-            // Handle VIP price formatting here too if it's text
-            let cost;
-            if(currentVipSettings) {
-                cost = getVipDisplayPrice(item[ck]);
-            } else {
-                cost = item[ck] ?? item.quote50 ?? 0;
-            }
-
-            const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === qtyLabel);
-
-            if (existingIndex > -1) {
-                quoteList[existingIndex].count += 1;
-            } else {
-                quoteList.push({
-                    model: item.model,
-                    name: item.name,
-                    price: cost,
-                    qtyLabel: qtyLabel,
-                    count: 1,
-                    productUrl: item.productUrl || ""
-                });
-            }
-            addedCount++;
-        });
-
-        updateQuoteToolbarBtn();
-        alert(`已成功將 ${addedCount} 項商品加入候選清單！`);
-    };
-}
-
-if (multiLineBtn) {
-    multiLineBtn.onclick = () => {
-        const checked = document.querySelectorAll(".row-check:checked");
-        if (checked.length === 0) {
-            alert("請先勾選要分享的商品");
-            return;
-        }
-
-        let qty, ck, costTextLabel;
-        if (currentVipSettings) {
-             qty = "VIP";
-             ck = currentVipSettings.tier;
-             costTextLabel = currentVipSettings.label;
-        } else {
-             qty = qtySelect.value || "50";
-             ck = `quote${qty}`;
-             costTextLabel = `${qty}個報價`;
-        }
-
-        let text = `KINYO 多品項報價（${costTextLabel}）\n--------------------\n`;
-
-        Array.from(checked).forEach((c, i) => {
-            const model = c.getAttribute("data-model");
-            const item = currentResultList.find(p => p.model === model);
-            if (!item) return;
-
-            let canSeeQuote = false;
-            if(currentVipSettings) {
-                canSeeQuote = true;
-            } else {
-                if (userLevel >= 1 && qty == 50) canSeeQuote = true;
-                if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
-                if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
-            }
-
-            let cost;
-            if (currentVipSettings) {
-                cost = getVipDisplayPrice(item[ck]);
-            } else {
-                cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
-            }
-            
-            const market = item.marketPrice ?? "-";
-            const link = item.productUrl || "無連結";
-
-            text += `${i + 1}. 【${item.model}】${item.name}\n`;
-            text += `   💰 ${costTextLabel}：$${cost}\n`;
-            text += `   🛒 賣場售價：$${market}\n`;
-            text += `   🔗 商品連結：${link}\n\n`;
-        });
-
-        text += "--------------------\n";
-        text += "以上報價僅供參考，實際以最終確認為主。";
-
-        navigator.clipboard.writeText(text)
-            .then(() => alert(`已複製 ${checked.length} 項商品的報價資訊！請直接在 LINE 貼上。`))
-            .catch(() => alert("複製失敗，請手動複製。"));
-    };
-}
-
-if(sortSelect) {
-  sortSelect.onchange = () => {
-    if (currentResultList.length > 0) {
-      currentResultList = applySorting([...currentResultList]);
-      renderResults(currentResultList);
-    }
-  };
-}
-
-if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
-if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
-
-if(sheetBackdrop) {
-  sheetBackdrop.onclick = () => {
-    if (!mobileSheet.classList.contains("hidden")) closeSheet();
-    if (!quoteSheet.classList.contains("hidden")) closeQuoteSheet();
-  };
-}
-
-window.addEventListener('scroll', updateToolbarScrollState);
-
-if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
-
 </script>
 </body>
 </html>
