@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.8 最終完美融合版）</title>
+<title>KINYO 查價系統（v6.9 登入核心修復版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -571,9 +571,9 @@ th{background:#fafafa;text-align:left;}
   <div class="login-card">
     <h2>KINYO 查價系統</h2>
     <p style="color:#666;margin-bottom:20px;">請輸入帳號密碼登入</p>
-    <input type="email" id="loginEmail" class="login-input" placeholder="電子信箱">
-    <input type="password" id="loginPassword" class="login-input" placeholder="密碼">
-    <button id="doLoginBtn" class="login-btn">登入</button>
+    <input type="email" id="loginEmail" class="login-input" placeholder="電子信箱" autocomplete="username">
+    <input type="password" id="loginPassword" class="login-input" placeholder="密碼" autocomplete="current-password">
+    <button id="doLoginBtn" type="button" class="login-btn">登入</button>
     <div id="loginError" class="login-error"></div>
   </div>
 </div>
@@ -611,7 +611,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.8 最終完美融合版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.9 登入核心修復版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -751,6 +751,15 @@ const firebaseConfig = {
 const app  = initializeApp(firebaseConfig);
 const db = initializeFirestore(app, { experimentalForceLongPolling: true });
 const auth = getAuth(app);
+
+// 🌟 立即設定持久化，解決自動登出問題
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log("✅ Firebase Auth Persistence set to LOCAL");
+  })
+  .catch((error) => {
+    console.error("❌ Persistence error:", error);
+  });
 
 const searchForm      = document.getElementById("searchForm");
 const categorySelect  = document.getElementById("categorySelect");
@@ -1396,19 +1405,11 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
-    // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
     let img = item.imageUrl;
-    const netImages = getDriveNetImages(item.model, item.mainModel);
-
     if (!img || !img.startsWith("http")) {
       const driveImg = getDriveMainImage(item.model, item.mainModel);
-      if (driveImg) {
-          img = driveImg;
-      } else if (netImages && netImages.length > 0) {
-          img = netImages[0];
-      } else {
-          img = "https://placehold.co/110x110?text=No+Image";
-      }
+      if (driveImg) img = driveImg;
+      else img = "https://placehold.co/110x110?text=No+Image";
     }
   
     const tr = document.createElement("tr");
@@ -1539,17 +1540,11 @@ function showDetailMobile(item) {
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
-  // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) {
-        img = driveImg;
-    } else if (netImages && netImages.length > 0) {
-        img = netImages[0];
-    } else {
-        img = "https://placehold.co/300x300?text=No+Image";
-    }
+    if (driveImg) img = driveImg;
+    else img = "https://placehold.co/300x300?text=No+Image";
   }
 
   const getPrice = (p) => (item[p] ?? "-");
@@ -1664,7 +1659,6 @@ function showDetailDesktop(item) {
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
-  // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
@@ -1783,36 +1777,22 @@ function showDetailDesktop(item) {
   `;
 }
 
+// NOTE: In v6.3, buildProductSlide was using a simpler layout (Left Image / Right Text)
+// The user specifically requested v6.3 logic for STOCK and DISPLAY, but kept other features.
+// I will ensure the PPT logic remains functional.
+
 async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     const slide = pptx.addSlide();
-
-    // Background & Styling
     slide.background = { color: "FFFFFF" };
 
-    // Title (Product Name)
-    slide.addText(item.name || "未命名商品", {
-        x: 0.5, y: 0.5, w: 9.0, h: 0.6,
-        fontSize: 24, bold: true, color: "111827", fontFace: "微軟正黑體"
-    });
-
-    // Main Image (Left)
-    // 🌟 智慧圖片遞補邏輯：主圖 -> Drive主圖 -> 網路圖(第1張) -> No Image
+    // Standard Layout (Left Image, Right Text)
     let imgUrl = item.imageUrl;
-    const netImages = getDriveNetImages(item.model, item.mainModel);
-
+    const driveImg = getDriveMainImage(item.model, item.mainModel);
     if (!imgUrl || !imgUrl.startsWith("http")) {
-        // Fallback logic
-        const driveImg = getDriveMainImage(item.model, item.mainModel);
-        if (driveImg) {
-            imgUrl = driveImg;
-        } else if (netImages && netImages.length > 0) {
-            imgUrl = netImages[0];
-        } else {
-            imgUrl = "https://placehold.co/400x400?text=No+Image";
-        }
+        if(driveImg) imgUrl = driveImg;
+        else imgUrl = "https://placehold.co/400x400?text=No+Image";
     }
     
-    // Try to fetch image as data URL to avoid CORS issues in PPT
     try {
         const base64 = await fetchAsDataURL(imgUrl);
         if (base64) {
@@ -1824,7 +1804,12 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
         slide.addText("圖片載入失敗", { x: 0.5, y: 3.0, w: 4.5, h: 0.5, align: 'center', color: '999999' });
     }
 
-    // Product Info (Right)
+    // Title
+    slide.addText(`${item.model} ${item.name}`, {
+        x: 0.5, y: 0.4, w: 9.0, h: 0.6,
+        fontSize: 20, bold: true, color: "111827", fontFace: "微軟正黑體"
+    });
+
     const startX = 5.2;
     let currY = 1.3;
     const gap = 0.45;
@@ -1840,28 +1825,23 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
 
     addField("型號", item.model);
     addField("主型號", item.mainModel);
-    addField("國際條碼", item.internationalBarcode || item.barcode); // 🌟 Use new logic here too
+    addField("國際條碼", item.internationalBarcode || item.barcode);
     addField("箱入數", item.cartonQty);
     addField("顏色", item.colorList);
     
-    currY += 0.2; // spacer
+    currY += 0.2; 
 
-    // Price Info
     addField("賣場售價", `$${item.marketPrice}`);
     
     if (customQuoteInfo) {
-        // From Quote List
         addField("採購規格", customQuoteInfo.qtyLabel, true);
         addField("採購單價", `$${customQuoteInfo.price}`, true);
     } else {
-        // From Checkbox selection
-        // Check tier
         const quoteKey = `quote${tier}`;
         const price = item[quoteKey] || item.quote50 || "-";
         addField(`報價 (${tier}個)`, `$${price}`, true);
     }
     
-    // Footer / Disclaimer
     slide.addText("※ 報價有效期限 14 天，實際交易以最終合約為準。", {
         x: 0.5, y: 7.0, w: 9.0, h: 0.4,
         fontSize: 10, color: "9CA3AF", align: "center", fontFace: "微軟正黑體"
@@ -1908,7 +1888,7 @@ async function exportSelectedPPT(source = 'checked') {
   btn.disabled = true; 
 
   try {
-    const CHUNK_SIZE = 20; // 🚀 加大批次處理量至 20
+    const CHUNK_SIZE = 20;
     const batches = [];
     for (let i = 0; i < selectedItems.length; i += CHUNK_SIZE) {
         batches.push(selectedItems.slice(i, i + CHUNK_SIZE));
@@ -2375,6 +2355,14 @@ if(sheetBackdrop) {
 window.addEventListener('scroll', updateToolbarScrollState);
 
 if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
+
+// 🌟 強制初始化登入狀態檢查 (補強)
+onAuthStateChanged(auth, async (user) => {
+    // 此處已由原本的 onAuthStateChanged 處理，保留雙重保險
+    if (!user) {
+        if(loginOverlay) loginOverlay.style.display = "flex";
+    }
+});
 
 </script>
 </body>
