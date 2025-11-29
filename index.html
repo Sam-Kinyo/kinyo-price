@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.5 專業提案版）</title>
+<title>KINYO 查價系統（v6.6 長效登入版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -611,7 +611,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.5 專業提案版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.4 完美特助版 —— 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -736,7 +736,7 @@ const COMPANY_LOGO_URL = "https://drive.google.com/file/d/1JxoU3A5qAYsE39pc2z7IM
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import { getFirestore, collection, getDocs, addDoc, doc, getDoc, updateDoc, writeBatch, initializeFirestore } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -1816,22 +1816,17 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     try {
         const logoUrl = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn"; 
         const logoB64 = await fetchAsDataURL(logoUrl);
-        if(logoB64) {
-            // 🌟 Logo Larger & Top Left
-            slide.addImage({ data: logoB64, x: 0.3, y: 0.3, w: 2.2, h: 0.8 }); 
-        }
+        if(logoB64) slide.addImage({ data: logoB64, x: 0.2, y: 0.2, w: 1.5, h: 0.6 }); 
     } catch(e) {}
 
-    // Title (Clean Name ONLY)
-    // 🌟 Remove *...* content
-    let cleanName = (item.name || "未命名商品").replace(/\*.*?\*/g, '').trim();
-
-    slide.addText(cleanName, {
-        x: 2.6, y: 0.3, w: 5.0, h: 0.8,
-        fontSize: 28, bold: true, color: "111827", fontFace: "微軟正黑體", valign: "middle"
+    // Title (Name ONLY, No Model)
+    // 🌟 這裡確保只顯示品名
+    slide.addText(item.name || "未命名商品", {
+        x: 1.8, y: 0.2, w: 5.5, h: 0.6,
+        fontSize: 20, bold: true, color: "000000", fontFace: "微軟正黑體", valign: "middle"
     });
 
-    // Pricing (Top Right)
+    // Pricing
     let quoteText = "", quotePrice = "";
     if (customQuoteInfo) {
         quoteText = `報價(${customQuoteInfo.qtyLabel}):`;
@@ -1844,29 +1839,26 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     }
 
     slide.addText(`賣場價: $${item.marketPrice}`, {
-        x: 7.8, y: 0.25, w: 2.0, h: 0.4,
-        fontSize: 14, color: "666666", align: "right", fontFace: "微軟正黑體"
+        x: 7.5, y: 0.2, w: 2.3, h: 0.3,
+        fontSize: 12, color: "888888", align: "right", fontFace: "微軟正黑體"
     });
     slide.addText(quoteText, {
-        x: 7.5, y: 0.65, w: 1.5, h: 0.4,
+        x: 7.0, y: 0.5, w: 1.8, h: 0.4,
         fontSize: 14, color: "2563eb", align: "right", fontFace: "微軟正黑體", bold:true
     });
     slide.addText(quotePrice, {
-        x: 9.0, y: 0.55, w: 1.0, h: 0.5,
-        fontSize: 24, color: "DC2626", align: "right", fontFace: "微軟正黑體", bold:true
+        x: 8.8, y: 0.5, w: 1.0, h: 0.4,
+        fontSize: 18, color: "DC2626", align: "right", fontFace: "微軟正黑體", bold:true
     });
 
-    // Separator Line
-    slide.addShape(pptx.ShapeType.line, { x: 0.3, y: 1.2, w: 9.4, h: 0, line: { color: "E5E7EB", width: 2 } });
-
     // --- 3. Grid Generation (Fixed 2x3 Gallery) ---
-    const startY = 1.4;
-    const marginX = 0.3;
-    const gridW = 9.4; 
+    const startY = 1.2;
+    const marginX = 0.5;
+    const gridW = 9.0; 
     const cols = 3;
     const gap = 0.2;
-    const imgW = (gridW - (gap * (cols - 1))) / cols; // ~3.0
-    const imgH = 2.6; 
+    const imgW = (gridW - (gap * (cols - 1))) / cols; // ~2.86
+    const imgH = 2.4; 
 
     // Fill slots. If we have fewer than 6 images, we just stop filling.
     for (let i = 0; i < 6; i++) {
@@ -1879,19 +1871,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
 
             try {
                 const b64 = await fetchAsDataURL(url);
-                if(b64) {
-                    // Image
-                    slide.addImage({ 
-                        data: b64, x: x, y: y, w: imgW, h: imgH, 
-                        sizing: { type: "contain", w: imgW, h: imgH } 
-                    });
-                    // Border
-                    slide.addShape(pptx.ShapeType.rect, { 
-                        x: x, y: y, w: imgW, h: imgH, 
-                        fill: { type: "none" }, 
-                        line: { color: "E5E7EB", width: 1 } 
-                    });
-                }
+                if(b64) slide.addImage({ data: b64, x: x, y: y, w: imgW, h: imgH, sizing: { type: "contain", w: imgW, h: imgH } });
             } catch(e) {}
         }
     }
@@ -1899,7 +1879,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     // 4. Footer
     const dateStr = new Date().toISOString().split('T')[0];
     slide.addText(`KINYO | 生成日期: ${dateStr}`, {
-        x: 0.3, y: 7.0, w: 5.0, h: 0.3,
+        x: 0.5, y: 7.0, w: 5.0, h: 0.3,
         fontSize: 10, color: "AAAAAA", fontFace: "微軟正黑體"
     });
 }
@@ -2880,3 +2860,4 @@ if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
 </script>
 </body>
 </html>
+```
