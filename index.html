@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.3 VIP 架構版）</title>
+<title>KINYO 查價系統（v6.6.1 VIP 修正版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -72,8 +72,8 @@ h1{margin:0 0 4px;}
 .badge-lv2 { background: #dcfce7; color: #15803d; }
 .badge-lv3 { background: #fef3c7; color: #92400e; }
 .badge-lv4 { background: #f3e8ff; color: #6b21a8; }
-/* VIP Badge Style */
-.badge-vip { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; font-weight:bold; }
+/* VIP Badge */
+.badge-vip { background: #fffbeb; color: #b45309; border: 1px solid #fcd34d; font-weight:bold; }
 
 .logout-btn{
   padding:6px 14px;
@@ -259,23 +259,21 @@ th{background:#fafafa;text-align:left;}
 .tag300{background:#dcfce7;color:#15803d;}
 .tag500{background:#ffedd5;color:#ea580c;}
 .tag1000{background:#fee2e2;color:#b91c1c;}
-
-/* VIP 專屬價格標籤 */
+/* VIP Price Tag */
 .tag-vip {
     background: #fff7ed;
     color: #c2410c;
     border: 1px solid #fdba74;
-    font-size: 14px; 
-    padding: 4px 10px;
-}
-/* VIP 請洽業務標籤 */
-.tag-contact {
-    background: #eff6ff;
-    color: #2563eb;
-    border: 1px solid #bfdbfe;
     font-size: 14px;
     padding: 4px 10px;
-    cursor: help;
+}
+.tag-contact {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    font-size: 13px;
+    padding: 4px 10px;
+    cursor: pointer;
 }
 
 /* 分類標籤 */
@@ -290,27 +288,35 @@ th{background:#fafafa;text-align:left;}
     border: 1px solid #e2e8f0;
 }
 
-/* 庫存分級視覺標籤 (Level 2+) */
+/* =========================================
+   新增：庫存分級視覺標籤 (Level 2+)
+========================================= */
 .stock-tag {
   display: inline-block;
   padding: 1px 6px;
   border-radius: 4px;
   font-size: 12px;
   font-weight: 700;
-  margin-left: 8px; 
+  margin-left: 8px; /* 與顏色文字保持距離 */
   vertical-align: middle;
   border: 1px solid transparent;
 }
+
 /* 1. 小於 30 (紅色 - 警戒) */
 .st-crit { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
 /* 2. 小於 100 (橘紅 - 少量) */
 .st-low  { background: #ffedd5; color: #9a3412; border-color: #fdba74; }
+
 /* 3. 小於 400 (橘黃 - 普通) */
 .st-warn { background: #fff7ed; color: #b45309; border-color: #fed7aa; }
+
 /* 4. 小於 800 (草綠 - 充足) */
 .st-mid  { background: #ecfccb; color: #3f6212; border-color: #bef264; }
+
 /* 5. 小於 1200 (綠色 - 豐富) */
 .st-good { background: #dcfce7; color: #166534; border-color: #86efac; }
+
 /* 6. 大於 1200 (深綠 - 極多) */
 .st-high { background: #ccfbf1; color: #0f766e; border-color: #5eead4; }
 
@@ -621,7 +627,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.3 VIP 架構版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
+  v6.6.1 VIP 修正版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -655,6 +661,7 @@ th{background:#fafafa;text-align:left;}
     </div>
   </div>
 
+  <!-- VIP 模式下可能隱藏預算區間，或保持顯示 -->
   <div class="search-row">
     <label>預算區間（可只填一邊）</label>
     <div style="display:flex; gap:10px;">
@@ -870,7 +877,7 @@ let isDriveLoaded = false;
       HELPER FUNCTIONS
    ==================================================== 🚀 */
 
-/* 🚀 庫存判斷邏輯 (<30, <100, <400, <800, <1200, >1201) */
+/* 🚀 庫存判斷邏輯 */
 function getInventoryStatus(qty) {
   if (qty === null || qty === undefined || qty === "") return null;
   const val = parseInt(qty, 10);
@@ -882,11 +889,10 @@ function getInventoryStatus(qty) {
   if (val < 800)  return { label: "庫存 < 800",  cls: "st-mid" };
   if (val <= 1200) return { label: "庫存 < 1200", cls: "st-good" };
   
-  // 大於等於 1201 (含)
   return { label: "庫存 > 1201", cls: "st-high" };
 }
 
-/* 🚀 新增：VIP 價格顯示邏輯 (含請洽郭庭豪) */
+/* 🚀 VIP 價格顯示邏輯 */
 function getVipDisplayPrice(rawPrice) {
     // 若價格為 "0"、"-"、空白或 undefined，則視為未報價
     if (rawPrice === undefined || rawPrice === null || String(rawPrice).trim() === "" || rawPrice == 0 || rawPrice === "-") {
@@ -1030,7 +1036,7 @@ function renderQuoteList() {
   quoteListBody.innerHTML = ""; if (quoteList.length === 0) { quoteListBody.innerHTML = `<div style="text-align:center;padding:40px;color:#999;">報價單是空的</div>`; return; }
   quoteList.forEach((q, idx) => {
     const div = document.createElement("div"); div.className = "quote-item";
-    const priceDisplay = q.price; // 已含 $ 或文字
+    const priceDisplay = String(q.price).startsWith("$") || String(q.price).includes("請洽") ? q.price : `$${q.price}`;
     div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
     quoteListBody.appendChild(div);
   });
@@ -1051,7 +1057,7 @@ function updateUserDisplay(status) {
     userInfoSpan.style.color = "#854d0e";
     userInfoSpan.className = "user-badge";
   } else {
-    // VIP Check
+    // Check VIP first
     if(currentVipSettings) {
         userInfoSpan.textContent = currentVipSettings.label || "👑 VIP 客戶";
         userInfoSpan.className = "user-badge badge-vip";
@@ -1080,8 +1086,8 @@ function updatePermissions() {
         importProductBtn.style.display = 'none'; 
     }
 
-    // 2. Level 2+ Only: Stock Filter
-    if (userLevel >= 2) {
+    // 2. Level 2+ Only OR VIP: Stock Filter
+    if (userLevel >= 2 || currentVipSettings) {
         stockFilter.style.display = 'block'; 
     } else {
         stockFilter.style.display = 'none';
@@ -1302,7 +1308,7 @@ async function refreshProductsFromFirestore() {
 }
 
 function setupQtySelectByLevel() {
-  // VIP 模式：隱藏起訂量選單
+  // If VIP, skip this or hide it
   if (currentVipSettings) {
       qtySelect.innerHTML = "";
       return;
@@ -1360,7 +1366,7 @@ function searchProducts() {
   
   const key = keywordInput.value.trim().toLowerCase();
   
-  // VIP Logic: 強制 VIP 搜尋模式
+  // VIP Logic: Force qty search if in VIP mode
   let qty = qtySelect.value;
   if (currentVipSettings) {
       qty = "vip"; 
@@ -1417,9 +1423,8 @@ function searchProducts() {
         let price = 0;
         if(currentVipSettings) {
              const vipPriceRaw = p[currentVipSettings.tier];
-             // 如果是 "請洽..." 就視為符合，或是忽略預算過濾 (這裡選擇忽略預算過濾如果無價格)
              if(vipPriceRaw && !isNaN(vipPriceRaw)) price = Number(vipPriceRaw);
-             else price = 0; // Non-numeric price for budget filter
+             else price = 0; 
         } else if (qty && qty !== "vip") {
             const k = `quote${qty}`;
             price = Number(p[k]) || 0;
@@ -1488,7 +1493,7 @@ function renderResults(list) {
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
     
     let stockTagHtml = "";
-    if (userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+    if ((userLevel >= 2 || currentVipSettings) && item.inventory !== undefined && item.inventory !== null) {
         const status = getInventoryStatus(item.inventory);
         if (status) {
             stockTagHtml = `<span class="stock-tag ${status.cls}">${status.label}</span>`;
@@ -1532,7 +1537,6 @@ function renderResults(list) {
 
     if (imgEl) imgEl.addEventListener('click', openDetail);
     if (modelEl) modelEl.addEventListener('click', openDetail);
-    // Mouse hover events for desktop...
     if (imgEl && window.innerWidth > 900) {
          imgEl.addEventListener('mouseenter', openDetail);
          imgEl.addEventListener('mouseleave', () => { window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 200); });
@@ -1595,7 +1599,7 @@ function showDetailMobile(item) {
   }
   
   let stockHtml = "";
-  if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+  if((userLevel >= 2 || currentVipSettings) && item.inventory !== undefined && item.inventory !== null) {
         const status = getInventoryStatus(item.inventory);
         let bg = "#fffbeb", color = "#b45309";
         if(status) {
@@ -1605,7 +1609,6 @@ function showDetailMobile(item) {
              else if(status.cls === 'st-mid') { bg="#ecfccb"; color="#3f6212"; }
              else if(status.cls === 'st-good') { bg="#dcfce7"; color="#166534"; }
              else if(status.cls === 'st-high') { bg="#ccfbf1"; color="#0f766e"; }
-             
              stockHtml = `<div style="margin-bottom:16px; background:${bg}; color:${color}; border:1px solid ${color}; padding:8px; border-radius:8px; text-align:center; font-weight:bold;">
             📦 ${status.label}
             </div>`;
@@ -1711,7 +1714,7 @@ function showDetailDesktop(item) {
   }
   
   let stockHtml = "";
-  if(userLevel >= 2 && item.inventory !== undefined && item.inventory !== null) {
+  if((userLevel >= 2 || currentVipSettings) && item.inventory !== undefined && item.inventory !== null) {
         const status = getInventoryStatus(item.inventory);
         let bg = "#fffbeb", color = "#b45309";
         if(status) {
@@ -1985,26 +1988,31 @@ function downloadQuoteExcel() {
   XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
+/* =======================================================
+   Event Listeners (Bind within Module)
+======================================================= */
 searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
 exportBtn.onclick = exportSelectedExcel;
 
-// 🚀 v6.6 修復登出邏輯
+// 🚀 修正後的登出邏輯 (清除狀態並重置按鈕)
 logoutBtn.onclick = () => {
     if(confirm("確定要登出嗎？")) {
+        // Clean up local state
         quoteList = [];
         currentResultList = [];
-        currentVipSettings = null;
         userLevel = 0;
         currentUserEmail = "";
         
+        // Clear UI
         if(resultBody) resultBody.innerHTML = "";
         if(resultTable) resultTable.style.display = "none";
         if(qtySelect) qtySelect.innerHTML = "";
         if(detailCard) detailCard.style.display = "none";
         updateQuoteToolbarBtn();
         
+        // Sign out
         signOut(auth).then(() => {
-            // 強制重置登入視窗狀態
+            // Reset login button state just in case
             if(loginOverlay) {
                 loginOverlay.style.display = "flex";
                 if(doLoginBtn) {
@@ -2018,81 +2026,178 @@ logoutBtn.onclick = () => {
             console.log("Signed out successfully");
         }).catch((error) => {
             console.error("登出錯誤:", error);
-            // 即使報錯也強制顯示登入框
-            if(loginOverlay) loginOverlay.style.display = "flex";
+            alert("登出發生錯誤");
         });
     }
 };
 
-if(importInventoryBtn) importInventoryBtn.onclick = () => { inventoryUpload.value = ''; inventoryUpload.click(); };
-if(importProductBtn) importProductBtn.onclick = () => { productUpload.value = ''; productUpload.click(); };
-if(cancelImportBtn) cancelImportBtn.onclick = () => { previewOverlay.style.display = "none"; pendingInventoryMap.clear(); pendingProductData = []; inventoryUpload.value = ''; productUpload.value = ''; };
-if(confirmImportBtn) confirmImportBtn.onclick = () => {
-    if(currentImportMode === 'inventory') {
-        if(pendingInventoryMap.size === 0) return;
-        previewOverlay.style.display = "none";
-        saveInventoryToFirestore(pendingInventoryMap);
-    } else if(currentImportMode === 'product') {
-        if(pendingProductData.length === 0) return;
-        previewOverlay.style.display = "none";
-        saveProductDataToFirestore(pendingProductData);
+// Open File Dialog
+if(importInventoryBtn) {
+    importInventoryBtn.onclick = () => {
+        inventoryUpload.value = ''; // Reset
+        inventoryUpload.click();
+    };
+}
+
+if(importProductBtn) {
+    importProductBtn.onclick = () => {
+        productUpload.value = ''; // Reset
+        productUpload.click();
     }
-};
+}
+
+// Cancel Import
+if(cancelImportBtn) {
+    cancelImportBtn.onclick = () => {
+        previewOverlay.style.display = "none";
+        pendingInventoryMap.clear();
+        pendingProductData = [];
+        inventoryUpload.value = ''; 
+        productUpload.value = '';
+    };
+}
+
+// Confirm Import
+if(confirmImportBtn) {
+    confirmImportBtn.onclick = () => {
+        if(currentImportMode === 'inventory') {
+            if(pendingInventoryMap.size === 0) return;
+            previewOverlay.style.display = "none";
+            saveInventoryToFirestore(pendingInventoryMap);
+        } else if(currentImportMode === 'product') {
+            if(pendingProductData.length === 0) return;
+            previewOverlay.style.display = "none";
+            saveProductDataToFirestore(pendingProductData);
+        }
+    };
+}
 
 async function saveProductDataToFirestore(actions) {
-    if(!productCache) { alert("資料載入異常，請重新整理。"); return; }
-    importProductBtn.disabled = true; importProductBtn.textContent = "同步中...";
-    let batch = writeBatch(db); let opCount = 0; const BATCH_LIMIT = 400; let successCount = 0;
+    if(!productCache) {
+        alert("資料載入異常，請重新整理。");
+        return;
+    }
+
+    importProductBtn.disabled = true;
+    importProductBtn.textContent = "同步中...";
+    
+    let batch = writeBatch(db);
+    let opCount = 0;
+    const BATCH_LIMIT = 400; 
+    let successCount = 0;
+
     try {
         for(const item of actions) {
             if(item.action === 'add') {
-                const newDocRef = doc(collection(db, "Products"));
-                batch.set(newDocRef, { ...item.data, status: 'active', inventory: 0 });
+                const newDocRef = doc(collection(db, "Products")); // auto-id
+                batch.set(newDocRef, { ...item.data, status: 'active', inventory: 0 }); // Default active
                 opCount++;
             } else if(item.action === 'update') {
                 const docRef = doc(db, "Products", item.id);
-                batch.update(docRef, { ...item.data, status: 'active' });
+                // 🌟 Smart Update: Only update fields present in item.data
+                // item.data contains only non-empty fields from Excel
+                batch.update(docRef, { ...item.data, status: 'active' }); 
                 opCount++;
             } else if(item.action === 'remove') {
                 const docRef = doc(db, "Products", item.id);
                 batch.update(docRef, { status: 'inactive' });
                 opCount++;
             }
-            if(opCount >= BATCH_LIMIT) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+
+            if(opCount >= BATCH_LIMIT) {
+                await batch.commit();
+                batch = writeBatch(db);
+                opCount = 0;
+            }
             successCount++;
         }
-        if(opCount > 0) { await batch.commit(); }
+
+        if(opCount > 0) {
+            await batch.commit();
+        }
+
         alert(`產品總表同步完成！\n共處理了 ${successCount} 筆變更。\n系統將自動重新整理。`);
         window.location.reload();
-    } catch(e) { console.error(e); alert("寫入資料庫時發生錯誤"); } 
-    finally { importProductBtn.disabled = false; importProductBtn.textContent = "📥 匯入產品總表"; }
+
+    } catch(e) {
+        console.error(e);
+        alert("寫入資料庫時發生錯誤，請檢查 Console。");
+    } finally {
+        importProductBtn.disabled = false;
+        importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
+    }
 }
 
 async function saveInventoryToFirestore(invMap) {
-    if(!productCache || productCache.length === 0) { alert("尚未載入產品資料"); return; }
-    importInventoryBtn.disabled = true; importInventoryBtn.textContent = "更新中...";
-    let updatedCount = 0; let batch = writeBatch(db); let opCount = 0; const BATCH_LIMIT = 400; 
+    if(!productCache || productCache.length === 0) {
+        alert("尚未載入產品資料，無法比對更新。");
+        return;
+    }
+
+    importInventoryBtn.disabled = true;
+    importInventoryBtn.textContent = "更新中...";
+    
+    let updatedCount = 0;
+    let batch = writeBatch(db);
+    let opCount = 0;
+    const BATCH_LIMIT = 400; 
+
     try {
         for (const product of productCache) {
+            // 🌟 優先使用 internationalBarcode 進行比對
             const bc = (product.internationalBarcode || product.barcode || "").trim();
             if(bc && invMap.has(bc)) {
                 const newQty = invMap.get(bc);
                 const docRef = doc(db, "Products", product.id);
                 batch.update(docRef, { inventory: newQty });
-                opCount++; updatedCount++;
-                if (opCount >= BATCH_LIMIT) { await batch.commit(); batch = writeBatch(db); opCount = 0; }
+                
+                opCount++;
+                updatedCount++;
+
+                if (opCount >= BATCH_LIMIT) {
+                    await batch.commit();
+                    batch = writeBatch(db); // Reset batch
+                    opCount = 0;
+                }
             }
         }
-        if (opCount > 0) await batch.commit();
-        alert(`庫存更新完成！共更新 ${updatedCount} 筆。\n系統將自動重整。`);
+
+        if (opCount > 0) {
+            await batch.commit();
+        }
+
+        alert(`資料庫更新完成！\n共更新了 ${updatedCount} 筆商品的庫存數據。\n系統將自動重新整理以顯示最新數據。`);
         window.location.reload();
-    } catch (e) { console.error(e); alert("更新失敗，請檢查 Console"); } 
-    finally { importInventoryBtn.disabled = false; importInventoryBtn.textContent = "📥 匯入庫存表"; }
+
+    } catch (e) {
+        console.error("Batch update failed", e);
+        if (e.code === 'permission-denied') {
+             alert(
+                "❌ 權限錯誤 (Permission Denied)\n\n" +
+                "Firebase 資料庫拒絕了寫入請求。\n" +
+                "這通常是因為 Firestore Rules 設定為「唯讀」或未授權寫入。\n\n" +
+                "解決方法：\n" +
+                "1. 前往 Firebase Console > Firestore Database > Rules\n" +
+                "2. 將 Products 集合的 write 權限改為允許 (例如: allow write: if request.auth != null;)"
+            );
+        } else {
+            alert(`更新資料庫時發生錯誤 (Code: ${e.code})：\n${e.message}\n請檢查 Console 或聯絡管理員。`);
+        }
+    } finally {
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入並更新資料庫";
+    }
 }
 
+// ----------------------------------------------------
+// PRODUCT IMPORT LOGIC (Smart Sync)
+// ----------------------------------------------------
 if(productUpload) {
     productUpload.onchange = (e) => {
-        const file = e.target.files[0]; if(!file) return; currentImportMode = 'product';
+        const file = e.target.files[0];
+        if(!file) return;
+        currentImportMode = 'product';
+
         const reader = new FileReader();
         reader.onload = (evt) => {
             try {
@@ -2100,179 +2205,194 @@ if(productUpload) {
                 const workbook = XLSX.read(data, { type: 'binary' });
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
-                let h = { model: -1, name: -1, market: -1, min: -1, q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, cat: -1, color: -1, barcode: -1, box: -1, url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1, vipA: -1, vipB: -1, vipC: -1 };
 
+                // Header Mapping
+                let h = {
+                    model: -1, name: -1, 
+                    market: -1, min: -1, 
+                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1,
+                    cat: -1, color: -1, barcode: -1, box: -1,
+                    // New fields
+                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1,
+                    // VIP Fields
+                    vipA: -1, vipB: -1, vipC: -1
+                };
+
+                // Scan first 10 rows for headers
                 for(let r=0; r<Math.min(jsonData.length, 10); r++) {
                     const row = jsonData[r];
                     for(let c=0; c<row.length; c++) {
                         const cell = String(row[c] || "").trim().toLowerCase();
                         if(cell === 'model' || cell === '型號' || cell === '產品') h.model = c;
-                        if(cell === 'name' || cell === '品名') h.name = c;
-                        if(cell.includes('賣場')) h.market = c; if(cell.includes('末售')) h.min = c;
-                        if(cell.includes('50') && !cell.includes('500')) h.q50 = c;
-                        if(cell.includes('100') && !cell.includes('1000')) h.q100 = c;
-                        if(cell.includes('300')) h.q300 = c; if(cell.includes('500')) h.q500 = c; if(cell.includes('1000')) h.q1000 = c;
-                        if(cell.includes('顏色')) h.color = c; if(cell.includes('分類')) h.cat = c;
-                        if(cell.includes('條碼')) h.barcode = c; if(cell.includes('箱入')) h.box = c;
-                        if(cell.includes('網址')) h.url = c; if(cell.includes('權限')) h.perm = c;
-                        if(cell.includes('bsmi')) h.bsmi = c; if(cell.includes('ncc')) h.ncc = c;
-                        // VIP Parsing
-                        if(cell.includes('專案a') || cell==='vipa' || cell.includes('vip_a')) h.vipA = c;
-                        if(cell.includes('專案b') || cell==='vipb' || cell.includes('vip_b')) h.vipB = c;
-                        if(cell.includes('專案c') || cell==='vipc' || cell.includes('vip_c')) h.vipC = c;
+                        if(cell === 'name' || cell === '品名' || cell === '產品名稱') h.name = c;
+                        if(cell.includes('賣場') || cell.includes('建議售價')) h.market = c;
+                        if(cell.includes('末售') || cell.includes('底價')) h.min = c;
+                        if(cell.includes('團購')) h.groupBuy = c; 
+                        
+                        // Quotes
+                        if (cell.includes('50') && !cell.includes('500') && (cell.includes('報價') || cell.includes('quote') || cell === '50')) h.q50 = c;
+                        if (cell.includes('100') && !cell.includes('1000') && (cell.includes('報價') || cell.includes('quote') || cell === '100')) h.q100 = c;
+                        if (cell.includes('300') && (cell.includes('報價') || cell.includes('quote') || cell === '300')) h.q300 = c;
+                        if (cell.includes('500') && (cell.includes('報價') || cell.includes('quote') || cell === '500')) h.q500 = c;
+                        if (cell.includes('1000') && (cell.includes('報價') || cell.includes('quote') || cell === '1000')) h.q1000 = c;
+
+                        if(cell.includes('顏色')) h.color = c;
+                        if(cell.includes('分類') || cell.includes('類別') || cell === 'category') h.cat = c;
+                        if(cell.includes('條碼') || cell === 'barcode' || cell === '國際條碼') h.barcode = c;
+                        if(cell.includes('箱入') || cell.includes('carton')) h.box = c;
+
+                        // New Fields
+                        if (cell.includes('網站') || cell.includes('網址') || cell.includes('url') || cell.includes('link') || cell.includes('對應網站')) h.url = c;
+                        if (cell.includes('權限') || cell.includes('permission')) h.perm = c;
+                        if (cell.includes('bsmi')) h.bsmi = c;
+                        if (cell.includes('ncc')) h.ncc = c;
+
+                        // VIP Fields (專案A/B/C) - 強化辨識
+                        // 支援 "專案A", "VIP A", "VIP_A", "vipa"
+                        if(cell.includes('專案a') || cell.includes('vip a') || cell.includes('vip_a') || cell === 'vipa') h.vipA = c;
+                        if(cell.includes('專案b') || cell.includes('vip b') || cell.includes('vip_b') || cell === 'vipb') h.vipB = c;
+                        if(cell.includes('專案c') || cell.includes('vip c') || cell.includes('vip_c') || cell === 'vipc') h.vipC = c;
                     }
                 }
 
-                if(h.model === -1) { alert("錯誤：找不到「型號」欄位"); return; }
+                if(h.model === -1) {
+                    alert("錯誤：找不到「型號」欄位，無法進行同步比對。");
+                    return;
+                }
 
-                let excelModels = new Set(); let actions = []; let stats = { add: 0, update: 0, remove: 0 };
+                // Process Data
+                let excelModels = new Set();
+                let actions = [];
+                let stats = { add: 0, update: 0, remove: 0 };
+
+                // 🌟 Smart Check Helper
                 const hasVal = (v) => v !== undefined && v !== null && String(v).trim() !== "";
 
+                // 1. Identify Add & Update
                 jsonData.forEach((row) => {
                     const rawModel = row[h.model];
-                    if(!rawModel || String(rawModel).includes("型號")) return;
+                    if(!rawModel || String(rawModel).includes("型號")) return; // Skip empty or header
+
                     const modelVal = String(rawModel).trim();
                     excelModels.add(modelVal);
+
+                    // Build object - Only include if value exists!
                     let obj = {};
                     if(h.name !== -1 && hasVal(row[h.name])) obj.name = row[h.name];
                     if(h.market !== -1 && hasVal(row[h.market])) obj.marketPrice = row[h.market];
                     if(h.min !== -1 && hasVal(row[h.min])) obj.minPrice = row[h.min];
+                    if(h.groupBuy !== -1 && hasVal(row[h.groupBuy])) obj.groupBuyPrice = row[h.groupBuy];
+                    
                     if(h.q50 !== -1 && hasVal(row[h.q50])) obj.quote50 = row[h.q50];
                     if(h.q100 !== -1 && hasVal(row[h.q100])) obj.quote100 = row[h.q100];
                     if(h.q300 !== -1 && hasVal(row[h.q300])) obj.quote300 = row[h.q300];
                     if(h.q500 !== -1 && hasVal(row[h.q500])) obj.quote500 = row[h.q500];
                     if(h.q1000 !== -1 && hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
+                    
                     if(h.cat !== -1 && hasVal(row[h.cat])) obj.category = row[h.cat];
                     if(h.color !== -1 && hasVal(row[h.color])) obj.colorList = row[h.color];
-                    if(h.barcode !== -1 && hasVal(row[h.barcode])) obj.internationalBarcode = row[h.barcode];
+                    if(h.barcode !== -1 && hasVal(row[h.barcode])) obj.internationalBarcode = row[h.barcode]; 
                     if(h.box !== -1 && hasVal(row[h.box])) obj.cartonQty = row[h.box];
+
                     if(h.url !== -1 && hasVal(row[h.url])) obj.productUrl = row[h.url];
                     if(h.perm !== -1 && hasVal(row[h.perm])) obj.netSalesPermission = row[h.perm];
-                    // VIP Data
+                    if(h.bsmi !== -1 && hasVal(row[h.bsmi])) obj.bsmi = row[h.bsmi];
+                    if(h.ncc !== -1 && hasVal(row[h.ncc])) obj.ncc = row[h.ncc];
+
+                    // VIP Prices
                     if(h.vipA !== -1 && hasVal(row[h.vipA])) obj.priceVipA = row[h.vipA];
                     if(h.vipB !== -1 && hasVal(row[h.vipB])) obj.priceVipB = row[h.vipB];
                     if(h.vipC !== -1 && hasVal(row[h.vipC])) obj.priceVipC = row[h.vipC];
 
-                    obj.model = modelVal; obj.mainModel = modelVal.split('-')[0];
+                    obj.model = modelVal;
+                    obj.mainModel = modelVal.split('-')[0]; // Simple heuristic
+
                     const existing = productCache.find(p => p.model === modelVal);
-                    if(existing) { actions.push({ action: 'update', id: existing.id, data: obj, model: modelVal }); stats.update++; }
-                    else { actions.push({ action: 'add', data: obj, model: modelVal }); stats.add++; }
+                    
+                    if(existing) {
+                        actions.push({ action: 'update', id: existing.id, data: obj, model: modelVal });
+                        stats.update++;
+                    } else {
+                        actions.push({ action: 'add', data: obj, model: modelVal });
+                        stats.add++;
+                    }
                 });
 
+                // 2. Identify Remove (Items in DB but not in Excel)
                 productCache.forEach(p => {
+                    // If active in DB but NOT in Excel list -> Remove (Inactive)
                     if(p.status !== 'inactive' && !excelModels.has(p.model)) {
-                        actions.push({ action: 'remove', id: p.id, model: p.model, name: p.name }); stats.remove++;
+                        actions.push({ action: 'remove', id: p.id, model: p.model, name: p.name });
+                        stats.remove++;
                     }
                 });
 
                 pendingProductData = actions;
-                previewHeader.textContent = "產品總表同步預覽";
-                let tableHtml = `<div style="margin-bottom:10px;"><b>預計變更：</b>新增 ${stats.add} | 更新 ${stats.update} | 下架 ${stats.remove}</div><table class="preview-table"><thead><tr><th>動作</th><th>型號</th><th>品名</th></tr></thead><tbody>`;
+
+                // Show Preview
+                previewHeader.textContent = "產品總表同步預覽 (智慧同步)";
+                let tableHtml = `<div style="margin-bottom:10px; font-weight:bold;">
+                    預計變更：<span style="color:green">新增 ${stats.add}</span> | 
+                    <span style="color:blue">智慧更新 ${stats.update}</span> | 
+                    <span style="color:red">下架 (Inactive) ${stats.remove}</span>
+                </div>
+                
+                <div style="margin-bottom:10px; font-size:12px; color:#666;">
+                    ℹ️ 系統將自動忽略 Excel 中的空白欄位，保留資料庫原有數值。
+                </div>
+
+                <table class="preview-table">
+                    <thead><tr><th>動作</th><th>型號</th><th>品名</th><th>備註</th></tr></thead>
+                    <tbody>`;
+                
+                // Show top 20 changes
                 actions.slice(0, 20).forEach(a => {
                     let color = a.action === 'add' ? 'green' : (a.action === 'remove' ? 'red' : 'blue');
-                    tableHtml += `<tr><td style="color:${color};font-weight:bold;">${a.action}</td><td>${a.model}</td><td>${a.data?a.data.name:a.name}</td></tr>`;
+                    let label = a.action === 'add' ? '新增' : (a.action === 'remove' ? '下架' : '更新');
+                    let name = a.data ? a.data.name : a.name;
+                    tableHtml += `<tr>
+                        <td style="color:${color};font-weight:bold;">${label}</td>
+                        <td>${a.model}</td>
+                        <td>${name || '-'}</td>
+                        <td>${a.action==='remove'?'隱藏於前台': (a.action==='update' ? '更新有填寫的欄位' : '全新建立')}</td>
+                    </tr>`;
                 });
-                tableHtml += `</tbody></table>`;
-                previewContent.innerHTML = tableHtml; previewOverlay.style.display = "flex";
-            } catch(e) { console.error(e); alert("讀取失敗"); }
-        };
-        reader.readAsBinaryString(file);
-    };
-}
-
-if(inventoryUpload) {
-    inventoryUpload.onchange = (e) => {
-        const file = e.target.files[0]; if(!file) return; currentImportMode = 'inventory';
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                const data = evt.target.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
-                let barcodeIdx = -1, finishedIdx = -1, exclusiveIdx = -1, fallbackIdx = -1;
-
-                for(let r=0; r<Math.min(jsonData.length, 10); r++) {
-                    const row = jsonData[r];
-                    for(let c=0; c<row.length; c++) {
-                        const cell = String(row[c]).trim();
-                        if(cell === "條碼" || cell === "國際條碼") barcodeIdx = c;
-                        if(cell === "成品倉") finishedIdx = c; if(cell === "專賣倉") exclusiveIdx = c;
-                        if(cell.includes("庫存") && cell.includes("可用量")) fallbackIdx = c;
-                    }
+                
+                if(actions.length > 20) {
+                    tableHtml += `<tr><td colspan="4" style="text-align:center;">... 還有 ${actions.length - 20} 筆變更 ...</td></tr>`;
                 }
-                if (barcodeIdx === -1) { alert("錯誤：找不到「條碼」欄位"); return; }
 
-                pendingInventoryMap.clear(); let previewData = []; let count = 0;
-                jsonData.forEach((row) => {
-                    if(!row[barcodeIdx]) return;
-                    const rawBarcode = row[barcodeIdx]; if(String(rawBarcode).includes("條碼")) return;
-                    let totalQty = 0;
-                    if(finishedIdx !== -1 && exclusiveIdx !== -1) totalQty = Math.floor(((parseInt(row[finishedIdx],10)||0) + (parseInt(row[exclusiveIdx],10)||0)) * 0.9);
-                    else if (fallbackIdx !== -1) totalQty = Math.floor((parseInt(row[fallbackIdx],10)||0) * 0.9);
-                    else return;
-                    const bc = String(rawBarcode).trim(); pendingInventoryMap.set(bc, totalQty); count++;
-                    if(previewData.length < 5) previewData.push({bc, totalQty});
-                });
+                tableHtml += `</tbody></table>`;
+                previewContent.innerHTML = tableHtml;
+                previewOverlay.style.display = "flex";
 
-                if(count > 0) {
-                    previewHeader.textContent = `庫存匯入預覽 (${count}筆)`;
-                    let tableHtml = `<table class="preview-table"><thead><tr><th>條碼</th><th>數量</th></tr></thead><tbody>`;
-                    previewData.forEach(r => tableHtml+=`<tr><td>${r.bc}</td><td>${r.totalQty}</td></tr>`);
-                    tableHtml += `</tbody></table>`;
-                    previewContent.innerHTML = tableHtml; previewOverlay.style.display = "flex";
-                } else { alert("無有效資料"); }
-            } catch(err) { console.error(err); alert("讀取失敗"); }
+            } catch(e) {
+                console.error(e);
+                alert("檔案讀取失敗");
+            }
         };
         reader.readAsBinaryString(file);
     };
 }
 
-if(pptToolbarBtn) pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
-if(pptFromQuoteBtn) pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote');
-if(downloadQuoteExcelBtn) downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
-if(copyQuoteBtn) {
-  copyQuoteBtn.onclick = () => {
-    if (quoteList.length === 0) return alert("報價單是空的");
-    let text = "KINYO 報價單\n--------------------\n";
-    quoteList.forEach((q,i)=>{
-      const priceDisplay = String(q.price).includes("請洽") ? q.price : `$${q.price}`;
-      const link = q.productUrl ? `   🔗 連結：${q.productUrl}\n` : "";
-      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n${link}`;
-    });
-    text += "--------------------\n";
-    navigator.clipboard.writeText(text).then(() => alert("報價單已複製")).catch(() => alert("複製失敗"));
-  };
-}
-if(clearBtn) clearBtn.onclick = () => {
-    keywordInput.value = ""; qtySelect.value = ""; minPriceInput.value = ""; maxPriceInput.value = ""; stockFilter.value = ""; categorySelect.value = ""; 
-    resultBody.innerHTML = ""; resultTable.style.display = "none"; exportBtn.disabled = true; pptToolbarBtn.disabled = true; multiLineBtn.disabled = true; batchAddQuoteBtn.disabled = true; 
-    checkAllBox.checked = false; detailCard.style.display = "none";
+/* =======================================================
+   Firebase Auth：登入後流程
+======================================================= */
+const tierMapping = {
+    "VIP_A": "priceVipA", "VIPA": "priceVipA", "專案A": "priceVipA",
+    "VIP_B": "priceVipB", "VIPB": "priceVipB", "專案B": "priceVipB",
+    "VIP_C": "priceVipC", "VIPC": "priceVipC", "專案C": "priceVipC"
 };
-if(clearQuoteBtn) clearQuoteBtn.onclick = () => { if(confirm("確定清空？")) { quoteList = []; renderQuoteList(); updateQuoteToolbarBtn(); } };
 
-// Login Logic
-if(doLoginBtn) {
-  doLoginBtn.onclick = async () => {
-    let email = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
-    if (email && !email.includes('@')) email += '@kinyo.com';
-    if(!email || !password) { loginError.style.display = "block"; return; }
-    loginError.style.display = "none"; doLoginBtn.disabled = true; doLoginBtn.textContent = "登入中...";
-    try { await signInWithEmailAndPassword(auth, email, password); } 
-    catch (error) { console.error(error); loginError.style.display = "block"; doLoginBtn.disabled = false; doLoginBtn.textContent = "登入"; }
-  };
-}
-
-// Smart VIP Mapping
-const tierMapping = { "VIP_A": "priceVipA", "VIPA": "priceVipA", "專案A": "priceVipA", "VIP_B": "priceVipB", "VIPB": "priceVipB", "專案B": "priceVipB", "VIP_C": "priceVipC", "VIPC": "priceVipC", "專案C": "priceVipC" };
-
-// Auth State
 onAuthStateChanged(auth, async (user) => {
+  // 🚀 登入按鈕重置邏輯 (v6.5.3 修復)
   if (!user) {
     if(loginOverlay) {
         loginOverlay.style.display = "flex";
-        if(doLoginBtn) { doLoginBtn.disabled = false; doLoginBtn.textContent = "登入"; }
+        if(doLoginBtn) {
+            doLoginBtn.disabled = false;
+            doLoginBtn.textContent = "登入";
+        }
         if(loginEmail) loginEmail.value = "";
         if(loginPassword) loginPassword.value = "";
         if(loginError) loginError.style.display = "none";
@@ -2281,8 +2401,10 @@ onAuthStateChanged(auth, async (user) => {
   }
   
   if(loginOverlay) loginOverlay.style.display = "none";
+
   currentUserEmail = user.email || "";
-  userLevel = 0; currentVipSettings = null;
+  userLevel = 0; 
+  currentVipSettings = null; // Reset on login
 
   try {
       const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
@@ -2290,27 +2412,46 @@ onAuthStateChanged(auth, async (user) => {
           const userData = userDoc.data();
           userLevel = userData.level ?? 0;
           
+          // 🚀 Step 1: Dynamic VIP Check from Database (v6.5.2 Smart Mapping)
           if (userData.vipTier) {
               let rawTier = userData.vipTier.trim();
+              
+              // Auto-fix mapping
               if(tierMapping[rawTier]) rawTier = tierMapping[rawTier];
               else if(tierMapping[rawTier.toUpperCase()]) rawTier = tierMapping[rawTier.toUpperCase()];
 
-              currentVipSettings = { tier: rawTier, label: userData.vipLabel || "VIP 專屬價" };
-              console.log("VIP Mode Activated:", currentVipSettings);
+              currentVipSettings = {
+                  tier: rawTier,
+                  label: userData.vipLabel || "VIP 專屬價"
+              };
+              console.log("VIP Mode Activated via Database:", currentVipSettings);
+              
+              // Hide Qty Select for VIPs
               if(qtySearchRow) qtySearchRow.style.display = 'none';
+              
+              // Force min level 1 for VIPs so they can see basic info
               if (userLevel < 1) userLevel = 1;
           } else {
               if(qtySearchRow) qtySearchRow.style.display = 'block';
           }
+      } else {
+          userLevel = 0;
       }
-  } catch (e) { console.error("Auth Error:", e); }
+  } catch (e) {
+      console.error("Auth Error:", e);
+      userLevel = 0;
+  }
 
   if (currentUserEmail.toLowerCase() === 'show@kinyo.com') userLevel = 0;
 
   updateUserDisplay('normal');
   logoutBtn.style.display = "inline-block";
+
   setupQtySelectByLevel();
+  
+  // 🚀 Trigger permissions update after level is loaded
   updatePermissions();
+
   await preloadDriveModelData();
   await preloadProducts();
 });
