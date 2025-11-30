@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.3 VIP 升級版）</title>
+<title>KINYO 查價系統（v6.4 VIP 尊爵版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -617,7 +617,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.3 VIP 升級版 --- 新增 VIP 價格讀取功能
+  v6.4 VIP 尊爵版 --- 專屬 VIP 優惠與無定量搜尋
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -634,7 +634,7 @@ th{background:#fafafa;text-align:left;}
   </div>
 
   <div class="search-row">
-    <label>起訂量（可不選）</label>
+    <label>起訂量（VIP 客戶可免填）</label>
     <div style="display:flex; gap:10px;">
         <select id="qtySelect" style="flex:1;">
             <!-- Options added by JS -->
@@ -652,7 +652,7 @@ th{background:#fafafa;text-align:left;}
   </div>
 
   <div class="search-row">
-    <label>預算區間（起訂量已選時才生效；可只填一邊）</label>
+    <label>預算區間（VIP 一口價直接搜尋；一般客戶需填起訂量）</label>
     <div style="display:flex; gap:10px;">
       <input id="minPrice" type="number" placeholder="最低 (可空)">
       <input id="maxPrice" type="number" placeholder="最高 (可空)">
@@ -1059,6 +1059,7 @@ function updatePermissions() {
     }
 
     // 2. Level 2+ Only: Stock Filter
+    // 🌟 Fix: Ensure stock filter is visible for Level 2 (VIP/Wholesale)
     if (userLevel >= 2) {
         stockFilter.style.display = 'block'; 
     } else {
@@ -1236,10 +1237,8 @@ async function preloadProducts() {
     const safeList = fullList.map(p => {
       const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
-      // 🚀 V6.3: VIP price is considered sensitive but kept in cache if needed, 
-      // typically we only strip if it's strictly confidential. 
-      // Assuming behavior same as quote prices for cache safety:
-      delete c.vipPrice; 
+      // 🌟 FIX: Do NOT delete vipPrice so it can be cached for logged-in user
+      // delete c.vipPrice; 
       return c;
     });
     saveCache(safeList);
@@ -1277,7 +1276,8 @@ async function refreshProductsFromFirestore() {
     const safeList = fullList.map(p => {
       const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
-      delete c.vipPrice; 
+      // 🌟 FIX: Do NOT delete vipPrice here either
+      // delete c.vipPrice; 
       return c;
     });
     saveCache(safeList);
@@ -1348,7 +1348,9 @@ function searchProducts() {
   const hasCat = !!cat; 
   const hasStockReq = !!stockReq;
 
-  if (hasBudget && !hasQty && userLevel >= 1) {
+  // 🌟 FIX: Allow Level 2+ (VIP) to search budget WITHOUT selecting Qty (Use VIP Price)
+  // Only restrict Level 1 users (Retail/Small B2B)
+  if (hasBudget && !hasQty && userLevel >= 1 && userLevel < 2) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
@@ -1395,7 +1397,12 @@ function searchProducts() {
         if (qty) {
             const k = `quote${qty}`;
             price = Number(p[k]) || 0;
-        } else {
+        } 
+        // 🌟 FIX: If VIP and no Qty selected, use VIP Price for budget filtering
+        else if (userLevel >= 2) {
+            price = Number(p.vipPrice) || Number(p.quote50) || 0;
+        }
+        else {
             price = Number(p.marketPrice) || 0;
         }
         return price >= min && price <= max;
@@ -1837,7 +1844,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     // (C) 價格文字準備
     let quoteLabel = "", quotePriceStr = "";
     if (customQuoteInfo) {
-        quoteLabel = `專案報價 (${customQuoteInfo.qtyLabel})`;
+        quoteLabel = customQuoteInfo.qtyLabel; // Directly use passed label
         quotePriceStr = `$${customQuoteInfo.price}`;
     } else {
         const quoteKey = `quote${tier}`;
@@ -1985,7 +1992,7 @@ async function exportSelectedPPT(source = 'checked') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
   
   let selectedItems = [];
-  let tier = qtySelect.value || "50";
+  let tier = qtySelect.value; // May be empty for VIP
   let isFromQuoteList = false;
 
   if (source === 'quote') {
@@ -2015,6 +2022,21 @@ async function exportSelectedPPT(source = 'checked') {
   }
 
   if (selectedItems.length === 0) { alert("找不到商品資料，無法生成 PPT。"); return; }
+
+  // 🚀 VIP Logic for Direct Export (Checked Items)
+  // If user is Level 2+ (VIP) and NO tier is selected, we assume VIP pricing
+  if (!isFromQuoteList && userLevel >= 2 && !tier) {
+      selectedItems = selectedItems.map(item => {
+          const price = item.vipPrice || item.quote50 || "-";
+          return {
+              ...item,
+              customQuoteInfo: { price: price, qtyLabel: "VIP 專屬優惠" }
+          };
+      });
+  } else if (!isFromQuoteList && !tier) {
+      // Default fallback if no tier selected for normal users (should generally be blocked by UI but safe to handle)
+      tier = "50"; 
+  }
 
   const btn = source === 'quote' ? pptFromQuoteBtn : pptToolbarBtn;
   const originalText = btn.textContent;
@@ -2072,6 +2094,12 @@ function exportSelectedExcel() {
   const baseHeader = ["商品型號","主型號","分類","商品名稱","顏色列表","網路權限","箱入數","商品連結","商品大圖","網路圖"];
   const qty = qtySelect.value;
   let priceHeader = qty ? [`${qty}個`, "末售", "賣場", "庫存"] : ["末售", "賣場", "庫存"];
+  
+  // 🚀 VIP Excel Column
+  if (userLevel >= 2) {
+      priceHeader.push("VIP價");
+  }
+
   const rows = [[...baseHeader, ...priceHeader]];
   selectedModels.forEach(m => {
     const item = currentResultList.find(p => p.model === m);
@@ -2085,6 +2113,8 @@ function exportSelectedExcel() {
     const showMinPrice = userLevel >= 1;
     const stock = getInventoryRangeLabel(item.inventory) || "-";
     
+    let vipPriceCell = userLevel >= 2 ? (item.vipPrice || "-") : null;
+
     if (qty) {
       const ck = `quote${qty}`;
       let canSeeQuote = false;
@@ -2101,6 +2131,9 @@ function exportSelectedExcel() {
     } else {
       priceRow = [showMinPrice ? (item.minPrice ?? "-") : "---", item.marketPrice ?? "-", stock];
     }
+
+    if (vipPriceCell !== null) priceRow.push(vipPriceCell);
+
     rows.push([...baseRow, ...priceRow]);
   });
   const wb = XLSX.utils.book_new();
