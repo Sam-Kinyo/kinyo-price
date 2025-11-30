@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.4 VIP 尊爵版）</title>
+<title>KINYO 查價系統（v6.2 智慧型錄版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -257,14 +257,6 @@ th{background:#fafafa;text-align:left;}
 .tag300{background:#dcfce7;color:#15803d;}
 .tag500{background:#ffedd5;color:#ea580c;}
 .tag1000{background:#fee2e2;color:#b91c1c;}
-
-/* 🚀 V6.3 NEW: VIP Tag Style (黑金配色) */
-.tag-vip{
-  background:#1a1a1a;
-  color:#ffd700;
-  border:1px solid #b8860b;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-}
 
 /* 分類標籤 */
 .category-badge {
@@ -617,7 +609,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.4 VIP 尊爵版 --- 專屬 VIP 優惠與無定量搜尋
+  v6.2 智慧型錄版 --- 把複雜的運算留給系統，把寶貴的時間留給業務。
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -634,7 +626,7 @@ th{background:#fafafa;text-align:left;}
   </div>
 
   <div class="search-row">
-    <label>起訂量（VIP 客戶可免填）</label>
+    <label>起訂量（可不選）</label>
     <div style="display:flex; gap:10px;">
         <select id="qtySelect" style="flex:1;">
             <!-- Options added by JS -->
@@ -652,7 +644,7 @@ th{background:#fafafa;text-align:left;}
   </div>
 
   <div class="search-row">
-    <label>預算區間（VIP 一口價直接搜尋；一般客戶需填起訂量）</label>
+    <label>預算區間（起訂量已選時才生效；可只填一邊）</label>
     <div style="display:flex; gap:10px;">
       <input id="minPrice" type="number" placeholder="最低 (可空)">
       <input id="maxPrice" type="number" placeholder="最高 (可空)">
@@ -896,7 +888,7 @@ function getGoogleDriveId(url) {
   const patterns = [
     /\/d\/([a-zA-Z0-9_-]+)/,        
     /id=([a-zA-Z0-9_-]+)/,          
-    /open\?id=([a-zA-Z0-9_-]+)/      
+    /open\?id=([a-zA-Z0-9_-]+)/     
   ];
   for (let p of patterns) {
     const m = url.match(p);
@@ -1059,7 +1051,6 @@ function updatePermissions() {
     }
 
     // 2. Level 2+ Only: Stock Filter
-    // 🌟 Fix: Ensure stock filter is visible for Level 2 (VIP/Wholesale)
     if (userLevel >= 2) {
         stockFilter.style.display = 'block'; 
     } else {
@@ -1237,8 +1228,6 @@ async function preloadProducts() {
     const safeList = fullList.map(p => {
       const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
-      // 🌟 FIX: Do NOT delete vipPrice so it can be cached for logged-in user
-      // delete c.vipPrice; 
       return c;
     });
     saveCache(safeList);
@@ -1276,8 +1265,6 @@ async function refreshProductsFromFirestore() {
     const safeList = fullList.map(p => {
       const c = { ...p };
       delete c.quote50; delete c.quote100; delete c.quote300; delete c.quote500; delete c.quote1000;
-      // 🌟 FIX: Do NOT delete vipPrice here either
-      // delete c.vipPrice; 
       return c;
     });
     saveCache(safeList);
@@ -1348,9 +1335,7 @@ function searchProducts() {
   const hasCat = !!cat; 
   const hasStockReq = !!stockReq;
 
-  // 🌟 FIX: Allow Level 2+ (VIP) to search budget WITHOUT selecting Qty (Use VIP Price)
-  // Only restrict Level 1 users (Retail/Small B2B)
-  if (hasBudget && !hasQty && userLevel >= 1 && userLevel < 2) {
+  if (hasBudget && !hasQty && userLevel >= 1) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
@@ -1397,12 +1382,7 @@ function searchProducts() {
         if (qty) {
             const k = `quote${qty}`;
             price = Number(p[k]) || 0;
-        } 
-        // 🌟 FIX: If VIP and no Qty selected, use VIP Price for budget filtering
-        else if (userLevel >= 2) {
-            price = Number(p.vipPrice) || Number(p.quote50) || 0;
-        }
-        else {
+        } else {
             price = Number(p.marketPrice) || 0;
         }
         return price >= min && price <= max;
@@ -1458,11 +1438,6 @@ function renderResults(list) {
     if (userLevel >= 3) {
       priceHtml += `<span class="price-tag tag500">500個：${getPrice('quote500')}</span>`;
       priceHtml += `<span class="price-tag tag1000">1000個：${getPrice('quote1000')}</span>`;
-    }
-
-    /* 🚀 V6.3 NEW: VIP Price Display (Table) - Only for Level 2+ */
-    if (userLevel >= 2 && item.vipPrice) {
-         priceHtml += `<span class="price-tag tag-vip">VIP：${item.vipPrice}</span>`;
     }
 
     const showMinPrice = userLevel >= 1;
@@ -1568,15 +1543,6 @@ function showDetailMobile(item) {
   const showMinPrice = userLevel >= 1;
 
   let quoteHtml = "";
-  
-  /* 🚀 V6.3 NEW: VIP Price Display (Mobile Detail) */
-  if (userLevel >= 2 && item.vipPrice) {
-      quoteHtml += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #eee; background:#1a1a1a; color:#ffd700; border-radius:4px; margin-bottom:4px; padding-left:8px; padding-right:8px;">
-          <span style="font-weight:bold;">👑 VIP客戶</span>
-          <span style="font-weight:bold;">${item.vipPrice}</span>
-      </div>`;
-  }
-
   const tiers = [50, 100, 300, 500, 1000];
   tiers.forEach(t => {
       let isVisible = false;
@@ -1616,8 +1582,8 @@ function showDetailMobile(item) {
              else if(status.cls === 'st-high') { bg="#ccfbf1"; color="#0f766e"; }
              
              stockHtml = `<div style="margin-bottom:16px; background:${bg}; color:${color}; border:1px solid ${color}; padding:8px; border-radius:8px; text-align:center; font-weight:bold;">
-             📦 ${status.label}
-             </div>`;
+            📦 ${status.label}
+            </div>`;
         }
   }
 
@@ -1710,15 +1676,6 @@ function showDetailDesktop(item) {
   const showMinPrice = userLevel >= 1;
 
   let quoteHtml = "";
-  
-  /* 🚀 V6.3 NEW: VIP Price Display (Desktop Detail) */
-  if (userLevel >= 2 && item.vipPrice) {
-      quoteHtml += `<div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px dashed #eee; background:#1a1a1a; color:#ffd700; border-radius:4px; margin-bottom:4px; padding-left:8px; padding-right:8px;">
-          <span style="font-weight:bold;">👑 VIP客戶</span>
-          <span style="font-weight:bold;">${item.vipPrice}</span>
-      </div>`;
-  }
-
   const tiers = [50, 100, 300, 500, 1000];
   tiers.forEach(t => {
       let isVisible = false;
@@ -1749,8 +1706,8 @@ function showDetailDesktop(item) {
              else if(status.cls === 'st-high') { bg="#ccfbf1"; color="#0f766e"; }
              
              stockHtml = `<div style="margin-bottom:12px; background:${bg}; color:${color}; border:1px solid ${color}; padding:6px; border-radius:6px; font-size:13px; font-weight:bold;">
-             📦 ${status.label}
-             </div>`;
+            📦 ${status.label}
+            </div>`;
         }
   }
   
@@ -1844,7 +1801,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     // (C) 價格文字準備
     let quoteLabel = "", quotePriceStr = "";
     if (customQuoteInfo) {
-        quoteLabel = customQuoteInfo.qtyLabel; // Directly use passed label
+        quoteLabel = `專案報價 (${customQuoteInfo.qtyLabel})`;
         quotePriceStr = `$${customQuoteInfo.price}`;
     } else {
         const quoteKey = `quote${tier}`;
@@ -1992,7 +1949,7 @@ async function exportSelectedPPT(source = 'checked') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
   
   let selectedItems = [];
-  let tier = qtySelect.value; // May be empty for VIP
+  let tier = qtySelect.value || "50";
   let isFromQuoteList = false;
 
   if (source === 'quote') {
@@ -2022,21 +1979,6 @@ async function exportSelectedPPT(source = 'checked') {
   }
 
   if (selectedItems.length === 0) { alert("找不到商品資料，無法生成 PPT。"); return; }
-
-  // 🚀 VIP Logic for Direct Export (Checked Items)
-  // If user is Level 2+ (VIP) and NO tier is selected, we assume VIP pricing
-  if (!isFromQuoteList && userLevel >= 2 && !tier) {
-      selectedItems = selectedItems.map(item => {
-          const price = item.vipPrice || item.quote50 || "-";
-          return {
-              ...item,
-              customQuoteInfo: { price: price, qtyLabel: "VIP 專屬優惠" }
-          };
-      });
-  } else if (!isFromQuoteList && !tier) {
-      // Default fallback if no tier selected for normal users (should generally be blocked by UI but safe to handle)
-      tier = "50"; 
-  }
 
   const btn = source === 'quote' ? pptFromQuoteBtn : pptToolbarBtn;
   const originalText = btn.textContent;
@@ -2094,12 +2036,6 @@ function exportSelectedExcel() {
   const baseHeader = ["商品型號","主型號","分類","商品名稱","顏色列表","網路權限","箱入數","商品連結","商品大圖","網路圖"];
   const qty = qtySelect.value;
   let priceHeader = qty ? [`${qty}個`, "末售", "賣場", "庫存"] : ["末售", "賣場", "庫存"];
-  
-  // 🚀 VIP Excel Column
-  if (userLevel >= 2) {
-      priceHeader.push("VIP價");
-  }
-
   const rows = [[...baseHeader, ...priceHeader]];
   selectedModels.forEach(m => {
     const item = currentResultList.find(p => p.model === m);
@@ -2113,8 +2049,6 @@ function exportSelectedExcel() {
     const showMinPrice = userLevel >= 1;
     const stock = getInventoryRangeLabel(item.inventory) || "-";
     
-    let vipPriceCell = userLevel >= 2 ? (item.vipPrice || "-") : null;
-
     if (qty) {
       const ck = `quote${qty}`;
       let canSeeQuote = false;
@@ -2131,9 +2065,6 @@ function exportSelectedExcel() {
     } else {
       priceRow = [showMinPrice ? (item.minPrice ?? "-") : "---", item.marketPrice ?? "-", stock];
     }
-
-    if (vipPriceCell !== null) priceRow.push(vipPriceCell);
-
     rows.push([...baseRow, ...priceRow]);
   });
   const wb = XLSX.utils.book_new();
@@ -2351,9 +2282,7 @@ if(productUpload) {
                     q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1,
                     cat: -1, color: -1, barcode: -1, box: -1,
                     // New fields
-                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1,
-                    // 🚀 V6.3 NEW: VIP Field
-                    vip: -1
+                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1
                 };
 
                 // Scan first 10 rows for headers
@@ -2384,9 +2313,6 @@ if(productUpload) {
                         if (cell.includes('權限') || cell.includes('permission')) h.perm = c;
                         if (cell.includes('bsmi')) h.bsmi = c;
                         if (cell.includes('ncc')) h.ncc = c;
-
-                        // 🚀 V6.3 NEW: Detect VIP Column
-                        if (cell.includes('vip') || cell.includes('大客戶')) h.vip = c;
                     }
                 }
 
@@ -2433,9 +2359,6 @@ if(productUpload) {
                     if(h.perm !== -1 && hasVal(row[h.perm])) obj.netSalesPermission = row[h.perm];
                     if(h.bsmi !== -1 && hasVal(row[h.bsmi])) obj.bsmi = row[h.bsmi];
                     if(h.ncc !== -1 && hasVal(row[h.ncc])) obj.ncc = row[h.ncc];
-
-                    // 🚀 V6.3 NEW: Map VIP Price
-                    if(h.vip !== -1 && hasVal(row[h.vip])) obj.vipPrice = row[h.vip];
 
                     obj.model = modelVal;
                     obj.mainModel = modelVal.split('-')[0]; // Simple heuristic
@@ -2845,9 +2768,9 @@ document.addEventListener("click", (e) => {
         if (userLevel >= 3 && (currentQty == 500 || currentQty == 1000)) canSee = true;
         
         if(canSee) {
-               costText += `${currentQty}個：${getPrice(k)}\n`;
+              costText += `${currentQty}個：${getPrice(k)}\n`;
         } else {
-               costText += `${currentQty}個：(無權限)\n`;
+              costText += `${currentQty}個：(無權限)\n`;
         }
     } else {
         if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
