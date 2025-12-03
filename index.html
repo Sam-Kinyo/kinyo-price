@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（v6.7 進階篩選版）</title>
+<title>KINYO 查價系統（v6.5 VIP 專屬版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -165,7 +165,7 @@ input,select{
   box-sizing:border-box;
 }
 
-/* 複合式搜尋列 */
+/* 複合式搜尋列 (分類 + 關鍵字) */
 .combo-search {
     display: flex;
     gap: 10px;
@@ -179,39 +179,6 @@ input,select{
 .combo-search input {
     flex: 1;
 }
-
-/* V6.7 新增篩選控制項樣式 */
-.checkbox-filter {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 14px;
-    transition: all 0.2s;
-    user-select: none;
-}
-.checkbox-filter input { width: auto; margin: 0; cursor: pointer; }
-
-/* A級品樣式 */
-.filter-grade-a {
-    background-color: #fef2f2;
-    color: #b91c1c;
-    border-color: #fecaca;
-}
-.filter-grade-a:hover { background-color: #fee2e2; }
-
-/* 控價品樣式 */
-.filter-control {
-    background-color: #fff7ed;
-    color: #c2410c;
-    border-color: #fed7aa;
-}
-.filter-control:hover { background-color: #ffedd5; }
-
 
 /* =========================================
    Buttons
@@ -639,7 +606,7 @@ th{background:#fafafa;text-align:left;}
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  v6.7 進階篩選版 --- A級品・控價品・網路權限
+  v6.5 VIP 專屬版 --- 智慧庫存・VIP 專屬視角
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -656,20 +623,11 @@ th{background:#fafafa;text-align:left;}
   </div>
 
   <div class="search-row">
-    <label>篩選條件 (起訂量 / 網路權限 / 重點)</label>
-    <div style="display:flex; gap:10px; flex-wrap: wrap;">
+    <label>起訂量（可不選）</label>
+    <div style="display:flex; gap:10px;">
         <select id="qtySelect" style="flex:1;">
             <!-- Options added by JS -->
         </select>
-        
-        <!-- V6.7 網路權限 -->
-        <select id="netPermSelect" style="flex:1; border-color:#94a3b8; background-color:#f8fafc;">
-            <option value="">🌐 全部網路權限</option>
-            <option value="開放品">🌐 開放品</option>
-            <option value="不開放銷售">🚫 不開放銷售</option>
-            <option value="指定客戶">🔒 指定客戶</option>
-        </select>
-
         <!-- 預設隱藏，Level 2 以上才顯示 -->
         <select id="stockFilter" style="flex:1; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
             <option value="">📦 不限庫存</option>
@@ -680,19 +638,6 @@ th{background:#fafafa;text-align:left;}
             <option value="500">📦 現貨 > 500 (專案)</option>
         </select>
     </div>
-  </div>
-
-  <!-- V6.7 進階 Checkbox (預設隱藏) -->
-  <div id="advFilterRow" class="search-row" style="display:none; gap:12px; margin-top:-6px;">
-      <!-- A級品 (Level 3+ or VIP) -->
-      <label id="gradeALabel" class="checkbox-filter filter-grade-a" style="display:none;">
-          <input type="checkbox" id="filterGradeA"> 🔥 只顯示 A 級重點品
-      </label>
-      
-      <!-- 控價品 (Level 2+ Only) -->
-      <label id="controlLabel" class="checkbox-filter filter-control" style="display:none;">
-          <input type="checkbox" id="filterControl"> 🔒 只顯示控價商品
-      </label>
   </div>
 
   <div class="search-row">
@@ -807,13 +752,6 @@ const categorySelect  = document.getElementById("categorySelect");
 const keywordInput    = document.getElementById("keyword");
 const qtySelect       = document.getElementById("qtySelect");
 const stockFilter     = document.getElementById("stockFilter");
-const netPermSelect   = document.getElementById("netPermSelect"); // V6.7
-const filterGradeA    = document.getElementById("filterGradeA");  // V6.7
-const filterControl   = document.getElementById("filterControl"); // V6.7
-const advFilterRow    = document.getElementById("advFilterRow");
-const gradeALabel     = document.getElementById("gradeALabel");
-const controlLabel    = document.getElementById("controlLabel");
-
 const minPriceInput   = document.getElementById("minPrice");
 const maxPriceInput   = document.getElementById("maxPrice");
 const sortSelect      = document.getElementById("sortSelect");
@@ -869,22 +807,22 @@ let productCache = [];
 let currentResultList = [];
 let userLevel = 0; 
 let currentUserEmail = "";
-let currentUserVipConfig = null; 
+let currentUserVipConfig = null; // 🚀 VIP Config: { column: 'VIP_A', name: '好市多' }
 let quoteList = [];
 let isProductsLoaded = false;
 let isQuotesLoaded = false;
 let hasCheckedItems = false;
 
 // Import state
-let currentImportMode = ""; 
+let currentImportMode = ""; // 'inventory' or 'product'
 let pendingInventoryMap = new Map(); 
-let pendingProductData = []; 
+let pendingProductData = []; // Array of objects containing { action, data, id? }
 
 const CACHE_TTL = 1000 * 60 * 60 * 6; 
 
 function getCacheKey() {
   const mail = (currentUserEmail || "guest").toLowerCase();
-  return `KINYO_SAFE_CACHE_V580_${mail}`; 
+  return `KINYO_SAFE_CACHE_V580_${mail}`; // Reuse key
 }
 
 function loadCache() {
@@ -914,6 +852,7 @@ let isDriveLoaded = false;
       HELPER FUNCTIONS
    ==================================================== 🚀 */
 
+/* 🚀 庫存判斷邏輯 */
 function getInventoryStatus(qty) {
   if (qty === null || qty === undefined || qty === "") return null;
   const val = parseInt(qty, 10);
@@ -925,6 +864,7 @@ function getInventoryStatus(qty) {
   if (val < 800)  return { label: "庫存 < 800",  cls: "st-mid" };
   if (val <= 1200) return { label: "庫存 < 1200", cls: "st-good" };
   
+  // 大於等於 1201 (含)
   return { label: "庫存 > 1201", cls: "st-high" };
 }
 
@@ -940,11 +880,15 @@ function getInventoryRangeLabel(qty) {
     return "1000個以上";
 }
 
+/* 🚀 新增：產生多色庫存的 HTML 區塊 (方案A + VIP Logic) */
 function renderStockByVariant(item) {
+    // 只有 Level 2 以上或 VIP 才顯示庫存
     if (userLevel < 2 && !currentUserVipConfig) return "";
     
+    // 如果沒有變體資料，直接回傳空字串
     if (!item.variants || item.variants.length === 0) return "";
     
+    // 過濾掉沒有庫存資料的變體
     const activeVariants = item.variants.filter(v => v.inventory !== undefined && v.inventory !== null && v.inventory !== "");
 
     if (activeVariants.length === 0) return "";
@@ -955,10 +899,12 @@ function renderStockByVariant(item) {
         const status = getInventoryStatus(v.inventory);
         if (status) {
             let colorLabel = "";
+            // 如果有多個顏色，顯示顏色名稱；如果只有單一款，且名稱跟主型號一樣，就不顯示顏色名
             if (activeVariants.length > 1 || (v.color && v.color !== "單一款式")) {
                colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}:</span>`;
             }
 
+            // 🚀 VIP Logic: 隱藏具體庫存狀態，只顯示模糊燈號
             let displayLabel = status.label;
             let displayCls = status.cls;
             
@@ -1134,6 +1080,7 @@ function updateUserDisplay(status) {
     else if (userLevel === 2) badgeClass = "badge-lv2";
     else if (userLevel >= 3) badgeClass = "badge-lv3";
     
+    // VIP Badge Logic
     if (currentUserVipConfig) {
         badgeClass = "badge-vip";
         userInfoSpan.textContent = `${currentUserVipConfig.name} (VIP)`;
@@ -1147,7 +1094,7 @@ function updateUserDisplay(status) {
   }
 }
 
-// 🚀 V6.7 Permission Logic Update
+// 🚀 Updates UI permissions based on user level
 function updatePermissions() {
     // 1. Level 4 Only: Import Inventory & Product Data
     if (userLevel >= 4) {
@@ -1158,36 +1105,15 @@ function updatePermissions() {
         importProductBtn.style.display = 'none'; 
     }
 
-    // 2. Level 2+ Only: Stock Filter
+    // 2. Level 2+ Or VIP: Stock Filter
+    // VIP usually doesn't need to filter by exact stock, but we can leave it or hide it.
+    // User requirement: "VIP sees inventory status", not necessarily filters.
+    // Let's keep it simple: If VIP, hide complex filters? No, keep them but they work on fuzzy logic maybe?
+    // For now, let's allow Level 2+ only. VIPs (usually low level in system, level=0) won't see it.
     if (userLevel >= 2) {
         stockFilter.style.display = 'block'; 
     } else {
         stockFilter.style.display = 'none';
-    }
-
-    // 3. V6.7 Filters Visibility
-    let showAdvRow = false;
-
-    // Grade A: Level 3+ or VIP
-    if (userLevel >= 3 || currentUserVipConfig) {
-        gradeALabel.style.display = 'flex';
-        showAdvRow = true;
-    } else {
-        gradeALabel.style.display = 'none';
-    }
-
-    // Control: Level 2+ Only (VIP cannot see)
-    if (userLevel >= 2) {
-        controlLabel.style.display = 'flex';
-        showAdvRow = true;
-    } else {
-        controlLabel.style.display = 'none';
-    }
-
-    if (showAdvRow) {
-        advFilterRow.style.display = 'flex';
-    } else {
-        advFilterRow.style.display = 'none';
     }
 }
 
@@ -1334,28 +1260,28 @@ async function preloadProducts() {
       const mainModel = getMainModel(model);
       
       let colorList = (d.colorList || "").trim();
+      // 如果 colorList 空白，嘗試從型號取得後綴 (例如 CL-123W -> W)
       if (!colorList) {
         const suffix = model.toUpperCase().replace(mainModel, "").replace("-", "");
         if (suffix && /^[A-Z]{1,3}$/.test(suffix)) colorList = suffix;
       }
 
+      // 不在這裡組 searchKey，因為等一下要合併
       const category = d.category ? String(d.category).trim() : "";
       const netSalesPermission = d.netSalesPermission ? String(d.netSalesPermission).trim() : "";
       
-      // V6.7: Include new tags
-      const tagA = d.tagA || null;
-      const tagControl = d.tagControl || null;
-      
-      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission, tagA, tagControl });
+      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission });
     });
 
     // 2. Perform Pre-calculation Merge (方案 A)
     const mergedMap = {};
     rawList.forEach(item => {
+        // Skip inactive items from the merge (optional, but cleaner)
         if(item.status === 'inactive') return;
 
         const main = item.mainModel;
         
+        // 建立變體物件
         const variantObj = {
             model: item.model,
             color: item.colorList || "單一款式",
@@ -1363,26 +1289,28 @@ async function preloadProducts() {
         };
 
         if (!mergedMap[main]) {
+            // 初始化主物件
             mergedMap[main] = { 
                 ...item, 
                 models: [item.model], 
                 variants: [variantObj],
+                // 重置 colorList，稍後累加
                 colorList: item.colorList || "" 
             };
         } else {
+            // 合併變體
             mergedMap[main].models.push(item.model);
             mergedMap[main].variants.push(variantObj);
 
+            // 合併顏色字串
             const existColors = mergedMap[main].colorList.split(" / ").filter(Boolean);
             const newColors = (item.colorList || "").split(" / ").filter(Boolean);
             mergedMap[main].colorList = [...new Set([...existColors, ...newColors])].join(" / ");
             
+            // 讓 inventory 欄位保持為最大值，方便排序 (可選)
             if(item.inventory && parseInt(item.inventory) > parseInt(mergedMap[main].inventory||0)) {
                 mergedMap[main].inventory = item.inventory;
             }
-            // V6.7: Merge tags (if any variant has tag, main has tag)
-            if(item.tagA) mergedMap[main].tagA = item.tagA;
-            if(item.tagControl) mergedMap[main].tagControl = item.tagControl;
         }
     });
 
@@ -1390,6 +1318,7 @@ async function preloadProducts() {
     productCache = Object.values(mergedMap).map(p => {
         return {
             ...p,
+            // 關鍵字搜尋要包含所有子型號
             searchKey: `${p.mainModel} ${p.models.join(' ')} ${p.name || ""} ${p.category || ""}`.toLowerCase()
         };
     });
@@ -1432,7 +1361,7 @@ function applySorting(list) {
   return list;
 }
 
-/* 🚀 Updated Search Logic - V6.7 Filters */
+/* 🚀 Updated Search Logic - Plan A: Simple Filter */
 function searchProducts() {
   if (!isProductsLoaded) { alert("商品資料載入中"); return; }
   
@@ -1442,27 +1371,20 @@ function searchProducts() {
   const maxPraw = maxPriceInput.value.trim();
   const cat = categorySelect.value; 
   const stockReq = stockFilter.value; 
-  const netPermReq = netPermSelect.value; // V6.7
   
-  const isGradeA = filterGradeA.checked; // V6.7
-  const isControl = filterControl.checked; // V6.7
-  
-  // Basic Validation
   const hasKey = !!key;
   const hasQty = !!qty;
   const hasBudget = !!minPraw || !!maxPraw;
   const hasCat = !!cat; 
   const hasStockReq = !!stockReq;
-  const hasNetPerm = !!netPermReq;
-  const hasAdvanced = isGradeA || isControl;
 
   if (hasBudget && !hasQty && userLevel >= 1) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
   
-  if (!hasQty && !hasKey && !hasBudget && !hasCat && !hasStockReq && !hasNetPerm && !hasAdvanced) {
-    alert("請至少輸入一個搜尋條件");
+  if (hasQty && !hasKey && !hasBudget && !hasCat && !hasStockReq) {
+    alert("請輸入搜尋條件（關鍵字、分類、起訂量、預算或庫存需求）");
     return;
   }
 
@@ -1473,6 +1395,7 @@ function searchProducts() {
   updateUserDisplay('searching');
 
   setTimeout(() => {
+    // 🚀 Use pre-merged cache directly
     let r = productCache;
 
     if (hasCat) {
@@ -1486,24 +1409,10 @@ function searchProducts() {
     if (hasStockReq) {
         const minStock = parseInt(stockReq, 10);
         r = r.filter(p => {
+            // Check max inventory of the merged item
             const inv = parseInt(p.inventory || 0, 10);
             return inv >= minStock;
         });
-    }
-    
-    // V6.7: Net Permission Filter
-    if (hasNetPerm) {
-        r = r.filter(p => (p.netSalesPermission || "") === netPermReq);
-    }
-
-    // V6.7: Grade A Filter
-    if (isGradeA) {
-        r = r.filter(p => p.tagA === 'A');
-    }
-
-    // V6.7: Control Filter
-    if (isControl) {
-        r = r.filter(p => p.tagControl === 'v');
     }
 
     if (hasBudget) {
@@ -1522,6 +1431,7 @@ function searchProducts() {
       });
     }
 
+    // No need to call mergeByMainModel anymore!
     currentResultList = r;
 
     if (!sortSelect.value) {
@@ -1536,6 +1446,7 @@ function searchProducts() {
   }, 0);
 }
 
+/* 🚀 Updated Render Logic - Include Stock Variant + VIP Logic */
 function renderResults(list) {
   resultBody.innerHTML = ""; detailCard.style.display = "none"; checkAllBox.checked = false; updateMultiLineBtnState();
   if (list.length === 0) {
@@ -1544,28 +1455,39 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
+    // 🌟 智慧圖片遞補邏輯
     let img = item.imageUrl;
     const netImages = getDriveNetImages(item.model, item.mainModel);
 
     if (!img || !img.startsWith("http")) {
       const driveImg = getDriveMainImage(item.model, item.mainModel);
-      if (driveImg) img = driveImg;
-      else if (netImages && netImages.length > 0) img = netImages[0];
-      else img = "https://placehold.co/110x110?text=No+Image";
+      if (driveImg) {
+          img = driveImg;
+      } else if (netImages && netImages.length > 0) {
+          img = netImages[0];
+      } else {
+          img = "https://placehold.co/110x110?text=No+Image";
+      }
     }
   
     const tr = document.createElement("tr");
     let priceHtml = "";
+
     const getPrice = (p) => (item[p] ?? "-");
 
+    // 🚀 VIP 價格顯示邏輯
     if (currentUserVipConfig) {
+        // VIP Mode
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
+            // Scenario A: Has Price
             priceHtml = `<span style="font-weight:bold; color:#b91c1c; font-size:14px; background:#fce7f3; padding:4px 8px; border-radius:6px;">${currentUserVipConfig.name} 專屬價：$${vipPriceVal}</span>`;
         } else {
+            // Scenario B: No Price
             priceHtml = `<span style="font-weight:bold; color:#2563eb; font-size:14px;">請洽郭庭豪</span>`;
         }
     } else {
+        // Standard Mode
         if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getPrice('quote50')}</span>`;
         if (userLevel >= 2) {
           priceHtml += `<span class="price-tag tag100">100個：${getPrice('quote100')}</span>`;
@@ -1577,6 +1499,7 @@ function renderResults(list) {
         }
     }
 
+    // 🚀 末售與賣場價格顯示邏輯 (VIP 特規)
     const showMinPrice = userLevel >= 1;
     let minPriceDisplay = showMinPrice ? (item.minPrice ?? "-") : "---";
     let marketPriceDisplay = item.marketPrice ?? "-";
@@ -1584,15 +1507,19 @@ function renderResults(list) {
     if (currentUserVipConfig) {
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
+            // Scenario A: Has Price -> Hide reference prices to focus on exclusive deal
             minPriceDisplay = "";
             marketPriceDisplay = "";
         } else {
+            // Scenario B: No Price -> Show reference prices as ceiling
             minPriceDisplay = item.minPrice ?? "-";
             marketPriceDisplay = item.marketPrice ?? "-";
         }
     }
 
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
+    
+    // 🚀 Insert Stock Variant HTML
     const variantStockHtml = renderStockByVariant(item);
 
     tr.innerHTML = `
@@ -1604,11 +1531,15 @@ function renderResults(list) {
       <td>
         ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;font-size:15px;">${item.name || "-"}</div>
+        
         <div style="font-size:13px;color:#555;margin-bottom:4px;">
            ${item.colorList ? `顏色：${item.colorList}` : ''}
         </div>
+
         ${variantStockHtml}
+
         <div class="price-tag-container" style="font-size:13px;margin-bottom:4px;margin-top:8px;">${priceHtml}</div>
+        
         ${currentUserVipConfig ? '' : `
         <div style="display:flex; gap:6px; margin-top:8px;">
           <button class="line-share-btn" data-model="${item.model}" style="padding:6px 10px;font-size:12px;background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">LINE</button>
@@ -1622,6 +1553,7 @@ function renderResults(list) {
 
     const imgEl = tr.querySelector('.product-img');
     const modelEl = tr.querySelector('.model-cell');
+
     const openDetail = () => {
       if (window.innerWidth > 900) {
         if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
@@ -1636,7 +1568,10 @@ function renderResults(list) {
       if (window.innerWidth > 900) {
           imgEl.addEventListener('mouseenter', openDetail);
           imgEl.addEventListener('mouseleave', () => {
-             window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
+             // 🚀 Changed from 200 to 1000
+             window.hideDetailTimer = setTimeout(() => {
+               detailCard.style.display = "none";
+             }, 1000); 
           });
       }
     }
@@ -1645,10 +1580,14 @@ function renderResults(list) {
        if (window.innerWidth > 900) {
           modelEl.addEventListener('mouseenter', openDetail);
           modelEl.addEventListener('mouseleave', () => {
-             window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
+             // 🚀 Changed from 200 to 1000
+             window.hideDetailTimer = setTimeout(() => {
+               detailCard.style.display = "none";
+             }, 1000); 
           });
       }
     }
+
     resultBody.appendChild(tr);
   });
   bindCheckAll();
@@ -1664,9 +1603,13 @@ function showDetailMobile(item) {
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) img = driveImg;
-    else if (netImages && netImages.length > 0) img = netImages[0];
-    else img = "https://placehold.co/300x300?text=No+Image";
+    if (driveImg) {
+        img = driveImg;
+    } else if (netImages && netImages.length > 0) {
+        img = netImages[0];
+    } else {
+        img = "https://placehold.co/300x300?text=No+Image";
+    }
   }
 
   const getPrice = (p) => (item[p] ?? "-");
@@ -1699,6 +1642,7 @@ function showDetailMobile(item) {
       netThumbHtml = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">${imgsHtml}</div>`;
   }
   
+  // 🚀 Stock Logic - Updated
   let stockHtml = "";
   const variantStock = renderStockByVariant(item);
   if(variantStock) {
@@ -1708,6 +1652,7 @@ function showDetailMobile(item) {
        </div>`;
   }
 
+  // VIP Logic for Price Block
   let priceBlockHtml = "";
   if (currentUserVipConfig) {
       const vipPriceVal = item[currentUserVipConfig.column];
@@ -1720,6 +1665,7 @@ function showDetailMobile(item) {
           label = "專屬報價";
           displayPrice = `<span style="font-weight:bold; color:#2563eb;">請洽郭庭豪</span>`;
       }
+      
       priceBlockHtml = `
        <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
            <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
@@ -1761,12 +1707,16 @@ function showDetailMobile(item) {
     <div style="text-align:center; margin-bottom:16px;">
       <img src="${img}" style="max-height:200px; max-width:100%; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1);" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
     </div>
+    
     <div style="font-weight:700; font-size:18px; margin-bottom:8px;">${item.name || "-"}</div>
+    
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
         ${item.category ? `<span style="background:#f3f4f6; color:#4b5563; padding:4px 8px; border-radius:4px; font-size:12px;">分類：${item.category}</span>` : ""}
         ${item.netSalesPermission ? `<span style="background:#e0e7ff; color:#3730a3; padding:4px 8px; border-radius:4px; font-size:12px;">權限：${item.netSalesPermission}</span>` : ""}
     </div>
+
     ${stockHtml}
+
     <div style="color:#666; font-size:14px; margin-bottom:16px;">
        <div>型號：${item.model}</div>
        <div>主型號：${item.mainModel}</div>
@@ -1774,12 +1724,16 @@ function showDetailMobile(item) {
        <div>箱入數：${item.cartonQty || "-"}</div>
        <div>國際條碼：${item.barcode || item.internationalBarcode || "-"}</div>
     </div>
+
     ${priceBlockHtml}
+
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
         ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載大圖</a>` : ''}
         ${actNetLink ? `<a href="${actNetLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載網路圖</a>` : ''}
     </div>
+
     ${netThumbHtml}
+
     <div style="height:20px;"></div>
     ${currentUserVipConfig ? '' : `
     <div style="display:flex; gap:10px;">
@@ -1789,6 +1743,7 @@ function showDetailMobile(item) {
     `}
     <div style="height:30px;"></div>
   `;
+
   openSheet();
 }
 
@@ -1804,9 +1759,13 @@ function showDetailDesktop(item) {
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
     const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) img = driveImg;
-    else if (netImages && netImages.length > 0) img = netImages[0];
-    else img = "https://placehold.co/300x300?text=No+Image";
+    if (driveImg) {
+        img = driveImg;
+    } else if (netImages && netImages.length > 0) {
+        img = netImages[0];
+    } else {
+        img = "https://placehold.co/300x300?text=No+Image";
+    }
   }
 
   let netThumbHtml = "";
@@ -1839,6 +1798,7 @@ function showDetailDesktop(item) {
       });
   }
   
+  // 🚀 Stock Logic - Updated
   let stockHtml = "";
   const variantStock = renderStockByVariant(item);
   if(variantStock) {
@@ -1848,6 +1808,7 @@ function showDetailDesktop(item) {
        </div>`;
   }
 
+  // VIP Logic for Price Block
   let priceBlockHtml = "";
   if (currentUserVipConfig) {
       const vipPriceVal = item[currentUserVipConfig.column];
@@ -1860,6 +1821,7 @@ function showDetailDesktop(item) {
           label = "專屬報價";
           displayPrice = `<span style="font-weight:bold; color:#2563eb;">請洽郭庭豪</span>`;
       }
+      
       priceBlockHtml = `
        <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
@@ -1900,7 +1862,9 @@ function showDetailDesktop(item) {
   detailCard.style.display = "block";
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
+    
     <img src="${img}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
+
     <div style="margin-bottom:16px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
         ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載大圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無大圖</button>`}
@@ -1908,13 +1872,17 @@ function showDetailDesktop(item) {
       </div>
       ${netThumbHtml}
     </div>
+
     <div style="margin-bottom:16px; background:#f9fafb; padding:12px; border-radius:8px;">
       <div style="font-weight:700; font-size:16px; margin-bottom:8px; color:#111;">${item.name || "-"}</div>
+      
       <div style="margin-bottom:8px; font-size:13px; color:#555;">
         ${item.category ? `<span style="background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-right:6px;">分類: ${item.category}</span>` : ""}
         ${item.netSalesPermission ? `<span style="background:#dbeafe; padding:2px 6px; border-radius:4px; color:#1e40af;">網路權限: ${item.netSalesPermission}</span>` : ""}
       </div>
+      
       ${stockHtml}
+
       <div style="font-size:14px; line-height:1.8; color:#444;">
         <div><span style="color:#888;">顏色：</span> ${item.colorList || "-"}</div>
         <div><span style="color:#888;">箱入數：</span> ${item.cartonQty || "-"}</div>
@@ -1922,10 +1890,12 @@ function showDetailDesktop(item) {
         <div><span style="color:#888;">連結：</span> ${item.productUrl ? `<a href="${item.productUrl}" target="_blank" style="color:#2563eb;text-decoration:underline;">開啟網頁</a>` : "-"}</div>
       </div>
     </div>
+
     <div style="margin-bottom:12px;">
       <div style="font-weight:700; margin-bottom:8px; border-left:4px solid #2563eb; padding-left:8px;">價格資訊</div>
       ${priceBlockHtml}
     </div>
+
     ${currentUserVipConfig ? '' : `
     <div style="display:flex; gap:8px; margin-top:16px;">
       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
@@ -2207,56 +2177,64 @@ function downloadQuoteExcel() {
   XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
-async function saveInventoryToFirestore(invMap) {
-    importInventoryBtn.disabled = true;
-    importInventoryBtn.textContent = "正在抓取原始資料...";
-    
-    let batch = writeBatch(db);
-    let opCount = 0;
-    let updatedCount = 0;
-    const BATCH_LIMIT = 400;
+/* =======================================================
+   Event Listeners (Bind within Module)
+======================================================= */
+searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
+exportBtn.onclick = exportSelectedExcel;
+logoutBtn.onclick = () => {
+    if(confirm("確定要登出嗎？")) {
+        signOut(auth).then(() => {
+            window.location.reload();
+        }).catch((error) => {
+            console.error("登出錯誤:", error);
+            alert("登出發生錯誤，請重新整理網頁");
+        });
+    }
+};
 
-    try {
-         // 1. Fetch RAW docs
-         const snap = await getDocsWithRetry(collection(db, "Products"));
-         
-         importInventoryBtn.textContent = "正在寫入資料庫...";
+// Open File Dialog
+if(importInventoryBtn) {
+    importInventoryBtn.onclick = () => {
+        inventoryUpload.value = ''; // Reset
+        inventoryUpload.click();
+    };
+}
 
-         // 2. Iterate Raw Docs and Match Barcode
-         for(const docSnap of snap.docs) {
-             const product = docSnap.data();
-             const bc = (product.internationalBarcode || product.barcode || "").trim();
-             
-             if(bc && invMap.has(bc)) {
-                const newQty = invMap.get(bc);
-                const docRef = doc(db, "Products", docSnap.id);
-                batch.update(docRef, { inventory: newQty });
-                
-                opCount++;
-                updatedCount++;
-                
-                if(opCount >= BATCH_LIMIT) {
-                    await batch.commit();
-                    batch = writeBatch(db);
-                    opCount = 0;
-                }
-             }
-         }
-         
-         if(opCount > 0) await batch.commit();
-
-        alert(`資料庫更新完成！\n以國際條碼為基準，共更新了 ${updatedCount} 筆商品的庫存。\n系統將自動重新整理以顯示最新數據。`);
-        window.location.reload();
-
-    } catch(e) {
-        console.error(e);
-        alert("寫入資料庫失敗");
-    } finally {
-        importInventoryBtn.disabled = false;
-        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
+if(importProductBtn) {
+    importProductBtn.onclick = () => {
+        productUpload.value = ''; // Reset
+        productUpload.click();
     }
 }
 
+// Cancel Import
+if(cancelImportBtn) {
+    cancelImportBtn.onclick = () => {
+        previewOverlay.style.display = "none";
+        pendingInventoryMap.clear();
+        pendingProductData = [];
+        inventoryUpload.value = ''; 
+        productUpload.value = '';
+    };
+}
+
+// Confirm Import
+if(confirmImportBtn) {
+    confirmImportBtn.onclick = () => {
+        if(currentImportMode === 'inventory') {
+            if(pendingInventoryMap.size === 0) return;
+            previewOverlay.style.display = "none";
+            saveInventoryToFirestore(pendingInventoryMap);
+        } else if(currentImportMode === 'product') {
+            if(pendingProductData.length === 0) return;
+            previewOverlay.style.display = "none";
+            saveProductDataToFirestore(pendingProductData);
+        }
+    };
+}
+
+// 🚀 V6.4 重寫的保存邏輯：即時抓取原始資料進行精準寫入
 async function saveProductDataToFirestore(actions) {
     importProductBtn.disabled = true;
     importProductBtn.textContent = "正在抓取原始資料...";
@@ -2267,8 +2245,9 @@ async function saveProductDataToFirestore(actions) {
     let successCount = 0;
 
     try {
+        // 1. Fetch RAW docs to build Map<Barcode, ID>
         const snap = await getDocsWithRetry(collection(db, "Products"));
-        const rawMap = new Map();
+        const rawMap = new Map(); // Barcode -> DocID
 
         snap.forEach(docSnap => {
             const d = docSnap.data();
@@ -2278,7 +2257,10 @@ async function saveProductDataToFirestore(actions) {
 
         importProductBtn.textContent = "正在寫入資料庫...";
 
+        // 2. Process Actions using Barcode Mapping
         for(const item of actions) {
+            // item.data contains the new data from Excel
+            // Key logic: item.data.internationalBarcode
             const excelBc = (item.data.internationalBarcode || "").trim();
 
             if(!excelBc) {
@@ -2287,10 +2269,12 @@ async function saveProductDataToFirestore(actions) {
             }
 
             if(rawMap.has(excelBc)) {
+                // Update existing doc
                 const docId = rawMap.get(excelBc);
                 const docRef = doc(db, "Products", docId);
                 batch.update(docRef, { ...item.data, status: 'active' });
             } else {
+                // Create new doc
                 const newDocRef = doc(collection(db, "Products"));
                 batch.set(newDocRef, { ...item.data, status: 'active', inventory: 0 });
             }
@@ -2321,8 +2305,91 @@ async function saveProductDataToFirestore(actions) {
     }
 }
 
+// 🚀 V6.4 重寫的庫存保存邏輯：即時抓取原始資料進行精準更新
+async function saveInventoryToFirestore(invMap) {
+    importInventoryBtn.disabled = true;
+    importInventoryBtn.textContent = "正在抓取原始資料...";
+    
+    let batch = writeBatch(db);
+    let opCount = 0;
+    let updatedCount = 0;
+    const BATCH_LIMIT = 400;
+
+    try {
+         // 1. Fetch RAW docs
+         const snap = await getDocsWithRetry(collection(db, "Products"));
+         
+         importInventoryBtn.textContent = "正在寫入資料庫...";
+
+         // 2. Iterate Raw Docs and Match Barcode
+         snap.forEach(docSnap => {
+             const product = docSnap.data();
+             const bc = (product.internationalBarcode || product.barcode || "").trim();
+             
+             if(bc && invMap.has(bc)) {
+                const newQty = invMap.get(bc);
+                const docRef = doc(db, "Products", docSnap.id);
+                batch.update(docRef, { inventory: newQty });
+                
+                opCount++;
+                updatedCount++;
+                
+                // Batch logic inside forEach needs care, usually we fill batch and check size
+             }
+         });
+         
+         // Since batch commit is async, we can't await inside forEach easily.
+         // Re-implementing with for..of loop for safety
+    } catch(e) {
+        console.error(e);
+        alert("讀取原始資料失敗");
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
+        return;
+    }
+
+    // Re-run with clean loop structure
+    try {
+        const snap = await getDocsWithRetry(collection(db, "Products"));
+        batch = writeBatch(db); // Reset
+        opCount = 0;
+        
+        for(const docSnap of snap.docs) {
+             const product = docSnap.data();
+             const bc = (product.internationalBarcode || product.barcode || "").trim();
+             
+             if(bc && invMap.has(bc)) {
+                const newQty = invMap.get(bc);
+                const docRef = doc(db, "Products", docSnap.id);
+                batch.update(docRef, { inventory: newQty });
+                
+                opCount++;
+                updatedCount++;
+                
+                if(opCount >= BATCH_LIMIT) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    opCount = 0;
+                }
+             }
+        }
+        
+        if(opCount > 0) await batch.commit();
+
+        alert(`資料庫更新完成！\n以國際條碼為基準，共更新了 ${updatedCount} 筆商品的庫存。\n系統將自動重新整理以顯示最新數據。`);
+        window.location.reload();
+
+    } catch(e) {
+        console.error(e);
+        alert("寫入資料庫失敗");
+    } finally {
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
+    }
+}
+
 // ----------------------------------------------------
-// PRODUCT IMPORT LOGIC (Smart Parsing V6.7)
+// PRODUCT IMPORT LOGIC (Smart Parsing)
 // ----------------------------------------------------
 if(productUpload) {
     productUpload.onchange = (e) => {
@@ -2344,12 +2411,11 @@ if(productUpload) {
                     market: -1, min: -1, 
                     q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1,
                     cat: -1, color: -1, barcode: -1, box: -1,
-                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1,
-                    // V6.7
-                    tagA: -1, tagControl: -1
+                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1
                 };
                 
-                let vipHeaders = {}; 
+                // 🚀 V6.5 Dynamic VIP Columns
+                let vipHeaders = {}; // key: column name (e.g. VIP_A), value: index
 
                 // Scan headers
                 for(let r=0; r<Math.min(jsonData.length, 10); r++) {
@@ -2380,10 +2446,7 @@ if(productUpload) {
                         if (cellLower.includes('bsmi')) h.bsmi = c;
                         if (cellLower.includes('ncc')) h.ncc = c;
                         
-                        // V6.7 Specific
-                        if (cell.includes('A級品')) h.tagA = c;
-                        if (cell.includes('控價品')) h.tagControl = c;
-
+                        // 🚀 VIP Dynamic Detection
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
                         }
@@ -2392,6 +2455,7 @@ if(productUpload) {
 
                 if(h.barcode === -1) {
                     alert("⚠️ 警告：找不到「國際條碼」欄位。\nV6.4 版強烈建議使用國際條碼作為唯一識別，否則無法精準更新。");
+                    // return; // Optional: Allow proceed but risk duplicates if logic falls back (but we enforced logic)
                 }
 
                 let actions = [];
@@ -2425,10 +2489,7 @@ if(productUpload) {
                     if(h.bsmi !== -1 && hasVal(row[h.bsmi])) obj.bsmi = row[h.bsmi];
                     if(h.ncc !== -1 && hasVal(row[h.ncc])) obj.ncc = row[h.ncc];
                     
-                    // V6.7
-                    if(h.tagA !== -1 && hasVal(row[h.tagA])) obj.tagA = row[h.tagA];
-                    if(h.tagControl !== -1 && hasVal(row[h.tagControl])) obj.tagControl = row[h.tagControl];
-
+                    // 🚀 Add Dynamic VIP Fields
                     for (const [vKey, vIdx] of Object.entries(vipHeaders)) {
                         if (hasVal(row[vIdx])) {
                             obj[vKey] = row[vIdx];
@@ -2438,15 +2499,17 @@ if(productUpload) {
                     obj.model = modelVal;
                     obj.mainModel = modelVal.split('-')[0]; 
 
+                    // V6.4: We treat this as an 'action object'. 
+                    // The actual ADD vs UPDATE decision happens in saveProductDataToFirestore using Barcode lookup.
                     actions.push({ data: obj, model: modelVal });
                 });
 
-                previewHeader.textContent = "產品總表匯入確認 (V6.7)";
+                previewHeader.textContent = "產品總表匯入確認 (VIP支援)";
                 previewContent.innerHTML = `
                     <div style="padding:20px; text-align:center;">
                         <h3 style="color:#2563eb;">已解析 ${actions.length} 筆資料</h3>
                         <p>系統將依據 <b>國際條碼</b> 自動判斷新增或更新。</p>
-                        <p>新欄位偵測：${h.tagA !== -1 ? 'A級品 (OK)' : 'A級品 (未找到)'} | ${h.tagControl !== -1 ? '控價品 (OK)' : '控價品 (未找到)'}</p>
+                        <p>已偵測到 VIP 欄位：${Object.keys(vipHeaders).join(', ') || '無'}</p>
                         <p style="color:#666; font-size:13px;">確認後請點擊「寫入資料庫」，系統將暫時抓取最新數據進行比對。</p>
                     </div>
                 `;
@@ -2608,6 +2671,364 @@ if(inventoryUpload) {
         reader.readAsBinaryString(file);
     };
 }
+
+if(pptToolbarBtn) {
+  pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
+}
+if(pptFromQuoteBtn) {
+  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote');
+}
+if(downloadQuoteExcelBtn) {
+  downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
+}
+if(copyQuoteBtn) {
+  copyQuoteBtn.onclick = () => {
+    if (quoteList.length === 0) return alert("報價單是空的");
+    let text = "KINYO 報價單\n--------------------\n";
+    quoteList.forEach((q,i)=>{
+      const priceDisplay = `$${q.price}`;
+      const link = q.productUrl ? `   🔗 連結：${q.productUrl}\n` : "";
+      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n${link}`;
+    });
+    text += "--------------------\n";
+    navigator.clipboard.writeText(text)
+      .then(() => alert("報價單已複製"))
+      .catch(() => alert("複製失敗"));
+  };
+}
+
+if(clearBtn) {
+  clearBtn.onclick = () => {
+    keywordInput.value = "";
+    qtySelect.value = "";
+    minPriceInput.value = "";
+    maxPriceInput.value = "";
+    stockFilter.value = "";
+    categorySelect.value = ""; 
+
+    resultBody.innerHTML = "";
+    resultTable.style.display = "none";
+    exportBtn.disabled = true;
+    if(pptToolbarBtn) pptToolbarBtn.disabled = true;
+    if(multiLineBtn) multiLineBtn.disabled = true;
+    if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = true; 
+    checkAllBox.checked = false;
+    detailCard.style.display = "none";
+  };
+}
+
+if(clearQuoteBtn) {
+  clearQuoteBtn.onclick = () => {
+    if(quoteList.length === 0) {
+        alert("報價單已經是空的");
+        return;
+    }
+    if(confirm("確定要清空報價單嗎？這將無法復原。")) {
+        quoteList = [];
+        renderQuoteList();
+        updateQuoteToolbarBtn();
+    }
+  };
+}
+
+// Login Button Click Logic
+if(doLoginBtn) {
+  doLoginBtn.onclick = async () => {
+    let email = loginEmail.value.trim();
+    const password = loginPassword.value.trim();
+    
+    if (email && !email.includes('@')) {
+        email += '@kinyo.com';
+    }
+
+    if(!email || !password) {
+      loginError.textContent = "請輸入帳號和密碼";
+      loginError.style.display = "block";
+      return;
+    }
+
+    loginError.style.display = "none";
+    doLoginBtn.disabled = true;
+    doLoginBtn.textContent = "登入中...";
+
+    try {
+      // Set persistence first
+      await setPersistence(auth, browserLocalPersistence);
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      // Handle the iframe specific error gracefully
+      if (error.message && error.message.includes("message channel closed")) {
+          console.warn("Ignored non-fatal auth error:", error);
+          // Don't leave button stuck
+          doLoginBtn.disabled = false;
+          doLoginBtn.textContent = "登入 (請重試)";
+          return;
+      }
+      
+      console.error(error);
+      loginError.textContent = "登入失敗：請檢查帳號密碼";
+      loginError.style.display = "block";
+      doLoginBtn.disabled = false;
+      doLoginBtn.textContent = "登入";
+    }
+  };
+}
+
+/* =======================================================
+   Firebase Auth：登入後流程
+======================================================= */
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    if(loginOverlay) loginOverlay.style.display = "flex";
+    return;
+  }
+  
+  if(loginOverlay) loginOverlay.style.display = "none";
+
+  currentUserEmail = user.email || "";
+  userLevel = 0; 
+  currentUserVipConfig = null;
+
+  try {
+      const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
+      if (userDoc.exists()) {
+          const userData = userDoc.data();
+          userLevel = userData.level ?? 0;
+          
+          // 🚀 Check for VIP Config
+          if (userData.vipColumn) {
+              currentUserVipConfig = {
+                  column: userData.vipColumn, // e.g. 'VIP_A'
+                  name: userData.vipName || 'VIP客戶'
+              };
+          }
+      } else {
+          userLevel = 0;
+      }
+  } catch (e) {
+      console.error("Auth Error:", e);
+      userLevel = 0;
+  }
+
+  if (currentUserEmail.toLowerCase() === 'show@kinyo.com') userLevel = 0;
+
+  updateUserDisplay('normal');
+  logoutBtn.style.display = "inline-block";
+
+  setupQtySelectByLevel();
+  
+  // 🚀 Trigger permissions update after level is loaded
+  updatePermissions();
+
+  await preloadDriveModelData();
+  await preloadProducts();
+});
+
+/* =======================================================
+   Quote Button Listeners inside Module
+======================================================= */
+document.addEventListener("click", (e) => {
+  if (e.target.classList.contains("add-quote-btn")) {
+    const model = e.target.getAttribute("data-model");
+    const item  = currentResultList.find(p => p.model === model);
+    if (!item) return;
+
+    const qty = qtySelect.value || "50";
+    const ck  = `quote${qty}`;
+    const cost = item[ck] ?? item.quote50 ?? 0;
+
+    const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === `${qty}個`);
+    
+    if (existingIndex > -1) {
+        quoteList[existingIndex].count += 1;
+        alert(`已更新報價單：${item.name} (數量: ${quoteList[existingIndex].count})`);
+    } else {
+        quoteList.push({
+          model: item.model,
+          name: item.name,
+          price: cost,
+          qtyLabel: `${qty}個`,
+          count: 1,
+          productUrl: item.productUrl || ""
+        });
+        alert(`已加入報價單（${qty}個：$${cost}）`);
+    }
+
+    updateQuoteToolbarBtn();
+    return;
+  }
+
+  if (e.target.classList.contains("line-share-btn")) {
+    const model = e.target.getAttribute("data-model");
+    const item  = currentResultList.find(p => p.model === model);
+    if (!item) return;
+
+    const showMinPrice = userLevel >= 1;
+    const getPrice = (p) => (item[p] ?? "-");
+
+    let costText = "";
+    const currentQty = qtySelect.value; 
+
+    if (currentQty) {
+        const k = `quote${currentQty}`;
+        let canSee = false;
+        
+        if (userLevel >= 1 && currentQty == 50) canSee = true;
+        if (userLevel >= 2 && (currentQty == 100 || currentQty == 300)) canSee = true;
+        if (userLevel >= 3 && (currentQty == 500 || currentQty == 1000)) canSee = true;
+        
+        if(canSee) {
+              costText += `${currentQty}個：${getPrice(k)}\n`;
+        } else {
+              costText += `${currentQty}個：(無權限)\n`;
+        }
+    } else {
+        if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
+        if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
+        if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
+    }
+
+    const text = `【${item.model}】${item.name}
+賣場售價：${getPrice('marketPrice')}
+末售價格：${showMinPrice ? getPrice('minPrice') : '---'}
+--------------------
+採購價格：
+${costText}
+商品連結：${item.productUrl || "無"}`;
+
+    navigator.clipboard.writeText(text)
+      .then(() => alert("已複製到剪貼簿"))
+      .catch(() => alert("複製失敗"));
+  }
+
+  const card = document.getElementById("detailCard");
+  if (card && card.style.display !== "none") {
+    if (!card.contains(e.target) && !e.target.closest("tr")) {
+      card.style.display = "none";
+    }
+  }
+
+  if(card && !card.hasAttribute("data-listeners-added")){
+      card.setAttribute("data-listeners-added", "true");
+      card.addEventListener("mouseenter", () => {
+        if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
+      });
+      card.addEventListener("mouseleave", () => {
+        // 🚀 Changed from 200 to 1000
+        window.hideDetailTimer = setTimeout(() => {
+          card.style.display = "none";
+        }, 1000);
+      });
+  }
+});
+
+if (batchAddQuoteBtn) {
+    batchAddQuoteBtn.onclick = () => {
+        const checked = document.querySelectorAll(".row-check:checked");
+        if (checked.length === 0) {
+            alert("請先勾選要加入候選清單的商品");
+            return;
+        }
+
+        const qty = qtySelect.value || "50";
+        let addedCount = 0;
+
+        Array.from(checked).forEach(c => {
+            const model = c.getAttribute("data-model");
+            const item = currentResultList.find(p => p.model === model);
+            if (!item) return;
+
+            const ck = `quote${qty}`;
+            const cost = item[ck] ?? item.quote50 ?? 0;
+            const qtyLabel = `${qty}個`;
+
+            const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === qtyLabel);
+
+            if (existingIndex > -1) {
+                quoteList[existingIndex].count += 1;
+            } else {
+                quoteList.push({
+                    model: item.model,
+                    name: item.name,
+                    price: cost,
+                    qtyLabel: qtyLabel,
+                    count: 1,
+                    productUrl: item.productUrl || ""
+                });
+            }
+            addedCount++;
+        });
+
+        updateQuoteToolbarBtn();
+        alert(`已成功將 ${addedCount} 項商品加入候選清單！`);
+    };
+}
+
+if (multiLineBtn) {
+    multiLineBtn.onclick = () => {
+        const checked = document.querySelectorAll(".row-check:checked");
+        if (checked.length === 0) {
+            alert("請先勾選要分享的商品");
+            return;
+        }
+
+        const qty = qtySelect.value || "50";
+        let text = `KINYO 多品項報價（起訂量：${qty}個）\n--------------------\n`;
+
+        Array.from(checked).forEach((c, i) => {
+            const model = c.getAttribute("data-model");
+            const item = currentResultList.find(p => p.model === model);
+            if (!item) return;
+
+            const ck = `quote${qty}`;
+            
+            let canSeeQuote = false;
+            if (userLevel >= 1 && qty == 50) canSeeQuote = true;
+            if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
+            if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
+
+            const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
+            const market = item.marketPrice ?? "-";
+            const link = item.productUrl || "無連結";
+
+            text += `${i + 1}. 【${item.model}】${item.name}\n`;
+            text += `   💰 ${qty}個報價：$${cost}\n`;
+            text += `   🛒 賣場售價：$${market}\n`;
+            text += `   🔗 商品連結：${link}\n\n`;
+        });
+
+        text += "--------------------\n";
+        text += "以上報價僅供參考，實際以最終確認為主。";
+
+        navigator.clipboard.writeText(text)
+            .then(() => alert(`已複製 ${checked.length} 項商品的報價資訊！請直接在 LINE 貼上。`))
+            .catch(() => alert("複製失敗，請手動複製。"));
+    };
+}
+
+if(sortSelect) {
+  sortSelect.onchange = () => {
+    if (currentResultList.length > 0) {
+      currentResultList = applySorting([...currentResultList]);
+      renderResults(currentResultList);
+    }
+  };
+}
+
+if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
+if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
+
+if(sheetBackdrop) {
+  sheetBackdrop.onclick = () => {
+    if (!mobileSheet.classList.contains("hidden")) closeSheet();
+    if (!quoteSheet.classList.contains("hidden")) closeQuoteSheet();
+  };
+}
+
+window.addEventListener('scroll', updateToolbarScrollState);
+
+if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
+
 </script>
 </body>
 </html>
