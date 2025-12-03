@@ -648,18 +648,23 @@ th{background:#fafafa;text-align:left;}
     </div>
   </div>
 
-  <div class="search-row" style="display:flex; align-items:center; gap:10px; background:#fefce8; padding:10px 12px; border-radius:8px; border:1px solid #fde047; margin-bottom:12px;">
-    <input type="checkbox" id="gradeFilter" style="width:20px; height:20px; cursor:pointer;">
-    <label for="gradeFilter" style="margin:0; color:#854d0e; font-weight:bold; cursor:pointer; font-size:15px; user-select:none;">
+ <div class="search-row" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:30px;">
+  
+  <div style="display:flex; align-items:center; gap:6px; background:#fefce8; padding:8px 12px; border-radius:8px; border:1px solid #fde047;">
+    <input type="checkbox" id="gradeFilter" style="width:18px; height:18px; cursor:pointer;">
+    <label for="gradeFilter" style="margin:0; color:#854d0e; font-weight:bold; cursor:pointer; font-size:14px; user-select:none;">
       ✨ 只顯示 A 級品
     </label>
   </div>
-   <div style="display:flex; align-items:center; gap:6px; background:#eff6ff; padding:8px 12px; border-radius:8px; border:1px solid #bfdbfe;">
+
+  <div style="display:flex; align-items:center; gap:6px; background:#eff6ff; padding:8px 12px; border-radius:8px; border:1px solid #bfdbfe;">
     <input type="checkbox" id="controlledFilter" style="width:18px; height:18px; cursor:pointer;">
     <label for="controlledFilter" style="margin:0; color:#1e40af; font-weight:bold; cursor:pointer; font-size:14px; user-select:none;">
       🛡️ 只顯示控價品
     </label>
   </div>
+
+</div>
   <button id="searchBtn" type="submit" class="btn-primary">查詢</button>
   <button id="clearBtn" type="button" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </form>
