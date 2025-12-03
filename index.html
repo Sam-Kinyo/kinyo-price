@@ -636,6 +636,7 @@ th{background:#fafafa;text-align:left;}
             <option value="100">📦 現貨 > 100 (批發)</option>
             <option value="300">📦 現貨 > 300 (大宗)</option>
             <option value="500">📦 現貨 > 500 (專案)</option>
+           <option value="1000">📦 現貨 > 1000 (海量)</option>
         </select>
     </div>
   </div>
@@ -1126,12 +1127,8 @@ function updatePermissions() {
         importProductBtn.style.display = 'none'; 
     }
 
-    // 2. Level 2+ Or VIP: Stock Filter
-    // VIP usually doesn't need to filter by exact stock, but we can leave it or hide it.
-    // User requirement: "VIP sees inventory status", not necessarily filters.
-    // Let's keep it simple: If VIP, hide complex filters? No, keep them but they work on fuzzy logic maybe?
-    // For now, let's allow Level 2+ only. VIPs (usually low level in system, level=0) won't see it.
-    if (userLevel >= 2) {
+    // 2. Level 2+ 或 VIP 都能使用庫存篩選
+    if (userLevel >= 2 || currentUserVipConfig) {
         stockFilter.style.display = 'block'; 
     } else {
         stockFilter.style.display = 'none';
