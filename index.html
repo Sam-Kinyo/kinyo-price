@@ -828,6 +828,7 @@ let currentResultList = [];
 let userLevel = 0; 
 let currentUserEmail = "";
 let currentUserVipConfig = null; // 🚀 VIP Config: { column: 'VIP_A', name: '好市多' }
+   let isGroupBuyUser = false;
 let quoteList = [];
 let isProductsLoaded = false;
 let isQuotesLoaded = false;
@@ -1511,56 +1512,71 @@ if (item.isControlled) {
 }
      
     const tr = document.createElement("tr");
-    let priceHtml = "";
+let priceHtml = ""; // 這是開頭
 
+    // 👇👇👇 [修改] 價格顯示邏輯 (VIP > 團購主 > 一般批發) 👇👇👇
     const getPrice = (p) => (item[p] ?? "-");
 
-    // 🚀 VIP 價格顯示邏輯
     if (currentUserVipConfig) {
-        // VIP Mode
+        // --- 1. VIP 模式 (最高優先) ---
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
-            // Scenario A: Has Price
             priceHtml = `<span style="font-weight:bold; color:#b91c1c; font-size:14px; background:#fce7f3; padding:4px 8px; border-radius:6px;">${currentUserVipConfig.name} 專屬價：$${vipPriceVal}</span>`;
         } else {
-            // Scenario B: No Price
             priceHtml = `<span style="font-weight:bold; color:#2563eb; font-size:14px;">請洽郭庭豪</span>`;
         }
+        
+    } else if (isGroupBuyUser) {
+        // --- 2. 團購主模式 (新加入的) ---
+        // 抓取 Excel 內的 'groupBuyPrice' 欄位
+        const gbPrice = item.groupBuyPrice; 
+        if (gbPrice) {
+            priceHtml = `<span style="display:inline-block; background:#fee2e2; color:#b91c1c; border:1px solid #f87171; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:15px;">🔴 直播團購價：$${gbPrice}</span>`;
+        } else {
+            priceHtml = `<span style="color:#9ca3af; font-size:13px;">本檔未開放</span>`;
+        }
+
     } else {
-        // Standard Mode
+        // --- 3. 一般批發模式 (Level 1~4) ---
         if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getPrice('quote50')}</span>`;
         if (userLevel >= 2) {
-          priceHtml += `<span class="price-tag tag100">100個：${getPrice('quote100')}</span>`;
-          priceHtml += `<span class="price-tag tag300">300個：${getPrice('quote300')}</span>`;
+            priceHtml += `<span class="price-tag tag100">100個：${getPrice('quote100')}</span>`;
+            priceHtml += `<span class="price-tag tag300">300個：${getPrice('quote300')}</span>`;
         }
         if (userLevel >= 3) {
-          priceHtml += `<span class="price-tag tag500">500個：${getPrice('quote500')}</span>`;
-          priceHtml += `<span class="price-tag tag1000">1000個：${getPrice('quote1000')}</span>`;
+            priceHtml += `<span class="price-tag tag500">500個：${getPrice('quote500')}</span>`;
+            priceHtml += `<span class="price-tag tag1000">1000個：${getPrice('quote1000')}</span>`;
         }
-       if (userLevel >= 4) {
-  // 使用紫色系標籤區隔
-  priceHtml += `<span class="price-tag" style="background:#f3e8ff;color:#6b21a8;">3000個：${getPrice('quote3000')}</span>`;
-}
+        if (userLevel >= 4) {
+            priceHtml += `<span class="price-tag" style="background:#f3e8ff;color:#6b21a8;">3000個：${getPrice('quote3000')}</span>`;
+        }
     }
+    // 👆👆👆 [結束] 👆👆👆
 
     // 🚀 末售與賣場價格顯示邏輯 (VIP 特規)
     const showMinPrice = userLevel >= 1;
-    let minPriceDisplay = showMinPrice ? (item.minPrice ?? "-") : "---";
+   let minPriceDisplay = "";
     let marketPriceDisplay = item.marketPrice ?? "-";
 
     if (currentUserVipConfig) {
+        // 1. VIP 邏輯 (維持原本：有專屬價就隱藏參考價)
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
-            // Scenario A: Has Price -> Hide reference prices to focus on exclusive deal
             minPriceDisplay = "";
             marketPriceDisplay = "";
         } else {
-            // Scenario B: No Price -> Show reference prices as ceiling
             minPriceDisplay = item.minPrice ?? "-";
             marketPriceDisplay = item.marketPrice ?? "-";
         }
+    } else if (isGroupBuyUser) {
+        // 2. [新增] 團購主邏輯：強制隱藏末售(底價)，只顯示賣場價
+        minPriceDisplay = "-"; 
+        marketPriceDisplay = item.marketPrice ?? "-";
+    } else {
+        // 3. 一般人邏輯 (維持原本)
+        minPriceDisplay = showMinPrice ? (item.minPrice ?? "-") : "---";
+        marketPriceDisplay = item.marketPrice ?? "-";
     }
-
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
     
     // 🚀 Insert Stock Variant HTML
@@ -2849,12 +2865,16 @@ onAuthStateChanged(auth, async (user) => {
   currentUserEmail = user.email || "";
   userLevel = 0; 
   currentUserVipConfig = null;
+   isGroupBuyUser = false;
 
   try {
       const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
       if (userDoc.exists()) {
           const userData = userDoc.data();
           userLevel = userData.level ?? 0;
+         if (userData.groupBuy === true) {
+              isGroupBuyUser = true;
+          }
           
           // 🚀 Check for VIP Config
           if (userData.vipColumn) {
