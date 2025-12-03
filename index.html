@@ -1497,6 +1497,10 @@ function renderResults(list) {
           priceHtml += `<span class="price-tag tag500">500個：${getPrice('quote500')}</span>`;
           priceHtml += `<span class="price-tag tag1000">1000個：${getPrice('quote1000')}</span>`;
         }
+       if (userLevel >= 4) {
+  // 使用紫色系標籤區隔
+  priceHtml += `<span class="price-tag" style="background:#f3e8ff;color:#6b21a8;">3000個：${getPrice('quote3000')}</span>`;
+}
     }
 
     // 🚀 末售與賣場價格顯示邏輯 (VIP 特規)
@@ -1617,12 +1621,13 @@ function showDetailMobile(item) {
 
   let quoteHtml = "";
   if (!currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000];
+      const tiers = [50, 100, 300, 500, 1000, 3000];
       tiers.forEach(t => {
           let isVisible = false;
           if (userLevel >= 1 && t === 50) isVisible = true;
           if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
           if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
+         if (userLevel >= 4 && t === 3000) isVisible = true;
 
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee;">
@@ -1782,12 +1787,13 @@ function showDetailDesktop(item) {
 
   let quoteHtml = "";
   if (!currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000];
+      const tiers = [50, 100, 300, 500, 1000, 3000];
       tiers.forEach(t => {
           let isVisible = false;
           if (userLevel >= 1 && t === 50) isVisible = true;
           if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
           if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
+         if (userLevel >= 4 && t === 3000) isVisible = true;
 
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
@@ -2148,6 +2154,7 @@ function exportSelectedExcel() {
       if (userLevel >= 1 && qty == 50) canSeeQuote = true;
       if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
       if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
+       if (userLevel >= 4 && qty == 3000) canSeeQuote = true;
 
       priceRow = [
           canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---", 
@@ -2409,7 +2416,7 @@ if(productUpload) {
                 let h = {
                     model: -1, name: -1, 
                     market: -1, min: -1, 
-                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1,
+                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1,
                     cat: -1, color: -1, barcode: -1, box: -1,
                     url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1
                 };
@@ -2435,6 +2442,7 @@ if(productUpload) {
                         if (cellLower.includes('300') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '300')) h.q300 = c;
                         if (cellLower.includes('500') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '500')) h.q500 = c;
                         if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '1000')) h.q1000 = c;
+                       if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '3000')) h.q3000 = c;
 
                         if(cellLower.includes('顏色')) h.color = c;
                         if(cellLower.includes('分類') || cellLower.includes('類別') || cellLower === 'category') h.cat = c;
@@ -2478,6 +2486,7 @@ if(productUpload) {
                     if(h.q300 !== -1 && hasVal(row[h.q300])) obj.quote300 = row[h.q300];
                     if(h.q500 !== -1 && hasVal(row[h.q500])) obj.quote500 = row[h.q500];
                     if(h.q1000 !== -1 && hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
+                   if(h.q3000 !== -1 && hasVal(row[h.q3000])) obj.quote3000 = row[h.q3000];
                     
                     if(h.cat !== -1 && hasVal(row[h.cat])) obj.category = row[h.cat];
                     if(h.color !== -1 && hasVal(row[h.color])) obj.colorList = row[h.color];
@@ -2986,6 +2995,7 @@ if (multiLineBtn) {
             if (userLevel >= 1 && qty == 50) canSeeQuote = true;
             if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
             if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
+           if (userLevel >= 4 && qty == 3000) canSeeQuote = true;
 
             const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
             const market = item.marketPrice ?? "-";
