@@ -2417,7 +2417,7 @@ if(productUpload) {
                 let h = {
                     model: -1, name: -1, 
                     market: -1, min: -1, 
-                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1,
+                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1, grade: -1,
                     cat: -1, color: -1, barcode: -1, box: -1,
                     url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1
                 };
@@ -2444,6 +2444,7 @@ if(productUpload) {
                         if (cellLower.includes('500') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '500')) h.q500 = c;
                         if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '1000')) h.q1000 = c;
                        if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '3000')) h.q3000 = c;
+                       if (cellLower.includes('a級') || cellLower === 'grade' || cellLower === 'a級品') h.grade = c;
 
                         if(cellLower.includes('顏色')) h.color = c;
                         if(cellLower.includes('分類') || cellLower.includes('類別') || cellLower === 'category') h.cat = c;
@@ -2488,6 +2489,11 @@ if(productUpload) {
                     if(h.q500 !== -1 && hasVal(row[h.q500])) obj.quote500 = row[h.q500];
                     if(h.q1000 !== -1 && hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
                    if(h.q3000 !== -1 && hasVal(row[h.q3000])) obj.quote3000 = row[h.q3000];
+                   if(h.grade !== -1 && hasVal(row[h.grade])) {
+    const val = String(row[h.grade]).trim().toUpperCase();
+    // 只要 Excel 裡面有寫 A，就標記為 'A'
+    if(val.includes('A')) obj.grade = 'A'; 
+}
                     
                     if(h.cat !== -1 && hasVal(row[h.cat])) obj.category = row[h.cat];
                     if(h.color !== -1 && hasVal(row[h.color])) obj.colorList = row[h.color];
