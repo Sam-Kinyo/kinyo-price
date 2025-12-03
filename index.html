@@ -654,6 +654,12 @@ th{background:#fafafa;text-align:left;}
       ✨ 只顯示 A 級品
     </label>
   </div>
+   <div style="display:flex; align-items:center; gap:6px; background:#eff6ff; padding:8px 12px; border-radius:8px; border:1px solid #bfdbfe;">
+    <input type="checkbox" id="controlledFilter" style="width:18px; height:18px; cursor:pointer;">
+    <label for="controlledFilter" style="margin:0; color:#1e40af; font-weight:bold; cursor:pointer; font-size:14px; user-select:none;">
+      🛡️ 只顯示控價品
+    </label>
+  </div>
   <button id="searchBtn" type="submit" class="btn-primary">查詢</button>
   <button id="clearBtn" type="button" class="btn-secondary" style="margin-top:10px;width:100%;">清除搜尋條件</button>
 </form>
@@ -1380,6 +1386,8 @@ function searchProducts() {
   const stockReq = stockFilter.value; 
    const gradeCheck = document.getElementById("gradeFilter");
   const isGradeOnly = gradeCheck && gradeCheck.checked;
+   const controlledCheck = document.getElementById("controlledFilter");
+const isControlledOnly = controlledCheck && controlledCheck.checked;
   
   const hasKey = !!key;
   const hasQty = !!qty;
@@ -1409,6 +1417,9 @@ function searchProducts() {
      if (isGradeOnly) {
         r = r.filter(p => p.grade === 'A');
     }
+     if (isControlledOnly) {
+    r = r.filter(p => p.isControlled === true);
+}
 
     if (hasCat) {
         r = r.filter(p => p.category === cat);
@@ -1486,6 +1497,10 @@ function renderResults(list) {
     if (item.grade === 'A') {
         gradeHtml = `<span style="background:#fefce8; color:#854d0e; border:1px solid #fde047; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">✨ A級品</span>`;
     }
+     let controlledHtml = "";
+if (item.isControlled) {
+    controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
+}
      
     const tr = document.createElement("tr");
     let priceHtml = "";
@@ -1550,7 +1565,7 @@ function renderResults(list) {
       </td>
       <td class="model-cell">${item.mainModel || "-"}</td>
      <td>
-        ${gradeHtml} ${catBadge} 
+        ${gradeHtml} ${controlledHtml} ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;font-size:15px;">${item.name || "-"}</div>
         
         <div style="font-size:13px;color:#555;margin-bottom:4px;">
@@ -2434,7 +2449,7 @@ if(productUpload) {
                     model: -1, name: -1, 
                     market: -1, min: -1, 
                     q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1, grade: -1,
-                    cat: -1, color: -1, barcode: -1, box: -1,
+                    cat: -1, color: -1, barcode: -1, box: -1, controlled: -1,
                     url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1
                 };
                 
@@ -2461,6 +2476,7 @@ if(productUpload) {
                         if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '1000')) h.q1000 = c;
                        if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '3000')) h.q3000 = c;
                        if (cellLower.includes('a級') || cellLower === 'grade' || cellLower === 'a級品') h.grade = c;
+                       if (cellLower.includes('控價') || cellLower === 'controlled') h.controlled = c;
 
                         if(cellLower.includes('顏色')) h.color = c;
                         if(cellLower.includes('分類') || cellLower.includes('類別') || cellLower === 'category') h.cat = c;
@@ -2509,6 +2525,11 @@ if(productUpload) {
     const val = String(row[h.grade]).trim().toUpperCase();
     // 只要 Excel 裡面有寫 A，就標記為 'A'
     if(val.includes('A')) obj.grade = 'A'; 
+}
+                   if(h.controlled !== -1 && hasVal(row[h.controlled])) {
+    const val = String(row[h.controlled]).trim().toLowerCase();
+    // 如果 Excel 填 v 或 V，就標記為 true
+    if(val === 'v') obj.isControlled = true;
 }
                     
                     if(h.cat !== -1 && hasVal(row[h.cat])) obj.category = row[h.cat];
