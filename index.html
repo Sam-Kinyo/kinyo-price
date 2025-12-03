@@ -2321,15 +2321,128 @@ function exportSelectedExcel() {
 }
 // 👆👆👆 [結束] 👆👆👆
 
+// ✅ 這是新的，請貼上這一段
 function downloadQuoteExcel() {
   if (quoteList.length === 0) { alert("報價單是空的"); return; }
-  const header = ["商品型號","商品名稱","採購規格","單價","數量"];
-  const rows = [header];
-  quoteList.forEach(q => rows.push([q.model, q.name, q.qtyLabel, q.price, q.count]));
+
+  let rows = [];
+
+  // ------------------------------------------------
+  // 情境 A：團購主 (Group Buy User)
+  // ------------------------------------------------
+  if (isGroupBuyUser) {
+      // 1. 決定 VIP 欄位名稱 (例如：好市多)
+      const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
+      const displayName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : costCol;
+
+      // 2. 設定表頭 (比照搜尋匯出的格式 + 報價單特有欄位)
+      const header = [
+          "商品型號", 
+          "分類", 
+          "商品名稱", 
+          "箱入數", 
+          "團購價", 
+          `${displayName} 進價`, 
+          "賣場價", 
+          "庫存量", 
+          "商品連結",
+          "採購規格", // [新增]
+          "報價單價", // [新增]
+          "訂購數量", // [新增]
+          "小計"     // [新增]
+      ];
+      rows.push(header);
+
+      // 3. 填入資料
+      quoteList.forEach(q => {
+          // 嘗試從快取找回完整商品資料 (因為報價單原本只存了簡易資料)
+          let item = productCache.find(p => p.model === q.model);
+          if (!item) item = q; // 防呆：萬一找不到就用原本的
+
+          // 準備數據
+          const gbPrice = item.groupBuyPrice ? `$${item.groupBuyPrice}` : "未開放";
+          const myCost = item[costCol] ? `$${item[costCol]}` : "-";
+          const market = item.marketPrice ? `$${item.marketPrice}` : "-";
+          const stock = getInventoryRangeLabel(item.inventory) || "-";
+          
+          // 計算小計
+          const subtotal = (Number(q.price) || 0) * (Number(q.count) || 1);
+
+          rows.push([
+              q.model,             
+              item.category || "",  
+              q.name,              
+              item.cartonQty || "", 
+              gbPrice,              
+              myCost,                
+              market,                
+              stock,                
+              item.productUrl || "", 
+              q.qtyLabel,           // 採購規格 (e.g. 50個)
+              q.price,              // 報價單價
+              q.count,              // 訂購數量
+              subtotal              // 小計
+          ]);
+      });
+
+  } 
+  // ------------------------------------------------
+  // 情境 B：一般 / VIP 客戶
+  // ------------------------------------------------
+  else {
+      // 1. 基礎欄位 (比照 exportSelectedExcel)
+      const baseHeader = ["商品型號","主型號","分類","商品名稱","顏色列表","網路權限","箱入數","商品連結","商品大圖","網路圖"];
+      
+      // 2. 報價資訊欄位
+      const quoteHeader = ["採購規格", "報價單價", "訂購數量", "小計", "末售參考", "賣場售價", "庫存狀態"];
+      
+      rows.push([...baseHeader, ...quoteHeader]);
+
+      quoteList.forEach(q => {
+          // 嘗試從快取找回完整商品資料
+          let item = productCache.find(p => p.model === q.model);
+          if (!item) item = q;
+
+          const driveMain = getDriveMainImage(item.model, item.mainModel);
+          const driveNetList = getDriveNetImages(item.model, item.mainModel);
+          const stock = getInventoryRangeLabel(item.inventory) || "-";
+          const showMinPrice = userLevel >= 1;
+          
+          // 計算小計
+          const subtotal = (Number(q.price) || 0) * (Number(q.count) || 1);
+
+          // 基礎資料
+          const baseRow = [
+              q.model, item.mainModel || "", item.category || "", q.name, item.colorList || "", 
+              item.netSalesPermission || "", item.cartonQty || "", item.productUrl || "", 
+              driveMain || "", (driveNetList || []).join(" | ")
+          ];
+
+          // 價格資料 (VIP 不顯示末售)
+          let displayMin = showMinPrice ? (item.minPrice ?? "-") : "---";
+          if (currentUserVipConfig && item[currentUserVipConfig.column]) {
+               displayMin = "-"; 
+          }
+
+          const priceRow = [
+              q.qtyLabel,           // 採購規格
+              q.price,              // 單價
+              q.count,              // 數量
+              subtotal,             // 小計
+              displayMin,           // 末售參考
+              item.marketPrice ?? "-", // 賣場售價
+              stock                 // 庫存狀態
+          ];
+          
+          rows.push([...baseRow, ...priceRow]);
+      });
+  }
+
+  // 產生並下載檔案
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, "報價單");
-  XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
+  XLSX.writeFile(wb, `KINYO_報價單匯出_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
 /* =======================================================
