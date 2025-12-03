@@ -2198,7 +2198,7 @@ async function exportSelectedPPT(source = 'checked') {
   }
 }
 
-// 👇👇👇 [修改] 匯出 Excel：團購主專屬格式 (9個指定欄位) vs 一般格式 👇👇👇
+// 👇👇👇 [修改] 匯出 Excel：團購主表頭改顯示「VIP 名稱」而非代號 👇👇👇
 function exportSelectedExcel() {
   const checked = document.querySelectorAll(".row-check:checked");
   if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
@@ -2210,45 +2210,49 @@ function exportSelectedExcel() {
   //  情境 A：團購主 (Group Buy User)
   // ==========================================
   if (isGroupBuyUser) {
-      // 1. 決定進價欄位名稱 (例如 "VIP_C 進價")
+      // 1. 決定資料欄位 Key (例如 "VIP_C")，用來抓數據
       const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
       
-      // 2. 設定表頭 (您指定的 9 個欄位)
+      // 2. 決定顯示名稱 (例如 "好市多" 或 "小美團購")
+      // 如果資料庫有設定 vipName 就用名字，沒設定就用代號
+      const displayName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : costCol;
+
+      // 3. 設定表頭
       const header = [
           "商品型號", 
           "分類", 
           "商品名稱", 
           "箱入數", 
           "團購價", 
-          `${costCol} 進價`, // 動態顯示 VIP 名稱
+          `${displayName} 進價`, // ✨ 修改這裡：顯示中文名稱
           "賣場價", 
           "庫存量", 
           "商品連結"
       ];
       rows.push(header);
 
-      // 3. 填入資料
+      // 4. 填入資料
       selectedModels.forEach(m => {
           const item = currentResultList.find(p => p.model === m);
           if (!item) return;
 
           // 準備數據
           const gbPrice = item.groupBuyPrice ? `$${item.groupBuyPrice}` : "未開放";
-          const myCost = item[costCol] ? `$${item[costCol]}` : "-";
+          const myCost = item[costCol] ? `$${item[costCol]}` : "-"; // 數據還是抓 VIP_C
           const market = item.marketPrice ? `$${item.marketPrice}` : "-";
           const stock = getInventoryRangeLabel(item.inventory) || "-";
 
           // 按照順序推入
           rows.push([
-              item.model,           // 1. 商品型號
-              item.category || "",  // 2. 分類
-              item.name,            // 3. 商品名稱
-              item.cartonQty || "", // 4. 箱入數
-              gbPrice,              // 5. 團購價
-              myCost,               // 6. VIP名稱進價
-              market,               // 7. 賣場價
-              stock,                // 8. 庫存量
-              item.productUrl || "" // 9. 商品連結
+              item.model,           
+              item.category || "",  
+              item.name,            
+              item.cartonQty || "", 
+              gbPrice,              
+              myCost,               
+              market,               
+              stock,                
+              item.productUrl || "" 
           ]);
       });
 
@@ -2285,7 +2289,6 @@ function exportSelectedExcel() {
           // 價格資料
           let priceRow = [];
           
-          // VIP 隱藏末售判斷
           let displayMin = showMinPrice ? (item.minPrice ?? "-") : "---";
           if (currentUserVipConfig && item[currentUserVipConfig.column]) {
                displayMin = "-"; 
