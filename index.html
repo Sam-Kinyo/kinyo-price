@@ -1517,27 +1517,44 @@ let priceHtml = ""; // 這是開頭
     // 👇👇👇 [修改] 價格顯示邏輯 (VIP > 團購主 > 一般批發) 👇👇👇
     const getPrice = (p) => (item[p] ?? "-");
 
-    if (currentUserVipConfig) {
-        // --- 1. VIP 模式 (最高優先) ---
+// ✅✅✅ [請貼上這段新的邏輯] ✅✅✅
+
+    // 1. 團購/直播主模式 (最高優先)
+    if (isGroupBuyUser) {
+        let htmlStack = [];
+
+        // (A) 顯示直播團購價 (紅標)
+        const gbPrice = item.groupBuyPrice; 
+        if (gbPrice) {
+            htmlStack.push(`<div style="margin-bottom:4px;"><span style="display:inline-block; background:#fee2e2; color:#b91c1c; border:1px solid #f87171; padding:3px 8px; border-radius:6px; font-weight:bold; font-size:15px;">🔴 直播團購價：$${gbPrice}</span></div>`);
+        } else {
+            htmlStack.push(`<div style="margin-bottom:4px;"><span style="color:#9ca3af; font-size:13px;">(本檔未開放團購)</span></div>`);
+        }
+
+        // (B) 顯示動態進價 (VIP_C, VIP_D...)
+        // 如果該用戶有設定 vipColumn (例如 "VIP_D") 就抓那一欄，否則預設抓 "VIP_C"
+        const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
+        const myCost = item[costCol]; 
+
+        if (myCost) {
+            htmlStack.push(`<div><span style="display:inline-block; background:#ecfdf5; color:#047857; border:1px solid #6ee7b7; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:13px;">💰 您的進價：$${myCost}</span></div>`);
+        } else {
+             htmlStack.push(`<div><span style="color:#999; font-size:12px;">(無專屬進價)</span></div>`);
+        }
+
+        priceHtml = htmlStack.join("");
+
+    } else if (currentUserVipConfig) {
+        // 2. 純 VIP 模式 (無團購身份)
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
             priceHtml = `<span style="font-weight:bold; color:#b91c1c; font-size:14px; background:#fce7f3; padding:4px 8px; border-radius:6px;">${currentUserVipConfig.name} 專屬價：$${vipPriceVal}</span>`;
         } else {
             priceHtml = `<span style="font-weight:bold; color:#2563eb; font-size:14px;">請洽郭庭豪</span>`;
         }
-        
-    } else if (isGroupBuyUser) {
-        // --- 2. 團購主模式 (新加入的) ---
-        // 抓取 Excel 內的 'groupBuyPrice' 欄位
-        const gbPrice = item.groupBuyPrice; 
-        if (gbPrice) {
-            priceHtml = `<span style="display:inline-block; background:#fee2e2; color:#b91c1c; border:1px solid #f87171; padding:4px 8px; border-radius:6px; font-weight:bold; font-size:15px;">🔴 直播團購價：$${gbPrice}</span>`;
-        } else {
-            priceHtml = `<span style="color:#9ca3af; font-size:13px;">本檔未開放</span>`;
-        }
 
     } else {
-        // --- 3. 一般批發模式 (Level 1~4) ---
+        // 3. 一般批發模式 (Level 1~4)
         if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getPrice('quote50')}</span>`;
         if (userLevel >= 2) {
             priceHtml += `<span class="price-tag tag100">100個：${getPrice('quote100')}</span>`;
@@ -1551,7 +1568,7 @@ let priceHtml = ""; // 這是開頭
             priceHtml += `<span class="price-tag" style="background:#f3e8ff;color:#6b21a8;">3000個：${getPrice('quote3000')}</span>`;
         }
     }
-    // 👆👆👆 [結束] 👆👆👆
+    // ✅✅✅ [結束] ✅✅✅
 
     // 🚀 末售與賣場價格顯示邏輯 (VIP 特規)
     const showMinPrice = userLevel >= 1;
