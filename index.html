@@ -2321,73 +2321,111 @@ function exportSelectedExcel() {
 }
 // 👆👆👆 [結束] 👆👆👆
 
+// 👇👇👇 [修改] 下載報價單 Excel：格式完全比照「匯出 Excel」 👇👇👇
 function downloadQuoteExcel() {
   if (quoteList.length === 0) { alert("報價單是空的"); return; }
-  const header = ["商品型號","商品名稱","採購規格","單價","數量"];
-  const rows = [header];
-  quoteList.forEach(q => rows.push([q.model, q.name, q.qtyLabel, q.price, q.count]));
+  
+  let rows = [];
+
+  // ==========================================
+  //  情境 A：團購主 (Group Buy User) - 9個指定欄位
+  // ==========================================
+  if (isGroupBuyUser) {
+      // 1. 決定表頭
+      const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
+      const displayName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : costCol;
+
+      const header = [
+          "商品型號", 
+          "分類", 
+          "商品名稱", 
+          "箱入數", 
+          "團購價", 
+          `${displayName} 進價`, 
+          "賣場價", 
+          "庫存量", 
+          "商品連結"
+      ];
+      rows.push(header);
+
+      // 2. 填入資料 (遍歷報價單)
+      quoteList.forEach(q => {
+          // 嘗試從快取找完整商品資料 (因為 quoteList 只有簡略資料)
+          const item = productCache.find(p => p.model === q.model) || {}; 
+
+          const gbPrice = item.groupBuyPrice ? `$${item.groupBuyPrice}` : "未開放";
+          const myCost = item[costCol] ? `$${item[costCol]}` : "-";
+          const market = item.marketPrice ? `$${item.marketPrice}` : "-";
+          const stock = getInventoryRangeLabel(item.inventory) || "-";
+
+          rows.push([
+              q.model,              // 優先用報價單的型號
+              item.category || "",  // 補完分類
+              q.name,               // 優先用報價單的名稱
+              item.cartonQty || "", // 補完箱入數
+              gbPrice,              
+              myCost,               
+              market,               
+              stock,                
+              item.productUrl || "" 
+          ]);
+      });
+
+  } 
+  // ==========================================
+  //  情境 B：一般 / VIP 客戶 - 完整格式
+  // ==========================================
+  else {
+      // 1. 表頭
+      const baseHeader = ["商品型號","主型號","分類","商品名稱","顏色列表","網路權限","箱入數","商品連結","商品大圖","網路圖"];
+      // 這裡的價格欄位比較特別，因為報價單裡面的商品可能有不同數量(50個/100個)，我們統一叫「報價單價格」
+      const priceHeader = ["報價單價格 (採購價)", "末售參考", "賣場售價", "庫存狀態"];
+      
+      rows.push([...baseHeader, ...priceHeader]);
+
+      quoteList.forEach(q => {
+          const item = productCache.find(p => p.model === q.model) || {};
+          
+          const driveMain = getDriveMainImage(item.model, item.mainModel);
+          const driveNetList = getDriveNetImages(item.model, item.mainModel);
+          const stock = getInventoryRangeLabel(item.inventory) || "-";
+          const showMinPrice = userLevel >= 1;
+
+          // 基礎資料
+          const baseRow = [
+              q.model, 
+              item.mainModel || "", 
+              item.category || "", 
+              q.name, 
+              item.colorList || "", 
+              item.netSalesPermission || "", 
+              item.cartonQty || "", 
+              item.productUrl || "", 
+              driveMain || "", 
+              (driveNetList || []).join(" | ")
+          ];
+
+          // 價格資料
+          let displayMin = showMinPrice ? (item.minPrice ?? "-") : "---";
+          if (currentUserVipConfig && item[currentUserVipConfig.column]) {
+               displayMin = "-"; 
+          }
+
+          // 這裡使用 quoteList 紀錄的價格 (q.price) 與數量標籤 (q.qtyLabel)
+          const costDisplay = `$${q.price} (${q.qtyLabel})`; 
+
+          const priceRow = [costDisplay, displayMin, item.marketPrice ?? "-", stock];
+          rows.push([...baseRow, ...priceRow]);
+      });
+  }
+
+  // 產生檔案
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, ws, "報價單");
   XLSX.writeFile(wb, `KINYO_報價單_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
-
-/* =======================================================
-   Event Listeners (Bind within Module)
-======================================================= */
-searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
-exportBtn.onclick = exportSelectedExcel;
-logoutBtn.onclick = () => {
-    if(confirm("確定要登出嗎？")) {
-        signOut(auth).then(() => {
-            window.location.reload();
-        }).catch((error) => {
-            console.error("登出錯誤:", error);
-            alert("登出發生錯誤，請重新整理網頁");
-        });
-    }
-};
-
-// Open File Dialog
-if(importInventoryBtn) {
-    importInventoryBtn.onclick = () => {
-        inventoryUpload.value = ''; // Reset
-        inventoryUpload.click();
-    };
-}
-
-if(importProductBtn) {
-    importProductBtn.onclick = () => {
-        productUpload.value = ''; // Reset
-        productUpload.click();
-    }
-}
-
-// Cancel Import
-if(cancelImportBtn) {
-    cancelImportBtn.onclick = () => {
-        previewOverlay.style.display = "none";
-        pendingInventoryMap.clear();
-        pendingProductData = [];
-        inventoryUpload.value = ''; 
-        productUpload.value = '';
-    };
-}
-
-// Confirm Import
-if(confirmImportBtn) {
-    confirmImportBtn.onclick = () => {
-        if(currentImportMode === 'inventory') {
-            if(pendingInventoryMap.size === 0) return;
-            previewOverlay.style.display = "none";
-            saveInventoryToFirestore(pendingInventoryMap);
-        } else if(currentImportMode === 'product') {
-            if(pendingProductData.length === 0) return;
-            previewOverlay.style.display = "none";
-            saveProductDataToFirestore(pendingProductData);
-        }
-    };
-}
+// 👆👆👆 [結束] 👆👆👆
 
 // 🚀 V6.4 重寫的保存邏輯：即時抓取原始資料進行精準寫入
 async function saveProductDataToFirestore(actions) {
@@ -3009,23 +3047,26 @@ document.addEventListener("click", (e) => {
     const qty = qtySelect.value || "50";
     const ck  = `quote${qty}`;
     const cost = item[ck] ?? item.quote50 ?? 0;
+    const qtyLabel = `${qty}個`;
 
-    const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === `${qty}個`);
+    const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === qtyLabel);
     
+    // 👇👇👇 [修改] 若重複，數量保持 1，不增加 👇👇👇
     if (existingIndex > -1) {
-        quoteList[existingIndex].count += 1;
-        alert(`已更新報價單：${item.name} (數量: ${quoteList[existingIndex].count})`);
+        // quoteList[existingIndex].count += 1; // ❌ 原本會加 1，現在刪除這行
+        alert(`此商品已在報價單中！`); // 提示使用者
     } else {
         quoteList.push({
           model: item.model,
           name: item.name,
           price: cost,
-          qtyLabel: `${qty}個`,
-          count: 1,
+          qtyLabel: qtyLabel,
+          count: 1, // 預設永遠是 1
           productUrl: item.productUrl || ""
         });
-        alert(`已加入報價單（${qty}個：$${cost}）`);
+        alert(`已加入報價單`);
     }
+    // 👆👆👆 [結束] 👆👆👆
 
     updateQuoteToolbarBtn();
     return;
