@@ -652,12 +652,12 @@ th{background:#fafafa;text-align:left;}
   
  <div class="search-row" style="display:flex; gap:10px; width:100%;">
   
-  <div id="gradeFilterContainer" style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#fefce8; padding:10px; border-radius:8px; border:1px solid #fde047;">
+  <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#fefce8; padding:10px; border-radius:8px; border:1px solid #fde047;">
     <input type="checkbox" id="gradeFilter" style="width:18px; height:18px; cursor:pointer;">
     <label for="gradeFilter" style="margin:0; color:#854d0e; font-weight:bold; cursor:pointer; font-size:14px; user-select:none;">
       ✨ 只顯示 A 級品
     </label>
-</div>
+  </div>
 
   <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#eff6ff; padding:10px; border-radius:8px; border:1px solid #bfdbfe;">
     <input type="checkbox" id="controlledFilter" style="width:18px; height:18px; cursor:pointer;">
@@ -1118,9 +1118,8 @@ function updateUserDisplay(status) {
 }
 
 // 🚀 Updates UI permissions based on user level
-// 🚀 Updates UI permissions based on user level
 function updatePermissions() {
-    // 1. Level 4 Only: 只有 Level 4 可以看到匯入按鈕
+    // 1. Level 4 Only: Import Inventory & Product Data
     if (userLevel >= 4) {
         importInventoryBtn.style.display = 'inline-block';
         importProductBtn.style.display = 'inline-block'; 
@@ -1135,17 +1134,16 @@ function updatePermissions() {
     } else {
         stockFilter.style.display = 'none';
     }
+}
 
-    // ✅ [這裡是新增的] 3. A級品篩選框：只有 Level 4 能看
-    const gradeContainer = document.getElementById("gradeFilterContainer");
-    const gradeInput = document.getElementById("gradeFilter");
-    
-    if (gradeContainer) {
-        if (userLevel >= 4) {
-            gradeContainer.style.display = "flex"; // Level 4 顯示
-        } else {
-            gradeContainer.style.display = "none"; // 其他人隱藏
-            if(gradeInput) gradeInput.checked = false; // 隱藏時順便取消勾選，避免誤觸
+async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await getDocs(queryRef);
+        } catch (err) {
+            console.warn(`Attempt ${i + 1} failed. Retrying in ${delay}ms...`, err);
+            if (i === retries - 1) throw err;
+            await new Promise(res => setTimeout(res, delay));
         }
     }
 }
@@ -1423,13 +1421,8 @@ const isControlledOnly = controlledCheck && controlledCheck.checked;
   setTimeout(() => {
     // 🚀 Use pre-merged cache directly
     let r = productCache;
-
-    // 👇👇👇 請在這裡插入這段程式碼 👇👇👇
-    
-    // ✅ [強制過濾] 如果不是 Level 4，將所有 A 級品從結果中剔除
-    // 這樣就算搜尋 "CL-123" 剛好是 A 級品，一般人也搜不到
-    if (userLevel < 4) {
-        r = r.filter(p => p.grade !== 'A');
+     if (isGradeOnly) {
+        r = r.filter(p => p.grade === 'A');
     }
      if (isControlledOnly) {
     r = r.filter(p => p.isControlled === true);
