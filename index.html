@@ -1510,7 +1510,7 @@ function searchProducts() {
 }
 
 
-/* 🚀 Updated Render Logic - 列表頁圖片遞補優化版 */
+/* 🚀 Updated Render Logic - 列表頁圖片 (修復備用圖無法顯示問題) */
 function renderResults(list) {
   resultBody.innerHTML = ""; detailCard.style.display = "none"; checkAllBox.checked = false; updateMultiLineBtnState();
   if (list.length === 0) {
@@ -1518,44 +1518,35 @@ function renderResults(list) {
   }
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
+  // ✅ [新增] 圖片連結轉換小工具 (把 Drive 連結轉成圖片)
+  const wrapUrl = (u) => {
+      if(!u) return "https://placehold.co/110x110?text=No+Image";
+      if(u.includes("placehold.co")) return u;
+      return "https://images.weserv.nl/?url=" + encodeURIComponent(u) + "&output=jpg&w=150";
+  };
+
   list.forEach(item => {
-    // ==================================================================================
-    // 🔥🔥🔥【重點修改：圖片智慧遞補邏輯 (開始)】🔥🔥🔥
-    // ==================================================================================
+    // --- 圖片智慧遞補邏輯 ---
     const netImages = getDriveNetImages(item.model, item.mainModel) || [];
     const driveMainImg = getDriveMainImage(item.model, item.mainModel);
     
-    // 1. 準備「救援隊」 (如果主圖掛掉，要換哪一張？)
-    // 優先順序：Drive主圖 > 網路圖第一張 > 預設灰圖
-    let backupImg = "https://placehold.co/110x110?text=No+Image";
-    if (driveMainImg) {
-        backupImg = driveMainImg;
-    } else if (netImages.length > 0) {
-        backupImg = netImages[0]; // ✅ 這裡就會抓到網路圖第一張
-    }
+    // 1. 準備「救援圖片」 (重點修正：加上 wrapUrl 包裝)
+    let rawBackup = null;
+    if (driveMainImg) rawBackup = driveMainImg;
+    else if (netImages.length > 0) rawBackup = netImages[0];
+
+    // 這裡會把 rawBackup (原始連結) 轉成 瀏覽器看得懂的 weserv 連結
+    let backupImg = wrapUrl(rawBackup);
 
     // 2. 決定「預設顯示圖片」
-    // 優先順序：Excel網址 > Drive主圖 > 網路圖第一張 > 預設灰圖
-    let img = item.imageUrl; // 先抓 Excel
+    let img = item.imageUrl; 
     
-    // 如果 Excel 沒填或格式不對
+    // 如果 Excel 沒填，直接先用救援圖
     if (!img || !img.startsWith("http")) {
-        if (driveMainImg) {
-            img = driveMainImg;
-        } else if (netImages.length > 0) {
-            img = netImages[0]; // ✅ Excel 沒填時，也嘗試用網路圖
-        } else {
-            img = "https://placehold.co/110x110?text=No+Image";
-        }
+        img = backupImg;
     }
-    // ==================================================================================
-    // 🔥🔥🔥【圖片邏輯 (結束)】🔥🔥🔥
-    // ==================================================================================
-
-    let gradeHtml = "";
-    if (item.grade === 'A') {
-        gradeHtml = `<span style="background:#fefce8; color:#854d0e; border:1px solid #fde047; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">✨ A級品</span>`;
-    }
+    
+    // --- 標籤與變數 ---
     let controlledHtml = "";
     if (item.isControlled) {
         controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
@@ -1565,7 +1556,7 @@ function renderResults(list) {
     let priceHtml = ""; 
     const getPrice = (p) => (item[p] ?? "-");
 
-    // (省略中間價格邏輯，保持原樣...)
+    // --- 價格邏輯 ---
     if (isGroupBuyUser) {
         let htmlStack = [];
         const gbPrice = item.groupBuyPrice; 
@@ -1627,10 +1618,7 @@ function renderResults(list) {
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
     const variantStockHtml = renderStockByVariant(item);
 
-    // ==================================================================================
-    // 🔥🔥🔥【重點修改：HTML 中加入 onerror 事件】🔥🔥🔥
-    // 如果 src 載入失敗，會自動觸發 onerror，將圖片換成我們準備好的 backupImg
-    // ==================================================================================
+    // --- HTML ---
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
@@ -1640,7 +1628,7 @@ function renderResults(list) {
       </td>
       <td class="model-cell">${item.mainModel || "-"}</td>
       <td>
-        ${gradeHtml} ${controlledHtml} ${catBadge} 
+        ${controlledHtml} ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;font-size:15px;">${item.name || "-"}</div>
         <div style="font-size:13px;color:#555;margin-bottom:4px;">
            ${item.colorList ? `顏色：${item.colorList}` : ''}
@@ -1658,9 +1646,9 @@ function renderResults(list) {
       <td style="text-align:right;">${marketPriceDisplay}</td>
     `;
 
+    // --- Events ---
     const imgEl = tr.querySelector('.product-img');
     const modelEl = tr.querySelector('.model-cell');
-
     const openDetail = () => {
       if (window.innerWidth > 900) {
         if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
@@ -1669,15 +1657,12 @@ function renderResults(list) {
         showDetailMobile(item);
       }
     };
-
     if (imgEl) {
       imgEl.addEventListener('click', openDetail);
       if (window.innerWidth > 900) {
           imgEl.addEventListener('mouseenter', openDetail);
           imgEl.addEventListener('mouseleave', () => {
-              window.hideDetailTimer = setTimeout(() => {
-                detailCard.style.display = "none";
-              }, 1000); 
+              window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
           });
       }
     }
@@ -1686,9 +1671,7 @@ function renderResults(list) {
        if (window.innerWidth > 900) {
           modelEl.addEventListener('mouseenter', openDetail);
           modelEl.addEventListener('mouseleave', () => {
-              window.hideDetailTimer = setTimeout(() => {
-                detailCard.style.display = "none";
-              }, 1000); 
+              window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
           });
       }
     }
@@ -1697,7 +1680,7 @@ function renderResults(list) {
   bindCheckAll();
 }
    
-/* 🚀 Updated Mobile Detail - 手機版彈窗圖片遞補優化版 */
+/* 🚀 Updated Mobile Detail - 手機版彈窗 (修復大圖遞補) */
 function showDetailMobile(item) {
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
   const netImages = getDriveNetImages(item.model, item.mainModel) || [];
@@ -1705,36 +1688,31 @@ function showDetailMobile(item) {
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
-  // ==================================================================================
-  // 🔥🔥🔥【重點修改：手機版圖片遞補邏輯】🔥🔥🔥
-  // ==================================================================================
+  // ✅ [新增] 圖片連結轉換小工具
+  const wrapUrl = (u) => {
+      if(!u) return "https://placehold.co/300x300?text=No+Image";
+      if(u.includes("placehold.co")) return u;
+      return "https://images.weserv.nl/?url=" + encodeURIComponent(u) + "&output=jpg&w=400";
+  };
+
   const driveMainImg = getDriveMainImage(item.model, item.mainModel);
 
   // 1. 準備救援圖片
-  let backupImg = "https://placehold.co/300x300?text=No+Image";
-  if (driveMainImg) {
-      backupImg = driveMainImg;
-  } else if (netImages.length > 0) {
-      backupImg = netImages[0];
-  }
+  let rawBackup = null;
+  if (driveMainImg) rawBackup = driveMainImg;
+  else if (netImages.length > 0) rawBackup = netImages[0];
+
+  let backupImg = wrapUrl(rawBackup);
 
   // 2. 決定預設圖片
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
-    if (driveMainImg) {
-        img = driveMainImg;
-    } else if (netImages.length > 0) {
-        img = netImages[0]; // ✅ 這裡優先使用網路圖
-    } else {
-        img = "https://placehold.co/300x300?text=No+Image";
-    }
+      img = backupImg;
   }
-  // ==================================================================================
 
   const getPrice = (p) => (item[p] ?? "-");
   const showMinPrice = userLevel >= 1;
 
-  // (省略中間價格與庫存邏輯...)
   let quoteHtml = "";
   if (!currentUserVipConfig) {
       const tiers = [50, 100, 300, 500, 1000, 3000];
@@ -1821,9 +1799,6 @@ function showDetailMobile(item) {
   }
 
   const sheetContent = document.getElementById("sheetContent");
-  // ==================================================================================
-  // 🔥🔥🔥【重點修改：HTML 中加入 onerror 事件】🔥🔥🔥
-  // ==================================================================================
   sheetContent.innerHTML = `
     <div style="text-align:center; margin-bottom:16px; background:#fafafa; padding:10px; border-radius:8px;">
       <img src="${img}" style="max-height:250px; max-width:100%; object-fit:contain; border-radius:4px;" 
@@ -1869,41 +1844,37 @@ function showDetailMobile(item) {
   openSheet();
 }
 
-/* 🚀 Updated Desktop Detail - 電腦版彈窗圖片遞補優化版 */
+/* 🚀 Updated Desktop Detail - 電腦版彈窗 (修復大圖遞補) */
 function showDetailDesktop(item) {
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
-  const netImages = getDriveNetImages(item.model, item.mainModel) || []; // 確保是陣列
+  const netImages = getDriveNetImages(item.model, item.mainModel) || []; 
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
-  // ==================================================================================
-  // 🔥🔥🔥【重點修改：彈窗大圖的遞補邏輯】🔥🔥🔥
-  // ==================================================================================
+  // ✅ [新增] 圖片連結轉換小工具
+  const wrapUrl = (u) => {
+      if(!u) return "https://placehold.co/300x300?text=No+Image";
+      if(u.includes("placehold.co")) return u;
+      return "https://images.weserv.nl/?url=" + encodeURIComponent(u) + "&output=jpg&w=400";
+  };
+
   const driveMainImg = getDriveMainImage(item.model, item.mainModel);
   
-  // 1. 準備救援圖片 (Drive主圖 > 網路圖第一張 > 灰圖)
-  let backupImg = "https://placehold.co/300x300?text=No+Image";
-  if (driveMainImg) {
-      backupImg = driveMainImg;
-  } else if (netImages.length > 0) {
-      backupImg = netImages[0];
-  }
+  // 1. 準備救援圖片
+  let rawBackup = null;
+  if (driveMainImg) rawBackup = driveMainImg;
+  else if (netImages.length > 0) rawBackup = netImages[0];
+
+  let backupImg = wrapUrl(rawBackup);
 
   // 2. 決定預設圖片
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
-    if (driveMainImg) {
-        img = driveMainImg;
-    } else if (netImages.length > 0) {
-        img = netImages[0]; // ✅ 這裡優先使用網路圖
-    } else {
-        img = "https://placehold.co/300x300?text=No+Image";
-    }
+      img = backupImg;
   }
-  // ==================================================================================
 
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
@@ -1917,7 +1888,7 @@ function showDetailDesktop(item) {
   const getPrice = (p) => (item[p] ?? "-");
   const showMinPrice = userLevel >= 1;
 
-  // (省略中間價格與庫存邏輯，保持原樣...)
+  // ... (省略中間 quoteHtml 和 stockHtml 邏輯，保持原樣) ...
   let quoteHtml = "";
   if (!currentUserVipConfig) {
       const tiers = [50, 100, 300, 500, 1000, 3000];
@@ -1996,9 +1967,6 @@ function showDetailDesktop(item) {
   }
   
   detailCard.style.display = "block";
-  // ==================================================================================
-  // 🔥🔥🔥【重點修改：HTML 中加入 onerror 事件】🔥🔥🔥
-  // ==================================================================================
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
     
