@@ -2679,10 +2679,7 @@ async function saveInventoryToFirestore(invMap) {
 }
 
 // ----------------------------------------------------
-// PRODUCT IMPORT LOGIC (Smart Parsing)
-// ----------------------------------------------------
-// ----------------------------------------------------
-// PRODUCT IMPORT LOGIC (最終定案版：庫存同步 + 廠價算報價 + 末售價依Excel + 資安保護)
+// PRODUCT IMPORT LOGIC (雙倉加總 + 廠價公式 + 資安保護)
 // ----------------------------------------------------
 if(productUpload) {
     productUpload.onchange = (e) => {
@@ -2705,8 +2702,10 @@ if(productUpload) {
                     q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1, grade: -1,
                     cat: -1, color: -1, barcode: -1, box: -1, controlled: -1,
                     url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1,
-                    cost: -1,      // 廠價 (僅供運算用，不存檔)
-                    inventory: -1  // 庫存
+                    cost: -1,       // 廠價
+                    inventory: -1,  // 單一庫存欄位 (備用)
+                    finished: -1,   // ✅ 成品倉
+                    exclusive: -1   // ✅ 專賣倉
                 };
                 
                 let vipHeaders = {}; 
@@ -2718,13 +2717,14 @@ if(productUpload) {
                         const cell = String(row[c] || "").trim();
                         const cellLower = cell.toLowerCase();
                         
+                        // 基本欄位偵測
                         if(cellLower === 'model' || cellLower === '型號' || cellLower === '產品') h.model = c;
                         if(cellLower === 'name' || cellLower === '品名' || cellLower === '產品名稱') h.name = c;
                         if(cellLower.includes('賣場') || cellLower.includes('建議售價')) h.market = c;
                         if(cellLower.includes('末售') || cellLower.includes('底價')) h.min = c;
                         if(cellLower.includes('團購')) h.groupBuy = c; 
                         
-                        // 報價欄位 (優先權：Excel手填 > 自動計算)
+                        // 報價欄位
                         if (cellLower.includes('50') && !cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
                         if (cellLower.includes('100') && !cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
                         if (cellLower.includes('300') && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
@@ -2745,9 +2745,13 @@ if(productUpload) {
                         if (cellLower.includes('bsmi')) h.bsmi = c;
                         if (cellLower.includes('ncc')) h.ncc = c;
                         
-                        // 偵測廠價與庫存
+                        // 偵測廠價
                         if (cellLower === '廠價' || cellLower === 'cost' || cellLower === '成本') h.cost = c;
-                        if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory' || cellLower === 'qty' || cellLower === 'stock') h.inventory = c;
+                        
+                        // ✅ 偵測庫存 (優先找分成兩倉的，也沒有才找單一欄位)
+                        if (cellLower.includes('成品倉') || cellLower === '成品') h.finished = c;
+                        if (cellLower.includes('專賣倉') || cellLower === '專賣') h.exclusive = c;
+                        if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
 
                         // VIP 欄位
                         if (cell.toUpperCase().startsWith('VIP')) {
@@ -2783,24 +2787,27 @@ if(productUpload) {
                     if(h.ncc !== -1 && hasVal(row[h.ncc])) obj.ncc = row[h.ncc];
 
                     if(h.market !== -1 && hasVal(row[h.market])) obj.marketPrice = row[h.market];
-                    // ✅ 這裡會讀取您填的末售價，若沒填就不會自動亂算
                     if(h.min !== -1 && hasVal(row[h.min])) obj.minPrice = row[h.min];
                     if(h.groupBuy !== -1 && hasVal(row[h.groupBuy])) obj.groupBuyPrice = row[h.groupBuy];
                     
-                    // --- [B] 讀取庫存 ---
-                    if (h.inventory !== -1 && hasVal(row[h.inventory])) {
+                    // --- [B] 庫存運算 (成品倉 + 專賣倉) ---
+                    // 優先權：如果找得到「成品」與「專賣」，就相加；否則找單一「庫存」欄位
+                    if (h.finished !== -1 && h.exclusive !== -1) {
+                        const finQty = parseInt(row[h.finished] || 0, 10);
+                        const excQty = parseInt(row[h.exclusive] || 0, 10);
+                        // 直接加總
+                        obj.inventory = finQty + excQty; 
+                    } else if (h.inventory !== -1 && hasVal(row[h.inventory])) {
                         obj.inventory = parseInt(row[h.inventory], 10);
                     }
 
-                    // --- [C] 關鍵資安步驟：廠價處理與公式運算 ---
+                    // --- [C] 廠價運算 ---
                     let tempCost = 0;
                     if (h.cost !== -1 && hasVal(row[h.cost])) {
                         tempCost = parseFloat(row[h.cost]);
                     }
 
                     if (tempCost > 0) {
-                        // 公式：(廠價 / 係數) * 1.05，結果無條件進位 (Math.ceil)
-                        
                         if (!hasVal(row[h.q50]))   obj.quote50   = Math.ceil((tempCost / 0.76) * 1.05);
                         else obj.quote50 = row[h.q50]; 
 
@@ -2819,10 +2826,8 @@ if(productUpload) {
                         if (!hasVal(row[h.q3000])) obj.quote3000 = Math.ceil((tempCost / 0.89) * 1.05);
                         else obj.quote3000 = row[h.q3000];
                         
-                        // ❌ 已移除末售價的自動運算邏輯，完全依賴 Excel 讀取
-
                     } else {
-                        // 無廠價時，讀取 Excel 原值
+                        // 無廠價，維持原值
                         if(hasVal(row[h.q50])) obj.quote50 = row[h.q50];
                         if(hasVal(row[h.q100])) obj.quote100 = row[h.q100];
                         if(hasVal(row[h.q300])) obj.quote300 = row[h.q300];
@@ -2830,8 +2835,6 @@ if(productUpload) {
                         if(hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
                         if(hasVal(row[h.q3000])) obj.quote3000 = row[h.q3000];
                     }
-
-                    // ⚠️ 資安保證：obj.cost 未被賦值，廠價資料在此銷毀
 
                     // --- [D] VIP 與其他 ---
                     if(h.grade !== -1 && hasVal(row[h.grade]) && String(row[h.grade]).toUpperCase().includes('A')) obj.grade = 'A';
@@ -2849,19 +2852,19 @@ if(productUpload) {
                     actions.push({ data: obj, model: modelVal });
                 });
 
-                previewHeader.textContent = "全能匯入確認 (資安公式版)";
+                previewHeader.textContent = "全能匯入確認 (雙倉加總 + 廠價公式)";
                 previewContent.innerHTML = `
                     <div style="padding:20px; text-align:center;">
                         <h3 style="color:#2563eb;">已解析 ${actions.length} 筆資料</h3>
                         <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:10px; border-radius:8px; display:inline-block; margin-bottom:10px;">
-                            💰 <b>自動報價系統已啟動</b><br>
-                            依據您的公式 (Cost / 係數 * 1.05) 進行計算。<br>
-                            <span style="color:#dc2626; font-size:12px;">(廠價原始數據將在寫入前銷毀)</span>
+                            ✅ <b>功能已啟動</b><br>
+                            1. 庫存 = 成品倉 + 專賣倉<br>
+                            2. 報價 = 依廠價公式自動計算
                         </div>
                         <ul style="text-align:left; display:inline-block; font-size:14px; color:#444; margin-top:10px;">
-                            <li>📦 <b>庫存同步</b>：${h.inventory !== -1 ? '✅ 執行中' : '❌ 未找到庫存欄位'}</li>
-                            <li>🧮 <b>廠價運算</b>：${h.cost !== -1 ? '✅ 執行中' : '❌ 無廠價，僅更新基本資料'}</li>
-                            <li>🏷️ <b>比對基準</b>：國際條碼</li>
+                            <li>📦 <b>雙倉偵測</b>：${(h.finished !== -1 && h.exclusive !== -1) ? '✅ 成功抓到兩倉' : '⚠️ 只抓到單一庫存或未抓到'}</li>
+                            <li>💰 <b>廠價運算</b>：${h.cost !== -1 ? '✅ 執行中' : '❌ 未啟用'}</li>
+                            <li>🏷️ <b>產品資訊</b>：國際條碼比對中...</li>
                         </ul>
                     </div>
                 `;
@@ -2876,7 +2879,6 @@ if(productUpload) {
         reader.readAsBinaryString(file);
     };
 }
-
 // ----------------------------------------------------
 // INVENTORY IMPORT LOGIC
 // ----------------------------------------------------
