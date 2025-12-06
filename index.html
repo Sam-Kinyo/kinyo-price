@@ -653,21 +653,16 @@ th{background:#fafafa;text-align:left;}
   </div>
 
   
- <div class="search-row" style="display:flex; gap:10px; width:100%;">
+<div class="search-row" style="display:flex; gap:10px; width:100%;">
   
-  <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#fefce8; padding:10px; border-radius:8px; border:1px solid #fde047;">
-    <input type="checkbox" id="gradeFilter" style="width:18px; height:18px; cursor:pointer;">
-    <label for="gradeFilter" style="margin:0; color:#854d0e; font-weight:bold; cursor:pointer; font-size:14px; user-select:none;">
-      ✨ 只顯示 A 級品
-    </label>
-  </div>
-
   <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:6px; background:#eff6ff; padding:10px; border-radius:8px; border:1px solid #bfdbfe;">
     <input type="checkbox" id="controlledFilter" style="width:18px; height:18px; cursor:pointer;">
     <label for="controlledFilter" style="margin:0; color:#1e40af; font-weight:bold; cursor:pointer; font-size:14px; user-select:none;">
       🛡️ 只顯示控價品
     </label>
   </div>
+
+</div>
 
 </div>
 
@@ -1116,11 +1111,10 @@ function updateUserDisplay(status) {
   }
 }
 
-// 🚀 Updates UI permissions based on user level (已移除綠色按鈕邏輯)
+// 🚀 Updates UI permissions based on user level (已移除 A 級品邏輯)
 function updatePermissions() {
     // 1. Level 4 Only: 只有 Level 4 可以看到「匯入產品總表」
     if (userLevel >= 4) {
-        // importInventoryBtn 已刪除，不需要再控制它
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
@@ -1132,19 +1126,8 @@ function updatePermissions() {
     } else {
         if(stockFilter) stockFilter.style.display = 'none';
     }
-
-    // 3. A級品篩選框：只有 Level 4 能看
-    const gradeContainer = document.getElementById("gradeFilterContainer");
-    const gradeInput = document.getElementById("gradeFilter");
     
-    if (gradeContainer) {
-        if (userLevel >= 4) {
-            gradeContainer.style.display = "flex"; // Level 4 顯示
-        } else {
-            gradeContainer.style.display = "none"; // 其他人隱藏
-            if(gradeInput) gradeInput.checked = false; // 隱藏時順便取消勾選
-        }
-    }
+    // (A級品控制碼已刪除)
 }
 
 async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
@@ -1392,16 +1375,13 @@ function applySorting(list) {
   return list;
 }
 
-/* 🚀 Updated Search Logic - 完整版 (支援多關鍵字 + 所有篩選功能) */
+/* 🚀 Updated Search Logic - 移除 A 級品過濾版 */
 function searchProducts() {
   // 1. 基本載入檢查
   if (!isProductsLoaded) { alert("商品資料載入中"); return; }
   
-  // --- [A] 抓取與處理關鍵字 (支援多組) ---
+  // --- [A] 抓取與處理關鍵字 ---
   const rawInput = keywordInput.value.trim().toLowerCase();
-  
-  // 使用 Regex 切割字串：支援 空白(\s)、英文逗號(,)、中文逗號(，)、換行(\n)
-  // filter(k => k) 是為了過濾掉多餘的空字串
   const keys = rawInput.split(/[\s,，\n]+/).filter(k => k.length > 0);
   const hasKey = keys.length > 0;
 
@@ -1412,9 +1392,7 @@ function searchProducts() {
   const cat = categorySelect.value; 
   const stockReq = stockFilter.value; 
   
-  // 抓取勾選框狀態
-  const gradeCheck = document.getElementById("gradeFilter");
-  const isGradeOnly = gradeCheck && gradeCheck.checked;
+  // 抓取勾選框狀態 (只剩控價品)
   const controlledCheck = document.getElementById("controlledFilter");
   const isControlledOnly = controlledCheck && controlledCheck.checked;
   
@@ -1425,15 +1403,13 @@ function searchProducts() {
 
   // --- [C] 防呆判斷 ---
   
-  // 1. 有預算卻沒起訂量 -> 擋
   if (hasBudget && !hasQty && userLevel >= 1) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
   
-  // 2. 完全沒輸入條件 -> 擋
-  // (如果連 A級品、控價品都沒勾，且沒關鍵字、沒分類、沒庫存...才擋)
-  if (!hasKey && !hasQty && !hasBudget && !hasCat && !hasStockReq && !isGradeOnly && !isControlledOnly) {
+  // 防呆邏輯：移除 isGradeOnly
+  if (!hasKey && !hasQty && !hasBudget && !hasCat && !hasStockReq && !isControlledOnly) {
     alert("請輸入搜尋條件（關鍵字、分類、起訂量、預算、庫存或勾選篩選）");
     return;
   }
@@ -1445,52 +1421,36 @@ function searchProducts() {
   updateUserDisplay('searching');
 
   setTimeout(() => {
-    // 🚀 使用記憶體中的資料快取
     let r = productCache;
 
-    // --- [D] 資料過濾核心 ---
+    // --- [D] 資料過濾核心 (已移除 A 級品過濾) ---
 
-    // 1. 安全權限過濾 (Level 4 才能看 A 級品)
-    // 即使關鍵字搜到了，如果權限不夠，這裡會先把它擋下來
-    if (userLevel < 4) {
-        r = r.filter(p => p.grade !== 'A');
-    }
-
-    // 2. 勾選篩選：只看 A 級品
-    if (isGradeOnly) {
-        r = r.filter(p => p.grade === 'A');
-    }
-    
-    // 3. 勾選篩選：只看控價品
+    // 1. 勾選篩選：只看控價品
     if (isControlledOnly) {
         r = r.filter(p => p.isControlled === true);
     }
 
-    // 4. 分類篩選
+    // 2. 分類篩選
     if (hasCat) {
         r = r.filter(p => p.category === cat);
     }
 
-    // 5. 關鍵字篩選 (支援多組)
+    // 3. 關鍵字篩選
     if (hasKey) {
       r = r.filter(p => {
         const pKey = (p.searchKey || "");
-        // 邏輯：只要這個商品包含「任何一個 (some)」輸入的關鍵字，就留下來
-        // 例如輸入 "A B"，商品只要有 A 或有 B 都算符合
         return keys.some(k => pKey.includes(k));
       });
     }
 
-    // 6. 庫存篩選 (含 缺貨中 邏輯)
+    // 4. 庫存篩選
     if (hasStockReq) {
         if (stockReq === 'ZERO') {
-            // 找缺貨 (<= 0)
             r = r.filter(p => {
                 const inv = parseInt(p.inventory || 0, 10);
                 return inv <= 0;
             });
         } else {
-            // 找現貨 (> N)
             const minStock = parseInt(stockReq, 10);
             r = r.filter(p => {
                 const inv = parseInt(p.inventory || 0, 10);
@@ -1499,11 +1459,10 @@ function searchProducts() {
         }
     }
 
-    // 7. 預算篩選
+    // 5. 預算篩選
     if (hasBudget) {
       const min = minPraw ? Number(minPraw) : 0;
       const max = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
-      
       r = r.filter(p => {
         let price = 0;
         if (qty) {
@@ -1530,51 +1489,32 @@ function searchProducts() {
     updateUserDisplay('normal');
   }, 0);
 }
-/* 🚀 Updated Render Logic - 圖片遞補機制優化版 */
+/* 🚀 Updated Render Logic - 移除 A 級品標籤 */
 function renderResults(list) {
-  // --- 1. 初始化畫面 ---
   resultBody.innerHTML = ""; detailCard.style.display = "none"; checkAllBox.checked = false; updateMultiLineBtnState();
-  
-  // --- 2. 如果沒資料，隱藏表格 ---
   if (list.length === 0) {
     resultTable.style.display = "none"; exportBtn.disabled = true; pptToolbarBtn.disabled = true; return;
   }
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
-  // --- 3. 開始跑迴圈，產生每一列 ---
   list.forEach(item => {
     
-    // 🔥🔥🔥【圖片智慧遞補邏輯開始】🔥🔥🔥
+    // 圖片邏輯 (保持不變)
     const netImages = getDriveNetImages(item.model, item.mainModel) || [];
     const driveMainImg = getDriveMainImage(item.model, item.mainModel);
-    
-    // 準備「救援圖片」：如果主圖掛掉，要換哪一張？(優先序：Drive主圖 > 網路圖第一張 > 灰圖)
     let backupImg = "https://placehold.co/110x110?text=No+Image";
-    if (driveMainImg) {
-        backupImg = driveMainImg;
-    } else if (netImages.length > 0) {
-        backupImg = netImages[0];
-    }
+    if (driveMainImg) backupImg = driveMainImg;
+    else if (netImages.length > 0) backupImg = netImages[0];
 
-    // 決定「預設顯示圖片」：(優先序：Excel網址 > Drive主圖 > 網路圖第一張 > 灰圖)
     let img = item.imageUrl; 
-    
     if (!img || !img.startsWith("http")) {
-        if (driveMainImg) {
-            img = driveMainImg;
-        } else if (netImages.length > 0) {
-            img = netImages[0]; 
-        } else {
-            img = "https://placehold.co/110x110?text=No+Image";
-        }
+        if (driveMainImg) img = driveMainImg;
+        else if (netImages.length > 0) img = netImages[0]; 
+        else img = "https://placehold.co/110x110?text=No+Image";
     }
-    // 🔥🔥🔥【圖片邏輯結束】🔥🔥🔥
 
-    // --- 處理標籤 ---
-    let gradeHtml = "";
-    if (item.grade === 'A') {
-        gradeHtml = `<span style="background:#fefce8; color:#854d0e; border:1px solid #fde047; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">✨ A級品</span>`;
-    }
+    // ✅ [移除] 這裡原本有 gradeHtml 的邏輯，已刪除
+
     let controlledHtml = "";
     if (item.isControlled) {
         controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
@@ -1584,7 +1524,7 @@ function renderResults(list) {
     let priceHtml = ""; 
     const getPrice = (p) => (item[p] ?? "-");
 
-    // --- 價格顯示邏輯 ---
+    // 價格邏輯 (保持不變)
     if (isGroupBuyUser) {
         let htmlStack = [];
         const gbPrice = item.groupBuyPrice; 
@@ -1593,17 +1533,14 @@ function renderResults(list) {
         } else {
             htmlStack.push(`<div style="margin-bottom:4px;"><span style="color:#9ca3af; font-size:13px;">(本檔未開放團購)</span></div>`);
         }
-
         const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
         const myCost = item[costCol]; 
-
         if (myCost) {
             htmlStack.push(`<div><span style="display:inline-block; background:#ecfdf5; color:#047857; border:1px solid #6ee7b7; padding:2px 6px; border-radius:4px; font-weight:bold; font-size:13px;">💰 您的進價：$${myCost}</span></div>`);
         } else {
              htmlStack.push(`<div><span style="color:#999; font-size:12px;">(無專屬進價)</span></div>`);
         }
         priceHtml = htmlStack.join("");
-
     } else if (currentUserVipConfig) {
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
@@ -1611,7 +1548,6 @@ function renderResults(list) {
         } else {
             priceHtml = `<span style="font-weight:bold; color:#2563eb; font-size:14px;">請洽郭庭豪</span>`;
         }
-
     } else {
         if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getPrice('quote50')}</span>`;
         if (userLevel >= 2) {
@@ -1648,30 +1584,23 @@ function renderResults(list) {
         marketPriceDisplay = item.marketPrice ?? "-";
     }
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
-    
     const variantStockHtml = renderStockByVariant(item);
 
-    // --- 4. 產生 HTML (加入 onerror 救援) ---
+    // 產生 HTML (已移除 ${gradeHtml})
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
-        <img src="${img}" class="product-img" 
-             loading="lazy"
-             onerror="this.onerror=null; this.src='${backupImg}';">
+        <img src="${img}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='${backupImg}';">
       </td>
       <td class="model-cell">${item.mainModel || "-"}</td>
       <td>
-        ${gradeHtml} ${controlledHtml} ${catBadge} 
+        ${controlledHtml} ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;font-size:15px;">${item.name || "-"}</div>
-        
         <div style="font-size:13px;color:#555;margin-bottom:4px;">
            ${item.colorList ? `顏色：${item.colorList}` : ''}
         </div>
-      
         ${variantStockHtml}
-
         <div class="price-tag-container" style="font-size:13px;margin-bottom:4px;margin-top:8px;">${priceHtml}</div>
-        
         ${currentUserVipConfig ? '' : `
         <div style="display:flex; gap:6px; margin-top:8px;">
           <button class="line-share-btn" data-model="${item.model}" style="padding:6px 10px;font-size:12px;background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">LINE</button>
@@ -1683,10 +1612,9 @@ function renderResults(list) {
       <td style="text-align:right;">${marketPriceDisplay}</td>
     `;
 
-    // --- 5. 綁定按鈕事件 ---
+    // 綁定事件 (保持不變)
     const imgEl = tr.querySelector('.product-img');
     const modelEl = tr.querySelector('.model-cell');
-
     const openDetail = () => {
       if (window.innerWidth > 900) {
         if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
@@ -1695,15 +1623,12 @@ function renderResults(list) {
         showDetailMobile(item);
       }
     };
-
     if (imgEl) {
       imgEl.addEventListener('click', openDetail);
       if (window.innerWidth > 900) {
           imgEl.addEventListener('mouseenter', openDetail);
           imgEl.addEventListener('mouseleave', () => {
-              window.hideDetailTimer = setTimeout(() => {
-                detailCard.style.display = "none";
-              }, 1000); 
+              window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
           });
       }
     }
@@ -1712,19 +1637,14 @@ function renderResults(list) {
        if (window.innerWidth > 900) {
           modelEl.addEventListener('mouseenter', openDetail);
           modelEl.addEventListener('mouseleave', () => {
-              window.hideDetailTimer = setTimeout(() => {
-                detailCard.style.display = "none";
-              }, 1000); 
+              window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
           });
       }
     }
-
     resultBody.appendChild(tr);
   });
-  
   bindCheckAll();
 }
-
 function showDetailMobile(item) {
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
   const netImages = getDriveNetImages(item.model, item.mainModel);
@@ -2714,7 +2634,7 @@ async function saveInventoryToFirestore(invMap) {
 }
 
 // ----------------------------------------------------
-// PRODUCT IMPORT LOGIC (雙倉加總 + 廠價公式 + 資安保護)
+// PRODUCT IMPORT LOGIC (移除 A 級品偵測版)
 // ----------------------------------------------------
 if(productUpload) {
     productUpload.onchange = (e) => {
@@ -2730,17 +2650,17 @@ if(productUpload) {
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
 
-                // 1. 定義欄位 Mapping
+                // 1. 定義欄位 (已移除 grade)
                 let h = {
                     model: -1, name: -1, 
                     market: -1, min: -1, 
-                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1, grade: -1,
+                    q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1,
                     cat: -1, color: -1, barcode: -1, box: -1, controlled: -1,
                     url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1,
-                    cost: -1,       // 廠價
-                    inventory: -1,  // 單一庫存欄位 (備用)
-                    finished: -1,   // ✅ 成品倉
-                    exclusive: -1   // ✅ 專賣倉
+                    cost: -1,      // 廠價
+                    inventory: -1, // 單一庫存
+                    finished: -1,  // 成品倉
+                    exclusive: -1  // 專賣倉
                 };
                 
                 let vipHeaders = {}; 
@@ -2752,14 +2672,12 @@ if(productUpload) {
                         const cell = String(row[c] || "").trim();
                         const cellLower = cell.toLowerCase();
                         
-                        // 基本欄位偵測
                         if(cellLower === 'model' || cellLower === '型號' || cellLower === '產品') h.model = c;
                         if(cellLower === 'name' || cellLower === '品名' || cellLower === '產品名稱') h.name = c;
                         if(cellLower.includes('賣場') || cellLower.includes('建議售價')) h.market = c;
                         if(cellLower.includes('末售') || cellLower.includes('底價')) h.min = c;
                         if(cellLower.includes('團購')) h.groupBuy = c; 
                         
-                        // 報價欄位
                         if (cellLower.includes('50') && !cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
                         if (cellLower.includes('100') && !cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
                         if (cellLower.includes('300') && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
@@ -2767,7 +2685,7 @@ if(productUpload) {
                         if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '1000')) h.q1000 = c;
                         if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower === '3000')) h.q3000 = c;
                         
-                        if (cellLower.includes('a級') || cellLower === 'grade') h.grade = c;
+                        // ✅ 已移除 grade 偵測
                         if (cellLower.includes('控價') || cellLower === 'controlled') h.controlled = c;
 
                         if(cellLower.includes('顏色')) h.color = c;
@@ -2780,15 +2698,12 @@ if(productUpload) {
                         if (cellLower.includes('bsmi')) h.bsmi = c;
                         if (cellLower.includes('ncc')) h.ncc = c;
                         
-                        // 偵測廠價
                         if (cellLower === '廠價' || cellLower === 'cost' || cellLower === '成本') h.cost = c;
                         
-                        // ✅ 偵測庫存 (優先找分成兩倉的，也沒有才找單一欄位)
                         if (cellLower.includes('成品倉') || cellLower === '成品') h.finished = c;
                         if (cellLower.includes('專賣倉') || cellLower === '專賣') h.exclusive = c;
                         if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
 
-                        // VIP 欄位
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
                         }
@@ -2802,7 +2717,6 @@ if(productUpload) {
                 let actions = [];
                 const hasVal = (v) => v !== undefined && v !== null && String(v).trim() !== "";
 
-                // 3. 解析與運算
                 jsonData.forEach((row) => {
                     const rawModel = row[h.model];
                     if(!rawModel || String(rawModel).includes("型號")) return;
@@ -2810,7 +2724,6 @@ if(productUpload) {
                     const modelVal = String(rawModel).trim();
                     let obj = {}; 
 
-                    // --- [A] 讀取基本資料 ---
                     if(h.name !== -1 && hasVal(row[h.name])) obj.name = row[h.name];
                     if(h.cat !== -1 && hasVal(row[h.cat])) obj.category = row[h.cat];
                     if(h.color !== -1 && hasVal(row[h.color])) obj.colorList = row[h.color];
@@ -2825,18 +2738,16 @@ if(productUpload) {
                     if(h.min !== -1 && hasVal(row[h.min])) obj.minPrice = row[h.min];
                     if(h.groupBuy !== -1 && hasVal(row[h.groupBuy])) obj.groupBuyPrice = row[h.groupBuy];
                     
-                    // --- [B] 庫存運算 (成品倉 + 專賣倉) ---
-                    // 優先權：如果找得到「成品」與「專賣」，就相加；否則找單一「庫存」欄位
+                    // 庫存
                     if (h.finished !== -1 && h.exclusive !== -1) {
                         const finQty = parseInt(row[h.finished] || 0, 10);
                         const excQty = parseInt(row[h.exclusive] || 0, 10);
-                        // 直接加總
                         obj.inventory = finQty + excQty; 
                     } else if (h.inventory !== -1 && hasVal(row[h.inventory])) {
                         obj.inventory = parseInt(row[h.inventory], 10);
                     }
 
-                    // --- [C] 廠價運算 ---
+                    // 廠價運算
                     let tempCost = 0;
                     if (h.cost !== -1 && hasVal(row[h.cost])) {
                         tempCost = parseFloat(row[h.cost]);
@@ -2845,24 +2756,17 @@ if(productUpload) {
                     if (tempCost > 0) {
                         if (!hasVal(row[h.q50]))   obj.quote50   = Math.ceil((tempCost / 0.76) * 1.05);
                         else obj.quote50 = row[h.q50]; 
-
                         if (!hasVal(row[h.q100]))  obj.quote100  = Math.ceil((tempCost / 0.79) * 1.05);
                         else obj.quote100 = row[h.q100];
-
                         if (!hasVal(row[h.q300]))  obj.quote300  = Math.ceil((tempCost / 0.82) * 1.05);
                         else obj.quote300 = row[h.q300];
-
                         if (!hasVal(row[h.q500]))  obj.quote500  = Math.ceil((tempCost / 0.845) * 1.05);
                         else obj.quote500 = row[h.q500];
-
                         if (!hasVal(row[h.q1000])) obj.quote1000 = Math.ceil((tempCost / 0.865) * 1.05);
                         else obj.quote1000 = row[h.q1000];
-
                         if (!hasVal(row[h.q3000])) obj.quote3000 = Math.ceil((tempCost / 0.89) * 1.05);
                         else obj.quote3000 = row[h.q3000];
-                        
                     } else {
-                        // 無廠價，維持原值
                         if(hasVal(row[h.q50])) obj.quote50 = row[h.q50];
                         if(hasVal(row[h.q100])) obj.quote100 = row[h.q100];
                         if(hasVal(row[h.q300])) obj.quote300 = row[h.q300];
@@ -2871,8 +2775,7 @@ if(productUpload) {
                         if(hasVal(row[h.q3000])) obj.quote3000 = row[h.q3000];
                     }
 
-                    // --- [D] VIP 與其他 ---
-                    if(h.grade !== -1 && hasVal(row[h.grade]) && String(row[h.grade]).toUpperCase().includes('A')) obj.grade = 'A';
+                    // ✅ 已移除 grade 處理
                     if(h.controlled !== -1 && hasVal(row[h.controlled]) && String(row[h.controlled]).toLowerCase() === 'v') obj.isControlled = true;
 
                     for (const [vKey, vIdx] of Object.entries(vipHeaders)) {
