@@ -2532,7 +2532,8 @@ async function saveProductDataToFirestore(actions) {
 
         snap.forEach(docSnap => {
             const d = docSnap.data();
-            const bc = (d.internationalBarcode || d.barcode || "").trim();
+            // 這裡也加強防呆：確保資料庫原本的條碼也轉成字串
+            const bc = String(d.internationalBarcode || d.barcode || "").trim();
             if(bc) rawMap.set(bc, docSnap.id);
         });
 
@@ -2542,12 +2543,18 @@ async function saveProductDataToFirestore(actions) {
         for(const item of actions) {
             // item.data contains the new data from Excel
             // Key logic: item.data.internationalBarcode
-            const excelBc = (item.data.internationalBarcode || "").trim();
+            
+            // 👇👇👇【修正重點在這裡】加上 String() 包起來 👇👇👇
+            const excelBc = String(item.data.internationalBarcode || "").trim();
+            // 👆👆👆【修正結束】👆👆👆
 
             if(!excelBc) {
                 console.warn("Skipping item without barcode:", item.model);
                 continue; 
             }
+
+            // 確保要寫入資料庫的 barcode 也是乾淨的字串
+            item.data.internationalBarcode = excelBc;
 
             if(rawMap.has(excelBc)) {
                 // Update existing doc
@@ -2585,7 +2592,6 @@ async function saveProductDataToFirestore(actions) {
         importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
     }
 }
-
 // 🚀 V6.4 重寫的庫存保存邏輯：即時抓取原始資料進行精準更新
 async function saveInventoryToFirestore(invMap) {
     importInventoryBtn.disabled = true;
