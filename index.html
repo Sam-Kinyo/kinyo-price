@@ -1510,7 +1510,7 @@ function searchProducts() {
 }
 
 
-/* 🚀 Updated Render Logic - 移除 A 級品標籤 */
+/* 🚀 Updated Render Logic - 列表頁圖片遞補優化版 */
 function renderResults(list) {
   resultBody.innerHTML = ""; detailCard.style.display = "none"; checkAllBox.checked = false; updateMultiLineBtnState();
   if (list.length === 0) {
@@ -1519,23 +1519,43 @@ function renderResults(list) {
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
   list.forEach(item => {
-    
-    // 圖片邏輯 (保持不變)
+    // ==================================================================================
+    // 🔥🔥🔥【重點修改：圖片智慧遞補邏輯 (開始)】🔥🔥🔥
+    // ==================================================================================
     const netImages = getDriveNetImages(item.model, item.mainModel) || [];
     const driveMainImg = getDriveMainImage(item.model, item.mainModel);
+    
+    // 1. 準備「救援隊」 (如果主圖掛掉，要換哪一張？)
+    // 優先順序：Drive主圖 > 網路圖第一張 > 預設灰圖
     let backupImg = "https://placehold.co/110x110?text=No+Image";
-    if (driveMainImg) backupImg = driveMainImg;
-    else if (netImages.length > 0) backupImg = netImages[0];
-
-    let img = item.imageUrl; 
-    if (!img || !img.startsWith("http")) {
-        if (driveMainImg) img = driveMainImg;
-        else if (netImages.length > 0) img = netImages[0]; 
-        else img = "https://placehold.co/110x110?text=No+Image";
+    if (driveMainImg) {
+        backupImg = driveMainImg;
+    } else if (netImages.length > 0) {
+        backupImg = netImages[0]; // ✅ 這裡就會抓到網路圖第一張
     }
 
-    // ✅ [移除] 這裡原本有 gradeHtml 的邏輯，已刪除
+    // 2. 決定「預設顯示圖片」
+    // 優先順序：Excel網址 > Drive主圖 > 網路圖第一張 > 預設灰圖
+    let img = item.imageUrl; // 先抓 Excel
+    
+    // 如果 Excel 沒填或格式不對
+    if (!img || !img.startsWith("http")) {
+        if (driveMainImg) {
+            img = driveMainImg;
+        } else if (netImages.length > 0) {
+            img = netImages[0]; // ✅ Excel 沒填時，也嘗試用網路圖
+        } else {
+            img = "https://placehold.co/110x110?text=No+Image";
+        }
+    }
+    // ==================================================================================
+    // 🔥🔥🔥【圖片邏輯 (結束)】🔥🔥🔥
+    // ==================================================================================
 
+    let gradeHtml = "";
+    if (item.grade === 'A') {
+        gradeHtml = `<span style="background:#fefce8; color:#854d0e; border:1px solid #fde047; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">✨ A級品</span>`;
+    }
     let controlledHtml = "";
     if (item.isControlled) {
         controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
@@ -1545,7 +1565,7 @@ function renderResults(list) {
     let priceHtml = ""; 
     const getPrice = (p) => (item[p] ?? "-");
 
-    // 價格邏輯 (保持不變)
+    // (省略中間價格邏輯，保持原樣...)
     if (isGroupBuyUser) {
         let htmlStack = [];
         const gbPrice = item.groupBuyPrice; 
@@ -1607,15 +1627,20 @@ function renderResults(list) {
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
     const variantStockHtml = renderStockByVariant(item);
 
-    // 產生 HTML (已移除 ${gradeHtml})
+    // ==================================================================================
+    // 🔥🔥🔥【重點修改：HTML 中加入 onerror 事件】🔥🔥🔥
+    // 如果 src 載入失敗，會自動觸發 onerror，將圖片換成我們準備好的 backupImg
+    // ==================================================================================
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
-        <img src="${img}" class="product-img" loading="lazy" onerror="this.onerror=null; this.src='${backupImg}';">
+        <img src="${img}" class="product-img" 
+             loading="lazy"
+             onerror="this.onerror=null; this.src='${backupImg}';">
       </td>
       <td class="model-cell">${item.mainModel || "-"}</td>
       <td>
-        ${controlledHtml} ${catBadge} 
+        ${gradeHtml} ${controlledHtml} ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;font-size:15px;">${item.name || "-"}</div>
         <div style="font-size:13px;color:#555;margin-bottom:4px;">
            ${item.colorList ? `顏色：${item.colorList}` : ''}
@@ -1633,9 +1658,9 @@ function renderResults(list) {
       <td style="text-align:right;">${marketPriceDisplay}</td>
     `;
 
-    // 綁定事件 (保持不變)
     const imgEl = tr.querySelector('.product-img');
     const modelEl = tr.querySelector('.model-cell');
+
     const openDetail = () => {
       if (window.innerWidth > 900) {
         if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
@@ -1644,12 +1669,15 @@ function renderResults(list) {
         showDetailMobile(item);
       }
     };
+
     if (imgEl) {
       imgEl.addEventListener('click', openDetail);
       if (window.innerWidth > 900) {
           imgEl.addEventListener('mouseenter', openDetail);
           imgEl.addEventListener('mouseleave', () => {
-              window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
+              window.hideDetailTimer = setTimeout(() => {
+                detailCard.style.display = "none";
+              }, 1000); 
           });
       }
     }
@@ -1658,7 +1686,9 @@ function renderResults(list) {
        if (window.innerWidth > 900) {
           modelEl.addEventListener('mouseenter', openDetail);
           modelEl.addEventListener('mouseleave', () => {
-              window.hideDetailTimer = setTimeout(() => { detailCard.style.display = "none"; }, 1000); 
+              window.hideDetailTimer = setTimeout(() => {
+                detailCard.style.display = "none";
+              }, 1000); 
           });
       }
     }
@@ -1666,28 +1696,45 @@ function renderResults(list) {
   });
   bindCheckAll();
 }
+   
+/* 🚀 Updated Mobile Detail - 手機版彈窗圖片遞補優化版 */
 function showDetailMobile(item) {
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
-  const netImages = getDriveNetImages(item.model, item.mainModel);
+  const netImages = getDriveNetImages(item.model, item.mainModel) || [];
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
+  // ==================================================================================
+  // 🔥🔥🔥【重點修改：手機版圖片遞補邏輯】🔥🔥🔥
+  // ==================================================================================
+  const driveMainImg = getDriveMainImage(item.model, item.mainModel);
+
+  // 1. 準備救援圖片
+  let backupImg = "https://placehold.co/300x300?text=No+Image";
+  if (driveMainImg) {
+      backupImg = driveMainImg;
+  } else if (netImages.length > 0) {
+      backupImg = netImages[0];
+  }
+
+  // 2. 決定預設圖片
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) {
-        img = driveImg;
-    } else if (netImages && netImages.length > 0) {
-        img = netImages[0];
+    if (driveMainImg) {
+        img = driveMainImg;
+    } else if (netImages.length > 0) {
+        img = netImages[0]; // ✅ 這裡優先使用網路圖
     } else {
         img = "https://placehold.co/300x300?text=No+Image";
     }
   }
+  // ==================================================================================
 
   const getPrice = (p) => (item[p] ?? "-");
   const showMinPrice = userLevel >= 1;
 
+  // (省略中間價格與庫存邏輯...)
   let quoteHtml = "";
   if (!currentUserVipConfig) {
       const tiers = [50, 100, 300, 500, 1000, 3000];
@@ -1696,8 +1743,7 @@ function showDetailMobile(item) {
           if (userLevel >= 1 && t === 50) isVisible = true;
           if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
           if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
-         if (userLevel >= 4 && t === 3000) isVisible = true;
-
+          if (userLevel >= 4 && t === 3000) isVisible = true;
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee;">
                   <span style="color:#666;">${t}個</span>
@@ -1710,23 +1756,21 @@ function showDetailMobile(item) {
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
       const imgsHtml = netImages.slice(0, 6).map(url => { 
-          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
+          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&w=100&h=100&fit=cover";
           return `<img src="${displayUrl}" loading="lazy" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${url}', '_blank')">`;
       }).join("");
       netThumbHtml = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">${imgsHtml}</div>`;
   }
-  
-  // 🚀 Stock Logic - Updated
+   
   let stockHtml = "";
   const variantStock = renderStockByVariant(item);
   if(variantStock) {
-       stockHtml = `<div style="margin-bottom:16px; background:#f9fafb; padding:10px; border-radius:8px; border:1px solid #e5e7eb;">
+        stockHtml = `<div style="margin-bottom:16px; background:#f9fafb; padding:10px; border-radius:8px; border:1px solid #e5e7eb;">
           <div style="font-weight:bold; font-size:14px; margin-bottom:6px; color:#374151;">庫存現況</div>
           ${variantStock}
-       </div>`;
+        </div>`;
   }
 
-  // VIP Logic for Price Block
   let priceBlockHtml = "";
   if (currentUserVipConfig) {
       const vipPriceVal = item[currentUserVipConfig.column];
@@ -1741,45 +1785,49 @@ function showDetailMobile(item) {
       }
       
       priceBlockHtml = `
-       <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
-           <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
-           <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-             <span>${label}</span>
-             ${displayPrice}
-           </div>
-           ${!vipPriceVal ? `
-           <div style="border-top:1px solid #eee; padding-top:8px; margin-top:8px;">
-               <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#666; font-size:13px;">
-                 <span>賣場參考</span>
-                 <span>${getPrice('marketPrice')}</span>
-               </div>
-               <div style="display:flex; justify-content:space-between; color:#666; font-size:13px;">
-                 <span>末售參考</span>
-                 <span>${getPrice('minPrice')}</span>
-               </div>
-           </div>
-           ` : ''}
-       </div>`;
+        <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
+            <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>${label}</span>
+              ${displayPrice}
+            </div>
+            ${!vipPriceVal ? `
+            <div style="border-top:1px solid #eee; padding-top:8px; margin-top:8px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#666; font-size:13px;">
+                  <span>賣場參考</span>
+                  <span>${getPrice('marketPrice')}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:#666; font-size:13px;">
+                  <span>末售參考</span>
+                  <span>${getPrice('minPrice')}</span>
+                </div>
+            </div>
+            ` : ''}
+        </div>`;
   } else {
       priceBlockHtml = `
-       <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
-           <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
-           <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-             <span>賣場售價</span>
-             <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
-           </div>
-           <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-             <span>末售價格</span>
-             <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
-           </div>
-           ${quoteHtml ? `<div style="background:#fff; padding:8px; border-radius:6px; margin-top:8px; border:1px solid #eee;">${quoteHtml}</div>` : ''}
-       </div>`;
+        <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
+            <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+              <span>賣場售價</span>
+              <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>末售價格</span>
+              <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
+            </div>
+            ${quoteHtml ? `<div style="background:#fff; padding:8px; border-radius:6px; margin-top:8px; border:1px solid #eee;">${quoteHtml}</div>` : ''}
+        </div>`;
   }
 
   const sheetContent = document.getElementById("sheetContent");
+  // ==================================================================================
+  // 🔥🔥🔥【重點修改：HTML 中加入 onerror 事件】🔥🔥🔥
+  // ==================================================================================
   sheetContent.innerHTML = `
-    <div style="text-align:center; margin-bottom:16px;">
-      <img src="${img}" style="max-height:200px; max-width:100%; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.1);" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
+    <div style="text-align:center; margin-bottom:16px; background:#fafafa; padding:10px; border-radius:8px;">
+      <img src="${img}" style="max-height:250px; max-width:100%; object-fit:contain; border-radius:4px;" 
+           onerror="this.onerror=null;this.src='${backupImg}';">
     </div>
     
     <div style="font-weight:700; font-size:18px; margin-bottom:8px;">${item.name || "-"}</div>
@@ -1821,32 +1869,47 @@ function showDetailMobile(item) {
   openSheet();
 }
 
+/* 🚀 Updated Desktop Detail - 電腦版彈窗圖片遞補優化版 */
 function showDetailDesktop(item) {
   if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
 
   const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
-  const netImages = getDriveNetImages(item.model, item.mainModel); 
+  const netImages = getDriveNetImages(item.model, item.mainModel) || []; // 確保是陣列
   const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
   const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
   const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
 
+  // ==================================================================================
+  // 🔥🔥🔥【重點修改：彈窗大圖的遞補邏輯】🔥🔥🔥
+  // ==================================================================================
+  const driveMainImg = getDriveMainImage(item.model, item.mainModel);
+  
+  // 1. 準備救援圖片 (Drive主圖 > 網路圖第一張 > 灰圖)
+  let backupImg = "https://placehold.co/300x300?text=No+Image";
+  if (driveMainImg) {
+      backupImg = driveMainImg;
+  } else if (netImages.length > 0) {
+      backupImg = netImages[0];
+  }
+
+  // 2. 決定預設圖片
   let img = item.imageUrl;
   if (!img || !img.startsWith("http")) {
-    const driveImg = getDriveMainImage(item.model, item.mainModel);
-    if (driveImg) {
-        img = driveImg;
-    } else if (netImages && netImages.length > 0) {
-        img = netImages[0];
+    if (driveMainImg) {
+        img = driveMainImg;
+    } else if (netImages.length > 0) {
+        img = netImages[0]; // ✅ 這裡優先使用網路圖
     } else {
         img = "https://placehold.co/300x300?text=No+Image";
     }
   }
+  // ==================================================================================
 
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
       const imgsHtml = netImages.slice(0, 6).map(url => { 
-          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url);
-          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px;" onclick="window.open('${url}', '_blank')">`;
+          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&w=100&h=100&fit=cover";
+          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${url}', '_blank')">`;
       }).join("");
       netThumbHtml = `<div class="net-gallery" style="grid-template-columns:repeat(6, 1fr); gap:4px; margin-top:8px;">${imgsHtml}</div>`;
   }
@@ -1854,6 +1917,7 @@ function showDetailDesktop(item) {
   const getPrice = (p) => (item[p] ?? "-");
   const showMinPrice = userLevel >= 1;
 
+  // (省略中間價格與庫存邏輯，保持原樣...)
   let quoteHtml = "";
   if (!currentUserVipConfig) {
       const tiers = [50, 100, 300, 500, 1000, 3000];
@@ -1862,8 +1926,7 @@ function showDetailDesktop(item) {
           if (userLevel >= 1 && t === 50) isVisible = true;
           if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
           if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
-         if (userLevel >= 4 && t === 3000) isVisible = true;
-
+          if (userLevel >= 4 && t === 3000) isVisible = true;
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
                   <span style="color:#666;">${t}個</span>
@@ -1872,18 +1935,16 @@ function showDetailDesktop(item) {
           }
       });
   }
-  
-  // 🚀 Stock Logic - Updated
+   
   let stockHtml = "";
   const variantStock = renderStockByVariant(item);
   if(variantStock) {
-       stockHtml = `<div style="margin-bottom:12px; background:#f9fafb; padding:8px; border-radius:6px; border:1px solid #e5e7eb;">
+        stockHtml = `<div style="margin-bottom:12px; background:#f9fafb; padding:8px; border-radius:6px; border:1px solid #e5e7eb;">
           <div style="font-size:12px; color:#888; margin-bottom:4px; font-weight:600;">庫存現況</div>
           ${variantStock}
-       </div>`;
+        </div>`;
   }
 
-  // VIP Logic for Price Block
   let priceBlockHtml = "";
   if (currentUserVipConfig) {
       const vipPriceVal = item[currentUserVipConfig.column];
@@ -1898,47 +1959,51 @@ function showDetailDesktop(item) {
       }
       
       priceBlockHtml = `
-       <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
-           <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-             <span>${label}</span>
-             ${displayPrice}
-           </div>
-           ${!vipPriceVal ? `
-           <div style="border-top:1px solid #eee; padding-top:8px; margin-top:8px;">
-               <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#666; font-size:12px;">
-                 <span>賣場參考</span>
-                 <span>${getPrice('marketPrice')}</span>
-               </div>
-               <div style="display:flex; justify-content:space-between; color:#666; font-size:12px;">
-                 <span>末售參考</span>
-                 <span>${getPrice('minPrice')}</span>
-               </div>
-           </div>
-           ` : ''}
-       </div>`;
+        <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+              <span>${label}</span>
+              ${displayPrice}
+            </div>
+            ${!vipPriceVal ? `
+            <div style="border-top:1px solid #eee; padding-top:8px; margin-top:8px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#666; font-size:12px;">
+                  <span>賣場參考</span>
+                  <span>${getPrice('marketPrice')}</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; color:#666; font-size:12px;">
+                  <span>末售參考</span>
+                  <span>${getPrice('minPrice')}</span>
+                </div>
+            </div>
+            ` : ''}
+        </div>`;
   } else {
       priceBlockHtml = `
-       <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-           <span>賣場售價</span>
-           <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-           <span>末售價格</span>
-           <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
-        </div>
-        <div style="background:#f0f9ff; padding:8px 12px; border-radius:6px;">
-           <div style="font-size:12px; color:#666; margin-bottom:4px; font-weight:600;">採購報價</div>
-           ${quoteHtml || '<div style="color:#999; font-size:12px;">無權限查看報價</div>'}
-        </div>
-      </div>`;
+        <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
+         <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <span>賣場售價</span>
+            <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
+         </div>
+         <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
+            <span>末售價格</span>
+            <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
+         </div>
+         <div style="background:#f0f9ff; padding:8px 12px; border-radius:6px;">
+            <div style="font-size:12px; color:#666; margin-bottom:4px; font-weight:600;">採購報價</div>
+            ${quoteHtml || '<div style="color:#999; font-size:12px;">無權限查看報價</div>'}
+         </div>
+       </div>`;
   }
   
   detailCard.style.display = "block";
+  // ==================================================================================
+  // 🔥🔥🔥【重點修改：HTML 中加入 onerror 事件】🔥🔥🔥
+  // ==================================================================================
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
     
-    <img src="${img}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px;" onerror="this.onerror=null;this.src='https://placehold.co/300x300?text=No+Image';">
+    <img src="${img}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px; object-fit:contain; max-height:300px; background:#fafafa;" 
+         onerror="this.onerror=null;this.src='${backupImg}';">
 
     <div style="margin-bottom:16px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
