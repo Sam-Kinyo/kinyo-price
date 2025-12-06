@@ -618,7 +618,7 @@ th{background:#fafafa;text-align:left;}
         <select id="categorySelect">
             <option value="">全部分類</option>
         </select>
-        <input id="keyword" placeholder="如：CL528 / 捕蚊燈" autocomplete="off" />
+       <input id="keyword" placeholder="支援多組搜尋 (例如: kh9660, kh195 用空白或逗號隔開)" autocomplete="off" />
     </div>
   </div>
 
@@ -1392,34 +1392,49 @@ function applySorting(list) {
   return list;
 }
 
-/* 🚀 Updated Search Logic - Plan A: Simple Filter */
+/* 🚀 Updated Search Logic - 完整版 (支援多關鍵字 + 所有篩選功能) */
 function searchProducts() {
+  // 1. 基本載入檢查
   if (!isProductsLoaded) { alert("商品資料載入中"); return; }
   
-  const key = keywordInput.value.trim().toLowerCase();
+  // --- [A] 抓取與處理關鍵字 (支援多組) ---
+  const rawInput = keywordInput.value.trim().toLowerCase();
+  
+  // 使用 Regex 切割字串：支援 空白(\s)、英文逗號(,)、中文逗號(，)、換行(\n)
+  // filter(k => k) 是為了過濾掉多餘的空字串
+  const keys = rawInput.split(/[\s,，\n]+/).filter(k => k.length > 0);
+  const hasKey = keys.length > 0;
+
+  // --- [B] 抓取其他搜尋條件 ---
   const qty = qtySelect.value;
   const minPraw = minPriceInput.value.trim();
   const maxPraw = maxPriceInput.value.trim();
   const cat = categorySelect.value; 
   const stockReq = stockFilter.value; 
-   const gradeCheck = document.getElementById("gradeFilter");
-  const isGradeOnly = gradeCheck && gradeCheck.checked;
-   const controlledCheck = document.getElementById("controlledFilter");
-const isControlledOnly = controlledCheck && controlledCheck.checked;
   
-  const hasKey = !!key;
+  // 抓取勾選框狀態
+  const gradeCheck = document.getElementById("gradeFilter");
+  const isGradeOnly = gradeCheck && gradeCheck.checked;
+  const controlledCheck = document.getElementById("controlledFilter");
+  const isControlledOnly = controlledCheck && controlledCheck.checked;
+  
   const hasQty = !!qty;
   const hasBudget = !!minPraw || !!maxPraw;
   const hasCat = !!cat; 
   const hasStockReq = !!stockReq;
 
+  // --- [C] 防呆判斷 ---
+  
+  // 1. 有預算卻沒起訂量 -> 擋
   if (hasBudget && !hasQty && userLevel >= 1) {
     alert("搜尋預算區間時，必須選擇「起訂量」！");
     return;
   }
   
-  if (hasQty && !hasKey && !hasBudget && !hasCat && !hasStockReq) {
-    alert("請輸入搜尋條件（關鍵字、分類、起訂量、預算或庫存需求）");
+  // 2. 完全沒輸入條件 -> 擋
+  // (如果連 A級品、控價品都沒勾，且沒關鍵字、沒分類、沒庫存...才擋)
+  if (!hasKey && !hasQty && !hasBudget && !hasCat && !hasStockReq && !isGradeOnly && !isControlledOnly) {
+    alert("請輸入搜尋條件（關鍵字、分類、起訂量、預算、庫存或勾選篩選）");
     return;
   }
 
@@ -1430,34 +1445,52 @@ const isControlledOnly = controlledCheck && controlledCheck.checked;
   updateUserDisplay('searching');
 
   setTimeout(() => {
-    // 🚀 Use pre-merged cache directly
+    // 🚀 使用記憶體中的資料快取
     let r = productCache;
-     if (isGradeOnly) {
+
+    // --- [D] 資料過濾核心 ---
+
+    // 1. 安全權限過濾 (Level 4 才能看 A 級品)
+    // 即使關鍵字搜到了，如果權限不夠，這裡會先把它擋下來
+    if (userLevel < 4) {
+        r = r.filter(p => p.grade !== 'A');
+    }
+
+    // 2. 勾選篩選：只看 A 級品
+    if (isGradeOnly) {
         r = r.filter(p => p.grade === 'A');
     }
-     if (isControlledOnly) {
-    r = r.filter(p => p.isControlled === true);
-}
+    
+    // 3. 勾選篩選：只看控價品
+    if (isControlledOnly) {
+        r = r.filter(p => p.isControlled === true);
+    }
 
+    // 4. 分類篩選
     if (hasCat) {
         r = r.filter(p => p.category === cat);
     }
 
+    // 5. 關鍵字篩選 (支援多組)
     if (hasKey) {
-      r = r.filter(p => (p.searchKey || "").includes(key));
+      r = r.filter(p => {
+        const pKey = (p.searchKey || "");
+        // 邏輯：只要這個商品包含「任何一個 (some)」輸入的關鍵字，就留下來
+        // 例如輸入 "A B"，商品只要有 A 或有 B 都算符合
+        return keys.some(k => pKey.includes(k));
+      });
     }
 
+    // 6. 庫存篩選 (含 缺貨中 邏輯)
     if (hasStockReq) {
-        // ✅ 情境 A：使用者選了「缺貨中」
         if (stockReq === 'ZERO') {
+            // 找缺貨 (<= 0)
             r = r.filter(p => {
-                // 如果庫存是空白或 null，當作 0 處理
                 const inv = parseInt(p.inventory || 0, 10);
-                return inv <= 0; // 只要小於等於 0 都算缺貨
+                return inv <= 0;
             });
-        } 
-        // ✅ 情境 B：使用者選了「現貨 > N」
-        else {
+        } else {
+            // 找現貨 (> N)
             const minStock = parseInt(stockReq, 10);
             r = r.filter(p => {
                 const inv = parseInt(p.inventory || 0, 10);
@@ -1466,6 +1499,7 @@ const isControlledOnly = controlledCheck && controlledCheck.checked;
         }
     }
 
+    // 7. 預算篩選
     if (hasBudget) {
       const min = minPraw ? Number(minPraw) : 0;
       const max = maxPraw ? Number(maxPraw) : Number.MAX_SAFE_INTEGER;
@@ -1482,7 +1516,7 @@ const isControlledOnly = controlledCheck && controlledCheck.checked;
       });
     }
 
-    // No need to call mergeByMainModel anymore!
+    // --- [E] 排序與渲染 ---
     currentResultList = r;
 
     if (!sortSelect.value) {
@@ -1496,7 +1530,6 @@ const isControlledOnly = controlledCheck && controlledCheck.checked;
     updateUserDisplay('normal');
   }, 0);
 }
-
 /* 🚀 Updated Render Logic - 圖片遞補機制優化版 */
 function renderResults(list) {
   // --- 1. 初始化畫面 ---
