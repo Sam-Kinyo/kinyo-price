@@ -1489,52 +1489,63 @@ const isControlledOnly = controlledCheck && controlledCheck.checked;
   }, 0);
 }
 
-/* 🚀 Updated Render Logic - Include Stock Variant + VIP Logic */
+/* 🚀 Updated Render Logic - 圖片遞補機制優化版 */
 function renderResults(list) {
+  // --- 1. 初始化畫面 ---
   resultBody.innerHTML = ""; detailCard.style.display = "none"; checkAllBox.checked = false; updateMultiLineBtnState();
+  
+  // --- 2. 如果沒資料，隱藏表格 ---
   if (list.length === 0) {
     resultTable.style.display = "none"; exportBtn.disabled = true; pptToolbarBtn.disabled = true; return;
   }
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
 
+  // --- 3. 開始跑迴圈，產生每一列 ---
   list.forEach(item => {
-    // 🌟 智慧圖片遞補邏輯
-    let img = item.imageUrl;
-    const netImages = getDriveNetImages(item.model, item.mainModel);
-
-    if (!img || !img.startsWith("http")) {
-      const driveImg = getDriveMainImage(item.model, item.mainModel);
-      if (driveImg) {
-          img = driveImg;
-      } else if (netImages && netImages.length > 0) {
-          img = netImages[0];
-      } else {
-          img = "https://placehold.co/110x110?text=No+Image";
-      }
+    
+    // 🔥🔥🔥【圖片智慧遞補邏輯開始】🔥🔥🔥
+    const netImages = getDriveNetImages(item.model, item.mainModel) || [];
+    const driveMainImg = getDriveMainImage(item.model, item.mainModel);
+    
+    // 準備「救援圖片」：如果主圖掛掉，要換哪一張？(優先序：Drive主圖 > 網路圖第一張 > 灰圖)
+    let backupImg = "https://placehold.co/110x110?text=No+Image";
+    if (driveMainImg) {
+        backupImg = driveMainImg;
+    } else if (netImages.length > 0) {
+        backupImg = netImages[0];
     }
 
-     let gradeHtml = "";
+    // 決定「預設顯示圖片」：(優先序：Excel網址 > Drive主圖 > 網路圖第一張 > 灰圖)
+    let img = item.imageUrl; 
+    
+    if (!img || !img.startsWith("http")) {
+        if (driveMainImg) {
+            img = driveMainImg;
+        } else if (netImages.length > 0) {
+            img = netImages[0]; 
+        } else {
+            img = "https://placehold.co/110x110?text=No+Image";
+        }
+    }
+    // 🔥🔥🔥【圖片邏輯結束】🔥🔥🔥
+
+    // --- 處理標籤 ---
+    let gradeHtml = "";
     if (item.grade === 'A') {
         gradeHtml = `<span style="background:#fefce8; color:#854d0e; border:1px solid #fde047; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">✨ A級品</span>`;
     }
-     let controlledHtml = "";
-if (item.isControlled) {
-    controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
-}
-     
+    let controlledHtml = "";
+    if (item.isControlled) {
+        controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
+    }
+      
     const tr = document.createElement("tr");
-let priceHtml = ""; // 這是開頭
-
-    // 👇👇👇 [修改] 價格顯示邏輯 (VIP > 團購主 > 一般批發) 👇👇👇
+    let priceHtml = ""; 
     const getPrice = (p) => (item[p] ?? "-");
 
-// ✅✅✅ [請貼上這段新的邏輯] ✅✅✅
-
-    // 1. 團購/直播主模式 (最高優先)
+    // --- 價格顯示邏輯 ---
     if (isGroupBuyUser) {
         let htmlStack = [];
-
-        // (A) 顯示直播團購價 (紅標)
         const gbPrice = item.groupBuyPrice; 
         if (gbPrice) {
             htmlStack.push(`<div style="margin-bottom:4px;"><span style="display:inline-block; background:#fee2e2; color:#b91c1c; border:1px solid #f87171; padding:3px 8px; border-radius:6px; font-weight:bold; font-size:15px;">🔴 直播團購價：$${gbPrice}</span></div>`);
@@ -1542,8 +1553,6 @@ let priceHtml = ""; // 這是開頭
             htmlStack.push(`<div style="margin-bottom:4px;"><span style="color:#9ca3af; font-size:13px;">(本檔未開放團購)</span></div>`);
         }
 
-        // (B) 顯示動態進價 (VIP_C, VIP_D...)
-        // 如果該用戶有設定 vipColumn (例如 "VIP_D") 就抓那一欄，否則預設抓 "VIP_C"
         const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
         const myCost = item[costCol]; 
 
@@ -1552,11 +1561,9 @@ let priceHtml = ""; // 這是開頭
         } else {
              htmlStack.push(`<div><span style="color:#999; font-size:12px;">(無專屬進價)</span></div>`);
         }
-
         priceHtml = htmlStack.join("");
 
     } else if (currentUserVipConfig) {
-        // 2. 純 VIP 模式 (無團購身份)
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
             priceHtml = `<span style="font-weight:bold; color:#b91c1c; font-size:14px; background:#fce7f3; padding:4px 8px; border-radius:6px;">${currentUserVipConfig.name} 專屬價：$${vipPriceVal}</span>`;
@@ -1565,7 +1572,6 @@ let priceHtml = ""; // 這是開頭
         }
 
     } else {
-        // 3. 一般批發模式 (Level 1~4)
         if (userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getPrice('quote50')}</span>`;
         if (userLevel >= 2) {
             priceHtml += `<span class="price-tag tag100">100個：${getPrice('quote100')}</span>`;
@@ -1579,15 +1585,12 @@ let priceHtml = ""; // 這是開頭
             priceHtml += `<span class="price-tag" style="background:#f3e8ff;color:#6b21a8;">3000個：${getPrice('quote3000')}</span>`;
         }
     }
-    // ✅✅✅ [結束] ✅✅✅
 
-    // 🚀 末售與賣場價格顯示邏輯 (VIP 特規)
     const showMinPrice = userLevel >= 1;
-   let minPriceDisplay = "";
+    let minPriceDisplay = "";
     let marketPriceDisplay = item.marketPrice ?? "-";
 
     if (currentUserVipConfig) {
-        // 1. VIP 邏輯 (維持原本：有專屬價就隱藏參考價)
         const vipPriceVal = item[currentUserVipConfig.column];
         if (vipPriceVal) {
             minPriceDisplay = "";
@@ -1597,26 +1600,26 @@ let priceHtml = ""; // 這是開頭
             marketPriceDisplay = item.marketPrice ?? "-";
         }
     } else if (isGroupBuyUser) {
-        // 2. [新增] 團購主邏輯：強制隱藏末售(底價)，只顯示賣場價
         minPriceDisplay = "-"; 
         marketPriceDisplay = item.marketPrice ?? "-";
     } else {
-        // 3. 一般人邏輯 (維持原本)
         minPriceDisplay = showMinPrice ? (item.minPrice ?? "-") : "---";
         marketPriceDisplay = item.marketPrice ?? "-";
     }
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
     
-    // 🚀 Insert Stock Variant HTML
     const variantStockHtml = renderStockByVariant(item);
 
+    // --- 4. 產生 HTML (加入 onerror 救援) ---
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
       <td>
-        <img src="${img}" class="product-img" onerror="this.onerror=null;this.src='https://placehold.co/110x110?text=No+Image';">
+        <img src="${img}" class="product-img" 
+             loading="lazy"
+             onerror="this.onerror=null; this.src='${backupImg}';">
       </td>
       <td class="model-cell">${item.mainModel || "-"}</td>
-     <td>
+      <td>
         ${gradeHtml} ${controlledHtml} ${catBadge} 
         <div style="font-weight:700;margin-bottom:4px;font-size:15px;">${item.name || "-"}</div>
         
@@ -1639,6 +1642,7 @@ let priceHtml = ""; // 這是開頭
       <td style="text-align:right;">${marketPriceDisplay}</td>
     `;
 
+    // --- 5. 綁定按鈕事件 ---
     const imgEl = tr.querySelector('.product-img');
     const modelEl = tr.querySelector('.model-cell');
 
@@ -1656,10 +1660,9 @@ let priceHtml = ""; // 這是開頭
       if (window.innerWidth > 900) {
           imgEl.addEventListener('mouseenter', openDetail);
           imgEl.addEventListener('mouseleave', () => {
-             // 🚀 Changed from 200 to 1000
-             window.hideDetailTimer = setTimeout(() => {
-               detailCard.style.display = "none";
-             }, 1000); 
+              window.hideDetailTimer = setTimeout(() => {
+                detailCard.style.display = "none";
+              }, 1000); 
           });
       }
     }
@@ -1668,16 +1671,16 @@ let priceHtml = ""; // 這是開頭
        if (window.innerWidth > 900) {
           modelEl.addEventListener('mouseenter', openDetail);
           modelEl.addEventListener('mouseleave', () => {
-             // 🚀 Changed from 200 to 1000
-             window.hideDetailTimer = setTimeout(() => {
-               detailCard.style.display = "none";
-             }, 1000); 
+              window.hideDetailTimer = setTimeout(() => {
+                detailCard.style.display = "none";
+              }, 1000); 
           });
       }
     }
 
     resultBody.appendChild(tr);
   });
+  
   bindCheckAll();
 }
 
