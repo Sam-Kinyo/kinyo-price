@@ -629,15 +629,18 @@ th{background:#fafafa;text-align:left;}
             <!-- Options added by JS -->
         </select>
         <!-- 預設隱藏，Level 2 以上才顯示 -->
-        <select id="stockFilter" style="flex:1; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
-            <option value="">📦 不限庫存</option>
-            <option value="1">📦 現貨 > 0</option>
-            <option value="50">📦 現貨 > 50 (少量)</option>
-            <option value="100">📦 現貨 > 100 (批發)</option>
-            <option value="300">📦 現貨 > 300 (大宗)</option>
-            <option value="500">📦 現貨 > 500 (專案)</option>
-           <option value="1000">📦 現貨 > 1000 (海量)</option>
-        </select>
+       <select id="stockFilter" style="flex:1; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
+    <option value="">📦 不限庫存</option>
+    
+    <option value="ZERO" style="color:#dc2626; font-weight:bold;">❌ 缺貨中 (庫存=0)</option>
+
+    <option value="1">📦 現貨 > 0</option>
+    <option value="50">📦 現貨 > 50 (少量)</option>
+    <option value="100">📦 現貨 > 100 (批發)</option>
+    <option value="300">📦 現貨 > 300 (大宗)</option>
+    <option value="500">📦 現貨 > 500 (專案)</option>
+    <option value="1000">📦 現貨 > 1000 (海量)</option>
+</select>
     </div>
   </div>
 
@@ -1437,12 +1440,22 @@ const isControlledOnly = controlledCheck && controlledCheck.checked;
     }
 
     if (hasStockReq) {
-        const minStock = parseInt(stockReq, 10);
-        r = r.filter(p => {
-            // Check max inventory of the merged item
-            const inv = parseInt(p.inventory || 0, 10);
-            return inv >= minStock;
-        });
+        // ✅ 情境 A：使用者選了「缺貨中」
+        if (stockReq === 'ZERO') {
+            r = r.filter(p => {
+                // 如果庫存是空白或 null，當作 0 處理
+                const inv = parseInt(p.inventory || 0, 10);
+                return inv <= 0; // 只要小於等於 0 都算缺貨
+            });
+        } 
+        // ✅ 情境 B：使用者選了「現貨 > N」
+        else {
+            const minStock = parseInt(stockReq, 10);
+            r = r.filter(p => {
+                const inv = parseInt(p.inventory || 0, 10);
+                return inv >= minStock;
+            });
+        }
     }
 
     if (hasBudget) {
