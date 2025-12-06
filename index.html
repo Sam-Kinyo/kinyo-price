@@ -298,6 +298,7 @@ th{background:#fafafa;text-align:left;}
 .st-good { background: #dcfce7; color: #166534; border-color: #86efac; }
 /* 6. 大於 1200 (深綠 - 極多) */
 .st-high { background: #ccfbf1; color: #0f766e; border-color: #5eead4; }
+.st-zero { background: #374151; color: #ffffff; border-color: #1f2937; }
 
 
 /* =========================================
@@ -869,19 +870,23 @@ let isDriveLoaded = false;
       HELPER FUNCTIONS
    ==================================================== 🚀 */
 
-/* 🚀 庫存判斷邏輯 */
+/* 🚀 庫存判斷邏輯 (已新增 缺貨 判斷) */
 function getInventoryStatus(qty) {
   if (qty === null || qty === undefined || qty === "") return null;
   const val = parseInt(qty, 10);
   if (isNaN(val)) return null;
 
-  if (val < 30)   return { label: "庫存 < 30",   cls: "st-crit" };
-  if (val < 100)  return { label: "庫存 < 100",  cls: "st-low" };
-  if (val < 400)  return { label: "庫存 < 400",  cls: "st-warn" };
-  if (val < 800)  return { label: "庫存 < 800",  cls: "st-mid" };
+  // 👇👇👇【新增這一行】優先判斷 0 或 負數 👇👇👇
+  if (val <= 0)    return { label: "❌ 缺貨中",   cls: "st-zero" };
+  // 👆👆👆 結束 👆👆👆
+
+  // 原本的邏輯往下移
+  if (val < 30)    return { label: "庫存 < 30",   cls: "st-crit" };
+  if (val < 100)   return { label: "庫存 < 100",  cls: "st-low" };
+  if (val < 400)   return { label: "庫存 < 400",  cls: "st-warn" };
+  if (val < 800)   return { label: "庫存 < 800",  cls: "st-mid" };
   if (val <= 1200) return { label: "庫存 < 1200", cls: "st-good" };
   
-  // 大於等於 1201 (含)
   return { label: "庫存 > 1201", cls: "st-high" };
 }
 
@@ -1475,20 +1480,36 @@ function searchProducts() {
       });
     }
 
-    // --- [E] 排序與渲染 ---
-    currentResultList = r;
+   // --- [E] 排序與渲染 (修改版：強制缺貨置底) ---
+    
+    // 1. 先將結果拆成兩堆
+    const activeItems = r.filter(p => (parseInt(p.inventory || 0, 10) > 0));
+    const zeroItems   = r.filter(p => (parseInt(p.inventory || 0, 10) <= 0));
+
+    // 2. 兩堆各自進行排序 (或隨機)
+    let sortedActive = [];
+    let sortedZero = [];
 
     if (!sortSelect.value) {
-        currentResultList = shuffleArray(currentResultList);
+        // 如果選「隨機」，兩堆各自洗牌
+        sortedActive = shuffleArray(activeItems);
+        sortedZero = shuffleArray(zeroItems);
     } else {
-        currentResultList = applySorting(currentResultList);
+        // 如果選「價格排序」，兩堆各自排序
+        sortedActive = applySorting(activeItems);
+        sortedZero = applySorting(zeroItems);
     }
+
+    // 3. 合併：有貨的在上面，缺貨的在下面
+    currentResultList = [...sortedActive, ...sortedZero];
     
     renderResults(currentResultList);
     hideLoading();
     updateUserDisplay('normal');
   }, 0);
 }
+
+
 /* 🚀 Updated Render Logic - 移除 A 級品標籤 */
 function renderResults(list) {
   resultBody.innerHTML = ""; detailCard.style.display = "none"; checkAllBox.checked = false; updateMultiLineBtnState();
@@ -3160,8 +3181,30 @@ if (multiLineBtn) {
 if(sortSelect) {
   sortSelect.onchange = () => {
     if (currentResultList.length > 0) {
-      currentResultList = applySorting([...currentResultList]);
-      renderResults(currentResultList);
+      // 1. 重新從目前的結果中拆分
+      // (注意：這裡不能用 r，要用 currentResultList)
+      const activeItems = currentResultList.filter(p => (parseInt(p.inventory || 0, 10) > 0));
+      const zeroItems   = currentResultList.filter(p => (parseInt(p.inventory || 0, 10) <= 0));
+
+      let sortedActive = [];
+      let sortedZero = [];
+
+      // 2. 重新排序
+      if (!sortSelect.value) {
+          sortedActive = shuffleArray(activeItems);
+          sortedZero = shuffleArray(zeroItems);
+      } else {
+          // 因為 applySorting 會修改原陣列，建議用解構複製 [...array]
+          sortedActive = applySorting([...activeItems]);
+          sortedZero = applySorting([...zeroItems]);
+      }
+
+      // 3. 重新合併並渲染
+      const finalSortedList = [...sortedActive, ...sortedZero];
+      renderResults(finalSortedList);
+      
+      // 更新全域變數，確保下次操作一致
+      currentResultList = finalSortedList;
     }
   };
 }
