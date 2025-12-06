@@ -678,7 +678,6 @@ th{background:#fafafa;text-align:left;}
 </form>
 
 <!-- Hidden File Inputs -->
-<input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
@@ -693,7 +692,6 @@ th{background:#fafafa;text-align:left;}
   </select>
   
   <!-- 預設隱藏，Level 4 才顯示 -->
-  <button id="importInventoryBtn" class="btn-secondary" style="color:#059669; border-color:#059669; background:#ecfdf5; font-weight:bold; display:none;">📥 匯入庫存表 (條碼比對)</button>
   <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
@@ -785,9 +783,7 @@ const pptToolbarBtn   = document.getElementById("pptToolbarBtn");
 const multiLineBtn    = document.getElementById("multiLineBtn");
 const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
-const importInventoryBtn = document.getElementById("importInventoryBtn");
 const importProductBtn   = document.getElementById("importProductBtn");
-const inventoryUpload = document.getElementById("inventoryUpload");
 const productUpload   = document.getElementById("productUpload");
 
 const resultTable     = document.getElementById("resultTable");
@@ -1120,22 +1116,34 @@ function updateUserDisplay(status) {
   }
 }
 
-// 🚀 Updates UI permissions based on user level
+// 🚀 Updates UI permissions based on user level (已移除綠色按鈕邏輯)
 function updatePermissions() {
-    // 1. Level 4 Only: Import Inventory & Product Data
+    // 1. Level 4 Only: 只有 Level 4 可以看到「匯入產品總表」
     if (userLevel >= 4) {
-        importInventoryBtn.style.display = 'inline-block';
-        importProductBtn.style.display = 'inline-block'; 
+        // importInventoryBtn 已刪除，不需要再控制它
+        if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
     } else {
-        importInventoryBtn.style.display = 'none';
-        importProductBtn.style.display = 'none'; 
+        if(importProductBtn) importProductBtn.style.display = 'none'; 
     }
 
     // 2. Level 2+ 或 VIP 都能使用庫存篩選
     if (userLevel >= 2 || currentUserVipConfig) {
-        stockFilter.style.display = 'block'; 
+        if(stockFilter) stockFilter.style.display = 'block'; 
     } else {
-        stockFilter.style.display = 'none';
+        if(stockFilter) stockFilter.style.display = 'none';
+    }
+
+    // 3. A級品篩選框：只有 Level 4 能看
+    const gradeContainer = document.getElementById("gradeFilterContainer");
+    const gradeInput = document.getElementById("gradeFilter");
+    
+    if (gradeContainer) {
+        if (userLevel >= 4) {
+            gradeContainer.style.display = "flex"; // Level 4 顯示
+        } else {
+            gradeContainer.style.display = "none"; // 其他人隱藏
+            if(gradeInput) gradeInput.checked = false; // 隱藏時順便取消勾選
+        }
     }
 }
 
@@ -2478,12 +2486,6 @@ logoutBtn.onclick = () => {
 };
 
 // Open File Dialog
-if(importInventoryBtn) {
-    importInventoryBtn.onclick = () => {
-        inventoryUpload.value = ''; // Reset
-        inventoryUpload.click();
-    };
-}
 
 if(importProductBtn) {
     importProductBtn.onclick = () => {
@@ -2874,152 +2876,6 @@ if(productUpload) {
             } catch(e) {
                 console.error(e);
                 alert("檔案讀取失敗，請檢查 Excel 格式");
-            }
-        };
-        reader.readAsBinaryString(file);
-    };
-}
-// ----------------------------------------------------
-// INVENTORY IMPORT LOGIC
-// ----------------------------------------------------
-if(inventoryUpload) {
-    inventoryUpload.onchange = (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        currentImportMode = 'inventory';
-
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                const data = evt.target.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
-
-                // --- HEADER DETECTION ---
-                let barcodeIdx = -1;
-                let finishedIdx = -1;
-                let exclusiveIdx = -1;
-                let fallbackIdx = -1;
-
-                // Scan first 10 rows
-                for(let r=0; r<Math.min(jsonData.length, 10); r++) {
-                    const row = jsonData[r];
-                    for(let c=0; c<row.length; c++) {
-                        const cell = String(row[c]).trim();
-                        if(cell === "條碼" || cell === "國際條碼") barcodeIdx = c;
-                        if(cell === "成品倉") finishedIdx = c;
-                        if(cell === "專賣倉") exclusiveIdx = c;
-                        if(cell.includes("庫存") && cell.includes("可用量")) fallbackIdx = c;
-                    }
-                }
-
-                if (barcodeIdx === -1) {
-                    alert("錯誤：找不到「條碼」欄位，請檢查 Excel 格式。");
-                    return;
-                }
-
-                pendingInventoryMap.clear();
-                let previewData = [];
-                let count = 0;
-
-                // --- DATA PARSING ---
-                jsonData.forEach((row, index) => {
-                    if(!row[barcodeIdx]) return;
-                    const rawBarcode = row[barcodeIdx];
-                    if(String(rawBarcode).includes("條碼")) return;
-
-                    let totalQty = 0;
-                    let finishedVal = 0;
-                    let exclusiveVal = 0;
-                    let source = "";
-
-                    if(finishedIdx !== -1 && exclusiveIdx !== -1) {
-                        finishedVal = parseInt(row[finishedIdx], 10) || 0;
-                        exclusiveVal = parseInt(row[exclusiveIdx], 10) || 0;
-                        totalQty = Math.floor((finishedVal + exclusiveVal) * 0.9);
-                        source = "成品+專賣";
-                    } 
-                    else if (fallbackIdx !== -1) {
-                        const fb = parseInt(row[fallbackIdx], 10) || 0;
-                        totalQty = Math.floor(fb * 0.9);
-                        source = "庫存(可用量)";
-                    } else {
-                        return; 
-                    }
-
-                    const bc = String(rawBarcode).trim();
-                    pendingInventoryMap.set(bc, totalQty);
-                    count++;
-
-                    // For preview, we try to match name from current Cache (Best Effort)
-                    if(previewData.length < 10) {
-                        let matchedName = "(系統比對中...)";
-                        // Trying to find name in merged cache (Approximate)
-                        const cached = productCache.find(p => p.internationalBarcode == bc);
-                        if(cached) matchedName = cached.name;
-                        
-                        previewData.push({
-                            bc: bc,
-                            name: matchedName, 
-                            fin: finishedVal,
-                            exc: exclusiveVal,
-                            rawTotal: (finishedVal + exclusiveVal),
-                            final: totalQty,
-                            src: source
-                        });
-                    }
-                });
-
-                if(count > 0) {
-                    previewHeader.textContent = "庫存匯入預覽";
-                    let tableHtml = `
-                    <div style="margin-bottom:10px; font-size:12px; color:#666;">
-                        ✅ 抓到欄位：
-                        ${barcodeIdx!==-1?`<span class="field-badge">條碼</span>`:''}
-                        ${finishedIdx!==-1?`<span class="field-badge">成品倉</span>`:''}
-                        ${exclusiveIdx!==-1?`<span class="field-badge">專賣倉</span>`:''}
-                        ${fallbackIdx!==-1?`<span class="field-badge">庫存(可用量)</span>`:''}
-                    </div>
-                    <table class="preview-table">
-                        <thead>
-                            <tr>
-                                <th>條碼</th>
-                                <th>商品名稱 (參考)</th>
-                                <th>成品倉</th>
-                                <th>專賣倉</th>
-                                <th>原始總和</th>
-                                <th style="color:#2563eb;">安全庫存 (90%)</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-                    
-                    previewData.forEach(row => {
-                        tableHtml += `<tr>
-                            <td>${row.bc}</td>
-                            <td>${row.name}</td>
-                            <td>${row.fin}</td>
-                            <td>${row.exc}</td>
-                            <td>${row.rawTotal}</td>
-                            <td style="font-weight:bold; color:#2563eb;">${row.final}</td>
-                        </tr>`;
-                    });
-                    tableHtml += `</tbody></table>
-                    <div style="margin-top:10px; color:#666;">
-                        共解析出 ${count} 筆有效資料。<br>
-                        確認無誤後，請點擊下方按鈕寫入資料庫。
-                    </div>`;
-
-                    previewContent.innerHTML = tableHtml;
-                    previewOverlay.style.display = "flex";
-
-                } else {
-                    alert("未在檔案中找到有效的庫存數據。");
-                }
-                
-            } catch(err) {
-                console.error(err);
-                alert("讀取檔案失敗，請確認格式是否正確。");
             }
         };
         reader.readAsBinaryString(file);
