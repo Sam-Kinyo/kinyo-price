@@ -2659,6 +2659,9 @@ async function saveInventoryToFirestore(invMap) {
 // ----------------------------------------------------
 // PRODUCT IMPORT LOGIC (Smart Parsing)
 // ----------------------------------------------------
+// ----------------------------------------------------
+// PRODUCT IMPORT LOGIC (最終定案版：庫存同步 + 廠價算報價 + 末售價依Excel + 資安保護)
+// ----------------------------------------------------
 if(productUpload) {
     productUpload.onchange = (e) => {
         const file = e.target.files[0];
@@ -2673,19 +2676,20 @@ if(productUpload) {
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 }); 
 
-                // Header Mapping
+                // 1. 定義欄位 Mapping
                 let h = {
                     model: -1, name: -1, 
                     market: -1, min: -1, 
                     q50: -1, q100: -1, q300: -1, q500: -1, q1000: -1, q3000: -1, grade: -1,
                     cat: -1, color: -1, barcode: -1, box: -1, controlled: -1,
-                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1
+                    url: -1, perm: -1, bsmi: -1, ncc: -1, groupBuy: -1,
+                    cost: -1,      // 廠價 (僅供運算用，不存檔)
+                    inventory: -1  // 庫存
                 };
                 
-                // 🚀 V6.5 Dynamic VIP Columns
-                let vipHeaders = {}; // key: column name (e.g. VIP_A), value: index
+                let vipHeaders = {}; 
 
-                // Scan headers
+                // 2. 掃描表頭
                 for(let r=0; r<Math.min(jsonData.length, 10); r++) {
                     const row = jsonData[r];
                     for(let c=0; c<row.length; c++) {
@@ -2698,26 +2702,32 @@ if(productUpload) {
                         if(cellLower.includes('末售') || cellLower.includes('底價')) h.min = c;
                         if(cellLower.includes('團購')) h.groupBuy = c; 
                         
-                        if (cellLower.includes('50') && !cellLower.includes('500') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '50')) h.q50 = c;
-                        if (cellLower.includes('100') && !cellLower.includes('1000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '100')) h.q100 = c;
-                        if (cellLower.includes('300') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '300')) h.q300 = c;
-                        if (cellLower.includes('500') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '500')) h.q500 = c;
-                        if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '1000')) h.q1000 = c;
-                       if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower.includes('quote') || cellLower === '3000')) h.q3000 = c;
-                       if (cellLower.includes('a級') || cellLower === 'grade' || cellLower === 'a級品') h.grade = c;
-                       if (cellLower.includes('控價') || cellLower === 'controlled') h.controlled = c;
+                        // 報價欄位 (優先權：Excel手填 > 自動計算)
+                        if (cellLower.includes('50') && !cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
+                        if (cellLower.includes('100') && !cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
+                        if (cellLower.includes('300') && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
+                        if (cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '500')) h.q500 = c;
+                        if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '1000')) h.q1000 = c;
+                        if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower === '3000')) h.q3000 = c;
+                        
+                        if (cellLower.includes('a級') || cellLower === 'grade') h.grade = c;
+                        if (cellLower.includes('控價') || cellLower === 'controlled') h.controlled = c;
 
                         if(cellLower.includes('顏色')) h.color = c;
-                        if(cellLower.includes('分類') || cellLower.includes('類別') || cellLower === 'category') h.cat = c;
+                        if(cellLower.includes('分類') || cellLower === 'category') h.cat = c;
                         if(cellLower.includes('條碼') || cellLower === 'barcode' || cellLower === '國際條碼') h.barcode = c;
                         if(cellLower.includes('箱入') || cellLower.includes('carton')) h.box = c;
 
-                        if (cellLower.includes('網站') || cellLower.includes('網址') || cellLower.includes('url') || cellLower.includes('link')) h.url = c;
+                        if (cellLower.includes('網站') || cellLower.includes('網址') || cellLower.includes('url')) h.url = c;
                         if (cellLower.includes('權限') || cellLower.includes('permission')) h.perm = c;
                         if (cellLower.includes('bsmi')) h.bsmi = c;
                         if (cellLower.includes('ncc')) h.ncc = c;
                         
-                        // 🚀 VIP Dynamic Detection
+                        // 偵測廠價與庫存
+                        if (cellLower === '廠價' || cellLower === 'cost' || cellLower === '成本') h.cost = c;
+                        if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory' || cellLower === 'qty' || cellLower === 'stock') h.inventory = c;
+
+                        // VIP 欄位
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
                         }
@@ -2725,53 +2735,86 @@ if(productUpload) {
                 }
 
                 if(h.barcode === -1) {
-                    alert("⚠️ 警告：找不到「國際條碼」欄位。\nV6.4 版強烈建議使用國際條碼作為唯一識別，否則無法精準更新。");
-                    // return; // Optional: Allow proceed but risk duplicates if logic falls back (but we enforced logic)
+                    alert("⚠️ 警告：找不到「國際條碼」欄位，無法進行精準更新。");
                 }
 
                 let actions = [];
                 const hasVal = (v) => v !== undefined && v !== null && String(v).trim() !== "";
 
+                // 3. 解析與運算
                 jsonData.forEach((row) => {
                     const rawModel = row[h.model];
                     if(!rawModel || String(rawModel).includes("型號")) return;
 
                     const modelVal = String(rawModel).trim();
+                    let obj = {}; 
 
-                    let obj = {};
+                    // --- [A] 讀取基本資料 ---
                     if(h.name !== -1 && hasVal(row[h.name])) obj.name = row[h.name];
-                    if(h.market !== -1 && hasVal(row[h.market])) obj.marketPrice = row[h.market];
-                    if(h.min !== -1 && hasVal(row[h.min])) obj.minPrice = row[h.min];
-                    if(h.groupBuy !== -1 && hasVal(row[h.groupBuy])) obj.groupBuyPrice = row[h.groupBuy];
-                    
-                    if(h.q50 !== -1 && hasVal(row[h.q50])) obj.quote50 = row[h.q50];
-                    if(h.q100 !== -1 && hasVal(row[h.q100])) obj.quote100 = row[h.q100];
-                    if(h.q300 !== -1 && hasVal(row[h.q300])) obj.quote300 = row[h.q300];
-                    if(h.q500 !== -1 && hasVal(row[h.q500])) obj.quote500 = row[h.q500];
-                    if(h.q1000 !== -1 && hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
-                   if(h.q3000 !== -1 && hasVal(row[h.q3000])) obj.quote3000 = row[h.q3000];
-                   if(h.grade !== -1 && hasVal(row[h.grade])) {
-    const val = String(row[h.grade]).trim().toUpperCase();
-    // 只要 Excel 裡面有寫 A，就標記為 'A'
-    if(val.includes('A')) obj.grade = 'A'; 
-}
-                   if(h.controlled !== -1 && hasVal(row[h.controlled])) {
-    const val = String(row[h.controlled]).trim().toLowerCase();
-    // 如果 Excel 填 v 或 V，就標記為 true
-    if(val === 'v') obj.isControlled = true;
-}
-                    
                     if(h.cat !== -1 && hasVal(row[h.cat])) obj.category = row[h.cat];
                     if(h.color !== -1 && hasVal(row[h.color])) obj.colorList = row[h.color];
                     if(h.barcode !== -1 && hasVal(row[h.barcode])) obj.internationalBarcode = row[h.barcode]; 
                     if(h.box !== -1 && hasVal(row[h.box])) obj.cartonQty = row[h.box];
-
                     if(h.url !== -1 && hasVal(row[h.url])) obj.productUrl = row[h.url];
                     if(h.perm !== -1 && hasVal(row[h.perm])) obj.netSalesPermission = row[h.perm];
                     if(h.bsmi !== -1 && hasVal(row[h.bsmi])) obj.bsmi = row[h.bsmi];
                     if(h.ncc !== -1 && hasVal(row[h.ncc])) obj.ncc = row[h.ncc];
+
+                    if(h.market !== -1 && hasVal(row[h.market])) obj.marketPrice = row[h.market];
+                    // ✅ 這裡會讀取您填的末售價，若沒填就不會自動亂算
+                    if(h.min !== -1 && hasVal(row[h.min])) obj.minPrice = row[h.min];
+                    if(h.groupBuy !== -1 && hasVal(row[h.groupBuy])) obj.groupBuyPrice = row[h.groupBuy];
                     
-                    // 🚀 Add Dynamic VIP Fields
+                    // --- [B] 讀取庫存 ---
+                    if (h.inventory !== -1 && hasVal(row[h.inventory])) {
+                        obj.inventory = parseInt(row[h.inventory], 10);
+                    }
+
+                    // --- [C] 關鍵資安步驟：廠價處理與公式運算 ---
+                    let tempCost = 0;
+                    if (h.cost !== -1 && hasVal(row[h.cost])) {
+                        tempCost = parseFloat(row[h.cost]);
+                    }
+
+                    if (tempCost > 0) {
+                        // 公式：(廠價 / 係數) * 1.05，結果無條件進位 (Math.ceil)
+                        
+                        if (!hasVal(row[h.q50]))   obj.quote50   = Math.ceil((tempCost / 0.76) * 1.05);
+                        else obj.quote50 = row[h.q50]; 
+
+                        if (!hasVal(row[h.q100]))  obj.quote100  = Math.ceil((tempCost / 0.79) * 1.05);
+                        else obj.quote100 = row[h.q100];
+
+                        if (!hasVal(row[h.q300]))  obj.quote300  = Math.ceil((tempCost / 0.82) * 1.05);
+                        else obj.quote300 = row[h.q300];
+
+                        if (!hasVal(row[h.q500]))  obj.quote500  = Math.ceil((tempCost / 0.845) * 1.05);
+                        else obj.quote500 = row[h.q500];
+
+                        if (!hasVal(row[h.q1000])) obj.quote1000 = Math.ceil((tempCost / 0.865) * 1.05);
+                        else obj.quote1000 = row[h.q1000];
+
+                        if (!hasVal(row[h.q3000])) obj.quote3000 = Math.ceil((tempCost / 0.89) * 1.05);
+                        else obj.quote3000 = row[h.q3000];
+                        
+                        // ❌ 已移除末售價的自動運算邏輯，完全依賴 Excel 讀取
+
+                    } else {
+                        // 無廠價時，讀取 Excel 原值
+                        if(hasVal(row[h.q50])) obj.quote50 = row[h.q50];
+                        if(hasVal(row[h.q100])) obj.quote100 = row[h.q100];
+                        if(hasVal(row[h.q300])) obj.quote300 = row[h.q300];
+                        if(hasVal(row[h.q500])) obj.quote500 = row[h.q500];
+                        if(hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
+                        if(hasVal(row[h.q3000])) obj.quote3000 = row[h.q3000];
+                    }
+
+                    // ⚠️ 資安保證：obj.cost 未被賦值，廠價資料在此銷毀
+
+                    // --- [D] VIP 與其他 ---
+                    if(h.grade !== -1 && hasVal(row[h.grade]) && String(row[h.grade]).toUpperCase().includes('A')) obj.grade = 'A';
+                    if(h.controlled !== -1 && hasVal(row[h.controlled]) && String(row[h.controlled]).toLowerCase() === 'v') obj.isControlled = true;
+
                     for (const [vKey, vIdx] of Object.entries(vipHeaders)) {
                         if (hasVal(row[vIdx])) {
                             obj[vKey] = row[vIdx];
@@ -2781,18 +2824,23 @@ if(productUpload) {
                     obj.model = modelVal;
                     obj.mainModel = modelVal.split('-')[0]; 
 
-                    // V6.4: We treat this as an 'action object'. 
-                    // The actual ADD vs UPDATE decision happens in saveProductDataToFirestore using Barcode lookup.
                     actions.push({ data: obj, model: modelVal });
                 });
 
-                previewHeader.textContent = "產品總表匯入確認 (VIP支援)";
+                previewHeader.textContent = "全能匯入確認 (資安公式版)";
                 previewContent.innerHTML = `
                     <div style="padding:20px; text-align:center;">
                         <h3 style="color:#2563eb;">已解析 ${actions.length} 筆資料</h3>
-                        <p>系統將依據 <b>國際條碼</b> 自動判斷新增或更新。</p>
-                        <p>已偵測到 VIP 欄位：${Object.keys(vipHeaders).join(', ') || '無'}</p>
-                        <p style="color:#666; font-size:13px;">確認後請點擊「寫入資料庫」，系統將暫時抓取最新數據進行比對。</p>
+                        <div style="background:#f0fdf4; border:1px solid #bbf7d0; padding:10px; border-radius:8px; display:inline-block; margin-bottom:10px;">
+                            💰 <b>自動報價系統已啟動</b><br>
+                            依據您的公式 (Cost / 係數 * 1.05) 進行計算。<br>
+                            <span style="color:#dc2626; font-size:12px;">(廠價原始數據將在寫入前銷毀)</span>
+                        </div>
+                        <ul style="text-align:left; display:inline-block; font-size:14px; color:#444; margin-top:10px;">
+                            <li>📦 <b>庫存同步</b>：${h.inventory !== -1 ? '✅ 執行中' : '❌ 未找到庫存欄位'}</li>
+                            <li>🧮 <b>廠價運算</b>：${h.cost !== -1 ? '✅ 執行中' : '❌ 無廠價，僅更新基本資料'}</li>
+                            <li>🏷️ <b>比對基準</b>：國際條碼</li>
+                        </ul>
                     </div>
                 `;
                 pendingProductData = actions;
@@ -2800,7 +2848,7 @@ if(productUpload) {
 
             } catch(e) {
                 console.error(e);
-                alert("檔案讀取失敗");
+                alert("檔案讀取失敗，請檢查 Excel 格式");
             }
         };
         reader.readAsBinaryString(file);
