@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KINYO 企業禮贈品 | 團購批發 | 原廠專屬報價中心</title>
+<meta name="description" content="KINYO 原廠直營企業採購平台。提供公司行號禮贈品、股東會贈品、團購批發專屬優惠。立即諮詢獲取全台最低報價。">
+<style>
+    :root {
+        --primary: #0f172a;
+        --accent: #2563eb;
+        --accent-hover: #1d4ed8;
+        --text: #334155;
+        --bg: #f8fafc;
+    }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    
+    /* 導覽列 */
+    nav {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 20px 5%; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+        position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .logo { font-weight: 900; font-size: 24px; color: var(--primary); letter-spacing: -1px; }
+    .nav-btn {
+        text-decoration: none; color: var(--primary); font-weight: 600; font-size: 14px;
+        padding: 8px 16px; border-radius: 50px; transition: 0.3s;
+    }
+    .nav-btn.login { background: #f1f5f9; border: 1px solid #e2e8f0; }
+    .nav-btn.login:hover { background: #e2e8f0; }
+
+    /* 主視覺 Hero Section */
+    .hero {
+        text-align: center; padding: 80px 20px;
+        background: radial-gradient(circle at 50% 50%, #eff6ff 0%, #f8fafc 100%);
+    }
+    .hero h1 {
+        font-size: 48px; line-height: 1.2; margin-bottom: 20px; color: var(--primary);
+        background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .hero p { font-size: 18px; color: #64748b; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto; }
+    
+    /* 按鈕群 */
+    .cta-group { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+        padding: 14px 32px; border-radius: 50px; font-weight: 700; font-size: 16px;
+        text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-main { background: var(--accent); color: white; box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4); }
+    .btn-main:hover { background: var(--accent-hover); transform: translateY(-2px); }
+    .btn-sec { background: white; color: var(--primary); border: 1px solid #cbd5e1; }
+    .btn-sec:hover { background: #f8fafc; }
+
+    /* 優勢卡片 */
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; padding: 60px 5%; max-width: 1200px; margin: 0 auto; }
+    .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; text-align: left; }
+    .icon { font-size: 32px; margin-bottom: 16px; display: block; }
+    .card h3 { margin: 0 0 8px; color: var(--primary); }
+    .card p { font-size: 14px; color: #64748b; margin: 0; }
+
+    /* 頁尾 */
+    footer { text-align: center; padding: 40px; background: white; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 13px; }
+
+    /* 手機適配 */
+    @media (max-width: 600px) {
+        .hero h1 { font-size: 32px; }
+        .hero { padding: 60px 20px; }
+        .cta-group { flex-direction: column; width: 100%; }
+        .btn { width: 100%; box-sizing: border-box; text-align: center; }
+    }
+</style>
+</head>
+<body>
+
+    <nav>
+        <div class="logo">KINYO</div>
+        <a href="system.html" class="nav-btn login">🔒 會員登入</a>
+    </nav>
+
+    <section class="hero">
+        <h1>企業禮贈品．團購批發<br>原廠專屬報價中心</h1>
+        <p>提供 KINYO 全系列商品 B2B 專屬優惠。庫存透明、快速報價、原廠保固。專為企業採購、福委會、團購主打造的數位化平台。</p>
+        
+        <div class="cta-group">
+            <a href="#" class="btn btn-main" target="_blank">LINE 線上諮詢 / 索取目錄</a>
+            <a href="system.html" class="btn btn-sec">我是老客戶：直接登入查價</a>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="card">
+            <span class="icon">💎</span>
+            <h3>全台最低價保證</h3>
+            <p>透過數位化系統直接計算廠價結構，去除中間商成本，提供最具競爭力的批量採購價格。</p>
+        </div>
+        <div class="card">
+            <span class="icon">📦</span>
+            <h3>庫存即時透明</h3>
+            <p>獨家開發即時庫存系統，雙倉數據同步，解決「下單才發現缺貨」的痛點。</p>
+        </div>
+        <div class="card">
+            <span class="icon">🚀</span>
+            <h3>急單快速出貨</h3>
+            <p>專人專案對接，現貨商品 24H 內安排出貨，滿足活動贈品與緊急採購需求。</p>
+        </div>
+    </section>
+
+    <footer>
+        © 2025 KINYO Price System. Designed by 郭庭豪 (0976-966-333)
+    </footer>
+
+</body>
+</html>
