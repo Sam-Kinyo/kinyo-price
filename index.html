@@ -15,25 +15,45 @@
     }
     body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
     
-    /* 導覽列 */
+    /* 導覽列優化：支援 Logo 置中 */
     nav {
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 15px 5%; /* 稍微調整高度 */
-        background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+        display: flex; 
+        justify-content: flex-end; /* 把登入按鈕推到最右邊 */
+        align-items: center;
+        padding: 15px 5%; 
+        background: rgba(255,255,255,0.95); /* 稍微不透明一點，避免 Logo 干擾 */
+        backdrop-filter: blur(10px);
         position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        position: relative; /* 讓 Logo 可以根據這個容器定位 */
+        min-height: 60px; /* 確保導覽列有足夠高度 */
     }
-    /* Logo 圖片樣式 (高度限制在 40px，寬度自動) */
+
+    /* Logo 容器：強制置中 */
+    .logo-link {
+        position: absolute;
+        left: 50%;
+        transform: translateX(-50%); /* 完美的水平置中 */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Logo 圖片樣式 (放大版) */
     .logo-img { 
-        height: 40px; 
+        height: 75px;  /* 🚀 從 40px 放大到 75px */
         width: auto; 
-        display: block; /* 修正圖片下方可能的空白 */
-        transition: opacity 0.2s;
+        display: block; 
+        transition: opacity 0.2s, transform 0.2s;
     }
-    .logo-img:hover { opacity: 0.8; } /* 滑鼠移過去稍微變透明 */
+    .logo-img:hover { 
+        opacity: 0.9; 
+        transform: scale(1.05); /* 滑鼠移上去有微微放大的特效 */
+    }
 
     .nav-btn {
         text-decoration: none; color: var(--primary); font-weight: 600; font-size: 14px;
         padding: 8px 16px; border-radius: 50px; transition: 0.3s;
+        z-index: 101; /* 確保按鈕在最上層，不會被 Logo 蓋住 */
     }
     .nav-btn.login { background: #f1f5f9; border: 1px solid #e2e8f0; }
     .nav-btn.login:hover { background: #e2e8f0; }
@@ -85,33 +105,27 @@
 
     /* 手機適配 */
     @media (max-width: 600px) {
+        .logo-img { height: 50px; } /* 手機版 Logo 稍微縮小一點以免太擠 */
+        
         .hero h1 { font-size: 32px; }
         .hero { padding: 60px 20px; }
-        /* 手機版按鈕垂直排列，但 Email 那組要保持橫向 */
         .cta-group { flex-direction: column; width: 100%; }
         .btn { width: 100%; box-sizing: border-box; text-align: center; }
-        /* 讓 Email 群組在手機版也是滿寬 */
         .email-group { width: 100%; display: flex; gap: 8px; }
-        .email-group .btn { flex: 1; } /* Email 按鈕佔滿剩餘空間 */
+        .email-group .btn { flex: 1; }
     }
 </style>
 </head>
 <body>
 
-    <!-- 導覽列 (修改為圖片 Logo) -->
+    <!-- 導覽列 -->
     <nav>
-        <!-- 這裡改成用圖片，並加上連結回首頁 -->
-        <a href="index.html" style="display: flex; align-items: center;">
-            
-            <!-- 👇👇👇 請把這裡的 '您的GoogleDrive檔案ID' 換成您圖片的ID 👇👇👇 -->
-            <!-- 範例：如果您的網址是 drive.google.com/file/d/123ABC_xyz/view -->
-            <!-- 這裡就改成： src="1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F" -->
-            
-            <img src="https://placehold.co/120x40?text=KINYO" alt="KINYO Logo" class="logo-img">
-            
+        <!-- Logo 區塊 (已設定置中) -->
+        <a href="index.html" class="logo-link">
+            <img src="https://drive.google.com/uc?export=view&id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F" alt="KINYO Logo" class="logo-img">
         </a>
         
-        <!-- 這裡連到原本的系統頁面 -->
+        <!-- 登入按鈕 (會在最右邊) -->
         <a href="system.html" class="nav-btn login">🔒 會員登入</a>
     </nav>
 
@@ -121,26 +135,19 @@
         <p>提供 KINYO 全系列商品 B2B 專屬優惠。庫存透明、快速報價、原廠保固。專為企業採購、福委會、團購主打造的數位化平台。</p>
         
         <div class="cta-group">
-            <!-- 1. LINE 按鈕 -->
             <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-main" target="_blank">LINE 線上諮詢</a>
-            
-            <!-- 2. Email 群組 -->
             <div class="email-group" style="display: flex; gap: 8px; align-items: center;">
                 <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-sec" title="sam.kuo@kinyo.tw">Email 詢價</a>
                 <button onclick="copyEmail()" class="btn-copy" title="複製信箱到剪貼簿">📋</button>
             </div>
-
-            <!-- 3. 老客戶登入 -->
             <a href="system.html" class="btn btn-sec">老客戶登入</a>
         </div>
 
-        <!-- 急單警語 -->
         <p style="font-size: 13px; color: #ef4444; margin-top: 16px; font-weight: 600; opacity: 0.9; background: #fef2f2; display: inline-block; padding: 4px 12px; border-radius: 50px; border: 1px solid #fecaca;">
             ⚠️ 急單請直接加 LINE，Email 回覆約需 1 個工作天
         </p>
     </section>
 
-    <!-- 核心優勢 -->
     <section class="features">
         <div class="card">
             <span class="icon">💎</span>
@@ -163,7 +170,6 @@
         © 2025 KINYO Price System. Designed by 郭庭豪 (0976-966-333)
     </footer>
 
-<!-- 複製 Email 的腳本 -->
 <script>
     function copyEmail() {
         const email = "sam.kuo@kinyo.tw";
