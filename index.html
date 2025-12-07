@@ -18,10 +18,19 @@
     /* 導覽列 */
     nav {
         display: flex; justify-content: space-between; align-items: center;
-        padding: 20px 5%; background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
+        padding: 15px 5%; /* 稍微調整高度 */
+        background: rgba(255,255,255,0.9); backdrop-filter: blur(10px);
         position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
-    .logo { font-weight: 900; font-size: 24px; color: var(--primary); letter-spacing: -1px; }
+    /* Logo 圖片樣式 (高度限制在 40px，寬度自動) */
+    .logo-img { 
+        height: 40px; 
+        width: auto; 
+        display: block; /* 修正圖片下方可能的空白 */
+        transition: opacity 0.2s;
+    }
+    .logo-img:hover { opacity: 0.8; } /* 滑鼠移過去稍微變透明 */
+
     .nav-btn {
         text-decoration: none; color: var(--primary); font-weight: 600; font-size: 14px;
         padding: 8px 16px; border-radius: 50px; transition: 0.3s;
@@ -41,16 +50,28 @@
     }
     .hero p { font-size: 18px; color: #64748b; margin-bottom: 40px; max-width: 600px; margin-left: auto; margin-right: auto; }
     
-    /* 按鈕群 */
-    .cta-group { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    /* 按鈕群組設定 */
+    .cta-group { 
+        display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; align-items: center; 
+    }
     .btn {
-        padding: 14px 32px; border-radius: 50px; font-weight: 700; font-size: 16px;
-        text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+        padding: 14px 28px; border-radius: 50px; font-weight: 700; font-size: 16px;
+        text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; display: inline-block;
     }
     .btn-main { background: var(--accent); color: white; box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4); }
     .btn-main:hover { background: var(--accent-hover); transform: translateY(-2px); }
     .btn-sec { background: white; color: var(--primary); border: 1px solid #cbd5e1; }
     .btn-sec:hover { background: #f8fafc; }
+
+    /* 複製按鈕專用樣式 */
+    .btn-copy {
+        background: white; border: 1px solid #cbd5e1; color: var(--primary);
+        width: 48px; height: 48px; border-radius: 50%; /* 圓形 */
+        font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s;
+    }
+    .btn-copy:hover { background: #f1f5f9; transform: scale(1.1); }
+    .btn-copy:active { transform: scale(0.9); }
 
     /* 優勢卡片 */
     .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; padding: 60px 5%; max-width: 1200px; margin: 0 auto; }
@@ -66,31 +87,60 @@
     @media (max-width: 600px) {
         .hero h1 { font-size: 32px; }
         .hero { padding: 60px 20px; }
+        /* 手機版按鈕垂直排列，但 Email 那組要保持橫向 */
         .cta-group { flex-direction: column; width: 100%; }
         .btn { width: 100%; box-sizing: border-box; text-align: center; }
+        /* 讓 Email 群組在手機版也是滿寬 */
+        .email-group { width: 100%; display: flex; gap: 8px; }
+        .email-group .btn { flex: 1; } /* Email 按鈕佔滿剩餘空間 */
     }
 </style>
 </head>
 <body>
 
+    <!-- 導覽列 (修改為圖片 Logo) -->
     <nav>
-        <div class="logo">KINYO</div>
+        <!-- 這裡改成用圖片，並加上連結回首頁 -->
+        <a href="index.html" style="display: flex; align-items: center;">
+            
+            <!-- 👇👇👇 請把這裡的 '您的GoogleDrive檔案ID' 換成您圖片的ID 👇👇👇 -->
+            <!-- 範例：如果您的網址是 drive.google.com/file/d/123ABC_xyz/view -->
+            <!-- 這裡就改成： src="1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn" -->
+            
+            <img src="https://placehold.co/120x40?text=KINYO" alt="KINYO Logo" class="logo-img">
+            
+        </a>
+        
+        <!-- 這裡連到原本的系統頁面 -->
         <a href="system.html" class="nav-btn login">🔒 會員登入</a>
     </nav>
 
+    <!-- 主視覺區 -->
     <section class="hero">
         <h1>企業禮贈品．團購批發<br>原廠專屬報價中心</h1>
         <p>提供 KINYO 全系列商品 B2B 專屬優惠。庫存透明、快速報價、原廠保固。專為企業採購、福委會、團購主打造的數位化平台。</p>
         
         <div class="cta-group">
+            <!-- 1. LINE 按鈕 -->
             <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-main" target="_blank">LINE 線上諮詢</a>
             
-            <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-sec">Email 詢價</a>
+            <!-- 2. Email 群組 -->
+            <div class="email-group" style="display: flex; gap: 8px; align-items: center;">
+                <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-sec" title="sam.kuo@kinyo.tw">Email 詢價</a>
+                <button onclick="copyEmail()" class="btn-copy" title="複製信箱到剪貼簿">📋</button>
+            </div>
 
+            <!-- 3. 老客戶登入 -->
             <a href="system.html" class="btn btn-sec">老客戶登入</a>
         </div>
+
+        <!-- 急單警語 -->
+        <p style="font-size: 13px; color: #ef4444; margin-top: 16px; font-weight: 600; opacity: 0.9; background: #fef2f2; display: inline-block; padding: 4px 12px; border-radius: 50px; border: 1px solid #fecaca;">
+            ⚠️ 急單請直接加 LINE，Email 回覆約需 1 個工作天
+        </p>
     </section>
 
+    <!-- 核心優勢 -->
     <section class="features">
         <div class="card">
             <span class="icon">💎</span>
@@ -112,6 +162,19 @@
     <footer>
         © 2025 KINYO Price System. Designed by 郭庭豪 (0976-966-333)
     </footer>
+
+<!-- 複製 Email 的腳本 -->
+<script>
+    function copyEmail() {
+        const email = "sam.kuo@kinyo.tw";
+        navigator.clipboard.writeText(email).then(() => {
+            alert("✅ 信箱已複製：\n" + email + "\n\n您可以直接去貼上寄信囉！");
+        }).catch(err => {
+            console.error('複製失敗:', err);
+            prompt("請手動複製信箱：", email);
+        });
+    }
+</script>
 
 </body>
 </html>
