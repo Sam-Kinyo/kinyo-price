@@ -139,7 +139,8 @@
 
     <nav>
         <a href="index.html" class="logo-link">
-            <img src="https://drive.google.com/uc?export=view&id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F" alt="KINYO Logo" class="logo-img">
+            <!-- 🛠️ 修復：使用 Weserv CDN 加速器來代理 Google Drive 圖片，解決破圖問題 -->
+            <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO Logo" class="logo-img" onerror="this.src='https://placehold.co/120x40?text=KINYO'">
         </a>
         <a href="system.html" class="nav-btn login">🔒 會員登入</a>
     </nav>
@@ -208,7 +209,7 @@
     document.addEventListener("DOMContentLoaded", async function() {
         const frame = document.getElementById('carousel-frame');
         
-        // 定義備用圖片 (當讀取不到 modelData.json 時顯示，例如預覽模式)
+        // 🛠️ 備用圖片 (當讀取不到 modelData.json 時顯示，例如現在的預覽模式)
         const fallbackImages = [
             "https://placehold.co/600x400?text=KINYO+Product+1",
             "https://placehold.co/600x400?text=KINYO+Product+2",
@@ -222,6 +223,7 @@
             const match = url.match(driveRegex);
             if (match && match[1]) {
                 const id = match[1];
+                // 使用 Weserv CDN 加速，設定寬度 800px，品質 80
                 return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${id}&w=800&q=80&output=jpg`;
             }
             return url;
@@ -252,7 +254,8 @@
         }
 
         try {
-            // A. 嘗試讀取 JSON (路徑修正為不帶 ./)
+            // A. 嘗試讀取 JSON (使用 try/catch 處理錯誤)
+            // 注意：在預覽環境中這個 fetch 可能會失敗，因為沒有 modelData.json 檔案
             const response = await fetch('modelData.json');
             
             if (!response.ok) throw new Error("JSON not found");
@@ -286,8 +289,8 @@
             }
 
         } catch (e) {
-            console.warn("無法讀取 modelData.json，切換為備用圖片模式。", e);
-            renderCarousel(fallbackImages);
+            console.warn("無法讀取 modelData.json (在預覽模式下這是正常的)，已切換為備用圖片模式。");
+            renderCarousel(fallbackImages); // 發生錯誤時，自動載入備用圖
         }
     });
 </script>
