@@ -253,7 +253,15 @@
         .btn { width: 100%; box-sizing: border-box; }
         .email-group { width: 100%; display: flex; gap: 10px; }
         .email-group .btn-sec { flex: 1; }
-        .photo-frame { aspect-ratio: 1/1; width: 100%; max-width: 400px; margin-bottom: 20px; }
+        
+        /* 🚀 手機版相框優化：寬度設為 100%，但限制最大寬度為 340px (適配小手機) */
+        .hero-visual { width: 100%; }
+        .photo-frame { 
+            aspect-ratio: 1/1; 
+            width: 100%; 
+            max-width: 340px; 
+            margin: 0 auto 10px auto; /* 置中並保留下方間距 */
+        }
     }
 </style>
 </head>
