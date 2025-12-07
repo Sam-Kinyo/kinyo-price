@@ -558,6 +558,33 @@ th{background:#fafafa;text-align:left;}
 .field-badge {
     background: #e0f2fe; color: #0284c7; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px;
 }
+
+/* =========================================
+   新增：庫存能量條 (Inventory Bar) 樣式
+========================================= */
+.stock-bar-container {
+  width: 100%;             /* 讓它填滿寬度 */
+  height: 6px;             /* 高度 */
+  background: #e5e7eb;     /* 底色 (淺灰) */
+  border-radius: 3px;      /* 圓角 */
+  margin-top: 4px;         /* 與文字的間距 */
+  overflow: hidden;
+  position: relative;
+}
+.stock-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease; /* 動畫效果 */
+}
+
+/* 能量條顏色定義 */
+.fill-crit { background: #ef4444; } /* 紅色 (危險) */
+.fill-low  { background: #f97316; } /* 橘色 (偏低) */
+.fill-mid  { background: #eab308; } /* 黃色 (普通) */
+.fill-good { background: #22c55e; } /* 綠色 (充足) */
+.fill-high { background: #10b981; } /* 深綠 (極多) */
+.st-zero   { background: #9ca3af; } /* 灰色 (缺貨) */
+   
 </style>
 </head>
 <body>
@@ -892,49 +919,60 @@ function getInventoryRangeLabel(qty) {
     return "1000個以上";
 }
 
-/* 🚀 新增：產生多色庫存的 HTML 區塊 (方案A + VIP Logic) */
+/* 🚀 修改版：加入能量條 (Energy Bar) 的庫存顯示 */
 function renderStockByVariant(item) {
-    // 只有 Level 2 以上或 VIP 才顯示庫存
+    // 1. 權限檢查：只有 Level 2 以上 or VIP 才能看庫存
     if (userLevel < 2 && !currentUserVipConfig) return "";
     
-    // 如果沒有變體資料，直接回傳空字串
+    // 2. 資料檢查
     if (!item.variants || item.variants.length === 0) return "";
-    
-    // 過濾掉沒有庫存資料的變體
     const activeVariants = item.variants.filter(v => v.inventory !== undefined && v.inventory !== null && v.inventory !== "");
-
     if (activeVariants.length === 0) return "";
 
-    let html = `<div style="display:flex; flex-direction:column; gap:4px; margin-top:6px; border-top:1px dashed #eee; padding-top:4px;">`;
+    let html = `<div style="display:flex; flex-direction:column; gap:6px; margin-top:6px; border-top:1px dashed #eee; padding-top:6px;">`;
 
     activeVariants.forEach(v => {
         const status = getInventoryStatus(v.inventory);
         if (status) {
-            let colorLabel = "";
-            // 如果有多個顏色，顯示顏色名稱；如果只有單一款，且名稱跟主型號一樣，就不顯示顏色名
-            if (activeVariants.length > 1 || (v.color && v.color !== "單一款式")) {
-               colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}:</span>`;
-            }
-
-            // 🚀 VIP Logic: 隱藏具體庫存狀態，只顯示模糊燈號
-            let displayLabel = status.label;
-            let displayCls = status.cls;
+            const qty = parseInt(v.inventory || 0);
             
-            if (currentUserVipConfig) {
-                const invVal = parseInt(v.inventory || 0);
-                if (invVal >= 100) {
-                    displayLabel = "庫存充足";
-                    displayCls = "st-good";
-                } else {
-                    displayLabel = "庫存緊張";
-                    displayCls = "st-crit";
-                }
+            // --- 🔋 能量條計算核心 ---
+            // 設定 1200 為滿格 (100%)，依此計算比例
+            let percent = Math.min((qty / 1200) * 100, 100);
+            // 視覺優化：只要有貨 (>0)，至少給 5% 寬度，避免看起來像缺貨
+            if (qty > 0 && percent < 5) percent = 5;
+
+            // --- 🎨 顏色判斷 ---
+            let fillClass = "fill-good";
+            if (qty <= 0) fillClass = "st-zero";        // 0: 灰
+            else if (qty < 30) fillClass = "fill-crit"; // <30: 紅
+            else if (qty < 100) fillClass = "fill-low"; // <100: 橘
+            else if (qty < 400) fillClass = "fill-mid"; // <400: 黃
+            else if (qty >= 1200) fillClass = "fill-high";// >1200: 深綠
+
+            // --- 🏷️ 標籤顯示邏輯 ---
+            let colorLabel = "";
+            if (activeVariants.length > 1 || (v.color && v.color !== "單一款式")) {
+               colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}</span>`;
             }
 
+            // VIP 模糊邏輯
+            let displayLabel = status.label;
+            if (currentUserVipConfig) {
+                if (qty >= 100) displayLabel = "庫存充足";
+                else displayLabel = "庫存緊張";
+            }
+
+            // --- 🖥️ 組合 HTML ---
             html += `
-            <div style="display:flex; align-items:center; justify-content:flex-start;">
-                ${colorLabel}
-                <span class="stock-tag ${displayCls}" style="font-size:11px; padding:1px 6px;">${displayLabel}</span>
+            <div style="width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1px;">
+                    ${colorLabel}
+                    <span class="stock-tag ${status.cls}" style="font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center;">${displayLabel}</span>
+                </div>
+                <div class="stock-bar-container">
+                    <div class="stock-bar-fill ${fillClass}" style="width: ${percent}%;"></div>
+                </div>
             </div>`;
         }
     });
