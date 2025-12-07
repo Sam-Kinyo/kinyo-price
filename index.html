@@ -209,7 +209,7 @@
     document.addEventListener("DOMContentLoaded", async function() {
         const frame = document.getElementById('carousel-frame');
         
-        // 🛠️ 備用圖片 (當讀取不到 modelData.json 時顯示，例如現在的預覽模式)
+        // 🛠️ 備用圖片
         const fallbackImages = [
             "https://placehold.co/600x400?text=KINYO+Product+1",
             "https://placehold.co/600x400?text=KINYO+Product+2",
@@ -254,19 +254,19 @@
         }
 
         try {
-            // A. 嘗試讀取 JSON (使用 try/catch 處理錯誤)
-            // 注意：在預覽環境中這個 fetch 可能會失敗，因為沒有 modelData.json 檔案
-            const response = await fetch('modelData.json');
+            // A. 嘗試讀取 JSON (改用絕對路徑，確保無論在哪都能讀到)
+            // 💡 這裡使用了您的 GitHub Pages 網址，並加上時間戳記來避免快取
+            const jsonUrl = 'https://sam-kinyo.github.io/kinyo-price/modelData.json?v=' + new Date().getTime();
+            const response = await fetch(jsonUrl);
             
             if (!response.ok) throw new Error("JSON not found");
             const data = await response.json();
 
-            // B. 提取圖片 (Logic Update: 優先使用網路圖 netImages[0])
+            // B. 提取圖片 (優先使用網路圖)
             let allImages = [];
             if (data.models && Array.isArray(data.models)) {
                 allImages = data.models
                     .map(item => {
-                        // 優先順序：網路圖第一張 > 主圖
                         if (item.netImages && Array.isArray(item.netImages) && item.netImages.length > 0) {
                             return item.netImages[0];
                         }
@@ -289,8 +289,8 @@
             }
 
         } catch (e) {
-            console.warn("無法讀取 modelData.json (在預覽模式下這是正常的)，已切換為備用圖片模式。");
-            renderCarousel(fallbackImages); // 發生錯誤時，自動載入備用圖
+            console.warn("無法讀取 modelData.json (可能是路徑問題或檔案不存在)，切換為備用圖片。", e);
+            renderCarousel(fallbackImages); 
         }
     });
 </script>
