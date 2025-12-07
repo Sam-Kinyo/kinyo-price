@@ -139,7 +139,7 @@
 
     <nav>
         <a href="index.html" class="logo-link">
-            <!-- 🛠️ 修復：使用 Weserv CDN 加速器來代理 Google Drive 圖片，解決破圖問題 -->
+            <!-- 🛠️ 使用 Weserv CDN 加速器來代理 Google Drive 圖片 -->
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO Logo" class="logo-img" onerror="this.src='https://placehold.co/120x40?text=KINYO'">
         </a>
         <a href="system.html" class="nav-btn login">🔒 會員登入</a>
@@ -209,21 +209,21 @@
     document.addEventListener("DOMContentLoaded", async function() {
         const frame = document.getElementById('carousel-frame');
         
-        // 🛠️ 備用圖片
+        // 🛠️ 備用圖片 (當讀取不到檔案時顯示)
         const fallbackImages = [
             "https://placehold.co/600x400?text=KINYO+Product+1",
             "https://placehold.co/600x400?text=KINYO+Product+2",
             "https://placehold.co/600x400?text=KINYO+Product+3"
         ];
 
-        // 輔助函式：將 Drive 連結轉為 CDN 直連 (加速載入)
+        // 輔助函式：將 Drive 連結轉為 CDN 直連
         function getDirectUrl(url) {
             if (!url) return null;
             const driveRegex = /\/d\/([a-zA-Z0-9_-]+)/;
             const match = url.match(driveRegex);
             if (match && match[1]) {
                 const id = match[1];
-                // 使用 Weserv CDN 加速，設定寬度 800px，品質 80
+                // 使用 Weserv CDN 加速
                 return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${id}&w=800&q=80&output=jpg`;
             }
             return url;
@@ -254,12 +254,13 @@
         }
 
         try {
-            // A. 嘗試讀取 JSON (改用絕對路徑，確保無論在哪都能讀到)
-            // 💡 這裡使用了您的 GitHub Pages 網址，並加上時間戳記來避免快取
+            // A. 嘗試讀取 JSON (使用絕對路徑 + CORS)
+            // 💡 關鍵修正：直接指向您的 GitHub Pages 網址，而不是相對路徑 ./
             const jsonUrl = 'https://sam-kinyo.github.io/kinyo-price/modelData.json?v=' + new Date().getTime();
-            const response = await fetch(jsonUrl);
             
-            if (!response.ok) throw new Error("JSON not found");
+            const response = await fetch(jsonUrl, { mode: 'cors' });
+            
+            if (!response.ok) throw new Error("JSON not found or network error");
             const data = await response.json();
 
             // B. 提取圖片 (優先使用網路圖)
@@ -278,6 +279,7 @@
 
             // C. 隨機挑選 13 張
             if (allImages.length > 0) {
+                // 洗牌演算法
                 for (let i = allImages.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
@@ -285,11 +287,12 @@
                 const selectedImages = allImages.slice(0, 13);
                 renderCarousel(selectedImages);
             } else {
+                console.warn("JSON 中找不到有效圖片");
                 renderCarousel(fallbackImages);
             }
 
         } catch (e) {
-            console.warn("無法讀取 modelData.json (可能是路徑問題或檔案不存在)，切換為備用圖片。", e);
+            console.warn("讀取 GitHub 資料失敗，切換為備用圖片。", e);
             renderCarousel(fallbackImages); 
         }
     });
