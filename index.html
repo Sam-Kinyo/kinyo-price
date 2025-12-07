@@ -69,9 +69,9 @@
         display: flex; 
         align-items: center; 
         justify-content: space-between;
-        padding: 80px 5%; 
+        padding: 60px 5%; 
         background: var(--bg-white);
-        min-height: 550px; 
+        min-height: 600px; /* 稍微拉高一點以容納正方形圖片 */
         gap: 60px; 
         overflow: hidden;
         max-width: 1200px; margin: 0 auto;
@@ -141,22 +141,22 @@
     }
     .btn-copy:hover { border-color: var(--primary); color: var(--primary); }
 
-    /* --- 4. 產品輪播相框 --- */
+    /* --- 4. 產品輪播相框 (改為正方形 1:1) --- */
     .hero-visual {
-        flex: 1.2; 
+        flex: 1; /* 調整比例 */
         position: relative; 
         display: flex; justify-content: center; align-items: center;
     }
     .photo-frame {
         width: 100%; 
-        aspect-ratio: 16/10; 
+        max-width: 500px; /* 限制最大寬度，避免正方形太大佔滿畫面 */
+        aspect-ratio: 1/1; /* 🚀 設定為 1:1 正方形 */
         background: #f0f0f0; 
-        border-radius: 12px; 
+        border-radius: 20px; /* 圓角稍微加大 */
         box-shadow: var(--shadow);
         overflow: hidden; 
         position: relative;
     }
-    /* 預設載入中的背景 */
     .photo-frame::before {
         content: "Loading..."; 
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -167,7 +167,7 @@
         object-fit: cover; 
         opacity: 0;
         transition: opacity 1s ease-in-out, transform 8s linear;
-        transform: scale(1.1); /* 緩慢縮放特效 */
+        transform: scale(1.1);
     }
     .slide-img.active { opacity: 1; transform: scale(1); }
 
@@ -229,7 +229,8 @@
         .btn { width: 100%; box-sizing: border-box; }
         .email-group { width: 100%; display: flex; gap: 10px; }
         .email-group .btn-sec { flex: 1; }
-        .photo-frame { aspect-ratio: 4/3; }
+        /* 手機版也維持正方形 */
+        .photo-frame { aspect-ratio: 1/1; width: 100%; max-width: 400px; margin-bottom: 20px; }
     }
 </style>
 </head>
@@ -238,7 +239,6 @@
     <!-- 導覽列 -->
     <nav>
         <a href="index.html" class="logo-link">
-            <!-- 您的 Logo 圖片連結 -->
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO Logo" class="logo-img" onerror="this.src='https://placehold.co/120x40?text=KINYO'">
         </a>
         <a href="system.html" class="nav-btn">
@@ -269,7 +269,7 @@
             </div>
         </div>
 
-        <!-- 產品輪播 -->
+        <!-- 產品輪播 (正方形) -->
         <div class="hero-visual">
             <div class="photo-frame" id="carousel-frame">
                 <!-- JS 自動載入 -->
@@ -303,7 +303,6 @@
     </footer>
 
 <script>
-    // 1. Email 複製
     function copyEmail() {
         const email = "sam.kuo@kinyo.tw";
         navigator.clipboard.writeText(email).then(() => {
@@ -314,44 +313,35 @@
         });
     }
 
-    // 2. 圖片輪播邏輯 (人工精選版 - 100% 穩定)
     document.addEventListener("DOMContentLoaded", function() {
         const frame = document.getElementById('carousel-frame');
         
-        // 🔥🔥🔥 【請在這裡填入您的精選圖片 ID】 🔥🔥🔥
-        // 這些圖片將作為首頁輪播，建議挑選 5~13 張最漂亮的情境圖。
-        // 請將下方引號內的亂碼，換成您 Google Drive 檔案的 ID。
+        // 精選正方形圖片 (1000x1000)
         const bestProductIds = [
-            "1cifWvIc1TMxwnFH4H6BA1UiQ3Ln94eGr", // 圖片 1 (必填)
-            "1eDWz8pB-tmPplsqHQraUJAOv8VrF3scO", // 圖片 2 (可修改)
-            "1GF8kznfWpz0SmFwSWSxA6MzM_4QsQSiM", // 圖片 3 (可修改)
- "1qRrowvs9zHbIHj53clriLIo4-KjIgQ4Z", // 圖片 1 (必填)
-            "1dBu2aAXX2n7WDuLHgx3fJvIK2zohG-7q", // 圖片 2 (可修改)
-            "11-OdFMgRx5Dwj3PWxLvZAGrAsI6h8pzs", // 圖片 3 (可修改)
- "1h002x1weKbF4O7E-__rNx3jTAdjJYmiE", // 圖片 1 (必填)
-            "1xWm8ekfeqtJUlERgzHfKcNHhk2WK7seD", // 圖片 2 (可修改)
-            "1qbgAitS3MrxWuNk4h82fF_kguXuYR2AC", // 圖片 3 (可修改)
-            "1at8c8q0zV6j1qimq47loibNljiRjiHwS", // 圖片 2 (可修改)
-            "1TPDBefHw9Z3DhZzefm-iFQ5vSdbmcRx-", // 圖片 3 (可修改)
-            // 您可以繼續往下新增更多行...
+            "1cifWvIc1TMxwnFH4H6BA1UiQ3Ln94eGr",
+            "1eDWz8pB-tmPplsqHQraUJAOv8VrF3scO",
+            "1GF8kznfWpz0SmFwSWSxA6MzM_4QsQSiM",
+            "1qRrowvs9zHbIHj53clriLIo4-KjIgQ4Z",
+            "1dBu2aAXX2n7WDuLHgx3fJvIK2zohG-7q",
+            "11-OdFMgRx5Dwj3PWxLvZAGrAsI6h8pzs",
+            "1h002x1weKbF4O7E-__rNx3jTAdjJYmiE",
+            "1xWm8ekfeqtJUlERgzHfKcNHhk2WK7seD",
+            "1qbgAitS3MrxWuNk4h82fF_kguXuYR2AC",
+            "1at8c8q0zV6j1qimq47loibNljiRjiHwS",
+            "1TPDBefHw9Z3DhZzefm-iFQ5vSdbmcRx-"
         ];
 
-        // 轉 Drive ID 為圖片網址 (使用 Weserv CDN 加速 + 調整品質)
         function getDirectUrl(id) {
             if (!id) return null;
-            // q=85 品質較好, w=1000 寬度較大適合輪播
             return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${id}&w=1000&q=85&output=jpg`;
         }
 
-        // 渲染輪播
         function renderCarousel(ids) {
             frame.innerHTML = ''; 
-            
-            // 避免 ID 填錯，過濾掉空的
             const validIds = ids.filter(Boolean);
 
             if (validIds.length === 0) {
-                frame.innerHTML = '<img src="https://placehold.co/800x500?text=KINYO" class="slide-img active">';
+                frame.innerHTML = '<img src="https://placehold.co/800x800?text=KINYO" class="slide-img active">';
                 return;
             }
             
@@ -363,7 +353,6 @@
                 frame.appendChild(img);
             });
 
-            // 啟動輪播 (每 4 秒換一張)
             let currentIndex = 0;
             const slides = frame.querySelectorAll('.slide-img');
             if(slides.length > 1) {
@@ -375,7 +364,6 @@
             }
         }
 
-        // 執行
         renderCarousel(bestProductIds);
     });
 </script>
