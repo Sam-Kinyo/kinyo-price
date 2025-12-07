@@ -515,66 +515,52 @@ th {
 @media (max-width:900px){
   #detailCard{display:none!important;}
 }
-/* 9. 手機版適配 (Card View) - V7.2.2 修正版 */
-@media (max-width: 600px) {
-  body { padding: 16px; background: #f8fafc; }
+@media (max-width:600px){
+  body{padding:14px;}
+  .search-box{padding:14px;}
+  input,select{font-size:14px;}
   
+  .toolbar.fixed-active { width: calc(100% - 28px); top: 14px; }
+
+  /* RWD Card View Styles */
   thead { display: none; }
   table, tbody, tr, td { display: block; width: 100%; }
   
   tr {
-    background: white;
-    border-radius: 16px;
-    padding: 16px;
     margin-bottom: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
-    border: 1px solid rgba(0,0,0,0.03);
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #fff;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     position: relative;
-    box-sizing: border-box;
+    box-sizing: border-box; 
   }
-  
-  /* 手機版不需要懸浮特效 */
-  tbody tr:hover { transform: none; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 
-  td { border: none; padding: 4px 0; text-align: left; }
-  
-  /* 格子 1：勾選框 (固定在左上角) */
-  td:nth-of-type(1) { position: absolute; top: 12px; left: 12px; width: auto; z-index: 10; }
-  
-  /* 格子 2：型號+圖片 (置中顯示) */
-  td:nth-of-type(2) { 
-    display: flex; flex-direction: column; align-items: center; padding-bottom: 12px; 
+  /* 1. 勾選框 */
+  td:nth-of-type(1) {
+    position: absolute; top: 12px; left: 12px; width: auto; padding: 0; border: none; z-index: 10;
   }
-  /* 在手機版隱藏圖片上方的小型號文字，因為資訊欄已經有了，版面比較乾淨 */
-  td:nth-of-type(2) .model-cell { display: none; } 
-  .product-img { width: 100%; max-width: 200px; height: 180px; }
-  
-  /* 格子 3：商品資訊 (保持原樣) */
-  td:nth-of-type(3) { padding-bottom: 12px; }
+  /* 2. 圖片 */
+  td:nth-of-type(2) { text-align: center; border: none; padding-bottom: 10px; }
+  .product-img { width: 140px; height: 140px; }
 
-  /* 格子 4：價格區 (改成橫向排列，比較好讀) */
-  td:nth-of-type(4) {
-    background: #f8fafc; 
-    padding: 10px 12px; 
-    border-radius: 12px; 
-    margin-top: 8px;
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center;
+  /* 3. 主型號 */
+  td:nth-of-type(3) { text-align: center; color: #888; font-size: 13px; border: none; padding: 0 0 8px 0; }
+
+  /* 4. 商品資訊 */
+  td:nth-of-type(4) { border: none; padding: 0 0 12px 0; }
+
+  /* 5. 價格區塊 */
+  td:nth-of-type(5), td:nth-of-type(6) {
+    border: none; padding: 8px 12px; background: #f9fafb;
+    margin-bottom: 4px; border-radius: 8px; display: flex; 
+    justify-content: space-between; align-items: center;
+    font-size: 14px; font-weight: bold;
   }
-  
-  /* 利用 CSS 偽元素加上標籤文字 */
-  td:nth-of-type(4) div:first-child::before { 
-    content: "末售: "; 
-    color: #64748b; font-weight: normal; font-size: 13px; margin-right: 4px; 
-  }
-  td:nth-of-type(4) div:last-child::before { 
-    content: "賣場: "; 
-    color: #94a3b8; font-weight: normal; font-size: 12px; margin-right: 4px;
-  }
-  
-  /* 修正能量條寬度 */
-  .stock-bar-container { width: 100%; }
+  td:nth-of-type(5)::before { content: "末售價格"; font-weight: normal; color: #6b7280; }
+  td:nth-of-type(6)::before { content: "賣場價格"; font-weight: normal; color: #6b7280; }
+  td { border-bottom: none !important; }
 }
 
 /* =========================================
@@ -758,8 +744,12 @@ th {
   <thead>
     <tr>
       <th style="width:32px;"><input type="checkbox" id="checkAll" /></th>
-      <th style="width:130px; text-align:center;">型號 / 圖片</th> <th>商品資訊</th>
-      <th style="width:110px; text-align:right;">價格 (末/賣)</th> </tr>
+      <th style="width:120px;">圖片</th>
+      <th style="width:100px;">主型號</th>
+      <th>商品資訊</th>
+      <th style="width:80px;">末售</th>
+      <th style="width:80px;">賣場</th>
+    </tr>
   </thead>
   <tbody id="resultBody"></tbody>
 </table>
@@ -1699,40 +1689,30 @@ function renderResults(list) {
     const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
     const variantStockHtml = renderStockByVariant(item);
 
-    // --- HTML (V7.2.2 新版佈局) ---
+    // --- HTML ---
     tr.innerHTML = `
       <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
-      
-      <td style="text-align:center; vertical-align: middle;">
-        <div class="model-cell" style="font-weight:700; font-size:14px; margin-bottom:8px; color:#334155; cursor:pointer;" onclick="event.stopPropagation();">${item.mainModel || "-"}</div>
+      <td>
         <img src="${img}" class="product-img" 
              loading="lazy"
              onerror="this.onerror=null; this.src='${backupImg}';">
       </td>
-
+      <td class="model-cell">${item.mainModel || "-"}</td>
       <td>
         ${controlledHtml} ${catBadge} 
-        <div style="font-weight:700;margin-bottom:4px;font-size:15px;line-height:1.4;">${item.name || "-"}</div>
-        <div style="font-size:13px;color:#64748b;margin-bottom:6px;">
+        <div style="font-weight:700;margin-bottom:4px;font-size:15px;">${item.name || "-"}</div>
+        <div style="font-size:13px;color:#555;margin-bottom:4px;">
            ${item.colorList ? `顏色：${item.colorList}` : ''}
         </div>
         ${variantStockHtml}
-        
-        <div class="price-tag-container" style="font-size:13px;margin-bottom:8px;margin-top:8px;">${priceHtml}</div>
-        
+        <div class="price-tag-container" style="font-size:13px;margin-bottom:4px;margin-top:8px;">${priceHtml}</div>
         ${currentUserVipConfig ? '' : `
-        <div style="display:flex; gap:8px; margin-top:8px;">
-          <button class="line-share-btn btn-secondary" data-model="${item.model}" style="padding:4px 12px;font-size:12px;border-radius:6px;">LINE</button>
-          <button class="btn-outline-add add-quote-btn" data-model="${item.model}">➕ 報價</button>
+        <div style="display:flex; gap:6px; margin-top:8px;">
+          <button class="line-share-btn" data-model="${item.model}" style="padding:6px 10px;font-size:12px;background:#06C755;color:#fff;border:none;border-radius:6px;cursor:pointer;">LINE</button>
+          <button class="btn-outline-add add-quote-btn" data-model="${item.model}">➕ 報價單</button>
         </div>
         `}
       </td>
-
-      <td style="text-align:right; vertical-align: middle;">
-        <div style="font-weight:700; color:#ef4444; font-size:16px; margin-bottom:4px;">${minPriceDisplay}</div>
-        <div style="color:#94a3b8; font-size:12px; text-decoration:line-through;">${marketPriceDisplay}</div>
-      </td>
-    `;
       <td style="text-align:right;">${minPriceDisplay}</td>
       <td style="text-align:right;">${marketPriceDisplay}</td>
     `;
