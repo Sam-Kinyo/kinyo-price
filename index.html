@@ -243,16 +243,22 @@ th{background:#fafafa;text-align:left;}
 .model-cell { cursor: pointer; }
 .model-cell:hover { color: var(--primary-blue); text-decoration: underline; }
 
-/* 價格標籤 */
-.price-tag{
-  padding:3px 8px;
-  font-size:12px;
-  border-radius:6px;
-  display:inline-block;
-  margin-right:6px;
-  margin-bottom:4px;
-  font-weight:600;
-  white-space:nowrap;
+/* 價格標籤 - 藥丸化 */
+.price-tag {
+  padding: 4px 12px;        /* 增加左右寬度，讓它更像藥丸 */
+  font-size: 12px;
+  border-radius: 50px;      /* 關鍵：改成 50px 變成正圓弧 */
+  display: inline-block;
+  margin-right: 6px;
+  margin-bottom: 6px;
+  font-weight: 700;         /* 字體加粗 */
+  white-space: nowrap;
+  border: none;             /* 移除邊框，看起來更乾淨 */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* 加一點點陰影 */
+  transition: transform 0.2s; /* 微互動：加入動畫 */
+}
+.price-tag:hover {
+  transform: scale(1.05);   /* 滑鼠移過去會稍微放大 */
 }
 .tag50{background:#dbeafe;color:#1e40af;}
 .tag100{background:#e0f2fe;color:#0369a1;}
@@ -260,30 +266,29 @@ th{background:#fafafa;text-align:left;}
 .tag500{background:#ffedd5;color:#ea580c;}
 .tag1000{background:#fee2e2;color:#b91c1c;}
 
-/* 分類標籤 */
+/* 分類標籤 - 藥丸化 */
 .category-badge {
-    display: inline-block;
-    font-size: 11px;
-    padding: 2px 6px;
-    background: #f1f5f9;
-    color: #64748b;
-    border-radius: 4px;
-    margin-bottom: 4px;
-    border: 1px solid #e2e8f0;
+  display: inline-block;
+  font-size: 11px;
+  padding: 3px 10px;        /* 稍微加寬 */
+  background: #f1f5f9;
+  color: #64748b;
+  border-radius: 50px;      /* 藥丸形狀 */
+  margin-bottom: 4px;
+  border: 1px solid #e2e8f0;
+  font-weight: 600;
 }
 
-/* =========================================
-   庫存分級視覺標籤 (Level 2+)
-========================================= */
+/* 庫存文字標籤 - 藥丸化 */
 .stock-tag {
   display: inline-block;
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 2px 8px;         /* 加寬 */
+  border-radius: 50px;      /* 藥丸形狀 */
+  font-size: 11px;          /* 字體微縮，更精緻 */
   font-weight: 700;
   margin-left: 0; 
   vertical-align: middle;
-  border: 1px solid transparent;
+  border: 1px solid transparent; /* 保持透明邊框以維持排版 */
 }
 
 /* 1. 小於 30 (紅色 - 警戒) */
@@ -1595,7 +1600,7 @@ function renderResults(list) {
     // --- 標籤與變數 ---
     let controlledHtml = "";
     if (item.isControlled) {
-        controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
+        controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:50px;; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
     }
       
     const tr = document.createElement("tr");
