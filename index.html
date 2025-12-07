@@ -3,245 +3,357 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>KINYO 企業禮贈品 | 團購批發 | 原廠專屬報價中心</title>
+<title>KINYO 企業採購專區 | 原廠直營．團購批發</title>
 <meta name="description" content="KINYO 原廠直營企業採購平台。提供公司行號禮贈品、股東會贈品、團購批發專屬優惠。立即諮詢獲取全台最低報價。">
 <style>
+    /* --- 1. 企業級色彩系統 (參考官網風格) --- */
     :root {
-        --primary: #0f172a;
-        --accent: #2563eb;
-        --accent-hover: #1d4ed8;
-        --text: #334155;
-        --bg: #f8fafc;
+        --primary: #1a1a1a;       /* 極深灰 (接近黑) */
+        --secondary: #666666;     /* 次要文字灰 */
+        --accent: #0056b3;        /* 專業企業藍 */
+        --accent-hover: #004494;
+        --bg-white: #ffffff;
+        --bg-gray: #f9f9f9;       /* 極淡灰背景 */
+        --border: #e5e5e5;
+        --shadow: 0 4px 20px rgba(0,0,0,0.08);
     }
-    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
     
-    /* 導覽列 */
+    body { 
+        margin: 0; 
+        font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif; /* 指定中文字體 */
+        background: var(--bg-white); 
+        color: var(--primary); 
+        line-height: 1.7;
+        -webkit-font-smoothing: antialiased; /* 字體平滑 */
+    }
+    
+    /* --- 2. 專業導覽列 (純白置頂) --- */
     nav {
         display: flex; 
-        justify-content: flex-end;
+        justify-content: space-between; /* 左右分開 */
         align-items: center;
-        padding: 15px 5%; 
-        background: rgba(255,255,255,0.95);
-        backdrop-filter: blur(10px);
-        position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-        position: relative;
-        min-height: 60px;
+        padding: 0 5%;
+        height: 70px;
+        background: rgba(255,255,255,0.98);
+        border-bottom: 1px solid var(--border);
+        position: sticky; top: 0; z-index: 1000;
     }
 
-    /* Logo 置中 */
     .logo-link {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-        display: flex; align-items: center; justify-content: center;
+        display: flex; align-items: center; text-decoration: none;
     }
     .logo-img { 
-        height: 75px; width: auto; display: block; 
-        transition: opacity 0.2s, transform 0.2s;
+        height: 40px; /* 官網標準高度 */
+        width: auto; 
+        display: block; 
     }
-    .logo-img:hover { opacity: 0.9; transform: scale(1.05); }
 
+    /* 登入按鈕優化 */
     .nav-btn {
-        text-decoration: none; color: var(--primary); font-weight: 600; font-size: 14px;
-        padding: 8px 16px; border-radius: 50px; transition: 0.3s;
-        z-index: 101;
+        text-decoration: none; 
+        color: var(--primary); 
+        font-weight: 500; 
+        font-size: 14px;
+        padding: 8px 20px; 
+        border: 1px solid var(--primary); /* 細黑框 */
+        border-radius: 4px; /* 微圓角 */
+        transition: all 0.3s;
+        display: flex; align-items: center; gap: 6px;
     }
-    .nav-btn.login { background: #f1f5f9; border: 1px solid #e2e8f0; }
-    .nav-btn.login:hover { background: #e2e8f0; }
+    .nav-btn:hover { 
+        background: var(--primary); 
+        color: white; 
+    }
 
-    /* --- 主視覺 Hero Section --- */
+    /* --- 3. 主視覺 Hero Section (左文右圖) --- */
     .hero {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 60px 5%; 
-        background: radial-gradient(circle at 0% 0%, #eff6ff 0%, #f8fafc 50%);
-        min-height: 500px; gap: 40px; overflow: hidden;
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between;
+        padding: 80px 5%; 
+        background: var(--bg-white);
+        min-height: 550px; 
+        gap: 60px; 
+        overflow: hidden;
+        max-width: 1200px; margin: 0 auto; /* 限制最大寬度 */
     }
 
-    .hero-content { flex: 1; max-width: 600px; z-index: 10; }
-    .hero h1 {
-        font-size: 48px; line-height: 1.2; margin-bottom: 20px; color: var(--primary);
-        background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        text-align: left;
-    }
-    .hero p { font-size: 18px; color: #64748b; margin-bottom: 30px; text-align: left; }
+    .hero-content { flex: 1; max-width: 550px; z-index: 10; }
     
-    .cta-group { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; justify-content: flex-start; }
-    .btn {
-        padding: 14px 28px; border-radius: 50px; font-weight: 700; font-size: 16px;
-        text-decoration: none; transition: transform 0.2s, box-shadow 0.2s; display: inline-block;
+    /* 標題排版優化 */
+    .hero-tag {
+        display: inline-block;
+        background: #eff6ff; color: var(--accent);
+        font-size: 13px; font-weight: 700;
+        padding: 4px 12px; border-radius: 100px;
+        margin-bottom: 16px; letter-spacing: 1px;
     }
-    .btn-main { background: var(--accent); color: white; box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4); }
-    .btn-main:hover { background: var(--accent-hover); transform: translateY(-2px); }
-    .btn-sec { background: white; color: var(--primary); border: 1px solid #cbd5e1; }
-    .btn-sec:hover { background: #f8fafc; }
+    .hero h1 {
+        font-size: 42px; 
+        line-height: 1.3; 
+        margin: 0 0 24px 0; 
+        color: var(--primary);
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+    .hero p { 
+        font-size: 16px; 
+        color: var(--secondary); 
+        margin-bottom: 40px; 
+        font-weight: 400;
+    }
+    
+    /* 按鈕群組 (專業版) */
+    .cta-group { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+    
+    .btn {
+        padding: 12px 28px; 
+        border-radius: 6px; /* 企業風格微圓角 */
+        font-weight: 500; 
+        font-size: 15px;
+        text-decoration: none; 
+        transition: all 0.2s; 
+        display: inline-flex; align-items: center; justify-content: center;
+        letter-spacing: 0.5px;
+    }
+    .btn-main { 
+        background: var(--primary); /* 黑底白字，質感最強 */
+        color: white; 
+        border: 1px solid var(--primary);
+    }
+    .btn-main:hover { 
+        background: #333; 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .btn-sec { 
+        background: white; 
+        color: var(--primary); 
+        border: 1px solid var(--border); 
+    }
+    .btn-sec:hover { 
+        border-color: var(--primary); 
+        background: #f8f8f8;
+    }
 
     .btn-copy {
-        background: white; border: 1px solid #cbd5e1; color: var(--primary);
-        width: 48px; height: 48px; border-radius: 50%;
-        font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        background: white; border: 1px solid var(--border); color: var(--secondary);
+        width: 46px; height: 46px; border-radius: 6px;
+        font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
         transition: all 0.2s;
     }
-    .btn-copy:hover { background: #f1f5f9; transform: scale(1.1); }
-    .btn-copy:active { transform: scale(0.9); }
+    .btn-copy:hover { border-color: var(--primary); color: var(--primary); }
 
-    /* --- 動態相框 --- */
+    /* --- 4. 產品輪播相框 (Clean Style) --- */
     .hero-visual {
-        flex: 1; position: relative; display: flex; justify-content: center; align-items: center;
+        flex: 1.2; /* 讓圖片區域稍微大一點 */
+        position: relative; 
+        display: flex; justify-content: center; align-items: center;
     }
     .photo-frame {
-        width: 100%; max-width: 500px; aspect-ratio: 4/3;
-        background: white; border-radius: 24px;
-        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1), 0 0 0 10px rgba(255,255,255,0.5);
-        overflow: hidden; position: relative;
+        width: 100%; 
+        aspect-ratio: 16/10; /* 更寬的比例，適合展示產品 */
+        background: #f0f0f0; /* 圖片載入前的底色 */
+        border-radius: 12px; /* 更小的圓角 */
+        box-shadow: var(--shadow);
+        overflow: hidden; 
+        position: relative;
     }
-    /* 預設載入中的樣式 */
     .photo-frame::before {
-        content: "Loading..."; 
+        content: "KINYO"; 
         position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        color: #cbd5e1; font-weight: 600;
+        color: #ddd; font-weight: 900; font-size: 24px; letter-spacing: 2px;
     }
     .slide-img {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        object-fit: contain; /* 改為 contain 確保商品全貌顯示 */
-        background: #fff; /* 補白邊 */
+        object-fit: cover; /* 滿版裁切，更有氣勢 */
         opacity: 0;
-        transition: opacity 1s ease-in-out, transform 6s ease;
-        transform: scale(1.05);
+        transition: opacity 0.8s ease-in-out, transform 8s linear;
+        transform: scale(1.1); /* 緩慢縮放特效 */
     }
     .slide-img.active { opacity: 1; transform: scale(1); }
 
-    /* 優勢卡片 */
-    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; padding: 60px 5%; max-width: 1200px; margin: 0 auto; }
-    .card { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9; text-align: left; }
-    .icon { font-size: 32px; margin-bottom: 16px; display: block; }
-    .card h3 { margin: 0 0 8px; color: var(--primary); }
-    .card p { font-size: 14px; color: #64748b; margin: 0; }
+    /* --- 5. 核心優勢 (圖示區) --- */
+    .features-section {
+        background: var(--bg-gray); /* 淺灰底區分 */
+        padding: 80px 5%;
+    }
+    .features-container {
+        max-width: 1200px; margin: 0 auto;
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+        gap: 30px;
+    }
+    .card { 
+        background: white; 
+        padding: 40px 30px; 
+        border-radius: 8px; 
+        border: 1px solid transparent;
+        transition: 0.3s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow);
+        border-color: #eee;
+    }
+    .icon { 
+        font-size: 28px; margin-bottom: 20px; display: inline-block; 
+        background: #eff6ff; width: 60px; height: 60px; line-height: 60px;
+        text-align: center; border-radius: 50%; color: var(--accent);
+    }
+    .card h3 { 
+        margin: 0 0 12px 0; 
+        color: var(--primary); 
+        font-size: 18px; font-weight: 700;
+    }
+    .card p { 
+        font-size: 14px; 
+        color: var(--secondary); 
+        margin: 0; line-height: 1.6;
+    }
 
-    footer { text-align: center; padding: 40px; background: white; border-top: 1px solid #f1f5f9; color: #94a3b8; font-size: 13px; }
+    /* --- 6. 頁尾 --- */
+    footer { 
+        text-align: center; padding: 60px 0; 
+        background: white; border-top: 1px solid var(--border); 
+        color: #999; font-size: 12px; letter-spacing: 1px;
+    }
 
-    /* 手機適配 */
+    /* --- 手機適配 --- */
     @media (max-width: 900px) {
-        .hero { flex-direction: column-reverse; padding: 40px 20px; text-align: center; }
+        nav { padding: 0 20px; }
+        .hero { 
+            flex-direction: column-reverse; 
+            padding: 40px 20px; 
+            gap: 30px; 
+            text-align: center; /* 手機版文字置中 */
+        }
+        .hero h1 { font-size: 32px; }
         .hero-content { max-width: 100%; }
-        .hero h1 { font-size: 32px; text-align: center; }
-        .hero p { text-align: center; }
-        .cta-group { justify-content: center; width: 100%; }
-        .logo-img { height: 50px; }
-        .btn { width: 100%; box-sizing: border-box; text-align: center; }
-        .email-group { width: 100%; display: flex; gap: 8px; }
-        .email-group .btn { flex: 1; }
-        .photo-frame { max-width: 100%; margin-bottom: 20px; }
+        .cta-group { justify-content: center; } /* 按鈕置中 */
+        .btn { width: 100%; box-sizing: border-box; }
+        .email-group { width: 100%; display: flex; gap: 10px; }
+        .email-group .btn-sec { flex: 1; }
+        
+        .photo-frame { aspect-ratio: 4/3; } /* 手機版比例方一點 */
     }
 </style>
 </head>
 <body>
 
+    <!-- 導覽列 -->
     <nav>
         <a href="index.html" class="logo-link">
-            <!-- 🛠️ 使用 Weserv CDN 加速器來代理 Google Drive 圖片 -->
+            <!-- 這裡放您的 Logo -->
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO Logo" class="logo-img" onerror="this.src='https://placehold.co/120x40?text=KINYO'">
         </a>
-        <a href="system.html" class="nav-btn login">🔒 會員登入</a>
+        <a href="system.html" class="nav-btn">
+            <span style="font-size:16px;">🔐</span> 經銷登入
+        </a>
     </nav>
 
+    <!-- 主視覺區 -->
     <section class="hero">
         <div class="hero-content">
-            <h1>企業禮贈品．團購批發<br>原廠專屬報價中心</h1>
-            <p>提供 KINYO 全系列商品 B2B 專屬優惠。庫存透明、快速報價、原廠保固。專為企業採購、福委會、團購主打造的數位化平台。</p>
+            <span class="hero-tag">B2B 企業專屬服務</span>
+            <h1>KINYO 企業禮贈品<br>原廠報價採購中心</h1>
+            <p>專為公司行號、福委會、團購主打造的數位化採購平台。提供原廠直營的價格優勢、即時透明的庫存查詢，以及專人專案的快速出貨服務。</p>
             
             <div class="cta-group">
-                <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-main" target="_blank">LINE 線上諮詢</a>
-                <div class="email-group" style="display: flex; gap: 8px; align-items: center;">
+                <!-- LINE 按鈕 -->
+                <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-main" target="_blank">
+                    LINE 線上諮詢
+                </a>
+                
+                <!-- Email 群組 -->
+                <div class="email-group" style="display: flex; gap: 10px; align-items: center;">
                     <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-sec" title="sam.kuo@kinyo.tw">Email 詢價</a>
-                    <button onclick="copyEmail()" class="btn-copy" title="複製信箱到剪貼簿">📋</button>
+                    <button onclick="copyEmail()" class="btn-copy" title="複製信箱">📋</button>
                 </div>
-                <a href="system.html" class="btn btn-sec">老客戶登入</a>
             </div>
 
-            <p style="font-size: 13px; color: #ef4444; margin-top: 16px; font-weight: 600; opacity: 0.9; background: #fef2f2; display: inline-block; padding: 4px 12px; border-radius: 50px; border: 1px solid #fecaca;">
-                ⚠️ 急單請直接加 LINE，Email 回覆約需 1 個工作天
-            </p>
+            <!-- 警語設計優化 -->
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 8px; color: #dc2626; font-size: 13px; font-weight: 500; background: #fef2f2; padding: 8px 16px; border-radius: 4px; width: fit-content; display: inline-flex;">
+                <span style="font-size: 16px;">⚡</span>
+                急單請直接加 LINE，Email 回覆約需 1 個工作天
+            </div>
         </div>
 
+        <!-- 產品輪播 -->
         <div class="hero-visual">
             <div class="photo-frame" id="carousel-frame">
-                <!-- 圖片將由下方的 Script 自動載入 -->
+                <!-- JS 自動載入 -->
             </div>
         </div>
     </section>
 
-    <section class="features">
-        <div class="card">
-            <span class="icon">💎</span>
-            <h3>全台最低價保證</h3>
-            <p>透過數位化系統直接計算廠價結構，去除中間商成本，提供最具競爭力的批量採購價格。</p>
-        </div>
-        <div class="card">
-            <span class="icon">📦</span>
-            <h3>庫存即時透明</h3>
-            <p>獨家開發即時庫存系統，雙倉數據同步，解決「下單才發現缺貨」的痛點。</p>
-        </div>
-        <div class="card">
-            <span class="icon">🚀</span>
-            <h3>急單快速出貨</h3>
-            <p>專人專案對接，現貨商品 24H 內安排出貨，滿足活動贈品與緊急採購需求。</p>
+    <!-- 核心優勢區塊 -->
+    <section class="features-section">
+        <div class="features-container">
+            <div class="card">
+                <span class="icon">💎</span>
+                <h3>全台最低價保證</h3>
+                <p>去除中間商差價，透過數位系統直接計算原廠結構價格，提供最具競爭力的批量採購優惠。</p>
+            </div>
+            <div class="card">
+                <span class="icon">📦</span>
+                <h3>庫存即時透明</h3>
+                <p>獨家開發雙倉數據同步系統，即時查詢成品倉與專賣倉庫存，解決「下單才發現缺貨」的採購痛點。</p>
+            </div>
+            <div class="card">
+                <span class="icon">🚀</span>
+                <h3>急單快速出貨</h3>
+                <p>專人專案對接，現貨商品 24 小時內安排出貨，全力支援您的活動贈品與緊急採購需求。</p>
+            </div>
         </div>
     </section>
 
     <footer>
+        <div style="margin-bottom: 10px; font-weight: 600; color: #333;">KINYO 企業採購中心</div>
         © 2025 KINYO Price System. Designed by 郭庭豪 (0976-966-333)
     </footer>
 
 <script>
-    // 1. Email 複製功能
+    // 1. Email 複製
     function copyEmail() {
         const email = "sam.kuo@kinyo.tw";
         navigator.clipboard.writeText(email).then(() => {
-            alert("✅ 信箱已複製：\n" + email + "\n\n您可以直接去貼上寄信囉！");
+            alert("✅ 信箱已複製：\n" + email);
         }).catch(err => {
             console.error('複製失敗:', err);
             prompt("請手動複製信箱：", email);
         });
     }
 
-    // 2. 自動抓取 modelData.json 圖片並輪播 (雙保險機制)
+    // 2. 圖片輪播邏輯 (雙保險版)
     document.addEventListener("DOMContentLoaded", async function() {
         const frame = document.getElementById('carousel-frame');
         
-        // 🔥【重點】Plan B: 備用圖片清單 (請填入您 Google Drive 的檔案 ID)
-        // 萬一抓不到 JSON，就會顯示這些圖。您可以把您最漂亮的幾張圖 ID 填在這。
+        // 備用圖片 (手動精選)
         const manualDriveIds = [
-            "1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F", // 範例ID，請換成您的
-            "1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F"  // 範例ID
+            "1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F" 
         ];
 
-        // 將 ID 轉為圖片網址的輔助函式
+        // 轉 Drive ID 為圖片網址
         function getDirectUrl(urlOrId) {
             if (!urlOrId) return null;
-            
-            // 如果輸入的是完整網址 (來自JSON)
             if (urlOrId.includes('http')) {
                 const driveRegex = /\/d\/([a-zA-Z0-9_-]+)/;
                 const match = urlOrId.match(driveRegex);
                 if (match && match[1]) {
                     return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${match[1]}&w=800&q=80&output=jpg`;
                 }
-                return urlOrId; // 非 Drive 連結直接回傳
+                return urlOrId;
             } 
-            
-            // 如果輸入的是純 ID (來自 manualDriveIds)
             return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${urlOrId}&w=800&q=80&output=jpg`;
         }
 
-        // 渲染輪播的通用函式
+        // 輪播渲染
         function renderCarousel(imageSources) {
-            frame.innerHTML = ''; // 清空 loading
+            frame.innerHTML = ''; 
             const validImages = imageSources.map(src => getDirectUrl(src)).filter(Boolean);
 
             if (validImages.length === 0) {
-                // 如果真的都沒圖，顯示預設灰底圖
-                frame.innerHTML = '<img src="https://placehold.co/600x400?text=KINYO+Products" class="slide-img active">';
+                frame.innerHTML = '<img src="https://placehold.co/800x500?text=KINYO" class="slide-img active">';
                 return;
             }
             
@@ -253,7 +365,6 @@
                 frame.appendChild(img);
             });
 
-            // 啟動輪播
             let currentIndex = 0;
             const slides = frame.querySelectorAll('.slide-img');
             if(slides.length > 1) {
@@ -265,12 +376,9 @@
             }
         }
 
-        // --- 主邏輯：嘗試讀取 JSON ---
+        // 讀取 GitHub JSON
         try {
-            // 使用絕對路徑讀取 JSON
             const jsonUrl = 'https://sam-kinyo.github.io/kinyo-price/modelData.json?v=' + new Date().getTime();
-            
-            // 設定 3 秒超時，如果 GitHub 慢，就直接用備用圖，不要讓客戶等
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 3000);
 
@@ -280,7 +388,6 @@
             if (!response.ok) throw new Error("JSON not found");
             const data = await response.json();
 
-            // 提取圖片 (優先使用網路圖)
             let allImages = [];
             if (data.models && Array.isArray(data.models)) {
                 allImages = data.models
@@ -293,21 +400,20 @@
                     .filter(url => url && url.startsWith('http'));
             }
 
-            // 隨機挑選 13 張
             if (allImages.length > 0) {
                 for (let i = allImages.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                 }
                 const selectedImages = allImages.slice(0, 13);
-                renderCarousel(selectedImages); // 成功！顯示隨機圖
+                renderCarousel(selectedImages); 
             } else {
                 throw new Error("JSON 內無有效圖片");
             }
 
         } catch (e) {
             console.warn("切換至備用圖片模式:", e);
-            renderCarousel(manualDriveIds); // 失敗！顯示您手動填的圖
+            renderCarousel(manualDriveIds); 
         }
     });
 </script>
