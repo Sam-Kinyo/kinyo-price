@@ -205,35 +205,47 @@
         });
     }
 
-    // 2. 自動抓取 modelData.json 圖片並輪播
+    // 2. 自動抓取 modelData.json 圖片並輪播 (雙保險機制)
     document.addEventListener("DOMContentLoaded", async function() {
         const frame = document.getElementById('carousel-frame');
         
-        // 🛠️ 備用圖片 (當讀取不到檔案時顯示)
-        const fallbackImages = [
-            "https://placehold.co/600x400?text=KINYO+Product+1",
-            "https://placehold.co/600x400?text=KINYO+Product+2",
-            "https://placehold.co/600x400?text=KINYO+Product+3"
+        // 🔥【重點】Plan B: 備用圖片清單 (請填入您 Google Drive 的檔案 ID)
+        // 萬一抓不到 JSON，就會顯示這些圖。您可以把您最漂亮的幾張圖 ID 填在這。
+        const manualDriveIds = [
+            "1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F", // 範例ID，請換成您的
+            "1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F"  // 範例ID
         ];
 
-        // 輔助函式：將 Drive 連結轉為 CDN 直連
-        function getDirectUrl(url) {
-            if (!url) return null;
-            const driveRegex = /\/d\/([a-zA-Z0-9_-]+)/;
-            const match = url.match(driveRegex);
-            if (match && match[1]) {
-                const id = match[1];
-                // 使用 Weserv CDN 加速
-                return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${id}&w=800&q=80&output=jpg`;
-            }
-            return url;
+        // 將 ID 轉為圖片網址的輔助函式
+        function getDirectUrl(urlOrId) {
+            if (!urlOrId) return null;
+            
+            // 如果輸入的是完整網址 (來自JSON)
+            if (urlOrId.includes('http')) {
+                const driveRegex = /\/d\/([a-zA-Z0-9_-]+)/;
+                const match = urlOrId.match(driveRegex);
+                if (match && match[1]) {
+                    return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${match[1]}&w=800&q=80&output=jpg`;
+                }
+                return urlOrId; // 非 Drive 連結直接回傳
+            } 
+            
+            // 如果輸入的是純 ID (來自 manualDriveIds)
+            return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${urlOrId}&w=800&q=80&output=jpg`;
         }
 
         // 渲染輪播的通用函式
-        function renderCarousel(images) {
+        function renderCarousel(imageSources) {
             frame.innerHTML = ''; // 清空 loading
+            const validImages = imageSources.map(src => getDirectUrl(src)).filter(Boolean);
+
+            if (validImages.length === 0) {
+                // 如果真的都沒圖，顯示預設灰底圖
+                frame.innerHTML = '<img src="https://placehold.co/600x400?text=KINYO+Products" class="slide-img active">';
+                return;
+            }
             
-            images.forEach((url, index) => {
+            validImages.forEach((url, index) => {
                 const img = document.createElement('img');
                 img.src = url;
                 img.className = 'slide-img';
@@ -253,17 +265,22 @@
             }
         }
 
+        // --- 主邏輯：嘗試讀取 JSON ---
         try {
-            // A. 嘗試讀取 JSON (使用絕對路徑 + CORS)
-            // 💡 關鍵修正：直接指向您的 GitHub Pages 網址，而不是相對路徑 ./
+            // 使用絕對路徑讀取 JSON
             const jsonUrl = 'https://sam-kinyo.github.io/kinyo-price/modelData.json?v=' + new Date().getTime();
             
-            const response = await fetch(jsonUrl, { mode: 'cors' });
+            // 設定 3 秒超時，如果 GitHub 慢，就直接用備用圖，不要讓客戶等
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+            const response = await fetch(jsonUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
             
-            if (!response.ok) throw new Error("JSON not found or network error");
+            if (!response.ok) throw new Error("JSON not found");
             const data = await response.json();
 
-            // B. 提取圖片 (優先使用網路圖)
+            // 提取圖片 (優先使用網路圖)
             let allImages = [];
             if (data.models && Array.isArray(data.models)) {
                 allImages = data.models
@@ -273,27 +290,24 @@
                         }
                         return item.mainImage;
                     })
-                    .filter(url => url && url.startsWith('http'))
-                    .map(url => getDirectUrl(url));
+                    .filter(url => url && url.startsWith('http'));
             }
 
-            // C. 隨機挑選 13 張
+            // 隨機挑選 13 張
             if (allImages.length > 0) {
-                // 洗牌演算法
                 for (let i = allImages.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [allImages[i], allImages[j]] = [allImages[j], allImages[i]];
                 }
                 const selectedImages = allImages.slice(0, 13);
-                renderCarousel(selectedImages);
+                renderCarousel(selectedImages); // 成功！顯示隨機圖
             } else {
-                console.warn("JSON 中找不到有效圖片");
-                renderCarousel(fallbackImages);
+                throw new Error("JSON 內無有效圖片");
             }
 
         } catch (e) {
-            console.warn("讀取 GitHub 資料失敗，切換為備用圖片。", e);
-            renderCarousel(fallbackImages); 
+            console.warn("切換至備用圖片模式:", e);
+            renderCarousel(manualDriveIds); // 失敗！顯示您手動填的圖
         }
     });
 </script>
