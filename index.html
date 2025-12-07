@@ -71,7 +71,7 @@
         justify-content: space-between;
         padding: 60px 5%; 
         background: var(--bg-white);
-        min-height: 600px; /* 稍微拉高一點以容納正方形圖片 */
+        min-height: 600px; 
         gap: 60px; 
         overflow: hidden;
         max-width: 1200px; margin: 0 auto;
@@ -141,21 +141,23 @@
     }
     .btn-copy:hover { border-color: var(--primary); color: var(--primary); }
 
-    /* --- 4. 產品輪播相框 (改為正方形 1:1) --- */
+    /* --- 4. 產品輪播相框 (V8.4 高級滑動版) --- */
     .hero-visual {
-        flex: 1; /* 調整比例 */
+        flex: 1; 
         position: relative; 
         display: flex; justify-content: center; align-items: center;
     }
     .photo-frame {
         width: 100%; 
-        max-width: 500px; /* 限制最大寬度，避免正方形太大佔滿畫面 */
-        aspect-ratio: 1/1; /* 🚀 設定為 1:1 正方形 */
+        max-width: 500px; 
+        aspect-ratio: 1/1; /* 正方形 */
         background: #f0f0f0; 
-        border-radius: 20px; /* 圓角稍微加大 */
+        border-radius: 20px; 
         box-shadow: var(--shadow);
         overflow: hidden; 
         position: relative;
+        /* 加個外框讓白色商品在白底上也清楚 */
+        border: 1px solid #f0f0f0;
     }
     .photo-frame::before {
         content: "Loading..."; 
@@ -165,11 +167,33 @@
     .slide-img {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         object-fit: cover; 
-        opacity: 0;
-        transition: opacity 1s ease-in-out, transform 8s linear;
-        transform: scale(1.1);
+        
+        /* 🚀 關鍵設定：預設在右邊等待 (TranslateX 100%) */
+        transform: translateX(100%);
+        
+        /* 🚀 高級感核心：Cubic-Bezier 曲線 (模擬 iOS 滑動手感：快進慢停) */
+        transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        
+        z-index: 1;
     }
-    .slide-img.active { opacity: 1; transform: scale(1); }
+    
+    /* 當前顯示的圖片 (移到中間) */
+    .slide-img.active { 
+        transform: translateX(0); 
+        z-index: 2;
+    }
+    
+    /* 離開的圖片 (滑到左邊) */
+    .slide-img.exit { 
+        transform: translateX(-100%); 
+        z-index: 1;
+    }
+    
+    /* 瞬間重置 (無動畫歸位) */
+    .slide-img.reset {
+        transition: none !important;
+        transform: translateX(100%);
+    }
 
     /* --- 5. 核心優勢 --- */
     .features-section {
@@ -229,7 +253,6 @@
         .btn { width: 100%; box-sizing: border-box; }
         .email-group { width: 100%; display: flex; gap: 10px; }
         .email-group .btn-sec { flex: 1; }
-        /* 手機版也維持正方形 */
         .photo-frame { aspect-ratio: 1/1; width: 100%; max-width: 400px; margin-bottom: 20px; }
     }
 </style>
@@ -269,7 +292,7 @@
             </div>
         </div>
 
-        <!-- 產品輪播 (正方形) -->
+        <!-- 產品輪播 (正方形 + 滑動特效) -->
         <div class="hero-visual">
             <div class="photo-frame" id="carousel-frame">
                 <!-- JS 自動載入 -->
@@ -336,6 +359,7 @@
             return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${id}&w=1000&q=85&output=jpg`;
         }
 
+        // 🚀 修改版輪播邏輯：支援滑動 (Slide)
         function renderCarousel(ids) {
             frame.innerHTML = ''; 
             const validIds = ids.filter(Boolean);
@@ -345,22 +369,44 @@
                 return;
             }
             
+            // 建立圖片
             validIds.forEach((id, index) => {
                 const img = document.createElement('img');
                 img.src = getDirectUrl(id);
                 img.className = 'slide-img';
+                
+                // 第一張直接顯示 (active)
                 if(index === 0) img.classList.add('active'); 
                 frame.appendChild(img);
             });
 
+            // 啟動輪播
             let currentIndex = 0;
             const slides = frame.querySelectorAll('.slide-img');
+            
             if(slides.length > 1) {
                 setInterval(() => {
-                    slides[currentIndex].classList.remove('active');
-                    currentIndex = (currentIndex + 1) % slides.length;
-                    slides[currentIndex].classList.add('active');
-                }, 4000);
+                    const currentSlide = slides[currentIndex];
+                    // 計算下一張的索引
+                    const nextIndex = (currentIndex + 1) % slides.length;
+                    const nextSlide = slides[nextIndex];
+
+                    // 1. 準備下一張 (瞬間移到右邊，不帶動畫)
+                    // 只有當它剛從左邊出去 (exit) 時才需要這一步，但為了保險起見，統一重置
+                    nextSlide.classList.add('reset');
+                    nextSlide.classList.remove('active', 'exit');
+                    void nextSlide.offsetWidth; // Force Reflow (讓瀏覽器吃到 reset)
+                    nextSlide.classList.remove('reset'); // 移除 reset，準備開始動畫
+
+                    // 2. 執行滑動
+                    currentSlide.classList.remove('active');
+                    currentSlide.classList.add('exit'); // 當前張滑去左邊
+
+                    nextSlide.classList.add('active'); // 下一張滑進中間
+
+                    // 更新索引
+                    currentIndex = nextIndex;
+                }, 4000); // 4秒換一次
             }
         }
 
