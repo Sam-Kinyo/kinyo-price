@@ -156,13 +156,25 @@ label{
   display:block;
   font-size:14px;
 }
-input,select{
-  width:100%;
-  padding:10px 12px;
-  border-radius:8px;
-  border:1px solid #d1d5db;
-  font-size:15px;
-  box-sizing:border-box;
+/* 輸入框聚焦光暈特效 (新) */
+input, select {
+  width: 100%;
+  padding: 12px 14px;       /* 稍微加大輸入區域 */
+  border-radius: 8px;
+  font-size: 15px;
+  box-sizing: border-box;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  transition: all 0.2s ease; /* 加入動畫過渡效果 */
+}
+
+/* 當滑鼠點擊輸入框時的效果 */
+input:focus, select:focus {
+  outline: none;
+  border-color: #3b82f6;    /* 邊框變藍色 */
+  background: #fff;
+  /* 關鍵：加入擴散的藍色光暈 */
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); 
 }
 
 /* 複合式搜尋列 (分類 + 關鍵字) */
@@ -225,13 +237,21 @@ table{
   border-radius:var(--radius);
   box-shadow:0 8px 28px rgba(0,0,0,0.15);
 }
-th,td{
-  padding:12px 10px;
-  border-bottom:1px solid var(--border);
-  font-size:14px;
-  vertical-align:top;
+/* 表格寬鬆化設定 (新) */
+th, td {
+  padding: 16px 12px;       /* 增加上下高度，讓眼睛更舒服 */
+  border-bottom: 1px solid #f1f5f9; /* 改用極淡的線條 */
+  font-size: 14px;
+  vertical-align: middle;   /* 關鍵：讓圖片和文字垂直置中 */
 }
-th{background:#fafafa;text-align:left;}
+
+th {
+  background: #f8fafc;      /* 淺灰底色 */
+  color: #64748b;           /* 深灰文字 */
+  font-weight: 700;
+  text-align: left;
+  letter-spacing: 0.5px;    /* 字距稍微拉開 */
+}
 
 .product-img{
   width:110px;height:110px;
