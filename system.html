@@ -630,6 +630,23 @@ th {
 .fill-good { background: #22c55e; } /* 綠色 (充足) */
 .fill-high { background: #10b981; } /* 深綠 (極多) */
 .st-zero   { background: #9ca3af; } /* 灰色 (缺貨) */
+
+/* =========================================
+   LINE 按鈕專屬樣式 (強制綠色)
+========================================= */
+.line-share-btn {
+  background-color: #06C755 !important; /* LINE 官方綠 */
+  color: white !important;              /* 白字 */
+  border: 1px solid #06C755 !important; /* 綠框 */
+  box-shadow: 0 2px 6px rgba(6, 199, 85, 0.3) !important; /* 綠色光暈陰影 */
+  transition: all 0.2s ease;
+}
+
+.line-share-btn:hover {
+  background-color: #059640 !important; /* 滑鼠移過去變深綠 */
+  transform: translateY(-2px);          /* 微微上浮 */
+  box-shadow: 0 4px 12px rgba(6, 199, 85, 0.4) !important;
+}
    
 </style>
 </head>
