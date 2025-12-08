@@ -5,360 +5,463 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KINYO 企業採購專區 | 原廠直營．團購批發</title>
 <meta name="description" content="KINYO 原廠直營企業採購平台。提供公司行號禮贈品、股東會贈品、團購批發專屬優惠。立即諮詢獲取全台最低報價。">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+
 <style>
-    /* --- 1. 企業級色彩系統 --- */
     :root {
-        --primary: #1a1a1a;       /* 極深灰 */
-        --secondary: #666666;     /* 次要文字灰 */
-        --accent: #0056b3;        /* 專業企業藍 */
-        --accent-hover: #004494;
-        --bg-white: #ffffff;
-        --bg-gray: #f9f9f9;       /* 極淡灰背景 */
-        --border: #e5e5e5;
-        --shadow: 0 4px 20px rgba(0,0,0,0.08);
+        --primary: #222222;
+        --accent: #0055aa;
+        --accent-dark: #004080;
+        --bg-light: #f8f9fa;
+        --text-gray: #555555;
+        --border: #eeeeee;
     }
     
     body { 
-        margin: 0; 
-        font-family: "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
-        background: var(--bg-white); 
-        color: var(--primary); 
-        line-height: 1.7;
-        -webkit-font-smoothing: antialiased;
+        margin: 0; font-family: 'Noto Sans TC', sans-serif; 
+        color: var(--primary); line-height: 1.6; overflow-x: hidden;
     }
-    
-    /* --- 2. 專業導覽列 --- */
+
     nav {
-        display: flex; 
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 5%;
-        height: 70px;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 0 6%; height: 72px;
         background: rgba(255,255,255,0.98);
-        border-bottom: 1px solid var(--border);
-        position: sticky; top: 0; z-index: 1000;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        position: sticky; top: 0; z-index: 999;
     }
-
-    .logo-link {
-        display: flex; align-items: center; text-decoration: none;
-    }
-    .logo-img { 
-        height: 40px; 
-        width: auto; 
-        display: block; 
-    }
-
-    .nav-btn {
-        text-decoration: none; 
-        color: var(--primary); 
-        font-weight: 500; 
-        font-size: 14px;
-        padding: 8px 20px; 
-        border: 1px solid var(--primary);
-        border-radius: 4px;
-        transition: all 0.3s;
-        display: flex; align-items: center; gap: 6px;
-    }
-    .nav-btn:hover { 
-        background: var(--primary); 
-        color: white; 
-    }
-
-    /* --- 3. 主視覺 Hero Section --- */
-    .hero {
-        display: flex; 
-        align-items: center; 
-        justify-content: space-between;
-        padding: 60px 5%; 
-        background: var(--bg-white);
-        min-height: 600px; 
-        gap: 60px; 
-        overflow: hidden;
-        max-width: 1200px; margin: 0 auto;
-    }
-
-    .hero-content { flex: 1; max-width: 550px; z-index: 10; }
+    .logo-link img { height: 42px; width: auto; display: block; }
     
-    .hero-tag {
-        display: inline-block;
-        background: #eff6ff; color: var(--accent);
-        font-size: 13px; font-weight: 700;
-        padding: 4px 12px; border-radius: 100px;
-        margin-bottom: 16px; letter-spacing: 1px;
+    .nav-btn {
+        text-decoration: none; color: white; background: var(--primary);
+        font-weight: 500; font-size: 14px; padding: 8px 24px; border-radius: 4px;
+        transition: 0.3s; letter-spacing: 1px;
+    }
+    .nav-btn:hover { background: var(--accent); }
+
+    /* --- Hero Section --- */
+    .hero {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 60px 6%; background: linear-gradient(105deg, #f3f6f9 0%, #eef2f6 100%);
+        min-height: 550px; gap: 50px; position: relative;
+    }
+    .hero-content { flex: 1; max-width: 580px; animation: fadeIn 1s ease; z-index: 2; }
+    
+    .hero-label {
+        display: inline-block; background: #e3effd; color: var(--accent);
+        font-size: 13px; font-weight: 700; padding: 4px 12px; 
+        border-radius: 50px; margin-bottom: 20px; letter-spacing: 1.5px;
     }
     .hero h1 {
-        font-size: 42px; 
-        line-height: 1.3; 
-        margin: 0 0 24px 0; 
-        color: var(--primary);
-        font-weight: 700;
-        letter-spacing: -0.5px;
+        font-size: 42px; line-height: 1.35; margin: 0 0 20px 0; color: #111;
+        font-weight: 700; letter-spacing: -0.5px;
     }
-    .hero p { 
-        font-size: 16px; 
-        color: var(--secondary); 
-        margin-bottom: 40px; 
-        font-weight: 400;
+    .highlight { color: var(--accent); font-weight: 800; }
+    .hero p { font-size: 16px; color: var(--text-gray); margin-bottom: 25px; font-weight: 400; text-align: justify; }
+
+    /* --- 🔍 搜尋框樣式 (新功能) --- */
+    .search-wrapper {
+        position: relative; margin-bottom: 30px; max-width: 500px;
     }
-    
-    .cta-group { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
-    
+    .search-input {
+        width: 100%; padding: 16px 20px; padding-left: 50px;
+        border: 2px solid white; border-radius: 50px;
+        font-size: 16px; outline: none;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        transition: all 0.3s;
+    }
+    .search-input:focus {
+        border-color: var(--accent); box-shadow: 0 10px 30px rgba(0, 85, 170, 0.2);
+    }
+    .search-icon {
+        position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
+        font-size: 20px; color: #999;
+    }
+    .search-btn-submit {
+        position: absolute; right: 6px; top: 6px; bottom: 6px;
+        background: var(--accent); color: white; border: none;
+        border-radius: 50px; padding: 0 24px; font-weight: 600; cursor: pointer;
+        transition: 0.2s;
+    }
+    .search-btn-submit:hover { background: var(--accent-dark); }
+
+    /* 按鈕群組 */
+    .cta-group { display: flex; gap: 15px; align-items: flex-start; flex-wrap: wrap; }
+    .line-btn-wrapper { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .line-hint { font-size: 12px; color: #06c755; font-weight: 700; letter-spacing: 0.5px; }
+
     .btn {
-        padding: 12px 28px; 
-        border-radius: 6px;
-        font-weight: 500; 
-        font-size: 15px;
-        text-decoration: none; 
-        transition: all 0.2s; 
-        display: inline-flex; align-items: center; justify-content: center;
-        letter-spacing: 0.5px;
+        padding: 10px 24px; border-radius: 4px; font-weight: 500; font-size: 14px;
+        text-decoration: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;
     }
-    .btn-main { 
-        background: var(--primary); 
-        color: white; 
-        border: 1px solid var(--primary);
-    }
-    .btn-main:hover { 
-        background: #333; 
-        transform: translateY(-2px); 
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    .btn-sec { 
-        background: white; 
-        color: var(--primary); 
-        border: 1px solid var(--border); 
-    }
-    .btn-sec:hover { 
-        border-color: var(--primary); 
-        background: #f8f8f8;
-    }
-
+    .btn-line { background: #06c755; color: white; border: 1px solid #06c755; }
+    .btn-line:hover { background: #05b04b; transform: translateY(-2px); }
+    .btn-email { background: white; color: var(--primary); border: 1px solid #ccc; }
+    .btn-email:hover { border-color: var(--primary); background: #fff; }
     .btn-copy {
-        background: white; border: 1px solid var(--border); color: var(--secondary);
-        width: 46px; height: 46px; border-radius: 6px;
-        font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-        transition: all 0.2s;
+        background: #f0f0f0; border: none; width: 40px; height: 40px; border-radius: 4px;
+        cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;
+        transition: 0.2s; color: #666;
     }
-    .btn-copy:hover { border-color: var(--primary); color: var(--primary); }
+    .btn-copy:hover { background: #e0e0e0; color: #333; }
 
-    /* --- 4. 產品輪播相框 (V8.4 高級滑動版) --- */
-    .hero-visual {
-        flex: 1; 
-        position: relative; 
-        display: flex; justify-content: center; align-items: center;
-    }
+    .hero-visual { flex: 1.1; display: flex; justify-content: center; position: relative; }
     .photo-frame {
-        width: 100%; 
-        max-width: 500px; 
-        aspect-ratio: 1/1; /* 正方形 */
-        background: #f0f0f0; 
-        border-radius: 20px; 
-        box-shadow: var(--shadow);
-        overflow: hidden; 
-        position: relative;
-        /* 加個外框讓白色商品在白底上也清楚 */
-        border: 1px solid #f0f0f0;
-    }
-    .photo-frame::before {
-        content: "Loading..."; 
-        position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        color: #999; font-weight: 500; letter-spacing: 1px;
+        width: 100%; max-width: 500px; aspect-ratio: 1/1;
+        background: #fff; border-radius: 16px;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        position: relative; overflow: hidden; border: 4px solid #fff;
     }
     .slide-img {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-        object-fit: cover; 
-        
-        /* 🚀 關鍵設定：預設在右邊等待 (TranslateX 100%) */
-        transform: translateX(100%);
-        
-        /* 🚀 高級感核心：Cubic-Bezier 曲線 (模擬 iOS 滑動手感：快進慢停) */
-        transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-        
-        z-index: 1;
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
+        transform: translateX(100%); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
     }
-    
-    /* 當前顯示的圖片 (移到中間) */
-    .slide-img.active { 
-        transform: translateX(0); 
-        z-index: 2;
-    }
-    
-    /* 離開的圖片 (滑到左邊) */
-    .slide-img.exit { 
-        transform: translateX(-100%); 
-        z-index: 1;
-    }
-    
-    /* 瞬間重置 (無動畫歸位) */
-    .slide-img.reset {
-        transition: none !important;
-        transform: translateX(100%);
-    }
+    .slide-img.active { transform: translateX(0); }
+    .slide-img.exit { transform: translateX(-100%); }
+    .slide-img.reset { transition: none !important; transform: translateX(100%); }
 
-    /* --- 5. 核心優勢 --- */
-    .features-section {
-        background: var(--bg-gray); 
-        padding: 80px 5%;
+    /* --- 🔍 搜尋結果區塊 (動態顯示) --- */
+    #search-results-section {
+        display: none; /* 預設隱藏 */
+        padding: 60px 6%; background: white; border-bottom: 1px solid #eee;
     }
-    .features-container {
-        max-width: 1200px; margin: 0 auto;
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
-        gap: 30px;
+    .results-header {
+        display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
     }
-    .card { 
-        background: white; 
-        padding: 40px 30px; 
-        border-radius: 8px; 
-        border: 1px solid transparent;
-        transition: 0.3s;
+    .results-title { font-size: 24px; font-weight: 700; }
+    .close-results { 
+        cursor: pointer; color: #999; font-size: 14px; text-decoration: underline; 
     }
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow);
-        border-color: #eee;
+    .results-grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 20px;
     }
-    .icon { 
-        font-size: 28px; margin-bottom: 20px; display: inline-block; 
-        background: #eff6ff; width: 60px; height: 60px; line-height: 60px;
-        text-align: center; border-radius: 50%; color: var(--accent);
+    /* 產品卡片樣式 */
+    .product-card {
+        border: 1px solid #eee; border-radius: 8px; overflow: hidden;
+        transition: 0.2s; background: white;
     }
-    .card h3 { 
-        margin: 0 0 12px 0; 
-        color: var(--primary); 
-        font-size: 18px; font-weight: 700;
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+    .pc-img-box {
+        width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #f9f9f9;
+        display: flex; align-items: center; justify-content: center;
     }
-    .card p { 
-        font-size: 14px; 
-        color: var(--secondary); 
-        margin: 0; line-height: 1.6;
+    .pc-img { width: 100%; height: 100%; object-fit: contain; }
+    .pc-info { padding: 15px; }
+    .pc-model { font-size: 12px; color: #999; margin-bottom: 4px; }
+    .pc-name { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 8px; line-height: 1.4; height: 42px; overflow: hidden; }
+    .pc-price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; }
+    .pc-market { font-size: 13px; color: #666; text-decoration: line-through; }
+    .pc-login-btn {
+        display: block; width: 100%; text-align: center;
+        margin-top: 12px; padding: 8px 0; background: #f0f7ff; color: var(--accent);
+        font-size: 13px; font-weight: 600; border-radius: 4px; text-decoration: none;
     }
+    .pc-login-btn:hover { background: var(--accent); color: white; }
 
-    footer { 
-        text-align: center; padding: 60px 0; 
-        background: white; border-top: 1px solid var(--border); 
-        color: #999; font-size: 12px; letter-spacing: 1px;
-    }
+    /* 其他區塊 */
+    .process-section { padding: 80px 6%; background: white; }
+    .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; text-align: center; }
+    .process-item { position: relative; }
+    .p-icon { width: 70px; height: 70px; background: #f0f7ff; color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 20px; font-weight: bold; }
+    
+    .cat-section { padding: 80px 6%; background: var(--bg-light); }
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
+    .cat-card { background: white; border-radius: 8px; padding: 30px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; text-decoration: none; display: block; border: 1px solid transparent; }
+    .cat-card:hover { transform: translateY(-5px); border-color: var(--accent); }
+    .cat-icon { font-size: 40px; margin-bottom: 15px; display: block; }
+    
+    .features-section { background: white; padding: 80px 5%; border-top: 1px solid #eee; }
+    .features-container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+    .card { background: white; padding: 40px 30px; border-radius: 8px; border: 1px solid #f1f1f1; transition: 0.3s; }
+    .card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: #eee; }
+    .icon { font-size: 28px; margin-bottom: 20px; display: inline-block; background: #eff6ff; width: 60px; height: 60px; line-height: 60px; text-align: center; border-radius: 50%; color: var(--accent); }
+
+    .trust-section { padding: 50px 6%; background: var(--bg-light); text-align: center; }
+    .trust-logos { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; opacity: 0.6; grayscale: 100%; margin-top: 30px; }
+    .trust-text { font-size: 14px; color: #999; letter-spacing: 1px; font-weight: 500; text-transform: uppercase; }
+
+    footer { background: #1a1a1a; color: #888; padding: 60px 6%; font-size: 13px; }
+    .footer-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; }
+    .footer-col h4 { color: white; margin-bottom: 20px; font-size: 16px; }
+    .footer-col p { margin-bottom: 10px; }
+    .copyright { text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #333; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 900px) {
-        nav { padding: 0 20px; }
-        .hero { 
-            flex-direction: column-reverse; 
-            padding: 40px 20px; 
-            gap: 30px; 
-            text-align: center; 
-        }
+        .hero { flex-direction: column-reverse; padding: 40px 5%; text-align: center; }
         .hero h1 { font-size: 32px; }
         .hero-content { max-width: 100%; }
-        .cta-group { justify-content: center; } 
-        .btn { width: 100%; box-sizing: border-box; }
-        .email-group { width: 100%; display: flex; gap: 10px; }
-        .email-group .btn-sec { flex: 1; }
-        
-        /* 🚀 手機版相框優化：寬度設為 100%，但限制最大寬度為 340px (適配小手機) */
-        .hero-visual { width: 100%; }
-        .photo-frame { 
-            aspect-ratio: 1/1; 
-            width: 100%; 
-            max-width: 340px; 
-            margin: 0 auto 10px auto; /* 置中並保留下方間距 */
-        }
+        .cta-group { justify-content: center; }
+        .photo-frame { aspect-ratio: 1/1; max-width: 350px; margin-bottom: 20px; }
+        .footer-content { flex-direction: column; }
+        .search-wrapper { margin: 0 auto 30px auto; }
     }
 </style>
 </head>
 <body>
 
-    <!-- 導覽列 -->
     <nav>
         <a href="index.html" class="logo-link">
-            <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO Logo" class="logo-img" onerror="this.src='https://placehold.co/120x40?text=KINYO'">
+            <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO" class="logo-img">
         </a>
-        <a href="system.html" class="nav-btn">
-            <span style="font-size:16px;">🔐</span> 經銷登入
-        </a>
+        <a href="system.html" class="nav-btn">經銷夥伴登入</a>
     </nav>
 
-    <!-- 主視覺區 -->
+    <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
-            <span class="hero-tag">B2B 企業專屬服務</span>
-            <h1>KINYO 企業禮贈品<br>原廠報價採購中心</h1>
-            <p>專為公司行號、福委會、團購主打造的數位化採購平台。提供原廠直營的價格優勢、即時透明的庫存查詢，以及專人專案的快速出貨服務。</p>
+            <span class="hero-label">B2B 企業專屬服務</span>
+            <h1>KINYO 企業禮贈品採購中心<br>
+                <span class="highlight">2000+ SKU</span>・<span class="highlight">大小量客製</span>・原廠直營
+            </h1>
+            
+            <p>專為公司行號、福委會、團購主打造的數位化採購平台。提供規模不設限的專業服務，從年度尾牙到單件客製皆可滿足。</p>
+
+            <!-- 🔍 新增：產品搜尋框 -->
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="publicSearchInput" class="search-input" placeholder="搜尋 2000+ 樣商品 (如: 風扇, 藍牙喇叭)...">
+                <button class="search-btn-submit" onclick="performPublicSearch()">搜尋</button>
+            </div>
             
             <div class="cta-group">
-                <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-main" target="_blank">
-                    LINE 線上諮詢
-                </a>
-                <div class="email-group" style="display: flex; gap: 10px; align-items: center;">
-                    <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-sec" title="sam.kuo@kinyo.tw">Email 詢價</a>
+                <div class="line-btn-wrapper">
+                    <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-line" target="_blank">
+                        LINE 線上諮詢
+                    </a>
+                    <div class="line-hint">🚀 急單/客製化需求 專人線上秒回</div>
+                </div>
+
+                <div class="email-group" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
+                    <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-email" title="sam.kuo@kinyo.tw">Email 詢價</a>
                     <button onclick="copyEmail()" class="btn-copy" title="複製信箱">📋</button>
                 </div>
             </div>
-
-            <div style="margin-top: 24px; display: flex; align-items: center; gap: 8px; color: #dc2626; font-size: 13px; font-weight: 500; background: #fef2f2; padding: 8px 16px; border-radius: 4px; width: fit-content; display: inline-flex;">
-                <span style="font-size: 16px;">⚡</span>
-                急單請直接加 LINE，Email 回覆約需 1 個工作天
-            </div>
         </div>
 
-        <!-- 產品輪播 (正方形 + 滑動特效) -->
         <div class="hero-visual">
-            <div class="photo-frame" id="carousel-frame">
-                <!-- JS 自動載入 -->
-            </div>
+            <div class="photo-frame" id="carousel-frame"></div>
         </div>
     </section>
 
-    <section class="features-section">
-        <div class="features-container">
-            <div class="card">
-                <span class="icon">💎</span>
-                <h3>全台最低價保證</h3>
-                <p>去除中間商差價，透過數位系統直接計算原廠結構價格，提供最具競爭力的批量採購優惠。</p>
-            </div>
-            <div class="card">
-                <span class="icon">📦</span>
-                <h3>庫存即時透明</h3>
-                <p>獨家開發雙倉數據同步系統，即時查詢成品倉與專賣倉庫存，解決「下單才發現缺貨」的採購痛點。</p>
-            </div>
-            <div class="card">
-                <span class="icon">🚀</span>
-                <h3>急單快速出貨</h3>
-                <p>專人專案對接，現貨商品 24 小時內安排出貨，全力支援您的活動贈品與緊急採購需求。</p>
-            </div>
+    <!-- 🔍 搜尋結果展示區 (預設隱藏) -->
+    <section id="search-results-section">
+        <div class="results-header">
+            <div class="results-title">搜尋結果 <span id="result-count" style="font-size:16px; color:#666; font-weight:400;"></span></div>
+            <div class="close-results" onclick="closeSearchResults()">關閉搜尋</div>
+        </div>
+        <div id="results-grid" class="results-grid">
+            <!-- JS 會在這裡產生卡片 -->
+        </div>
+        <div id="loading-text" style="text-align:center; color:#999; display:none;">正在搜尋資料庫...</div>
+    </section>
+
+    <!-- 採購流程 -->
+    <section class="process-section">
+        <div class="section-title">簡單 4 步，完成採購</div>
+        <div class="section-desc">優化繁瑣流程，讓企業採購變得簡單高效</div>
+        <div class="process-grid">
+            <div class="process-item"><div class="p-icon">1</div><h4>線上諮詢</h4><p>透過 LINE 或系統挑選心儀商品</p></div>
+            <div class="process-item"><div class="p-icon">2</div><h4>專屬報價</h4><p>依數量提供最具競爭力的批發價</p></div>
+            <div class="process-item"><div class="p-icon">3</div><h4>確認下單</h4><p>確認庫存與交期，安排備貨</p></div>
+            <div class="process-item"><div class="p-icon">4</div><h4>快速出貨</h4><p>現貨 24H 內出貨，安心有保障</p></div>
+        </div>
+    </section>
+
+    <!-- 熱門分類 -->
+    <section class="cat-section">
+        <div class="section-title">熱門採購品項</div>
+        <div class="cat-grid">
+            <a href="system.html" class="cat-card"><span class="cat-icon">🎧</span><span class="cat-title">數位科技</span><span class="cat-desc">耳機、喇叭、行動電源</span></a>
+            <a href="system.html" class="cat-card"><span class="cat-icon">🏠</span><span class="cat-title">生活家電</span><span class="cat-desc">風扇、廚房家電、清淨機</span></a>
+            <a href="system.html" class="cat-card"><span class="cat-icon">🖱️</span><span class="cat-title">辦公周邊</span><span class="cat-desc">滑鼠、鍵盤、計算機</span></a>
+            <a href="system.html" class="cat-card"><span class="cat-icon">🎁</span><span class="cat-title">季節禮品</span><span class="cat-desc">股東會贈品、尾牙禮品</span></a>
+        </div>
+    </section>
+
+    <!-- 信任訊號 -->
+    <section class="trust-section">
+        <div class="trust-text">TRUSTED BY INDUSTRY LEADERS</div>
+        <div class="trust-logos">
+            <span style="font-size:20px; font-weight:700; color:#ccc;">TechCorp</span>
+            <span style="font-size:20px; font-weight:700; color:#ccc;">GlobalBank</span>
+            <span style="font-size:20px; font-weight:700; color:#ccc;">FutureSoft</span>
+            <span style="font-size:20px; font-weight:700; color:#ccc;">GreenEnergy</span>
         </div>
     </section>
 
     <footer>
-        <div style="margin-bottom: 10px; font-weight: 600; color: #333;">KINYO 企業採購中心</div>
-        © 2025 KINYO Price System. Designed by 郭庭豪 (0976-966-333)
+        <div class="footer-content">
+            <div class="footer-col">
+                <h4>KINYO 企業採購中心</h4>
+                <p>台灣老字號品牌，品質安心有保障。<br>提供最完整的售後服務與保固。</p>
+            </div>
+            <div class="footer-col">
+                <h4>聯絡資訊</h4>
+                <p>聯絡人：KINYO-郭庭豪</p>
+                <p>電話：0933-296-380</p>
+                <p>信箱：sam.kuo@kinyo.tw</p>
+            </div>
+        </div>
+        <div class="copyright">&copy; 2025 KINYO Enterprise Gifting. All Rights Reserved.</div>
     </footer>
 
+<!-- Firebase & Search Script -->
+<script type="module">
+    // 1. 引入 Firebase (請將 system.html 裡的設定複製到下方)
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import { getFirestore, collection, getDocs, query, where, limit } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+
+    // ⚠️⚠️⚠️ 請在此處填入您的 Firebase 設定 (從 system.html 複製) ⚠️⚠️⚠️
+    const firebaseConfig = {
+        apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+        authDomain: "kinyo-price.firebaseapp.com",
+        projectId: "kinyo-price",
+        storageBucket: "kinyo-price.firebasestorage.app",
+        messagingSenderId: "122464645678",
+        appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf",
+        measurementId: "G-R0PWMZNSJH"
+    };
+
+    // 初始化 Firebase
+    let db;
+    try {
+        const app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+    } catch(e) {
+        console.error("Firebase 初始化失敗 (可能是設定檔未填):", e);
+    }
+
+    // 2. 公開搜尋邏輯 (Public Search)
+    let allProductsCache = []; // 簡單快取
+
+    window.performPublicSearch = async function() {
+        const keyword = document.getElementById('publicSearchInput').value.trim().toLowerCase();
+        if (!keyword) { alert("請輸入關鍵字"); return; }
+        
+        const resultsSection = document.getElementById('search-results-section');
+        const grid = document.getElementById('results-grid');
+        const countSpan = document.getElementById('result-count');
+        const loading = document.getElementById('loading-text');
+
+        // 顯示搜尋區塊
+        resultsSection.style.display = 'block';
+        // 滾動到搜尋結果
+        resultsSection.scrollIntoView({ behavior: 'smooth' });
+        
+        grid.innerHTML = '';
+        loading.style.display = 'block';
+        countSpan.textContent = '';
+
+        try {
+            // 如果還沒載入過資料，先去 Firebase 抓一次 (為了省錢，只抓一次)
+            if (allProductsCache.length === 0) {
+                const q = query(collection(db, "Products")); // 抓取所有產品 (注意資料量)
+                const querySnapshot = await getDocs(q);
+                
+                querySnapshot.forEach((doc) => {
+                    const d = doc.data();
+                    // ⚠️ 安全過濾：只存我們需要的公開欄位
+                    if (d.status !== 'inactive') {
+                        allProductsCache.push({
+                            name: d.name || "",
+                            model: d.model || "",
+                            mainModel: d.mainModel || "",
+                            imageUrl: d.imageUrl || "",
+                            marketPrice: d.marketPrice || "洽詢"
+                        });
+                    }
+                });
+            }
+
+            // 本地過濾關鍵字
+            const results = allProductsCache.filter(p => 
+                p.name.toLowerCase().includes(keyword) || 
+                p.model.toLowerCase().includes(keyword) ||
+                p.mainModel.toLowerCase().includes(keyword)
+            );
+
+            loading.style.display = 'none';
+            countSpan.textContent = `(共 ${results.length} 筆)`;
+
+            if (results.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#999; padding:20px;">找不到相關商品，請嘗試其他關鍵字，或直接加 LINE 詢問。</div>';
+                return;
+            }
+
+            // 限制顯示筆數 (避免當機)
+            const displayLimit = 20; 
+            results.slice(0, displayLimit).forEach(item => {
+                // 圖片容錯
+                let imgDisplay = item.imageUrl;
+                if (!imgDisplay || !imgDisplay.startsWith('http')) {
+                    imgDisplay = 'https://placehold.co/300x300?text=No+Image';
+                } else {
+                    // 使用 Weserv 加速
+                    imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(item.imageUrl)}&w=300&output=jpg`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'product-card';
+                card.innerHTML = `
+                    <div class="pc-img-box">
+                        <img src="${imgDisplay}" class="pc-img" loading="lazy">
+                    </div>
+                    <div class="pc-info">
+                        <div class="pc-model">${item.model}</div>
+                        <div class="pc-name">${item.name}</div>
+                        <div class="pc-price-row">
+                            <span style="font-size:12px; color:#999;">市價</span>
+                            <span style="font-size:16px; font-weight:700; color:#333;">$${item.marketPrice}</span>
+                        </div>
+                        <a href="system.html" class="pc-login-btn">🔒 登入查看批發價</a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            if (results.length > displayLimit) {
+                const moreDiv = document.createElement('div');
+                moreDiv.style.gridColumn = "1/-1";
+                moreDiv.style.textAlign = "center";
+                moreDiv.style.padding = "10px";
+                moreDiv.style.color = "#666";
+                moreDiv.innerHTML = `還有 ${results.length - displayLimit} 筆結果，請<a href="system.html" style="color:#0055aa; font-weight:bold;">登入系統</a>查看完整清單`;
+                grid.appendChild(moreDiv);
+            }
+
+        } catch (e) {
+            console.error("搜尋錯誤:", e);
+            loading.style.display = 'none';
+            grid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">連線錯誤，請稍後再試。</div>';
+        }
+    };
+
+    window.closeSearchResults = function() {
+        document.getElementById('search-results-section').style.display = 'none';
+    };
+</script>
+
+<!-- 其他 UI 腳本 (複製 Email + 輪播) -->
 <script>
     function copyEmail() {
         const email = "sam.kuo@kinyo.tw";
         navigator.clipboard.writeText(email).then(() => {
             alert("✅ 信箱已複製：\n" + email);
         }).catch(err => {
-            console.error('複製失敗:', err);
             prompt("請手動複製信箱：", email);
         });
     }
 
     document.addEventListener("DOMContentLoaded", function() {
         const frame = document.getElementById('carousel-frame');
-        
-        // 精選正方形圖片 (1000x1000)
         const bestProductIds = [
-            "1cifWvIc1TMxwnFH4H6BA1UiQ3Ln94eGr",
-            "1eDWz8pB-tmPplsqHQraUJAOv8VrF3scO",
-            "1GF8kznfWpz0SmFwSWSxA6MzM_4QsQSiM",
-            "1qRrowvs9zHbIHj53clriLIo4-KjIgQ4Z",
-            "1dBu2aAXX2n7WDuLHgx3fJvIK2zohG-7q",
-            "11-OdFMgRx5Dwj3PWxLvZAGrAsI6h8pzs",
-            "1h002x1weKbF4O7E-__rNx3jTAdjJYmiE",
-            "1xWm8ekfeqtJUlERgzHfKcNHhk2WK7seD",
-            "1qbgAitS3MrxWuNk4h82fF_kguXuYR2AC",
-            "1at8c8q0zV6j1qimq47loibNljiRjiHwS",
+            "1cifWvIc1TMxwnFH4H6BA1UiQ3Ln94eGr", "1eDWz8pB-tmPplsqHQraUJAOv8VrF3scO",
+            "1GF8kznfWpz0SmFwSWSxA6MzM_4QsQSiM", "1qRrowvs9zHbIHj53clriLIo4-KjIgQ4Z",
+            "1dBu2aAXX2n7WDuLHgx3fJvIK2zohG-7q", "11-OdFMgRx5Dwj3PWxLvZAGrAsI6h8pzs",
+            "1h002x1weKbF4O7E-__rNx3jTAdjJYmiE", "1xWm8ekfeqtJUlERgzHfKcNHhk2WK7seD",
+            "1qbgAitS3MrxWuNk4h82fF_kguXuYR2AC", "1at8c8q0zV6j1qimq47loibNljiRjiHwS",
             "1TPDBefHw9Z3DhZzefm-iFQ5vSdbmcRx-"
         ];
 
@@ -367,57 +470,38 @@
             return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${id}&w=1000&q=85&output=jpg`;
         }
 
-        // 🚀 修改版輪播邏輯：支援滑動 (Slide)
         function renderCarousel(ids) {
             frame.innerHTML = ''; 
             const validIds = ids.filter(Boolean);
-
             if (validIds.length === 0) {
                 frame.innerHTML = '<img src="https://placehold.co/800x800?text=KINYO" class="slide-img active">';
                 return;
             }
-            
-            // 建立圖片
             validIds.forEach((id, index) => {
                 const img = document.createElement('img');
                 img.src = getDirectUrl(id);
                 img.className = 'slide-img';
-                
-                // 第一張直接顯示 (active)
                 if(index === 0) img.classList.add('active'); 
                 frame.appendChild(img);
             });
-
-            // 啟動輪播
             let currentIndex = 0;
             const slides = frame.querySelectorAll('.slide-img');
-            
             if(slides.length > 1) {
                 setInterval(() => {
                     const currentSlide = slides[currentIndex];
-                    // 計算下一張的索引
                     const nextIndex = (currentIndex + 1) % slides.length;
                     const nextSlide = slides[nextIndex];
-
-                    // 1. 準備下一張 (瞬間移到右邊，不帶動畫)
-                    // 只有當它剛從左邊出去 (exit) 時才需要這一步，但為了保險起見，統一重置
                     nextSlide.classList.add('reset');
                     nextSlide.classList.remove('active', 'exit');
-                    void nextSlide.offsetWidth; // Force Reflow (讓瀏覽器吃到 reset)
-                    nextSlide.classList.remove('reset'); // 移除 reset，準備開始動畫
-
-                    // 2. 執行滑動
+                    void nextSlide.offsetWidth; 
+                    nextSlide.classList.remove('reset'); 
                     currentSlide.classList.remove('active');
-                    currentSlide.classList.add('exit'); // 當前張滑去左邊
-
-                    nextSlide.classList.add('active'); // 下一張滑進中間
-
-                    // 更新索引
+                    currentSlide.classList.add('exit'); 
+                    nextSlide.classList.add('active'); 
                     currentIndex = nextIndex;
-                }, 3000); // 3秒換一次
+                }, 3000); 
             }
         }
-
         renderCarousel(bestProductIds);
     });
 </script>
