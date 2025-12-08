@@ -68,34 +68,36 @@
 
     .hero p { font-size: 16px; color: var(--text-gray); margin-bottom: 25px; font-weight: 400; text-align: justify; }
 
-    /* --- 🔍 搜尋框樣式 (對稱平衡版 V9.9) --- */
+    /* --- 🔍 搜尋框樣式 (V10.0 寬度對齊版) --- */
     .search-wrapper {
         position: relative; margin-bottom: 30px; 
-        max-width: 360px; 
+        /* 🚀 修改：改為 100% 寬度 (但在 hero-content 限制下約為 580px)，與上方文字切齊 */
+        max-width: 100%; 
     }
     .search-input {
-        width: 100%; padding: 12px 16px; padding-left: 50px; padding-right: 110px; /* 右邊預留按鈕空間 */
+        width: 100%; padding: 12px 16px; padding-left: 50px; padding-right: 90px; 
         border: 2px solid white; border-radius: 50px;
         font-size: 15px; outline: none;
         box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         transition: all 0.3s;
-        height: 54px; /* 固定高度以確保對齊 */
+        height: 54px; /* 固定高度 */
+        box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
     }
     .search-input:focus {
         border-color: var(--accent); box-shadow: 0 10px 30px rgba(0, 85, 170, 0.2);
     }
-    /* 左側放大鏡：垂直置中 */
+    /* 左側放大鏡 */
     .search-icon {
         position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
         font-size: 20px; color: #999;
     }
-    /* 右側搜尋按鈕：絕對垂直置中，與左側對稱 */
+    /* 右側搜尋按鈕 (保持內嵌膠囊感) */
     .search-btn-submit {
         position: absolute; 
         right: 5px;              /* 右側留一點呼吸空間 */
         top: 50%;                /* 垂直定位點 */
         transform: translateY(-50%); /* 修正回正中央 */
-        height: 44px;            /* 固定高度，比輸入框小一點，形成內嵌感 */
+        height: 44px;            /* 固定高度 */
         background: var(--accent); color: white; border: none;
         border-radius: 50px; padding: 0 28px; font-weight: 600; cursor: pointer;
         transition: 0.2s;
@@ -104,7 +106,7 @@
     }
     .search-btn-submit:hover { 
         background: var(--accent-dark); 
-        transform: translateY(-50%) scale(1.05); /* Hover 時微放大，保持置中 */
+        transform: translateY(-50%) scale(1.05); 
     }
 
     /* 按鈕群組 */
