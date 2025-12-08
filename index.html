@@ -59,18 +59,19 @@
     .highlight { color: var(--accent); font-weight: 800; }
     
     .professional-text {
-        display: block; /* 強制換行 */
-        color: #334155; /* 專業深鐵灰 */
+        display: block; 
+        color: #334155; 
         font-weight: 900;
-        margin-top: 8px; /* 與上一行的間距 */
-        font-size: 1.1em; /* 稍微放大一點點 */
+        margin-top: 8px; 
+        font-size: 1.1em; 
     }
 
     .hero p { font-size: 16px; color: var(--text-gray); margin-bottom: 25px; font-weight: 400; text-align: justify; }
 
-    /* --- 🔍 搜尋框樣式 --- */
+    /* --- 🔍 搜尋框樣式 (V10.2) --- */
     .search-wrapper {
         position: relative; margin-bottom: 30px; 
+        /* 寬度設定：填滿容器，但受限於 hero-content */
         max-width: 100%; 
     }
     .search-input {
@@ -91,9 +92,9 @@
     }
     .search-btn-submit {
         position: absolute; 
-        right: 5px; 
+        right: 5px; /* 靠右對齊 */
         top: 50%; 
-        transform: translateY(-50%); 
+        transform: translateY(-50%); /* 垂直置中 */
         height: 44px; 
         background: var(--accent); color: white; border: none;
         border-radius: 50px; padding: 0 28px; font-weight: 600; cursor: pointer;
@@ -141,10 +142,9 @@
     .slide-img.exit { transform: translateX(-100%); }
     .slide-img.reset { transition: none !important; transform: translateX(100%); }
 
-    /* --- 🔍 搜尋結果區塊 (動態顯示) --- */
+    /* --- 🔍 搜尋結果區塊 --- */
     #search-results-section {
-        display: none; /* 預設隱藏 */
-        padding: 60px 6%; background: white; border-bottom: 1px solid #eee;
+        display: none; padding: 60px 6%; background: white; border-bottom: 1px solid #eee;
     }
     .results-header {
         display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
@@ -179,12 +179,34 @@
     }
     .pc-login-btn:hover { background: var(--accent); color: white; }
 
-    /* 其他區塊 */
+    /* --- 採購流程 (V10.3 間距優化) --- */
     .process-section { padding: 80px 6%; background: white; }
+    .section-title { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
+    
+    /* 🚀 修改：增加 margin-bottom，讓文字跟下方數字拉開距離 */
+    .section-desc { 
+        text-align: center; 
+        color: var(--text-gray); 
+        margin-bottom: 80px; /* 從 50px 增加到 80px */
+        font-size: 15px; 
+        line-height: 1.8;    /* 增加行高，閱讀更舒適 */
+    }
+    
     .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; text-align: center; }
     .process-item { position: relative; }
-    .p-icon { width: 70px; height: 70px; background: #f0f7ff; color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 20px; font-weight: bold; }
     
+    /* 🚀 修改：增加 margin-bottom，讓數字球跟下方標題拉開距離 */
+    .p-icon { 
+        width: 70px; height: 70px; background: #f0f7ff; color: var(--accent); 
+        border-radius: 50%; display: flex; align-items: center; justify-content: center; 
+        font-size: 28px; font-weight: bold;
+        margin: 0 auto 30px; /* 從 20px 增加到 30px */
+    }
+    
+    .process-item h4 { margin: 0 0 10px; font-size: 18px; }
+    .process-item p { font-size: 14px; color: #777; line-height: 1.6; }
+
+    /* 其他區塊 */
     .cat-section { padding: 80px 6%; background: var(--bg-light); }
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
     .cat-card { background: white; border-radius: 8px; padding: 30px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; text-decoration: none; display: block; border: 1px solid transparent; }
@@ -214,16 +236,7 @@
         .hero h1 { font-size: 32px; }
         .hero-content { max-width: 100%; }
         .cta-group { justify-content: center; }
-        
-        /* 🚀 手機版輪播顯示修復 */
-        .hero-visual { width: 100%; } /* 強制撐開容器寬度 */
-        .photo-frame { 
-            aspect-ratio: 1/1; 
-            width: 100%;        /* 寬度填滿 */
-            max-width: 350px;   /* 限制最大寬 */
-            margin: 0 auto 20px auto; /* 置中並保持下方間距 */
-        }
-        
+        .photo-frame { aspect-ratio: 1/1; max-width: 350px; margin-bottom: 20px; }
         .footer-content { flex-direction: column; }
         .search-wrapper { margin: 0 auto 30px auto; }
     }
@@ -252,7 +265,6 @@
             <!-- 🔍 新增：產品搜尋框 -->
             <div class="search-wrapper">
                 <span class="search-icon">🔍</span>
-                <!-- V9.6 加入 onkeydown 支援 Enter 搜尋 -->
                 <input type="text" id="publicSearchInput" class="search-input" 
                        placeholder="搜尋 2000+ 樣商品... 電暖器、電熱毯、型號...等" 
                        onkeydown="if(event.key === 'Enter') performPublicSearch()">
