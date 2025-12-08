@@ -51,19 +51,31 @@
         font-size: 13px; font-weight: 700; padding: 4px 12px; 
         border-radius: 50px; margin-bottom: 20px; letter-spacing: 1.5px;
     }
+    
+    /* V9.6 標題優化 */
     .hero h1 {
         font-size: 42px; line-height: 1.35; margin: 0 0 20px 0; color: #111;
         font-weight: 700; letter-spacing: -0.5px;
     }
     .highlight { color: var(--accent); font-weight: 800; }
+    
+    /* 新增：專業色標題樣式 */
+    .professional-text {
+        display: block; /* 強制換行 */
+        color: #334155; /* 專業深鐵灰 */
+        font-weight: 900;
+        margin-top: 8px; /* 與上一行的間距 */
+        font-size: 1.1em; /* 稍微放大一點點 */
+    }
+
     .hero p { font-size: 16px; color: var(--text-gray); margin-bottom: 25px; font-weight: 400; text-align: justify; }
 
-    /* --- 🔍 搜尋框樣式 (新功能) --- */
+    /* --- 🔍 搜尋框樣式 (優化版) --- */
     .search-wrapper {
         position: relative; margin-bottom: 30px; max-width: 500px;
     }
     .search-input {
-        width: 100%; padding: 16px 20px; padding-left: 50px;
+        width: 100%; padding: 16px 20px; padding-left: 50px; padding-right: 100px; /* 右邊預留按鈕空間 */
         border: 2px solid white; border-radius: 50px;
         font-size: 16px; outline: none;
         box-shadow: 0 10px 25px rgba(0,0,0,0.1);
@@ -213,7 +225,8 @@
         <div class="hero-content">
             <span class="hero-label">B2B 企業專屬服務</span>
             <h1>KINYO 企業禮贈品採購中心<br>
-                <span class="highlight">2000+ SKU</span>・<span class="highlight">大小量客製</span>・原廠直營
+                <span class="highlight">2000+ SKU</span>・<span class="highlight">大小量客製</span><br>
+                <span class="professional-text">原廠直營</span>
             </h1>
             
             <p>專為公司行號、福委會、團購主打造的數位化採購平台。提供規模不設限的專業服務，從年度尾牙到單件客製皆可滿足。</p>
@@ -221,7 +234,10 @@
             <!-- 🔍 新增：產品搜尋框 -->
             <div class="search-wrapper">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="publicSearchInput" class="search-input" placeholder="搜尋 2000+ 樣商品 (如: 風扇, 藍牙喇叭)...">
+                <!-- V9.6 加入 onkeydown 支援 Enter 搜尋 -->
+                <input type="text" id="publicSearchInput" class="search-input" 
+                       placeholder="搜尋 2000+ 樣商品 (如: 風扇, 藍牙喇叭)..." 
+                       onkeydown="if(event.key === 'Enter') performPublicSearch()">
                 <button class="search-btn-submit" onclick="performPublicSearch()">搜尋</button>
             </div>
             
