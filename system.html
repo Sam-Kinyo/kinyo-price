@@ -2582,7 +2582,7 @@ exportBtn.onclick = exportSelectedExcel;
 logoutBtn.onclick = () => {
     if(confirm("確定要登出嗎？")) {
         signOut(auth).then(() => {
-            window.location.reload();
+            window.location.href = "index.html"; // ✅ 改成這一行 (跳轉回首頁)
         }).catch((error) => {
             console.error("登出錯誤:", error);
             alert("登出發生錯誤，請重新整理網頁");
