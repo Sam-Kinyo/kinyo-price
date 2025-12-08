@@ -68,10 +68,9 @@
 
     .hero p { font-size: 16px; color: var(--text-gray); margin-bottom: 25px; font-weight: 400; text-align: justify; }
 
-    /* --- 🔍 搜尋框樣式 (V10.0 寬度對齊版) --- */
+    /* --- 🔍 搜尋框樣式 --- */
     .search-wrapper {
         position: relative; margin-bottom: 30px; 
-        /* 🚀 修改：改為 100% 寬度 (但在 hero-content 限制下約為 580px)，與上方文字切齊 */
         max-width: 100%; 
     }
     .search-input {
@@ -80,24 +79,22 @@
         font-size: 15px; outline: none;
         box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         transition: all 0.3s;
-        height: 54px; /* 固定高度 */
-        box-sizing: border-box; /* 確保 padding 不會撐爆寬度 */
+        height: 54px; 
+        box-sizing: border-box; 
     }
     .search-input:focus {
         border-color: var(--accent); box-shadow: 0 10px 30px rgba(0, 85, 170, 0.2);
     }
-    /* 左側放大鏡 */
     .search-icon {
         position: absolute; left: 18px; top: 50%; transform: translateY(-50%);
         font-size: 20px; color: #999;
     }
-    /* 右側搜尋按鈕 (保持內嵌膠囊感) */
     .search-btn-submit {
         position: absolute; 
-        right: 5px;              /* 右側留一點呼吸空間 */
-        top: 50%;                /* 垂直定位點 */
-        transform: translateY(-50%); /* 修正回正中央 */
-        height: 44px;            /* 固定高度 */
+        right: 5px; 
+        top: 50%; 
+        transform: translateY(-50%); 
+        height: 44px; 
         background: var(--accent); color: white; border: none;
         border-radius: 50px; padding: 0 28px; font-weight: 600; cursor: pointer;
         transition: 0.2s;
@@ -160,7 +157,6 @@
         display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
         gap: 20px;
     }
-    /* 產品卡片樣式 */
     .product-card {
         border: 1px solid #eee; border-radius: 8px; overflow: hidden;
         transition: 0.2s; background: white;
@@ -218,7 +214,16 @@
         .hero h1 { font-size: 32px; }
         .hero-content { max-width: 100%; }
         .cta-group { justify-content: center; }
-        .photo-frame { aspect-ratio: 1/1; max-width: 350px; margin-bottom: 20px; }
+        
+        /* 🚀 手機版輪播顯示修復 */
+        .hero-visual { width: 100%; } /* 強制撐開容器寬度 */
+        .photo-frame { 
+            aspect-ratio: 1/1; 
+            width: 100%;        /* 寬度填滿 */
+            max-width: 350px;   /* 限制最大寬 */
+            margin: 0 auto 20px auto; /* 置中並保持下方間距 */
+        }
+        
         .footer-content { flex-direction: column; }
         .search-wrapper { margin: 0 auto 30px auto; }
     }
