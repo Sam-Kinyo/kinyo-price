@@ -139,20 +139,19 @@
     .mini-count { font-size: 12px; color: #666; }
     .mini-count b { color: #d32f2f; }
 
-    /* --- 🆕 雙欄區塊 (Carousel + Budget) V11.5 --- */
+    /* --- 🆕 雙欄區塊 --- */
     .dual-section {
         padding: 80px 6%; background: white; border-bottom: 1px solid #eee;
     }
     .dual-container {
         max-width: 1200px; margin: 0 auto;
-        display: flex; gap: 40px; align-items: stretch; /* 等高 */
+        display: flex; gap: 40px; align-items: stretch;
     }
     .dual-col {
         flex: 1; width: 100%; border-radius: 16px; padding: 40px;
         display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
     }
     
-    /* 左欄：相框樣式 */
     .col-carousel {
         background: #ffffff; border: 1px solid #eee; 
         box-shadow: 0 4px 20px rgba(0,0,0,0.05);
@@ -171,13 +170,12 @@
     .slide-img.exit { transform: translateX(-100%); }
     .slide-img.reset { transition: none !important; transform: translateX(100%); }
 
-    /* 右欄：預算計算機樣式 */
     .col-budget {
         background: #eef7ff; border: 1px solid #dcebf7;
         box-shadow: 0 4px 20px rgba(0,85,170,0.08);
     }
     .budget-form {
-        width: 100%; max-width: 400px; /* 限制內寬 */
+        width: 100%; max-width: 400px;
         display: flex; flex-direction: column; gap: 20px;
     }
     .input-group { text-align: left; width: 100%; }
@@ -200,7 +198,7 @@
     .section-title { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
     .section-desc { text-align: center; color: var(--text-gray); margin-bottom: 30px; font-size: 15px; }
 
-    /* --- 🔍 搜尋與計算結果展示區 --- */
+    /* --- 🔍 搜尋結果區塊 --- */
     #search-results-section {
         display: none; padding: 60px 6%; background: white; border-bottom: 1px solid #eee;
     }
@@ -268,7 +266,7 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 900px) {
-        .hero { flex-direction: column-reverse; padding: 40px 5%; text-align: center; gap: 30px; }
+        .hero { flex-direction: column; padding: 40px 5%; text-align: center; gap: 30px; }
         .hero-content { max-width: 100%; order: 1; }
         .hero-right-col { order: 2; width: 100%; max-width: 100%; }
         .hero h1 { font-size: 32px; }
@@ -279,6 +277,8 @@
         
         .footer-content { flex-direction: column; }
         .search-wrapper { margin: 0 auto 30px auto; }
+        .budget-inputs { flex-direction: column; align-items: stretch; }
+        .btn-calc { width: 100%; }
     }
 </style>
 </head>
@@ -291,7 +291,7 @@
         <a href="system.html" class="nav-btn">經銷夥伴登入</a>
     </nav>
 
-    <!-- Hero Section: 左側文字 + 右側熱門榜 -->
+    <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
             <span class="hero-label">B2B 企業專屬服務</span>
@@ -476,7 +476,7 @@
         }
     }
 
-    // --- 🔥 載入熱門榜 (Hero Right) ---
+    // --- 🔥 載入熱門榜 (使用 ProductClicks 點擊紀錄) ---
     async function loadHotProducts() {
         const hotGrid = document.getElementById('hot-grid');
         try {
@@ -486,17 +486,16 @@
                  return;
             }
 
-            const q = query(collection(db, "QuoteHistory"), orderBy("createdAt", "desc"), limit(50));
+            // ⚠️ 關鍵修正：改為讀取 ProductClicks (公開數據)，而非 QuoteHistory
+            const q = query(collection(db, "ProductClicks"), orderBy("clickedAt", "desc"), limit(50));
             const snapshot = await getDocs(q);
             
             let scoreMap = {};
             snapshot.forEach(doc => {
                 const data = doc.data();
-                if(data.items && Array.isArray(data.items)) {
-                    data.items.forEach(item => {
-                        const m = item.model;
-                        scoreMap[m] = (scoreMap[m] || 0) + 1;
-                    });
+                if(data.model) {
+                    const m = data.model;
+                    scoreMap[m] = (scoreMap[m] || 0) + 1;
                 }
             });
 
@@ -505,8 +504,16 @@
 
             hotGrid.innerHTML = '';
             if(hotProducts.length === 0) {
+                 // Fallback 隨機填充
                  for(let i=0; i<4; i++) {
-                    if(allProductsCache[i]) hotProducts.push(allProductsCache[i]);
+                    const randomIdx = Math.floor(Math.random() * allProductsCache.length);
+                    if(allProductsCache[randomIdx]) hotProducts.push(allProductsCache[randomIdx]);
+                 }
+            }
+            if(hotProducts.length < 4 && allProductsCache.length > 0) {
+                 for(let i=hotProducts.length; i<4; i++) {
+                    const randomIdx = Math.floor(Math.random() * allProductsCache.length);
+                    hotProducts.push(allProductsCache[randomIdx]);
                  }
             }
 
@@ -522,15 +529,18 @@
                 const card = document.createElement('div');
                 card.className = 'mini-card';
                 card.onclick = function() {
+                     logProductClick(item); // 記錄點擊
                      navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
                         window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
+                        alert('已複製產品名稱！請在 LINE 對話框貼上即可詢問。');
                     });
                 };
                 
-                const countHtml = count > 0 ? `<div class="mini-count">本週詢價 <b>${count}</b> 次</div>` : `<div class="mini-count" style="color:#aaa;">熱門推薦</div>`;
+                const countHtml = count > 0 ? `<div class="mini-count">本週詢價 <b>${count}</b> 次</div>` : `<div class="mini-count" style="color:#aaa;">店長強力推薦</div>`;
+                const rankHtml = count > 0 ? `<div class="mini-rank">TOP ${index+1}</div>` : `<div class="mini-rank" style="background:#0055aa;">精選</div>`;
 
                 card.innerHTML = `
-                    <div class="mini-rank">TOP ${index+1}</div>
+                    ${rankHtml}
                     <img src="${imgDisplay}" loading="lazy">
                     <div class="mini-name">${item.name}</div>
                     ${countHtml}
@@ -539,8 +549,26 @@
             });
 
         } catch(e) {
-            console.warn("熱門榜載入失敗:", e);
-            hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#999;">熱門數據載入中...</div>';
+            console.warn("熱門榜讀取失敗:", e);
+            if(allProductsCache.length > 0) {
+                 hotGrid.innerHTML = '';
+                 for(let i=0; i<4; i++) {
+                    const item = allProductsCache[Math.floor(Math.random() * allProductsCache.length)];
+                    let imgDisplay = item.imageUrl && item.imageUrl.startsWith('http') ? 
+                        `https://images.weserv.nl/?url=${encodeURIComponent(item.imageUrl)}&w=300&output=jpg` : 
+                        'https://placehold.co/300x300?text=No+Image';
+                    const card = document.createElement('div');
+                    card.className = 'mini-card';
+                    card.innerHTML = `
+                        <div class="mini-rank" style="background:#0055aa;">精選</div>
+                        <img src="${imgDisplay}" loading="lazy">
+                        <div class="mini-name">${item.name}</div>
+                    `;
+                    hotGrid.appendChild(card);
+                 }
+            } else {
+                 hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#999;">精選商品載入中...</div>';
+            }
         }
     }
 
