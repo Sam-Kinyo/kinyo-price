@@ -44,9 +44,10 @@
         display: flex; align-items: flex-start;
         justify-content: space-between;
         padding: 80px 6%; background: linear-gradient(105deg, #f3f6f9 0%, #eef2f6 100%);
-        min-height: 600px; gap: 50px; position: relative;
+        min-height: 600px; gap: 40px; position: relative;
     }
-    .hero-content { flex: 1; max-width: 550px; animation: fadeIn 1s ease; z-index: 2; padding-top: 20px; }
+    /* 左側縮小一點點，讓右側寬一點 */
+    .hero-content { flex: 0.8; max-width: 500px; animation: fadeIn 1s ease; z-index: 2; padding-top: 20px; }
     
     .hero-label {
         display: inline-block; background: #e3effd; color: var(--accent);
@@ -105,39 +106,43 @@
     }
     .btn-copy:hover { background: #e0e0e0; color: #333; }
 
-    /* --- 🔥 Hero 右側熱門榜 --- */
+    /* --- 🔥 Hero 右側熱門榜 (改版：3欄x2列) --- */
     .hero-right-col {
-        flex: 1; max-width: 500px;
+        flex: 1.2; /* 加寬右側佔比，容納3欄 */
+        max-width: 700px;
         display: flex; flex-direction: column; gap: 20px;
     }
     .hero-hot-title {
         font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px;
-        margin-bottom: 10px;
+        margin-bottom: 5px;
     }
     .hero-hot-grid {
-        display: grid; grid-template-columns: 1fr 1fr; /* 2欄 */
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); /* 🚀 關鍵修改：強制 3 欄 */
         gap: 15px;
     }
+    /* 熱門榜小卡片 */
     .mini-card {
-        background: white; border-radius: 12px; padding: 15px;
+        background: white; border-radius: 12px; padding: 12px; /* Padding 縮小一點 */
         box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.02);
         transition: 0.2s; cursor: pointer; text-align: left;
     }
     .mini-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-color: var(--accent); }
     .mini-card img {
-        width: 100%; aspect-ratio: 1/1; object-fit: contain; margin-bottom: 10px;
+        width: 100%; aspect-ratio: 1/1; object-fit: contain; margin-bottom: 8px;
         background: #f9f9f9; border-radius: 8px;
     }
     .mini-rank {
-        font-size: 11px; font-weight: 700; color: white; background: #ef4444; 
-        padding: 2px 8px; border-radius: 4px; display: inline-block; margin-bottom: 6px;
+        font-size: 10px; font-weight: 700; color: white; background: #ef4444; 
+        padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px;
     }
     .mini-name {
-        font-size: 14px; font-weight: 600; color: #333; margin-bottom: 6px;
+        font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px;
         white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .mini-count { font-size: 12px; color: #666; }
+    .mini-count { font-size: 11px; color: #666; }
     .mini-count b { color: #d32f2f; }
+
 
     /* --- 🆕 雙欄區塊 --- */
     .dual-section {
@@ -279,6 +284,9 @@
         .search-wrapper { margin: 0 auto 30px auto; }
         .budget-inputs { flex-direction: column; align-items: stretch; }
         .btn-calc { width: 100%; }
+        
+        /* 手機版網格調整 */
+        .hero-hot-grid { grid-template-columns: 1fr 1fr; } /* 手機版維持2欄，避免太擠 */
     }
 </style>
 </head>
@@ -326,7 +334,7 @@
             </div>
         </div>
 
-        <!-- 右側：🔥 本週熱門詢價榜 -->
+        <!-- 右側：🔥 本週熱門詢價榜 (3x2) -->
         <div class="hero-right-col">
             <div class="hero-hot-title">
                 <span style="font-size:24px;">🔥</span> 本週企業採購詢價熱門榜
@@ -499,19 +507,14 @@
                 }
             });
 
-            const sortedModels = Object.keys(scoreMap).sort((a,b) => scoreMap[b] - scoreMap[a]).slice(0, 4);
+            // 🚀 修改：取 Top 6
+            const sortedModels = Object.keys(scoreMap).sort((a,b) => scoreMap[b] - scoreMap[a]).slice(0, 6);
             const hotProducts = sortedModels.map(m => allProductsCache.find(p => p.model === m)).filter(Boolean);
 
             hotGrid.innerHTML = '';
-            if(hotProducts.length === 0) {
-                 // Fallback 隨機填充
-                 for(let i=0; i<4; i++) {
-                    const randomIdx = Math.floor(Math.random() * allProductsCache.length);
-                    if(allProductsCache[randomIdx]) hotProducts.push(allProductsCache[randomIdx]);
-                 }
-            }
-            if(hotProducts.length < 4 && allProductsCache.length > 0) {
-                 for(let i=hotProducts.length; i<4; i++) {
+            // 🚀 修改：如果不足 6 個，用隨機補滿
+            if(hotProducts.length < 6 && allProductsCache.length > 0) {
+                 for(let i=hotProducts.length; i<6; i++) {
                     const randomIdx = Math.floor(Math.random() * allProductsCache.length);
                     hotProducts.push(allProductsCache[randomIdx]);
                  }
@@ -552,13 +555,19 @@
             console.warn("熱門榜讀取失敗:", e);
             if(allProductsCache.length > 0) {
                  hotGrid.innerHTML = '';
-                 for(let i=0; i<4; i++) {
+                 // 🚀 Fallback 也改為 6 個
+                 for(let i=0; i<6; i++) {
                     const item = allProductsCache[Math.floor(Math.random() * allProductsCache.length)];
                     let imgDisplay = item.imageUrl && item.imageUrl.startsWith('http') ? 
                         `https://images.weserv.nl/?url=${encodeURIComponent(item.imageUrl)}&w=300&output=jpg` : 
                         'https://placehold.co/300x300?text=No+Image';
                     const card = document.createElement('div');
                     card.className = 'mini-card';
+                    card.onclick = function() {
+                        navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
+                            window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
+                        });
+                    };
                     card.innerHTML = `
                         <div class="mini-rank" style="background:#0055aa;">精選</div>
                         <img src="${imgDisplay}" loading="lazy">
