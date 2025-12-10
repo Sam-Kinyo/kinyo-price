@@ -16,6 +16,7 @@
         --text-gray: #555555;
         --border: #eeeeee;
         --shadow: 0 4px 20px rgba(0,0,0,0.08);
+        --container-width: 1440px; /* 🚀 升級：全站最大寬度變數 */
     }
     
     body { 
@@ -45,8 +46,11 @@
         justify-content: space-between;
         padding: 80px 6%; background: linear-gradient(105deg, #f3f6f9 0%, #eef2f6 100%);
         min-height: 600px; gap: 50px; position: relative;
+        /* 🚀 升級：使用更寬的容器限制 */
+        max-width: var(--container-width); margin: 0 auto; 
     }
-    .hero-content { flex: 0.8; max-width: 500px; animation: fadeIn 1s ease; z-index: 2; padding-top: 20px; }
+    /* 🚀 升級：放寬內容最大寬度，避免在大螢幕顯得太窄 */
+    .hero-content { flex: 0.8; max-width: 600px; animation: fadeIn 1s ease; z-index: 2; padding-top: 20px; }
     
     .hero-label {
         display: inline-block; background: #e3effd; color: var(--accent);
@@ -106,8 +110,9 @@
     .btn-copy:hover { background: #e0e0e0; color: #333; }
 
     /* --- 🔥 Hero 右側熱門榜 --- */
+    /* 🚀 升級：放寬右側欄位，讓 3 欄排列更舒適 */
     .hero-right-col {
-        flex: 1.2; max-width: 700px;
+        flex: 1.2; max-width: 800px;
         display: flex; flex-direction: column; gap: 20px;
     }
     .hero-hot-title {
@@ -145,7 +150,7 @@
         padding: 80px 6%; background: white; border-bottom: 1px solid #eee;
     }
     .dual-container {
-        max-width: 1200px; margin: 0 auto;
+        max-width: var(--container-width); margin: 0 auto;
         display: flex; gap: 40px; align-items: stretch;
     }
     .dual-col {
@@ -236,20 +241,23 @@
 
     /* 其他區塊 */
     .process-section { padding: 80px 6%; background: white; }
-    .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; max-width: 1200px; margin: 0 auto; text-align: center; }
+    /* 🚀 升級：流程圖區域加寬 */
+    .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; max-width: var(--container-width); margin: 0 auto; text-align: center; }
     .process-item { position: relative; }
     .p-icon { width: 70px; height: 70px; background: #f0f7ff; color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 30px; font-weight: bold; }
     .process-item h4 { margin: 0 0 10px; font-size: 18px; }
     .process-item p { font-size: 14px; color: #777; line-height: 1.6; }
     
     .cat-section { padding: 80px 6%; background: var(--bg-light); }
-    .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
+    /* 🚀 升級：分類區域加寬 */
+    .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: var(--container-width); margin: 0 auto; }
     .cat-card { background: white; border-radius: 8px; padding: 30px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; text-decoration: none; display: block; border: 1px solid transparent; }
     .cat-card:hover { transform: translateY(-5px); border-color: var(--accent); }
     .cat-icon { font-size: 40px; margin-bottom: 15px; display: block; }
     
     .features-section { background: white; padding: 80px 5%; border-top: 1px solid #eee; }
-    .features-container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
+    /* 🚀 升級：優勢區域加寬 */
+    .features-container { max-width: var(--container-width); margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
     .card { background: white; padding: 40px 30px; border-radius: 8px; border: 1px solid #f1f1f1; transition: 0.3s; }
     .card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: #eee; }
     .icon { font-size: 28px; margin-bottom: 20px; display: inline-block; background: #eff6ff; width: 60px; height: 60px; line-height: 60px; text-align: center; border-radius: 50%; color: var(--accent); }
@@ -259,7 +267,8 @@
     .trust-text { font-size: 14px; color: #999; letter-spacing: 1px; font-weight: 500; text-transform: uppercase; }
 
     footer { background: #1a1a1a; color: #888; padding: 60px 6%; font-size: 13px; }
-    .footer-content { max-width: 1200px; margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; }
+    /* 🚀 升級：頁尾加寬 */
+    .footer-content { max-width: var(--container-width); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; }
     .footer-col h4 { color: white; margin-bottom: 20px; font-size: 16px; }
     .footer-col p { margin-bottom: 10px; }
     .copyright { text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #333; }
@@ -306,7 +315,7 @@
             
             <p>專為公司行號、福委會、團購主打造的數位化採購平台。提供規模不設限的專業服務，從年度尾牙到單件客製皆可滿足。</p>
 
-            <!-- 搜尋框 -->
+            <!-- 🔍 產品搜尋框 -->
             <div class="search-wrapper">
                 <span class="search-icon">🔍</span>
                 <input type="text" id="publicSearchInput" class="search-input" 
@@ -330,7 +339,7 @@
             </div>
         </div>
 
-        <!-- 右側：🔥 本週熱門詢價榜 (3x2) -->
+        <!-- 右側：🔥 本週熱門詢價榜 -->
         <div class="hero-right-col">
             <div class="hero-hot-title">
                 <span style="font-size:24px;">🔥</span> 本週企業採購詢價熱門榜
@@ -480,7 +489,7 @@
         }
     }
 
-    // --- 🔥 載入熱門榜 (改用 QuoteHistory + 300筆 Limit) ---
+    // --- 🔥 載入熱門榜 (從 QuoteHistory 統計) ---
     async function loadHotProducts() {
         const hotGrid = document.getElementById('hot-grid');
         try {
@@ -490,13 +499,14 @@
                  return;
             }
 
-            // 🚀 修改：取最近 300 筆，樣本數更大，榜單更準
+            // ⚠️ 關鍵修正：讀取 QuoteHistory (業務報價)
             const q = query(collection(db, "QuoteHistory"), orderBy("createdAt", "desc"), limit(300));
             const snapshot = await getDocs(q);
             
             let scoreMap = {};
             snapshot.forEach(doc => {
                 const data = doc.data();
+                // 邏輯升級：深入 items 陣列統計
                 if(data.items && Array.isArray(data.items)) {
                     data.items.forEach(item => {
                         const m = item.model;
@@ -505,12 +515,12 @@
                 }
             });
 
-            // 🚀 修改：取 Top 6
+            // 排序並取 Top 6
             const sortedModels = Object.keys(scoreMap).sort((a,b) => scoreMap[b] - scoreMap[a]).slice(0, 6);
             const hotProducts = sortedModels.map(m => allProductsCache.find(p => p.model === m)).filter(Boolean);
 
             hotGrid.innerHTML = '';
-            // 🚀 修改：如果不足 6 個，用隨機補滿
+            // 不足 6 個則隨機補
             if(hotProducts.length < 6 && allProductsCache.length > 0) {
                  for(let i=hotProducts.length; i<6; i++) {
                     const randomIdx = Math.floor(Math.random() * allProductsCache.length);
