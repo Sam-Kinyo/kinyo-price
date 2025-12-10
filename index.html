@@ -445,7 +445,7 @@
 <!-- Firebase & Search Script -->
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
-    import { getFirestore, collection, getDocs, query, where, limit, orderBy, addDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+    import { getFirestore, collection, getDocs, query, where, limit, orderBy, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -489,95 +489,89 @@
         }
     }
 
-  // --- 🔥 手動熱門榜 (V7.4 省錢控盤版) ---
-    async function loadHotProducts() {
-        const hotGrid = document.getElementById('hot-grid');
-        
-        // 1. 先確保產品總表有載入 (這樣才抓得到對應的圖片跟品名)
-        await ensureDataLoaded(); 
+// --- 🔥 雲端連線版熱門榜 (配合你的 System.html) ---
+async function loadHotProducts() {
+    const hotGrid = document.getElementById('hot-grid');
+    
+    // 1. 確保基礎資料載入
+    await ensureDataLoaded(); 
 
-        // 👇👇👇【請每隔幾天在這裡更新您的熱門名單】👇👇👇
-        // 格式：{ model: '型號', count: 顯示的詢價次數 }
-        const manualHotData = [
-            { model: 'KIA-25',   count: 128 }, // 第一名
-            { model: 'KHD-9660', count: 95 },  // 第二名
-            { model: 'KCR-195',  count: 86 },  // 第三名
-            { model: 'AY-012',   count: 72 },  // 第四名
-            { model: 'BTS-735',  count: 65 },  // 第五名
-            { model: 'PO-330',   count: 48 }   // 第六名
-        ];
-        // 👆👆👆【更新區結束】👆👆👆
+    // 2. 🟢 從 Firebase 雲端讀取 (對應你的 System 設定)
+    let displayData = [];
+    try {
+        // 這裡對應你在 system.html 寫入的路徑：SiteConfig -> homeHotList
+        const docRef = doc(db, "SiteConfig", "homeHotList"); 
+        const docSnap = await getDoc(docRef);
 
-        hotGrid.innerHTML = '';
-
-        // 2. 開始渲染列表
-        manualHotData.forEach((hotItem, index) => {
-            // 從總表中找到詳細資料 (為了拿圖片和品名)
-            // 這裡做個防呆：比對型號時不分大小寫
-            const productDetail = allProductsCache.find(p => 
-                p.model.toLowerCase() === hotItem.model.toLowerCase() || 
-                p.mainModel.toLowerCase() === hotItem.model.toLowerCase()
-            );
-
-            // 如果找不到該型號 (可能打錯字)，就跳過
-            if (!productDetail) {
-                console.warn(`找不到型號：${hotItem.model}，請檢查輸入是否正確`);
-                return;
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.items && Array.isArray(data.items)) {
+                displayData = data.items;
+                console.log("✅ 成功從雲端讀取熱門榜:", displayData);
             }
-
-            // 圖片處理 (維持原本的 CDN 加速邏輯)
-            let imgDisplay = productDetail.imageUrl;
-            if (!imgDisplay || !imgDisplay.startsWith('http')) {
-                imgDisplay = 'https://placehold.co/300x300?text=No+Image';
-            } else {
-                imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(productDetail.imageUrl)}&w=300&output=jpg`;
-            }
-
-            const card = document.createElement('div');
-            card.className = 'mini-card';
-            // 點擊後複製並跳轉 LINE
-            card.onclick = function() {
-                  navigator.clipboard.writeText(`詢問：${productDetail.name} (${productDetail.model})`).then(() => {
-                     window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
-                  });
-            };
-            
-            // 排名樣式 (前三名紅色，後面藍色)
-            let rankClass = "background:#0055aa;";
-            if(index === 0) rankClass = "background:#ef4444; box-shadow: 0 2px 4px rgba(239,68,68,0.4);"; // 冠軍紅
-            if(index === 1) rankClass = "background:#f97316;"; // 亞軍橘
-            if(index === 2) rankClass = "background:#eab308;"; // 季軍黃
-
-            const rankHtml = `<div class="mini-rank" style="${rankClass}">TOP ${index+1}</div>`;
-            const countHtml = `<div class="mini-count">本週詢價 <b>${hotItem.count}</b> 次</div>`;
-
-            card.innerHTML = `
-                ${rankHtml}
-                <img src="${imgDisplay}" loading="lazy" alt="${productDetail.name}">
-                <div class="mini-name">${productDetail.name}</div>
-                ${countHtml}
-            `;
-            hotGrid.appendChild(card);
-        });
-
-        // 如果手動名單少於 6 個，剩下的要顯示什麼？(目前設定為留白，保持畫面乾淨)
-        if (manualHotData.length === 0) {
-             hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">本週熱門榜更新中...</div>';
         }
+    } catch (e) {
+        console.error("讀取熱門榜失敗:", e);
     }
 
-    async function logProductClick(product) {
-        try {
-            const analyticsRef = collection(db, "ProductClicks");
-            addDoc(analyticsRef, {
-                model: product.model,
-                name: product.name,
-                price: product.marketPrice,
-                clickedAt: new Date(),
-                source: 'homepage_search'
-            });
-        } catch (e) { console.warn("Analytics write failed:", e); }
+    // 3. 如果雲端沒資料，顯示預設 (Fallback)
+    if (displayData.length === 0) {
+        displayData = [
+            { model: 'KIA-25',   count: 128 }, 
+            { model: 'KHD-9660', count: 95 },  
+            { model: 'KCR-195',  count: 86 },
+            { model: 'AY-012',   count: 72 }
+        ];
     }
+
+    // 4. 開始渲染 (這部分與之前相同)
+    hotGrid.innerHTML = '';
+    displayData.forEach((hotItem, index) => {
+        const productDetail = allProductsCache.find(p => 
+            p.model.toLowerCase() === hotItem.model.toLowerCase() || 
+            p.mainModel.toLowerCase() === hotItem.model.toLowerCase()
+        );
+
+        if (!productDetail) return;
+
+        // 圖片處理
+        let imgDisplay = productDetail.imageUrl;
+        if (!imgDisplay || !imgDisplay.startsWith('http')) {
+            imgDisplay = 'https://placehold.co/300x300?text=No+Image';
+        } else {
+            imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(productDetail.imageUrl)}&w=300&output=jpg`;
+        }
+
+        const card = document.createElement('div');
+        card.className = 'mini-card';
+        card.onclick = function() {
+              navigator.clipboard.writeText(`詢問：${productDetail.name} (${productDetail.model})`).then(() => {
+                 window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
+              });
+        };
+        
+        // 排名顏色
+        let rankClass = "background:#0055aa;";
+        if(index === 0) rankClass = "background:#ef4444; box-shadow: 0 2px 4px rgba(239,68,68,0.4);";
+        if(index === 1) rankClass = "background:#f97316;";
+        if(index === 2) rankClass = "background:#eab308;";
+
+        const rankHtml = `<div class="mini-rank" style="${rankClass}">TOP ${index+1}</div>`;
+        const countHtml = `<div class="mini-count">本週詢價 <b>${hotItem.count || 99}</b> 次</div>`;
+
+        card.innerHTML = `
+            ${rankHtml}
+            <img src="${imgDisplay}" loading="lazy" alt="${productDetail.name}">
+            <div class="mini-name">${productDetail.name}</div>
+            ${countHtml}
+        `;
+        hotGrid.appendChild(card);
+    });
+
+    if (displayData.length === 0) {
+         hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">熱門榜更新中...</div>';
+    }
+}
 
     function displayProducts(products, titleOverride) {
         const resultsSection = document.getElementById('search-results-section');
