@@ -489,101 +489,121 @@
         }
     }
 
-    // --- 🔥 載入熱門榜 (從 QuoteHistory 統計) ---
+   // --- 🔥 載入熱門榜 (從 QuoteHistory 統計) - [已優化：6小時快取版] ---
     async function loadHotProducts() {
         const hotGrid = document.getElementById('hot-grid');
+        
+        // 1. 確保產品基本資料已載入 (這是渲染圖片與名稱的基礎)
+        await ensureDataLoaded(); 
+
+        if (allProductsCache.length === 0) {
+             hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">暫無熱門數據</div>';
+             return;
+        }
+
+        const CACHE_KEY = "KINYO_HOT_STATS_V1"; // 快取鍵名
+        const CACHE_TIME = 6 * 60 * 60 * 1000;    // 6 小時 (毫秒)
+        
+        let scoreMap = null;
+
+        // 2. 嘗試讀取快取 (localStorage)
         try {
-            await ensureDataLoaded();
-            if (allProductsCache.length === 0) {
-                 hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">暫無熱門數據</div>';
-                 return;
-            }
-
-            // ⚠️ 關鍵修正：讀取 QuoteHistory (業務報價)
-            const q = query(collection(db, "QuoteHistory"), orderBy("createdAt", "desc"), limit(300));
-            const snapshot = await getDocs(q);
-            
-            let scoreMap = {};
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                // 邏輯升級：深入 items 陣列統計
-                if(data.items && Array.isArray(data.items)) {
-                    data.items.forEach(item => {
-                        const m = item.model;
-                        scoreMap[m] = (scoreMap[m] || 0) + 1;
-                    });
+            const raw = localStorage.getItem(CACHE_KEY);
+            if (raw) {
+                const cache = JSON.parse(raw);
+                const age = Date.now() - cache.timestamp;
+                // 檢查是否過期
+                if (age < CACHE_TIME) {
+                    console.log(`🔥 命中熱門榜快取！(資料齡: ${Math.round(age/1000/60)} 分鐘) - 未消耗 Firebase 額度`);
+                    scoreMap = cache.data;
                 }
-            });
-
-            // 排序並取 Top 6
-            const sortedModels = Object.keys(scoreMap).sort((a,b) => scoreMap[b] - scoreMap[a]).slice(0, 6);
-            const hotProducts = sortedModels.map(m => allProductsCache.find(p => p.model === m)).filter(Boolean);
-
-            hotGrid.innerHTML = '';
-            // 不足 6 個則隨機補
-            if(hotProducts.length < 6 && allProductsCache.length > 0) {
-                 for(let i=hotProducts.length; i<6; i++) {
-                    const randomIdx = Math.floor(Math.random() * allProductsCache.length);
-                    hotProducts.push(allProductsCache[randomIdx]);
-                 }
             }
+        } catch(e) { console.warn("快取讀取失敗", e); }
 
-            hotProducts.forEach((item, index) => {
-                const count = scoreMap[item.model] || 0;
-                let imgDisplay = item.imageUrl;
-                if (!imgDisplay || !imgDisplay.startsWith('http')) {
-                    imgDisplay = 'https://placehold.co/300x300?text=No+Image';
-                } else {
-                    imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(item.imageUrl)}&w=300&output=jpg`;
-                }
-
-                const card = document.createElement('div');
-                card.className = 'mini-card';
-                card.onclick = function() {
-                     navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
-                        window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
-                    });
-                };
+        // 3. 如果沒有快取 (或過期)，才去 Firebase 抓
+        if (!scoreMap) {
+            console.log("☁️ 快取失效或不存在，正在從 Firebase 下載最新熱門數據...");
+            try {
+                // ⚠️ 只有這裡會消耗 Firebase 讀取次數 (300 次)
+                const q = query(collection(db, "QuoteHistory"), orderBy("createdAt", "desc"), limit(300));
+                const snapshot = await getDocs(q);
                 
-                const countHtml = count > 0 ? `<div class="mini-count">本週詢價 <b>${count}</b> 次</div>` : `<div class="mini-count" style="color:#aaa;">熱門推薦</div>`;
-                const rankHtml = count > 0 ? `<div class="mini-rank">TOP ${index+1}</div>` : `<div class="mini-rank" style="background:#0055aa;">精選</div>`;
-
-                card.innerHTML = `
-                    ${rankHtml}
-                    <img src="${imgDisplay}" loading="lazy">
-                    <div class="mini-name">${item.name}</div>
-                    ${countHtml}
-                `;
-                hotGrid.appendChild(card);
-            });
-
-        } catch(e) {
-            console.warn("熱門榜讀取失敗:", e);
-            if(allProductsCache.length > 0) {
-                 hotGrid.innerHTML = '';
-                 for(let i=0; i<6; i++) {
-                    const item = allProductsCache[Math.floor(Math.random() * allProductsCache.length)];
-                    let imgDisplay = item.imageUrl && item.imageUrl.startsWith('http') ? 
-                        `https://images.weserv.nl/?url=${encodeURIComponent(item.imageUrl)}&w=300&output=jpg` : 
-                        'https://placehold.co/300x300?text=No+Image';
-                    const card = document.createElement('div');
-                    card.className = 'mini-card';
-                    card.onclick = function() {
-                        navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
-                            window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
+                scoreMap = {};
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    if(data.items && Array.isArray(data.items)) {
+                        data.items.forEach(item => {
+                            const m = item.model;
+                            scoreMap[m] = (scoreMap[m] || 0) + 1;
                         });
-                    };
-                    card.innerHTML = `
-                        <div class="mini-rank" style="background:#0055aa;">精選</div>
-                        <img src="${imgDisplay}" loading="lazy">
-                        <div class="mini-name">${item.name}</div>
-                    `;
-                    hotGrid.appendChild(card);
-                 }
-            } else {
-                 hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#999;">精選商品載入中...</div>';
+                    }
+                });
+
+                // ⬇️ 抓完馬上寫入快取，並標記現在時間
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: Date.now(),
+                    data: scoreMap
+                }));
+
+            } catch(e) {
+                console.warn("熱門榜讀取失敗:", e);
+                scoreMap = {}; // 失敗時給空物件，讓下方走隨機補補邏輯
             }
         }
+
+        // 4. 渲染邏輯 (與原本相同，只是資料來源變成 scoreMap)
+        // 排序並取 Top 6
+        const sortedModels = Object.keys(scoreMap).sort((a,b) => scoreMap[b] - scoreMap[a]).slice(0, 6);
+        const hotProducts = sortedModels.map(m => allProductsCache.find(p => p.model === m)).filter(Boolean);
+
+        hotGrid.innerHTML = '';
+        
+        // 若不足 6 個則從產品庫隨機補滿
+        if(hotProducts.length < 6 && allProductsCache.length > 0) {
+             // 建立 Set 避免補到重複的
+             const existModels = new Set(hotProducts.map(p=>p.model));
+             let attempts = 0;
+             // 最多嘗試 50 次避免死迴圈
+             while(hotProducts.length < 6 && attempts < 50) {
+                const item = allProductsCache[Math.floor(Math.random() * allProductsCache.length)];
+                if(!existModels.has(item.model)) {
+                    hotProducts.push(item);
+                    existModels.add(item.model);
+                }
+                attempts++;
+             }
+        }
+
+        hotProducts.forEach((item, index) => {
+            const count = scoreMap[item.model] || 0;
+            let imgDisplay = item.imageUrl;
+            
+            // 圖片處理邏輯
+            if (!imgDisplay || !imgDisplay.startsWith('http')) {
+                imgDisplay = 'https://placehold.co/300x300?text=No+Image';
+            } else {
+                imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(item.imageUrl)}&w=300&output=jpg`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'mini-card';
+            card.onclick = function() {
+                  navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
+                     window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
+                  });
+            };
+            
+            const countHtml = count > 0 ? `<div class="mini-count">本週詢價 <b>${count}</b> 次</div>` : `<div class="mini-count" style="color:#aaa;">熱門推薦</div>`;
+            const rankHtml = count > 0 ? `<div class="mini-rank">TOP ${index+1}</div>` : `<div class="mini-rank" style="background:#0055aa;">精選</div>`;
+
+            card.innerHTML = `
+                ${rankHtml}
+                <img src="${imgDisplay}" loading="lazy">
+                <div class="mini-name">${item.name}</div>
+                ${countHtml}
+            `;
+            hotGrid.appendChild(card);
+        });
     }
 
     async function logProductClick(product) {
