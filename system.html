@@ -1245,33 +1245,27 @@ async function exportQuoteHistory() {
     }
 }
    
-/* 🚀 新增：記錄打勾關注行為 (Checkbox Interest Log) */
+/* 🚀 修改版：記錄打勾關注行為 (寫入到公開數據池 ProductClicks) */
 async function logCheckboxInterest(item) {
     try {
         const timestamp = new Date();
-        const userEmail = currentUserEmail || "guest";
-        const userName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : userEmail;
-
-        // 1. 準備資料物件
-        // 注意：我們保持與 QuoteHistory 相同的 items 結構，這樣首頁熱門榜才能讀取
+        
+        // ⚠️ 關鍵差異：這裡我們「故意不存」User 和 Email
+        // 只記錄型號跟品名，這樣就算資料被公開讀取，也絕對安全
         const logData = {
-            action: "interest_check",   // 標記這是「打勾關注」而非「生成PPT」
-            source: "checkbox",
-            user: userName,
-            email: userEmail,
+            model: item.model,
+            name: item.name,
+            price: item.marketPrice || 0, // 存賣場價當參考 (非底價)
             createdAt: timestamp,
-            items: [{
-                model: item.model,
-                name: item.name
-                // 這裡只記型號跟品名就夠了，不用記價格
-            }]
+            source: "backend_check" // 標記來源是後台打勾
         };
 
-        // 2. 寫入 Firebase (QuoteHistory)
-        const historyRef = collection(db, "QuoteHistory");
-        // 不使用 await，背景執行即可
+        // ✅ 改寫入到 ProductClicks (這是我們設定為可公開讀取的集合)
+        const historyRef = collection(db, "ProductClicks");
+        
+        // 射後不理
         addDoc(historyRef, logData).then(() => {
-            // console.log("關注紀錄已儲存:", item.model); // 測試時可打開
+            // console.log("關注紀錄已儲存 (安全版):", item.model);
         });
 
     } catch (e) {
