@@ -1100,6 +1100,84 @@ function pickRandom(arr, count) {
   return _arr.slice(0, count);
 }
 
+/* 🚀 新增：報價行為記錄器 (Log Quote History) - V7.3 */
+async function logQuoteAction(items, sourceMode) {
+    try {
+        // 1. 準備基本資料
+        const timestamp = new Date();
+        const userEmail = currentUserEmail || "guest";
+        const userName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : userEmail; 
+        
+        let totalAmount = 0;
+        let productDetails = [];
+        
+        // 2. 判斷來源並計算金額
+        if (sourceMode === 'quote') {
+            // 來源 A: 從報價單生成 (資訊最完整)
+            items.forEach(i => {
+                const p = parseFloat(i.customQuoteInfo?.price || i.price || 0);
+                const q = parseInt(i.count || 1);
+                const subtotal = p * q;
+                totalAmount += subtotal;
+                
+                productDetails.push({
+                    model: i.model,
+                    name: i.name,
+                    price: p,
+                    qty: q,
+                    qtyLabel: i.customQuoteInfo?.qtyLabel || i.qtyLabel || "自訂",
+                    subtotal: subtotal
+                });
+            });
+        } else {
+            // 來源 B: 從列表勾選生成 (預設數量 1)
+            const currentTier = qtySelect.value || "50"; 
+            items.forEach(i => {
+                const priceKey = `quote${currentTier}`;
+                let finalPrice = i[priceKey] || i.quote50 || 0;
+                if(currentUserVipConfig) {
+                     finalPrice = i[currentUserVipConfig.column] || 0;
+                }
+                const p = parseFloat(finalPrice);
+                const q = 1;
+                const subtotal = p * q;
+                totalAmount += subtotal;
+
+                productDetails.push({
+                    model: i.model,
+                    name: i.name,
+                    price: p,
+                    qty: q,
+                    qtyLabel: `${currentTier}個(預設)`,
+                    subtotal: subtotal
+                });
+            });
+        }
+
+        // 3. 打包資料物件
+        const logData = {
+            action: "generate_ppt",
+            source: sourceMode,
+            user: userName,
+            email: userEmail,
+            createdAt: timestamp,
+            totalAmount: totalAmount,
+            itemCount: productDetails.length,
+            items: productDetails
+        };
+
+        // 4. 寫入 Firebase (QuoteHistory)
+        const historyRef = collection(db, "QuoteHistory");
+        // 不使用 await，讓它在背景跑，不卡住 PPT 生成
+        addDoc(historyRef, logData).then(() => {
+            console.log("✅ 報價紀錄已儲存 (總額: $" + totalAmount + ")");
+        });
+
+    } catch (e) {
+        console.warn("⚠️ 報價紀錄寫入失敗:", e);
+    }
+}
+   
 function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
@@ -2296,6 +2374,9 @@ async function exportSelectedPPT(source = 'checked') {
   }
 
   if (selectedItems.length === 0) { alert("找不到商品資料，無法生成 PPT。"); return; }
+
+   // 🚀 V7.3 新增：觸發背景記錄
+  logQuoteAction(selectedItems, source);
 
   const btn = source === 'quote' ? pptFromQuoteBtn : pptToolbarBtn;
   const originalText = btn.textContent;
