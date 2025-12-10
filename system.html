@@ -1245,7 +1245,41 @@ async function exportQuoteHistory() {
     }
 }
    
-function showLoading() {
+/* 🚀 新增：記錄打勾關注行為 (Checkbox Interest Log) */
+async function logCheckboxInterest(item) {
+    try {
+        const timestamp = new Date();
+        const userEmail = currentUserEmail || "guest";
+        const userName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : userEmail;
+
+        // 1. 準備資料物件
+        // 注意：我們保持與 QuoteHistory 相同的 items 結構，這樣首頁熱門榜才能讀取
+        const logData = {
+            action: "interest_check",   // 標記這是「打勾關注」而非「生成PPT」
+            source: "checkbox",
+            user: userName,
+            email: userEmail,
+            createdAt: timestamp,
+            items: [{
+                model: item.model,
+                name: item.name
+                // 這裡只記型號跟品名就夠了，不用記價格
+            }]
+        };
+
+        // 2. 寫入 Firebase (QuoteHistory)
+        const historyRef = collection(db, "QuoteHistory");
+        // 不使用 await，背景執行即可
+        addDoc(historyRef, logData).then(() => {
+            // console.log("關注紀錄已儲存:", item.model); // 測試時可打開
+        });
+
+    } catch (e) {
+        console.warn("關注紀錄寫入失敗:", e);
+    }
+}
+   
+   function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
   setTimeout(() => { centerLoadingBar.querySelector(".fill").style.width = "55%"; }, 120);
@@ -1882,7 +1916,10 @@ function renderResults(list) {
     // --- HTML ---
    // --- HTML (V7.2.2 緊湊版) ---
     tr.innerHTML = `
-      <td><input type="checkbox" class="row-check" data-model="${item.model}"></td>
+      <td>
+        <input type="checkbox" class="row-check" data-model="${item.model}" 
+               onchange="if(this.checked) { logCheckboxInterest({model: '${item.model}', name: '${item.name}'}); }">
+      </td>
       
       <td style="text-align:center; vertical-align: top;">
         <div class="model-cell" style="font-weight:700; font-size:14px; margin-bottom:6px; color:#334155; cursor:pointer;" onclick="event.stopPropagation();">${item.mainModel || "-"}</div>
