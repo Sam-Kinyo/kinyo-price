@@ -1180,6 +1180,70 @@ async function logQuoteAction(items, sourceMode) {
         console.warn("⚠️ 報價紀錄寫入失敗:", e);
     }
 }
+
+/* 🚀 新增：匯出報價歷史紀錄 (Export Big Data) - V7.3 */
+async function exportQuoteHistory() {
+    // 1. 安全確認
+    if (!confirm("確定要匯出所有報價紀錄嗎？這可能需要一點時間。")) return;
+    
+    const btn = document.getElementById("exportHistoryBtn");
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "正在下載雲端數據...";
+
+    try {
+        // 2. 抓取資料 (從 Firebase 的 QuoteHistory 集合)
+        // 注意：如果資料量過大，Firebase 可能會要求建立索引 (Index)，請留意 Console 訊息
+        const q = collection(db, "QuoteHistory"); 
+        const querySnapshot = await getDocs(q);
+        
+        let rows = [];
+        // 3. 設定 Excel 表頭 (Header)
+        rows.push(["日期", "時間", "業務/客戶", "操作來源", "整單總金額", "商品型號", "商品名稱", "數量", "報價單價", "小計"]);
+
+        // 4. 解析每一筆資料
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const dateObj = data.createdAt ? data.createdAt.toDate() : new Date();
+            const dateStr = dateObj.toLocaleDateString('zh-TW');
+            const timeStr = dateObj.toLocaleTimeString('zh-TW');
+
+            // 因為一筆紀錄包含多個商品，我們要把它「攤平」成多行
+            if (data.items && Array.isArray(data.items)) {
+                data.items.forEach(item => {
+                    rows.push([
+                        dateStr,
+                        timeStr,
+                        data.user || "Guest",
+                        data.source === 'quote' ? '報價單生成' : '列表直接生成',
+                        data.totalAmount || 0,
+                        item.model,
+                        item.name,
+                        item.qty,
+                        item.price,
+                        item.subtotal
+                    ]);
+                });
+            }
+        });
+
+        // 5. 生成並下載 Excel
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet(rows);
+        XLSX.utils.book_append_sheet(wb, ws, "報價大數據");
+        XLSX.writeFile(wb, `KINYO_報價大數據_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+        alert(`匯出成功！共下載 ${querySnapshot.size} 筆操作紀錄。`);
+
+    } catch (e) {
+        console.error("匯出失敗:", e);
+        alert("匯出失敗，請檢查 Console 錯誤訊息 (可能需要建立 Firebase 索引)");
+    } finally {
+        // 6. 恢復按鈕狀態
+        btn.disabled = false;
+        btn.textContent = originalText;
+    }
+}
    
 function showLoading() {
   centerLoadingBox.style.display = "flex";
@@ -1288,11 +1352,20 @@ function updateUserDisplay(status) {
 
 // 🚀 Updates UI permissions based on user level (已移除 A 級品邏輯)
 function updatePermissions() {
-    // 1. Level 4 Only: 只有 Level 4 可以看到「匯入產品總表」
+    // 1. Level 4 Only: 只有 Level 4 可以看到「匯入產品總表」與「匯出大數據」
     if (userLevel >= 4) {
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
+        
+        // 🌟 新增這一行：把大數據按鈕秀出來
+        const exportHistoryBtn = document.getElementById("exportHistoryBtn");
+        if(exportHistoryBtn) exportHistoryBtn.style.display = 'inline-block';
+
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
+        
+        // 🌟 新增這一行：其他人要隱藏
+        const exportHistoryBtn = document.getElementById("exportHistoryBtn");
+        if(exportHistoryBtn) exportHistoryBtn.style.display = 'none';
     }
 
     // 2. Level 2+ 或 VIP 都能使用庫存篩選
@@ -2698,6 +2771,12 @@ if(importProductBtn) {
         productUpload.value = ''; // Reset
         productUpload.click();
     }
+}
+
+   // 綁定大數據匯出按鈕 (Level 4 專用)
+const exportHistoryBtn = document.getElementById("exportHistoryBtn");
+if(exportHistoryBtn) {
+    exportHistoryBtn.onclick = exportQuoteHistory;
 }
 
 // Cancel Import
