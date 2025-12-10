@@ -39,9 +39,9 @@
     }
     .nav-btn:hover { background: var(--accent); }
 
-    /* --- Hero Section (改版：右側放熱門榜) --- */
+    /* --- Hero Section --- */
     .hero {
-        display: flex; align-items: flex-start; /* 改為靠上對齊，適應右側列表高度 */
+        display: flex; align-items: flex-start;
         justify-content: space-between;
         padding: 80px 6%; background: linear-gradient(105deg, #f3f6f9 0%, #eef2f6 100%);
         min-height: 600px; gap: 50px; position: relative;
@@ -105,7 +105,7 @@
     }
     .btn-copy:hover { background: #e0e0e0; color: #333; }
 
-    /* --- 🔥 Hero 右側熱門榜 (Hero Hot Grid) --- */
+    /* --- 🔥 Hero 右側熱門榜 --- */
     .hero-right-col {
         flex: 1; max-width: 500px;
         display: flex; flex-direction: column; gap: 20px;
@@ -118,7 +118,6 @@
         display: grid; grid-template-columns: 1fr 1fr; /* 2欄 */
         gap: 15px;
     }
-    /* 熱門榜小卡片 */
     .mini-card {
         background: white; border-radius: 12px; padding: 15px;
         box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.02);
@@ -140,22 +139,29 @@
     .mini-count { font-size: 12px; color: #666; }
     .mini-count b { color: #d32f2f; }
 
-
-    /* --- 🖼️ 產品輪播區 (移到下方獨立區塊) --- */
-    .carousel-section {
-        padding: 60px 6%; background: white; text-align: center; border-bottom: 1px solid #eee;
+    /* --- 🆕 雙欄區塊 (Carousel + Budget) V11.5 --- */
+    .dual-section {
+        padding: 80px 6%; background: white; border-bottom: 1px solid #eee;
     }
-    .carousel-container {
-        max-width: 1000px; margin: 0 auto;
-        display: flex; gap: 40px; align-items: center;
-        flex-direction: column; /* 垂直排列 */
+    .dual-container {
+        max-width: 1200px; margin: 0 auto;
+        display: flex; gap: 40px; align-items: stretch; /* 等高 */
+    }
+    .dual-col {
+        flex: 1; width: 100%; border-radius: 16px; padding: 40px;
+        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+    }
+    
+    /* 左欄：相框樣式 */
+    .col-carousel {
+        background: #ffffff; border: 1px solid #eee; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
     }
     .photo-frame {
-        width: 100%; max-width: 500px; aspect-ratio: 1/1;
-        background: #f0f0f0; border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        width: 100%; max-width: 400px; aspect-ratio: 1/1;
+        background: #f9f9f9; border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         position: relative; overflow: hidden; border: 4px solid #fff;
-        margin: 0 auto; /* 置中 */
     }
     .slide-img {
         position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
@@ -165,34 +171,34 @@
     .slide-img.exit { transform: translateX(-100%); }
     .slide-img.reset { transition: none !important; transform: translateX(100%); }
 
-
-    /* --- 💰 預算逆推神器 --- */
-    .budget-section {
-        padding: 60px 6%; background: #eef7ff; border-bottom: 1px solid #dcebf7; text-align: center;
+    /* 右欄：預算計算機樣式 */
+    .col-budget {
+        background: #eef7ff; border: 1px solid #dcebf7;
+        box-shadow: 0 4px 20px rgba(0,85,170,0.08);
     }
-    .budget-container {
-        max-width: 900px; margin: 0 auto;
-        background: white; padding: 40px; border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0,85,170,0.08);
+    .budget-form {
+        width: 100%; max-width: 400px; /* 限制內寬 */
+        display: flex; flex-direction: column; gap: 20px;
     }
-    .budget-inputs {
-        display: flex; gap: 20px; justify-content: center; align-items: flex-end; margin-top: 30px; flex-wrap: wrap;
-    }
-    .input-group { text-align: left; flex: 1; min-width: 200px; }
-    .input-group label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--primary); font-size: 14px; }
+    .input-group { text-align: left; width: 100%; }
+    .input-group label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--accent-dark); font-size: 14px; }
     .input-group input {
-        width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px;
-        transition: 0.2s; box-sizing: border-box;
+        width: 100%; padding: 14px; border: 1px solid #cce0f5; border-radius: 8px; font-size: 16px;
+        transition: 0.2s; box-sizing: border-box; background: white;
     }
-    .input-group input:focus { border-color: var(--accent); outline: none; }
+    .input-group input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(0,85,170,0.1); }
     
     .btn-calc {
         background: linear-gradient(135deg, #0055aa 0%, #003366 100%);
-        color: white; border: none; padding: 12px 32px; border-radius: 8px;
+        color: white; border: none; padding: 14px 32px; border-radius: 8px;
         font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s;
-        height: 50px; box-shadow: 0 5px 15px rgba(0,85,170,0.3);
+        width: 100%; margin-top: 10px;
+        box-shadow: 0 5px 15px rgba(0,85,170,0.3);
     }
     .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,85,170,0.4); }
+
+    .section-title { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+    .section-desc { text-align: center; color: var(--text-gray); margin-bottom: 30px; font-size: 15px; }
 
     /* --- 🔍 搜尋與計算結果展示區 --- */
     #search-results-section {
@@ -207,7 +213,6 @@
         display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
         gap: 20px;
     }
-    /* 產品卡片樣式 */
     .product-card {
         border: 1px solid #eee; border-radius: 8px; overflow: hidden;
         transition: 0.2s; background: white;
@@ -238,9 +243,6 @@
     .process-item h4 { margin: 0 0 10px; font-size: 18px; }
     .process-item p { font-size: 14px; color: #777; line-height: 1.6; }
     
-    .section-title { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 10px; color: var(--primary); }
-    .section-desc { text-align: center; color: var(--text-gray); margin-bottom: 80px; font-size: 15px; line-height: 1.8; }
-
     .cat-section { padding: 80px 6%; background: var(--bg-light); }
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: 1200px; margin: 0 auto; }
     .cat-card { background: white; border-radius: 8px; padding: 30px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; text-decoration: none; display: block; border: 1px solid transparent; }
@@ -266,19 +268,17 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 900px) {
-        .hero { flex-direction: column; padding: 40px 5%; text-align: center; gap: 30px; }
+        .hero { flex-direction: column-reverse; padding: 40px 5%; text-align: center; gap: 30px; }
         .hero-content { max-width: 100%; order: 1; }
         .hero-right-col { order: 2; width: 100%; max-width: 100%; }
         .hero h1 { font-size: 32px; }
         .cta-group { justify-content: center; }
         
-        .carousel-section { padding: 40px 5%; }
-        .photo-frame { aspect-ratio: 1/1; width: 100%; max-width: 350px; }
+        .dual-container { flex-direction: column; } /* 手機版並排變上下 */
+        .dual-col { padding: 30px 20px; }
         
         .footer-content { flex-direction: column; }
         .search-wrapper { margin: 0 auto 30px auto; }
-        .budget-inputs { flex-direction: column; align-items: stretch; }
-        .btn-calc { width: 100%; }
     }
 </style>
 </head>
@@ -293,7 +293,6 @@
 
     <!-- Hero Section: 左側文字 + 右側熱門榜 -->
     <section class="hero">
-        <!-- 左側：文字與搜尋 -->
         <div class="hero-content">
             <span class="hero-label">B2B 企業專屬服務</span>
             <h1>KINYO 企業禮贈品採購中心<br>
@@ -327,7 +326,7 @@
             </div>
         </div>
 
-        <!-- 右側：🔥 本週熱門詢價榜 (原本是輪播圖) -->
+        <!-- 右側：🔥 本週熱門詢價榜 -->
         <div class="hero-right-col">
             <div class="hero-hot-title">
                 <span style="font-size:24px;">🔥</span> 本週企業採購詢價熱門榜
@@ -340,12 +339,33 @@
         </div>
     </section>
 
-    <!-- 🌟 精選櫥窗 (原本的輪播圖移到這裡) -->
-    <section class="carousel-section">
-        <div class="section-title">精選商品櫥窗</div>
-        <div class="section-desc">KINYO 熱銷商品一覽，滿足多元採購需求</div>
-        <div class="carousel-container">
-            <div class="photo-frame" id="carousel-frame"></div>
+    <!-- 🆕 雙欄區塊：櫥窗 + 預算神器 -->
+    <section class="dual-section">
+        <div class="dual-container">
+            <!-- 左欄：精選櫥窗 -->
+            <div class="dual-col col-carousel">
+                <h3 class="section-title">精選商品櫥窗</h3>
+                <p class="section-desc" style="margin-bottom: 20px;">KINYO 熱銷商品一覽，滿足多元採購需求</p>
+                <div class="photo-frame" id="carousel-frame"></div>
+            </div>
+
+            <!-- 右欄：預算逆推神器 -->
+            <div class="dual-col col-budget">
+                <h3 class="section-title">預算逆推神器</h3>
+                <p class="section-desc" style="margin-bottom: 20px;">輸入採購條件，系統自動推薦黃金組合</p>
+                
+                <div class="budget-form">
+                    <div class="input-group">
+                        <label>💰 總採購預算 (元)</label>
+                        <input type="number" id="budgetTotal" placeholder="例如：50000">
+                    </div>
+                    <div class="input-group">
+                        <label>👥 預計數量 (個)</label>
+                        <input type="number" id="budgetQty" placeholder="例如：100">
+                    </div>
+                    <button class="btn-calc" onclick="calculateBudget()">開始幫我推薦 ✨</button>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -357,26 +377,6 @@
         </div>
         <div id="results-grid" class="results-grid"></div>
         <div id="loading-text" style="text-align:center; color:#999; display:none;">正在搜尋資料庫...</div>
-    </section>
-
-    <!-- 💰 預算逆推神器 -->
-    <section class="budget-section">
-        <div class="budget-container">
-            <h2 class="section-title" style="margin-bottom: 10px;">預算逆推神器</h2>
-            <p style="color:#666; margin-bottom: 20px;">輸入您的採購條件，系統將自動為您推薦最適合的商品組合</p>
-            
-            <div class="budget-inputs">
-                <div class="input-group">
-                    <label>💰 總採購預算 (元)</label>
-                    <input type="number" id="budgetTotal" placeholder="例如：50000">
-                </div>
-                <div class="input-group">
-                    <label>👥 預計數量 (個)</label>
-                    <input type="number" id="budgetQty" placeholder="例如：100">
-                </div>
-                <button class="btn-calc" onclick="calculateBudget()">開始幫我推薦 ✨</button>
-            </div>
-        </div>
     </section>
 
     <!-- 採購流程 -->
@@ -505,7 +505,6 @@
 
             hotGrid.innerHTML = '';
             if(hotProducts.length === 0) {
-                 // 沒數據時，隨機抓4個填充
                  for(let i=0; i<4; i++) {
                     if(allProductsCache[i]) hotProducts.push(allProductsCache[i]);
                  }
@@ -528,7 +527,6 @@
                     });
                 };
                 
-                // 詢價次數顯示邏輯：如果有真實數據就顯示，沒有就隱藏
                 const countHtml = count > 0 ? `<div class="mini-count">本週詢價 <b>${count}</b> 次</div>` : `<div class="mini-count" style="color:#aaa;">熱門推薦</div>`;
 
                 card.innerHTML = `
