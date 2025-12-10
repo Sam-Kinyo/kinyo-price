@@ -299,7 +299,7 @@
         <a href="system.html" class="nav-btn">經銷夥伴登入</a>
     </nav>
 
-    <!-- Hero Section -->
+    <!-- Hero Section: 左側文字 + 右側熱門榜 -->
     <section class="hero">
         <div class="hero-content">
             <span class="hero-label">B2B 企業專屬服務</span>
@@ -484,7 +484,7 @@
         }
     }
 
-    // --- 🔥 載入熱門榜 (使用 ProductClicks 點擊紀錄) ---
+    // --- 🔥 載入熱門榜 (從 QuoteHistory 統計) ---
     async function loadHotProducts() {
         const hotGrid = document.getElementById('hot-grid');
         try {
@@ -494,25 +494,28 @@
                  return;
             }
 
-            // ⚠️ 關鍵修正：改為讀取 ProductClicks (公開數據)，而非 QuoteHistory
-            const q = query(collection(db, "ProductClicks"), orderBy("clickedAt", "desc"), limit(50));
+            // ⚠️ 關鍵修正：讀取 QuoteHistory (業務報價)
+            const q = query(collection(db, "QuoteHistory"), orderBy("createdAt", "desc"), limit(50));
             const snapshot = await getDocs(q);
             
             let scoreMap = {};
             snapshot.forEach(doc => {
                 const data = doc.data();
-                if(data.model) {
-                    const m = data.model;
-                    scoreMap[m] = (scoreMap[m] || 0) + 1;
+                // 邏輯升級：深入 items 陣列統計
+                if(data.items && Array.isArray(data.items)) {
+                    data.items.forEach(item => {
+                        const m = item.model;
+                        scoreMap[m] = (scoreMap[m] || 0) + 1;
+                    });
                 }
             });
 
-            // 🚀 修改：取 Top 6
+            // 排序並取 Top 6
             const sortedModels = Object.keys(scoreMap).sort((a,b) => scoreMap[b] - scoreMap[a]).slice(0, 6);
             const hotProducts = sortedModels.map(m => allProductsCache.find(p => p.model === m)).filter(Boolean);
 
             hotGrid.innerHTML = '';
-            // 🚀 修改：如果不足 6 個，用隨機補滿
+            // 不足 6 個則隨機補
             if(hotProducts.length < 6 && allProductsCache.length > 0) {
                  for(let i=hotProducts.length; i<6; i++) {
                     const randomIdx = Math.floor(Math.random() * allProductsCache.length);
@@ -532,14 +535,12 @@
                 const card = document.createElement('div');
                 card.className = 'mini-card';
                 card.onclick = function() {
-                     logProductClick(item); // 記錄點擊
                      navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
                         window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
-                        alert('已複製產品名稱！請在 LINE 對話框貼上即可詢問。');
                     });
                 };
                 
-                const countHtml = count > 0 ? `<div class="mini-count">本週詢價 <b>${count}</b> 次</div>` : `<div class="mini-count" style="color:#aaa;">店長強力推薦</div>`;
+                const countHtml = count > 0 ? `<div class="mini-count">本週詢價 <b>${count}</b> 次</div>` : `<div class="mini-count" style="color:#aaa;">熱門推薦</div>`;
                 const rankHtml = count > 0 ? `<div class="mini-rank">TOP ${index+1}</div>` : `<div class="mini-rank" style="background:#0055aa;">精選</div>`;
 
                 card.innerHTML = `
@@ -555,7 +556,6 @@
             console.warn("熱門榜讀取失敗:", e);
             if(allProductsCache.length > 0) {
                  hotGrid.innerHTML = '';
-                 // 🚀 Fallback 也改為 6 個
                  for(let i=0; i<6; i++) {
                     const item = allProductsCache[Math.floor(Math.random() * allProductsCache.length)];
                     let imgDisplay = item.imageUrl && item.imageUrl.startsWith('http') ? 
