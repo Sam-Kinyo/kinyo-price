@@ -772,7 +772,8 @@ th {
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
-  <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
+ <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
+<button id="setHotBtn" class="btn-secondary" style="display:none; color:#b91c1c; border-color:#b91c1c; font-weight:bold;">🔥 設為首頁熱門 (L4)</button>
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
   <button id="pptToolbarBtn" class="btn-secondary" disabled>生成 PPT（1–20）</button>
 
@@ -1330,6 +1331,8 @@ function updateMultiLineBtnState() {
   if(exportBtn) exportBtn.disabled = !hasCheckedItems; 
   if(pptToolbarBtn) pptToolbarBtn.disabled = !hasCheckedItems; 
   if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = !hasCheckedItems;
+   const setHotBtn = document.getElementById("setHotBtn");
+    if(setHotBtn && userLevel >= 4) setHotBtn.disabled = !hasCheckedItems;
   
   updateToolbarScrollState();
 }
@@ -1384,16 +1387,17 @@ function updatePermissions() {
     if (userLevel >= 4) {
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
         
-        // 🌟 新增這一行：把大數據按鈕秀出來
-        const exportHistoryBtn = document.getElementById("exportHistoryBtn");
-        if(exportHistoryBtn) exportHistoryBtn.style.display = 'inline-block';
+       // 👇👇👇 [請加入這一行] 讓老闆看到熱門設定按鈕 👇👇👇
+        const btn = document.getElementById("setHotBtn");
+        if(btn) btn.style.display = 'inline-block'; 
 
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
-        
-        // 🌟 新增這一行：其他人要隱藏
-        const exportHistoryBtn = document.getElementById("exportHistoryBtn");
-        if(exportHistoryBtn) exportHistoryBtn.style.display = 'none';
+        // ... (其他按鈕) ...
+
+        // 👇👇👇 [請加入這一行] 其他人隱藏 👇👇👇
+        const btn = document.getElementById("setHotBtn");
+        if(btn) btn.style.display = 'none';
     }
 
     // 2. Level 2+ 或 VIP 都能使用庫存篩選
@@ -3565,6 +3569,72 @@ window.addEventListener('scroll', updateToolbarScrollState);
 
 if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
 
+// ==========================================
+// 🚀 Level 4 專屬功能：一鍵設定首頁熱門榜
+// ==========================================
+const setHotBtn = document.getElementById("setHotBtn");
+if(setHotBtn) {
+    setHotBtn.onclick = async () => {
+        // 再次確認權限 (雙重保險)
+        if (userLevel < 4) { alert("權限不足"); return; }
+
+        const checked = document.querySelectorAll(".row-check:checked");
+        
+        if (checked.length === 0) { alert("請先勾選商品！"); return; }
+        if (checked.length > 6) { alert(`首頁版面限制 6 個商品，您目前勾選了 ${checked.length} 個。`); return; }
+
+        if(!confirm(`確定要將這 ${checked.length} 個商品設為首頁「本週熱門」嗎？\n(這將覆蓋舊的名單，並立即生效)`)) return;
+
+        setHotBtn.disabled = true;
+        setHotBtn.textContent = "設定中...";
+
+        try {
+            // 動態引入 Firebase 寫入工具
+            const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
+
+            let newHotList = [];
+            let rank = 1;
+
+            // 遍歷勾選的項目
+            for(const checkbox of checked) {
+                const model = checkbox.getAttribute("data-model");
+                // 優先找 currentResultList (搜尋結果)，找不到找 cache
+                const item = currentResultList.find(p => p.model === model) || productCache.find(p => p.model === model);
+                
+                if(item) {
+                    newHotList.push({
+                        model: item.model,
+                        // 自動產生假詢價次數：第1名約180次，第6名約50次，加一點隨機感
+                        count: Math.floor(180 - ((rank-1) * 25) + Math.random() * 15) 
+                    });
+                    rank++;
+                }
+            }
+
+            // 寫入 SiteConfig (homeHotList)
+            await setDoc(doc(db, "SiteConfig", "homeHotList"), {
+                updatedAt: new Date(),
+                items: newHotList,
+                editor: currentUserEmail
+            });
+
+            alert(`✅ 設定成功！首頁熱門榜已更新。\n共 ${newHotList.length} 筆商品。`);
+            
+            // 清除勾選狀態
+            checkAllBox.checked = false;
+            checked.forEach(c => c.checked = false);
+            updateMultiLineBtnState();
+
+        } catch(e) {
+            console.error("設定失敗:", e);
+            alert("設定失敗：請檢查 Firebase Rules 是否允許 SiteConfig 寫入。");
+        } finally {
+            setHotBtn.disabled = false;
+            setHotBtn.textContent = "🔥 設為首頁熱門 (L4)";
+        }
+    };
+}
+   
 </script>
 </body>
 </html>
