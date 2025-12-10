@@ -1381,21 +1381,29 @@ function updateUserDisplay(status) {
   }
 }
 
-// 🚀 Updates UI permissions based on user level (已移除 A 級品邏輯)
+// 🚀 Updates UI permissions based on user level
 function updatePermissions() {
-    // 1. Level 4 Only: 只有 Level 4 可以看到「匯入產品總表」與「匯出大數據」
+    // 0. 先抓到這個按鈕
+    const exportHistoryBtn = document.getElementById("exportHistoryBtn");
+
+    // 1. Level 4 Only: 只有 Level 4 可以看到這些高級按鈕
     if (userLevel >= 4) {
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
         
-       // 👇👇👇 [請加入這一行] 讓老闆看到熱門設定按鈕 👇👇👇
+        // 👇👇👇 [補上這一行] 讓老闆看到匯出大數據按鈕 👇👇👇
+        if(exportHistoryBtn) exportHistoryBtn.style.display = 'inline-block';
+        // 👆👆👆
+
         const btn = document.getElementById("setHotBtn");
         if(btn) btn.style.display = 'inline-block'; 
 
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
-        // ... (其他按鈕) ...
+        
+        // 👇👇👇 [補上這一行] 其他人要隱藏 👇👇👇
+        if(exportHistoryBtn) exportHistoryBtn.style.display = 'none';
+        // 👆👆👆
 
-        // 👇👇👇 [請加入這一行] 其他人隱藏 👇👇👇
         const btn = document.getElementById("setHotBtn");
         if(btn) btn.style.display = 'none';
     }
@@ -1406,8 +1414,6 @@ function updatePermissions() {
     } else {
         if(stockFilter) stockFilter.style.display = 'none';
     }
-    
-    // (A級品控制碼已刪除)
 }
 
 async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
