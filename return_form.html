@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // 1. 狀態管理
+  // 1. 狀態管理 (確保初始值為字串 "1"，避免數值錯誤)
   const [selectedType, setSelectedType] = useState(null);
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -30,7 +30,6 @@ export default function App() {
     salesPerson: '',
     defectiveDesc: '',
     files: [],
-    // 預設數量給字串 "1"，避免型別問題
     products: [{ id: Date.now(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }]
   });
 
@@ -42,7 +41,6 @@ export default function App() {
       icon: <PackageMinus size={28} />,
       description: '訂錯或多訂商品之退貨申請',
       color: 'blue',
-      // 使用 gray 取代 slate 以確保相容性
       activeClass: 'ring-2 ring-blue-500 bg-blue-50 border-blue-500',
       iconBg: 'bg-blue-100 text-blue-600',
       tagColor: 'text-blue-700 bg-blue-50 border-blue-100'
@@ -76,6 +74,7 @@ export default function App() {
     if (step === 2) {
       setStep(1);
       setSelectedType(null);
+      // 重置時確保 quantity 是字串 "1"
       setFormData(prev => ({ ...prev, files: [], products: [{ id: Date.now(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }] }));
     }
   };
@@ -85,21 +84,32 @@ export default function App() {
   const handleInputChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
   
   const handleProductChange = (id, field, value) => {
-    // 若修改數量，進行簡單的正整數過濾
+    // 針對數量欄位做簡單過濾，只允許輸入數字，但保持為字串型態
     if (field === 'quantity') {
-      const val = value.replace(/[^0-9]/g, ''); // 只允許數字
-      setFormData(prev => ({ ...prev, products: prev.products.map(p => p.id === id ? { ...p, [field]: val } : p) }));
+      const val = value.replace(/[^0-9]/g, '');
+      setFormData(prev => ({ 
+        ...prev, 
+        products: prev.products.map(p => p.id === id ? { ...p, [field]: val } : p) 
+      }));
     } else {
-      setFormData(prev => ({ ...prev, products: prev.products.map(p => p.id === id ? { ...p, [field]: value } : p) }));
+      setFormData(prev => ({ 
+        ...prev, 
+        products: prev.products.map(p => p.id === id ? { ...p, [field]: value } : p) 
+      }));
     }
   };
   
   const addProduct = () => {
-    setFormData(prev => ({ ...prev, products: [...prev.products, { id: Date.now() + Math.random(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }] }));
+    setFormData(prev => ({ 
+      ...prev, 
+      products: [...prev.products, { id: Date.now() + Math.random(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }] 
+    }));
   };
   
   const removeProduct = (id) => {
-    if (formData.products.length > 1) { setFormData(prev => ({ ...prev, products: prev.products.filter(p => p.id !== id) })); }
+    if (formData.products.length > 1) { 
+      setFormData(prev => ({ ...prev, products: prev.products.filter(p => p.id !== id) })); 
+    }
   };
   
   const handleFileUpload = (e) => {
@@ -113,137 +123,142 @@ export default function App() {
 
   const currentTypeData = returnTypes.find(t => t.id === selectedType);
 
-  // 4. 共用 UI 元件 (修正顏色為 gray)
-  const InputField = ({ label, required, ...props }) => (
-    <div className="space-y-1.5">
-      <label className="block text-sm font-semibold text-gray-700">
-        {label} {required && <span className="text-red-500">*</span>}
-      </label>
-      <input 
-        {...props}
-        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400"
-      />
-    </div>
-  );
+  // 4. 共用 Input 元件 (確保 return 有括號與 div)
+  const InputField = ({ label, required, ...props }) => {
+    return (
+      <div className="space-y-1.5">
+        <label className="block text-sm font-semibold text-gray-700">
+          {label} {required && <span className="text-red-500">*</span>}
+        </label>
+        <input 
+          {...props}
+          className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+        />
+      </div>
+    );
+  };
 
   // 5. 渲染產品清單
-  const renderProductList = () => (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-        <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-          <Box size={18} /> 產品明細
-        </h3>
-        <span className="text-xs font-medium px-2.5 py-1 bg-white border border-gray-200 rounded-full text-gray-600">
-          共 {formData.products.length} 筆
-        </span>
-      </div>
-      
-      <div className="p-4 space-y-4">
-        {formData.products.map((product, index) => (
-          <div key={product.id} className="relative p-4 rounded-lg border border-gray-200 bg-white hover:border-gray-400 transition-colors group">
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-              {/* 序號 */}
-              <div className="md:col-span-1 flex items-center gap-2 md:block">
-                <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#{index + 1}</span>
-                {formData.products.length > 1 && (
-                  <button type="button" onClick={() => removeProduct(product.id)} className="md:hidden text-red-500 p-1">
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
+  const renderProductList = () => {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+            <Box size={18} /> 產品明細
+          </h3>
+          <span className="text-xs font-medium px-2.5 py-1 bg-white border border-gray-200 rounded-full text-gray-600">
+            共 {formData.products.length} 筆
+          </span>
+        </div>
+        
+        <div className="p-4 space-y-4">
+          {formData.products.map((product, index) => (
+            <div key={product.id} className="relative p-4 rounded-lg border border-gray-200 bg-white hover:border-gray-400 transition-colors group">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                {/* 序號 */}
+                <div className="md:col-span-1 flex items-center gap-2 md:block">
+                  <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#{index + 1}</span>
+                  {formData.products.length > 1 && (
+                    <button type="button" onClick={() => removeProduct(product.id)} className="md:hidden text-red-500 p-1">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
 
-              {/* 型號 */}
-              <div className="md:col-span-5">
-                <input
-                  type="text"
-                  placeholder="產品型號 / 料號"
-                  value={product.model}
-                  onChange={(e) => handleProductChange(product.id, 'model', e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
-                />
-              </div>
-
-              {/* 動態欄位 */}
-              <div className="md:col-span-4">
-                {selectedType === 'sales_return' && (
-                  <select 
-                    value={product.reason}
-                    onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm bg-white"
-                  >
-                    <option value="">選擇退貨原因...</option>
-                    <option value="spec_error">規格不符</option>
-                    <option value="duplicate">重複下單</option>
-                    <option value="excess">多訂/專案取消</option>
-                    <option value="other">其他</option>
-                  </select>
-                )}
-                {selectedType === 'new_defective' && (
+                {/* 型號 */}
+                <div className="md:col-span-5">
                   <input
                     type="text"
-                    placeholder="產品序號 (S/N)"
-                    value={product.serialNumber}
-                    onChange={(e) => handleProductChange(product.id, 'serialNumber', e.target.value)}
+                    placeholder="產品型號 / 料號"
+                    value={product.model}
+                    onChange={(e) => handleProductChange(product.id, 'model', e.target.value)}
+                    required
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
                   />
-                )}
-                {selectedType === 'sample_return' && (
+                </div>
+
+                {/* 動態欄位 */}
+                <div className="md:col-span-4">
+                  {selectedType === 'sales_return' && (
+                    <select 
+                      value={product.reason}
+                      onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm bg-white"
+                    >
+                      <option value="">選擇退貨原因...</option>
+                      <option value="spec_error">規格不符</option>
+                      <option value="duplicate">重複下單</option>
+                      <option value="excess">多訂/專案取消</option>
+                      <option value="other">其他</option>
+                    </select>
+                  )}
+                  {selectedType === 'new_defective' && (
+                    <input
+                      type="text"
+                      placeholder="產品序號 (S/N)"
+                      value={product.serialNumber}
+                      onChange={(e) => handleProductChange(product.id, 'serialNumber', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
+                    />
+                  )}
+                  {selectedType === 'sample_return' && (
+                    <input
+                      type="text"
+                      placeholder="備註 (如：缺配件)"
+                      value={product.note}
+                      onChange={(e) => handleProductChange(product.id, 'note', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
+                    />
+                  )}
+                </div>
+
+                {/* 數量 (使用 text + numeric 模式，避免瀏覽器報錯) */}
+                <div className="md:col-span-2">
                   <input
                     type="text"
-                    placeholder="備註 (如：缺配件)"
-                    value={product.note}
-                    onChange={(e) => handleProductChange(product.id, 'note', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
+                    inputMode="numeric"
+                    placeholder="數量"
+                    value={product.quantity}
+                    onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm text-center"
                   />
-                )}
-              </div>
+                </div>
 
-              {/* 數量 (修正為 text + inputMode，避免瀏覽器解析錯誤) */}
-              <div className="md:col-span-2">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="數量"
-                  value={product.quantity}
-                  onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm text-center"
-                />
-              </div>
-
-              {/* 刪除 (Desktop) */}
-              <div className="hidden md:flex md:col-span-1 justify-center pt-2">
-                {formData.products.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeProduct(product.id)}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
-                    title="移除"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
+                {/* 刪除 (Desktop) */}
+                <div className="hidden md:flex md:col-span-1 justify-center pt-2">
+                  {formData.products.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeProduct(product.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                      title="移除"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          ))}
 
-        <button
-          type="button"
-          onClick={addProduct}
-          className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
-        >
-          <Plus size={16} /> 新增品項
-        </button>
+          <button
+            type="button"
+            onClick={addProduct}
+            className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+          >
+            <Plus size={16} /> 新增品項
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
+  // 6. 主頁面渲染 (確保最外層有 div 包裹)
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col">
       
-      {/* 1. Header (修正顏色) */}
+      {/* Header */}
       <nav className="bg-gray-900 text-white shadow-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.href='https://www.kinyo-gift.com/'}>
@@ -260,7 +275,7 @@ export default function App() {
         </div>
       </nav>
 
-      {/* 2. 主內容容器 */}
+      {/* Main Content */}
       <main className="flex-grow py-12 px-4 md:px-8">
         <div className="max-w-4xl mx-auto">
           
@@ -286,10 +301,10 @@ export default function App() {
             </div>
           </div>
 
-          {/* 內容卡片區 */}
+          {/* 內容卡片 */}
           <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100 min-h-[500px] transition-all duration-500">
             
-            {/* STEP 1: 選擇類型 */}
+            {/* STEP 1 */}
             {step === 1 && (
               <div className="p-8 md:p-12 animate-in fade-in zoom-in duration-300">
                 <div className="text-center mb-10">
@@ -342,10 +357,9 @@ export default function App() {
               </div>
             )}
 
-            {/* STEP 2: 填寫表單 */}
+            {/* STEP 2 */}
             {step === 2 && currentTypeData && (
               <div className="animate-in slide-in-from-right duration-500">
-                {/* 表單 Header */}
                 <div className="bg-gray-50 border-b border-gray-100 px-8 py-6 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <button onClick={handleBack} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -365,7 +379,7 @@ export default function App() {
                 <div className="p-8 md:p-12">
                   <form onSubmit={handleSubmit} className="space-y-10">
                     
-                    {/* A. 公司基本資料 */}
+                    {/* B2B Info */}
                     <section>
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                         <Building2 size={16} /> 公司基本資料
@@ -379,14 +393,13 @@ export default function App() {
                       </div>
                     </section>
 
-                    {/* B. 申請內容 */}
+                    {/* Request Details */}
                     <section>
                       <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                         <FileText size={16} /> 申請內容詳情
                       </h3>
                       
                       <div className={`p-6 rounded-xl border-l-4 bg-gray-50 border-gray-200 space-y-6`}>
-                        {/* 特定欄位 */}
                         <div className="grid grid-cols-1 gap-6">
                           {selectedType === 'sales_return' && (
                             <InputField label="原訂單編號 (選填)" name="orderNumber" value={formData.orderNumber} onChange={handleInputChange} placeholder="原 PO 單號或發票號碼" />
@@ -396,10 +409,8 @@ export default function App() {
                           )}
                         </div>
 
-                        {/* 產品清單 */}
                         {renderProductList()}
 
-                        {/* 新品不良額外欄位 */}
                         {selectedType === 'new_defective' && (
                           <div className="pt-6 border-t border-gray-200 space-y-6">
                             <div className="space-y-1.5">
@@ -460,7 +471,7 @@ export default function App() {
               </div>
             )}
 
-            {/* STEP 3: 完成頁面 */}
+            {/* STEP 3 */}
             {step === 3 && (
               <div className="p-12 text-center animate-in zoom-in duration-500 flex flex-col items-center justify-center min-h-[500px]">
                 <div className="w-20 h-20 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6 shadow-sm">
