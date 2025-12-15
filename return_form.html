@@ -26,7 +26,7 @@ export default function App() {
     orderNumber: '',
     salesPerson: '',
     files: [],
-    // 初始化產品列表，預設有一筆空資料
+    // 初始化產品列表
     products: [{ id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
   });
 
@@ -63,11 +63,12 @@ export default function App() {
     if (step === 2) {
       setStep(1);
       setSelectedType(null);
-      setFormData({ 
-        ...formData, 
+      // 重置表單中的產品與檔案，保留公司基本資料
+      setFormData(prev => ({ 
+        ...prev, 
         files: [],
         products: [{ id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }] 
-      });
+      }));
     }
   };
 
@@ -90,9 +91,11 @@ export default function App() {
   };
 
   const addProduct = () => {
+    // 使用 Date.now() + Math.random() 確保 ID 唯一，避免快速點擊時重複
+    const newId = Date.now() + Math.random();
     setFormData(prev => ({
       ...prev,
-      products: [...prev.products, { id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
+      products: [...prev.products, { id: newId, model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
     }));
   };
 
@@ -107,11 +110,13 @@ export default function App() {
 
   // --- 檔案上傳邏輯 ---
   const handleFileUpload = (e) => {
-    const newFiles = Array.from(e.target.files).map(file => ({
-      name: file.name,
-      size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
-    }));
-    setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files).map(file => ({
+        name: file.name,
+        size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+      }));
+      setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
+    }
   };
 
   const removeFile = (index) => {
@@ -121,7 +126,7 @@ export default function App() {
     }));
   };
 
-  // 渲染動態產品清單 (根據不同類型顯示不同欄位)
+  // 渲染動態產品清單
   const renderProductList = () => {
     return (
       <div className="space-y-4">
@@ -137,7 +142,7 @@ export default function App() {
         {formData.products.map((product, index) => (
           <div key={product.id} className="flex flex-col md:flex-row gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg relative group transition-all hover:border-gray-300 hover:shadow-sm">
             
-            {/* 序號/標題 (Mobile) */}
+            {/* Mobile Header: 序號與刪除 */}
             <div className="md:hidden flex justify-between items-center text-xs text-gray-400 mb-1">
               <span>項目 #{index + 1}</span>
               {formData.products.length > 1 && (
@@ -150,7 +155,7 @@ export default function App() {
               <input
                 type="text"
                 placeholder="產品型號 / 料號"
-                value={product.model}
+                value={product.model || ''}
                 onChange={(e) => handleProductChange(product.id, 'model', e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
@@ -161,7 +166,7 @@ export default function App() {
             {selectedType === 'sales_return' && (
               <div className="flex-1">
                  <select 
-                    value={product.reason}
+                    value={product.reason || ''}
                     onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
                  >
@@ -179,7 +184,7 @@ export default function App() {
                 <input
                   type="text"
                   placeholder="產品序號 (S/N)"
-                  value={product.serialNumber}
+                  value={product.serialNumber || ''}
                   onChange={(e) => handleProductChange(product.id, 'serialNumber', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                 />
@@ -191,27 +196,28 @@ export default function App() {
                 <input
                   type="text"
                   placeholder="備註 (如：缺配件)"
-                  value={product.note}
+                  value={product.note || ''}
                   onChange={(e) => handleProductChange(product.id, 'note', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
                 />
               </div>
             )}
 
-            {/* 欄位 3: 數量 */}
+            {/* 欄位 3: 數量 (修正警告問題) */}
             <div className="w-full md:w-24">
               <input
                 type="number"
                 min="1"
                 placeholder="數量"
-                value={product.quantity}
+                // 修正：確保值存在，若無值則給空字串，避免瀏覽器警告
+                value={product.quantity ?? ''} 
                 onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm text-center"
               />
             </div>
 
-            {/* 刪除按鈕 (Desktop) */}
+            {/* Desktop 刪除按鈕 */}
             {formData.products.length > 1 && (
               <button
                 type="button"
@@ -253,16 +259,13 @@ export default function App() {
                 <input
                   type="text"
                   name="orderNumber"
-                  value={formData.orderNumber}
+                  value={formData.orderNumber || ''}
                   onChange={handleInputChange}
                   placeholder="請輸入原 PO 單號或發票號碼"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
                 />
               </div>
-              
-              {/* 呼叫共用產品清單元件 */}
               {renderProductList()}
-              
             </div>
           </div>
         );
@@ -281,17 +284,14 @@ export default function App() {
                 <input
                   type="text"
                   name="salesPerson"
-                  value={formData.salesPerson}
+                  value={formData.salesPerson || ''}
                   onChange={handleInputChange}
                   required
                   placeholder="例如：王小明"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all bg-white"
                 />
               </div>
-
-              {/* 呼叫共用產品清單元件 */}
               {renderProductList()}
-
             </div>
           </div>
         );
@@ -303,10 +303,7 @@ export default function App() {
               <AlertTriangle size={20} /> 新品不良舉證 (DOA)
             </h3>
             <div className="space-y-6">
-              
-              {/* 呼叫共用產品清單元件 - DOA 也需要列出哪幾台壞掉 */}
               {renderProductList()}
-
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">不良狀況描述 (整體)</label>
                 <textarea 
@@ -466,6 +463,8 @@ export default function App() {
                       type="text"
                       name="companyName"
                       required
+                      value={formData.companyName}
+                      onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                       placeholder="請輸入完整公司抬頭"
                     />
@@ -478,6 +477,8 @@ export default function App() {
                       type="text"
                       name="taxId"
                       required
+                      value={formData.taxId}
+                      onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                       placeholder="8碼統編"
                     />
@@ -490,6 +491,8 @@ export default function App() {
                       type="text"
                       name="contactPerson"
                       required
+                      value={formData.contactPerson}
+                      onChange={handleInputChange}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                       placeholder="姓名 / 分機或手機"
                     />
@@ -555,7 +558,7 @@ export default function App() {
         </div>
         
         <footer className="mt-8 text-center text-sm text-gray-400">
-          © 2025 B2B 客戶服務系統 v1.3
+          © 2025 B2B 客戶服務系統 v1.3.1
         </footer>
       </div>
     </div>
