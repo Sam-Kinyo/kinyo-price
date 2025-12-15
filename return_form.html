@@ -1,340 +1,563 @@
-<!DOCTYPE html>
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>售後服務中心 | 您的個人品牌</title>
-    <style>
-        /* CSS 樣式區 */
-        body {
-            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-            color: #333;
-        }
+import React, { useState } from 'react';
+import { 
+  PackageMinus, 
+  RotateCcw, 
+  AlertTriangle, 
+  ArrowRight, 
+  CheckCircle2, 
+  ArrowLeft,
+  UploadCloud,
+  FileText,
+  Building2,
+  User,
+  X,
+  Plus,
+  Trash2,
+  Box
+} from 'lucide-react';
 
-        .container {
-            background: white;
-            width: 100%;
-            max-width: 600px; /* 稍微加寬以容納產品列表 */
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        }
+export default function App() {
+  const [selectedType, setSelectedType] = useState(null);
+  const [step, setStep] = useState(1);
+  const [formData, setFormData] = useState({
+    companyName: '',
+    taxId: '',
+    contactPerson: '',
+    orderNumber: '',
+    salesPerson: '',
+    files: [],
+    // 初始化產品列表，預設有一筆空資料
+    products: [{ id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
+  });
 
-        h2 {
-            text-align: center;
-            color: #1a1a1a;
-            margin-bottom: 10px;
-            font-size: 24px;
-        }
+  // 定義選項資料
+  const returnTypes = [
+    {
+      id: 'sales_return',
+      title: '銷貨退貨',
+      icon: <PackageMinus size={32} />,
+      description: '訂錯商品、多訂商品或一般退貨申請。',
+      color: 'blue'
+    },
+    {
+      id: 'sample_return',
+      title: '樣品歸還',
+      icon: <RotateCcw size={32} />,
+      description: '歸還業務借出之樣品、測試機台。',
+      color: 'purple'
+    },
+    {
+      id: 'new_defective',
+      title: '新品不良',
+      icon: <AlertTriangle size={32} />,
+      description: 'DOA (Dead on Arrival) 到貨即損壞報修。',
+      color: 'red'
+    }
+  ];
 
-        .sub-title {
-            text-align: center;
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 30px;
-        }
+  const handleNext = () => {
+    if (selectedType) setStep(2);
+  };
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+  const handleBack = () => {
+    if (step === 2) {
+      setStep(1);
+      setSelectedType(null);
+      setFormData({ 
+        ...formData, 
+        files: [],
+        products: [{ id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }] 
+      });
+    }
+  };
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #444;
-            font-size: 15px;
-        }
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setStep(3);
+  };
 
-        input, select, textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-size: 15px;
-            transition: border-color 0.3s;
-            background-color: #fff;
-        }
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
 
-        input:focus, select:focus, textarea:focus {
-            border-color: #007bff;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
-        }
+  // --- 產品清單邏輯 ---
+  const handleProductChange = (id, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      products: prev.products.map(p => p.id === id ? { ...p, [field]: value } : p)
+    }));
+  };
 
-        /* 產品列表樣式 */
-        .product-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        
-        .product-name-input {
-            flex: 3; /* 產品名稱佔寬一點 */
-        }
-        
-        .product-qty-input {
-            flex: 1; /* 數量欄位窄一點 */
-            text-align: center;
-        }
+  const addProduct = () => {
+    setFormData(prev => ({
+      ...prev,
+      products: [...prev.products, { id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
+    }));
+  };
 
-        .add-row-btn {
-            background-color: #f8f9fa;
-            border: 1px dashed #ccc;
-            color: #555;
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
+  const removeProduct = (id) => {
+    if (formData.products.length > 1) {
+      setFormData(prev => ({
+        ...prev,
+        products: prev.products.filter(p => p.id !== id)
+      }));
+    }
+  };
 
-        .add-row-btn:hover {
-            background-color: #e9ecef;
-            border-color: #adb5bd;
-            color: #333;
-        }
+  // --- 檔案上傳邏輯 ---
+  const handleFileUpload = (e) => {
+    const newFiles = Array.from(e.target.files).map(file => ({
+      name: file.name,
+      size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
+    }));
+    setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
+  };
 
-        /* 動態區塊 */
-        .dynamic-section {
-            display: none;
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-left: 4px solid #007bff;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
+  const removeFile = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      files: prev.files.filter((_, i) => i !== index)
+    }));
+  };
 
-        /* 提交按鈕 */
-        .submit-btn {
-            width: 100%;
-            padding: 14px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.3s, transform 0.1s;
-        }
-
-        .submit-btn:hover {
-            background-color: #0056b3;
-        }
-
-        .submit-btn:active {
-            transform: scale(0.98);
-        }
-
-        /* 成功訊息遮罩 */
-        #successModal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            text-align: center;
-            max-width: 400px;
-            width: 90%;
-        }
-        .check-icon {
-            color: #28a745;
-            font-size: 50px;
-            margin-bottom: 15px;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>售後服務申請</h2>
-    <p class="sub-title">請填寫詳細資訊，我們將在收到後儘速為您處理。</p>
-    
-    <form id="returnForm">
-        
-        <!-- 基本資料 -->
-        <div class="form-group">
-            <label for="orderId">訂單編號 / 客戶名稱</label>
-            <input type="text" id="orderId" placeholder="例如：20241215-01 或 王小明" required>
+  // 渲染動態產品清單 (根據不同類型顯示不同欄位)
+  const renderProductList = () => {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-2">
+          <label className="block text-sm font-medium text-gray-700">
+            <Box size={16} className="inline mr-1" /> 產品明細清單
+          </label>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+            共 {formData.products.length} 筆項目
+          </span>
         </div>
 
-        <!-- 服務類別 (切換開關) -->
-        <div class="form-group">
-            <label for="serviceType">服務類別</label>
-            <select id="serviceType" onchange="toggleFields()" required>
-                <option value="" disabled selected>-- 請選擇服務項目 --</option>
-                <option value="return">1. 銷貨退貨 (買錯/不適用)</option>
-                <option value="sample">2. 樣品歸還 (試用完畢)</option>
-                <option value="exchange">3. 新品不良 (換貨/維修)</option>
-            </select>
-        </div>
-
-        <!-- 產品清單區塊 (動態增加) -->
-        <div class="form-group">
-            <label>產品明細 (名稱/型號 與 數量)</label>
-            <div id="productListContainer">
-                <!-- JavaScript 會在這裡自動生成 7 行 -->
+        {formData.products.map((product, index) => (
+          <div key={product.id} className="flex flex-col md:flex-row gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg relative group transition-all hover:border-gray-300 hover:shadow-sm">
+            
+            {/* 序號/標題 (Mobile) */}
+            <div className="md:hidden flex justify-between items-center text-xs text-gray-400 mb-1">
+              <span>項目 #{index + 1}</span>
+              {formData.products.length > 1 && (
+                <button type="button" onClick={() => removeProduct(product.id)} className="text-red-500">刪除</button>
+              )}
             </div>
-            <button type="button" class="add-row-btn" onclick="addNewRow()">+ 增加一項產品</button>
-        </div>
 
-        <!-- 動態區塊 A：銷貨退貨 -->
-        <div id="section-return" class="dynamic-section">
-            <label>退款帳戶資訊</label>
-            <div style="display:flex; gap:10px;">
-                <input type="text" id="bankCode" placeholder="銀行代碼 (如: 822)" style="flex:1;">
-                <input type="text" id="bankAccount" placeholder="銀行帳號" style="flex:3;">
+            {/* 欄位 1: 型號 (所有類型都通用) */}
+            <div className="flex-1">
+              <input
+                type="text"
+                placeholder="產品型號 / 料號"
+                value={product.model}
+                onChange={(e) => handleProductChange(product.id, 'model', e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+              />
             </div>
-            <small style="color:#666; display:block; margin-top:5px;">* 核實商品無誤後，款項將退至此帳戶。</small>
-        </div>
 
-        <!-- 動態區塊 B：樣品歸還 -->
-        <div id="section-sample" class="dynamic-section">
-            <label>預計歸還日期</label>
-            <input type="date" id="returnDate">
-        </div>
+            {/* 欄位 2: 根據類型變動 */}
+            {selectedType === 'sales_return' && (
+              <div className="flex-1">
+                 <select 
+                    value={product.reason}
+                    onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
+                 >
+                    <option value="">選擇退貨原因...</option>
+                    <option value="spec_error">規格不符</option>
+                    <option value="duplicate">重複下單</option>
+                    <option value="excess">多訂/專案取消</option>
+                    <option value="other">其他</option>
+                 </select>
+              </div>
+            )}
+            
+            {selectedType === 'new_defective' && (
+               <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="產品序號 (S/N)"
+                  value={product.serialNumber}
+                  onChange={(e) => handleProductChange(product.id, 'serialNumber', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                />
+              </div>
+            )}
 
-        <!-- 動態區塊 C：新品不良 -->
-        <div id="section-exchange" class="dynamic-section">
-            <label>方便司機交換件時段</label>
-            <select id="pickupTime">
-                <option value="any">不限皆可</option>
-                <option value="morning">上午 (09:00 - 12:00)</option>
-                <option value="afternoon">下午 (13:00 - 18:00)</option>
-            </select>
-            <div style="margin-top:15px; background:#fff8d6; padding:12px; border-radius:6px; font-size:14px; color:#856404;">
-                <strong>💡 故障排除小撇步：</strong><br>
-                寄出前，建議您先嘗試重置設備，這能解決 80% 的連線問題喔！
+            {selectedType === 'sample_return' && (
+               <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="備註 (如：缺配件)"
+                  value={product.note}
+                  onChange={(e) => handleProductChange(product.id, 'note', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                />
+              </div>
+            )}
+
+            {/* 欄位 3: 數量 */}
+            <div className="w-full md:w-24">
+              <input
+                type="number"
+                min="1"
+                placeholder="數量"
+                value={product.quantity}
+                onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm text-center"
+              />
             </div>
+
+            {/* 刪除按鈕 (Desktop) */}
+            {formData.products.length > 1 && (
+              <button
+                type="button"
+                onClick={() => removeProduct(product.id)}
+                className="hidden md:flex items-center justify-center w-10 text-gray-400 hover:text-red-500 transition-colors"
+                title="移除此項目"
+              >
+                <Trash2 size={18} />
+              </button>
+            )}
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={addProduct}
+          className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+        >
+          <Plus size={16} /> 新增品項
+        </button>
+      </div>
+    );
+  };
+
+  // 根據類型渲染特定欄位
+  const renderSpecificFields = () => {
+    switch (selectedType) {
+      case 'sales_return':
+        return (
+          <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 animate-in fade-in slide-in-from-bottom-2">
+            <h3 className="text-blue-800 font-bold mb-4 flex items-center gap-2">
+              <PackageMinus size={20} /> 銷貨退貨明細
+            </h3>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  原訂單編號 <span className="text-gray-400 font-normal">(非必填)</span>
+                </label>
+                <input
+                  type="text"
+                  name="orderNumber"
+                  value={formData.orderNumber}
+                  onChange={handleInputChange}
+                  placeholder="請輸入原 PO 單號或發票號碼"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+                />
+              </div>
+              
+              {/* 呼叫共用產品清單元件 */}
+              {renderProductList()}
+              
+            </div>
+          </div>
+        );
+
+      case 'sample_return':
+        return (
+          <div className="bg-purple-50 p-6 rounded-xl border border-purple-100 animate-in fade-in slide-in-from-bottom-2">
+            <h3 className="text-purple-800 font-bold mb-4 flex items-center gap-2">
+              <RotateCcw size={20} /> 樣品歸還明細
+            </h3>
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  借出業務員姓名 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="salesPerson"
+                  value={formData.salesPerson}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="例如：王小明"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition-all bg-white"
+                />
+              </div>
+
+              {/* 呼叫共用產品清單元件 */}
+              {renderProductList()}
+
+            </div>
+          </div>
+        );
+
+      case 'new_defective':
+        return (
+          <div className="bg-red-50 p-6 rounded-xl border border-red-100 animate-in fade-in slide-in-from-bottom-2">
+            <h3 className="text-red-800 font-bold mb-4 flex items-center gap-2">
+              <AlertTriangle size={20} /> 新品不良舉證 (DOA)
+            </h3>
+            <div className="space-y-6">
+              
+              {/* 呼叫共用產品清單元件 - DOA 也需要列出哪幾台壞掉 */}
+              {renderProductList()}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">不良狀況描述 (整體)</label>
+                <textarea 
+                  rows="3" 
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white"
+                  placeholder="請描述異常狀況，例如：開機無畫面、外觀破損..."
+                ></textarea>
+              </div>
+              
+              {/* 檔案上傳區塊 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  上傳佐證照片/影片 <span className="text-red-500">*</span>
+                </label>
+                <div className="border-2 border-dashed border-red-200 rounded-xl p-6 text-center bg-white hover:bg-red-50/50 transition-colors group cursor-pointer relative">
+                  <input 
+                    type="file" 
+                    multiple 
+                    accept="image/*,video/*"
+                    onChange={handleFileUpload}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="flex flex-col items-center justify-center text-gray-500 group-hover:text-red-500">
+                    <UploadCloud size={40} className="mb-2" />
+                    <p className="font-medium">點擊或拖曳檔案至此</p>
+                    <p className="text-xs mt-1 text-gray-400">支援 JPG, PNG, MP4</p>
+                  </div>
+                </div>
+
+                {/* 檔案列表 */}
+                {formData.files.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    {formData.files.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg text-sm">
+                        <div className="flex items-center gap-2 text-gray-700">
+                          <FileText size={16} className="text-red-500" />
+                          <span className="truncate max-w-[200px]">{file.name}</span>
+                          <span className="text-gray-400 text-xs">({file.size})</span>
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => removeFile(index)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-800 p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        
+        {/* Header */}
+        <header className="mb-8 text-center">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">B2B 售後服務申請中心</h1>
+          <p className="text-gray-500">
+            {step === 1 ? '請依照您的需求選擇相應的服務項目' : '請填寫詳細申請資訊'}
+          </p>
+        </header>
+
+        {/* Progress Indicator */}
+        <div className="mb-8 flex items-center justify-center space-x-4">
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'} font-bold`}>1</div>
+          <div className="w-16 h-1 bg-gray-200">
+            <div className={`h-full bg-blue-600 transition-all duration-300 ${step >= 2 ? 'w-full' : 'w-0'}`}></div>
+          </div>
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'} font-bold`}>2</div>
+          <div className="w-16 h-1 bg-gray-200">
+            <div className={`h-full bg-blue-600 transition-all duration-300 ${step >= 3 ? 'w-full' : 'w-0'}`}></div>
+          </div>
+          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'} font-bold`}>3</div>
         </div>
 
-        <!-- 聯絡資訊 -->
-        <div class="form-group">
-            <label for="contactPhone">聯絡電話</label>
-            <input type="tel" id="contactPhone" required>
+        {/* Main Content Area */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500">
+          
+          {step === 1 && (
+            <div className="p-6 md:p-10 space-y-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-6">第一步：請選擇申請類別</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {returnTypes.map((type) => (
+                  <div
+                    key={type.id}
+                    onClick={() => setSelectedType(type.id)}
+                    className={`
+                      relative cursor-pointer rounded-xl border-2 p-6 flex flex-col items-center text-center transition-all duration-200 hover:shadow-lg
+                      ${selectedType === type.id 
+                        ? `border-${type.color}-500 bg-${type.color}-50 transform scale-[1.02]` 
+                        : 'border-gray-200 hover:border-gray-300 bg-white'}
+                    `}
+                  >
+                    {selectedType === type.id && (
+                      <div className={`absolute top-3 right-3 text-${type.color}-500`}>
+                        <CheckCircle2 size={24} fill="currentColor" className="text-white" />
+                      </div>
+                    )}
+                    <div className={`mb-4 p-4 rounded-full bg-${type.color}-100 text-${type.color}-600`}>
+                      {type.icon}
+                    </div>
+                    <h3 className="text-lg font-bold mb-2">{type.title}</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">{type.description}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 flex justify-end">
+                <button
+                  onClick={handleNext}
+                  disabled={!selectedType}
+                  className={`
+                    flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300
+                    ${selectedType 
+                      ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:translate-x-1' 
+                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
+                  `}
+                >
+                  下一步
+                  <ArrowRight size={20} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="p-6 md:p-10">
+              <form onSubmit={handleSubmit} className="space-y-8 animate-in fade-in slide-in-from-right-8 duration-500">
+                
+                <div className="flex items-center justify-between border-b pb-4">
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    第二步：填寫資料 
+                    <span className={`ml-2 text-sm px-3 py-1 rounded-full bg-${returnTypes.find(t => t.id === selectedType)?.color}-100 text-${returnTypes.find(t => t.id === selectedType)?.color}-700`}>
+                      {returnTypes.find(t => t.id === selectedType)?.title}
+                    </span>
+                  </h2>
+                </div>
+
+                {/* B2B Common Fields */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <Building2 size={16} className="inline mr-1" /> 公司名稱 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="companyName"
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="請輸入完整公司抬頭"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <FileText size={16} className="inline mr-1" /> 統一編號 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="taxId"
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="8碼統編"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <User size={16} className="inline mr-1" /> 聯絡人與電話 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="contactPerson"
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="姓名 / 分機或手機"
+                    />
+                  </div>
+                </div>
+
+                {/* Dynamic Fields Section */}
+                {renderSpecificFields()}
+
+                <div className="flex justify-between pt-6 border-t mt-8">
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="flex items-center gap-2 px-6 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <ArrowLeft size={20} /> 上一步
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow-lg hover:bg-blue-700 hover:translate-x-1 transition-all"
+                  >
+                    送出申請
+                    <ArrowRight size={20} />
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="p-12 text-center animate-in zoom-in duration-500">
+              <div className="inline-block p-6 rounded-full bg-green-100 text-green-600 mb-6">
+                <CheckCircle2 size={64} />
+              </div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">申請已送出！</h2>
+              
+              <div className="bg-gray-50 p-6 rounded-xl max-w-md mx-auto mb-8 text-left border border-gray-100">
+                <p className="text-sm text-gray-500 mb-2">案件摘要：</p>
+                <div className="flex justify-between mb-2">
+                   <span className="font-semibold">{formData.companyName}</span>
+                   <span className="text-blue-600 font-bold">{returnTypes.find(t => t.id === selectedType)?.title}</span>
+                </div>
+                <div className="text-sm text-gray-600 border-t pt-2">
+                  共申請 <span className="font-bold text-black">{formData.products.length}</span> 筆品項
+                  {selectedType === 'new_defective' && <span>，並上傳 {formData.files.length} 個附件</span>}。
+                </div>
+              </div>
+
+              <p className="text-gray-500 mb-8 max-w-lg mx-auto">
+                案件編號：<span className="font-mono bg-gray-100 px-2 py-1 rounded">RMA-20251014-001</span>
+                <br />
+                專員將於 24 小時內審核並聯繫貴司聯絡人。
+              </p>
+              <button
+                onClick={() => { setStep(1); setSelectedType(null); setFormData({ files: [], products: [{id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: ''}] }); }}
+                className="px-8 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800"
+              >
+                返回首頁
+              </button>
+            </div>
+          )}
+
         </div>
-
-        <div class="form-group">
-            <label for="note">備註 (選填)</label>
-            <textarea id="note" rows="3" placeholder="例如：配件缺漏、外箱受損..."></textarea>
-        </div>
-
-        <button type="submit" class="submit-btn">送出申請單</button>
-    </form>
-</div>
-
-<!-- 成功提示視窗 -->
-<div id="successModal">
-    <div class="modal-content">
-        <div class="check-icon">✓</div>
-        <h3>申請已送出</h3>
-        <p>我們會盡快審核，並透過 Email 通知您進度。</p>
-        <button class="submit-btn" style="margin-top:15px;" onclick="closeModal()">好的，我知道了</button>
+        
+        <footer className="mt-8 text-center text-sm text-gray-400">
+          © 2025 B2B 客戶服務系統 v1.3
+        </footer>
+      </div>
     </div>
-</div>
-
-<script>
-    // 頁面載入時，自動產生 7 列產品輸入格
-    window.onload = function() {
-        for(let i=0; i<7; i++) {
-            addNewRow();
-        }
-    }
-
-    // 新增一列產品輸入格的功能
-    function addNewRow() {
-        const container = document.getElementById('productListContainer');
-        const index = container.children.length + 1; // 取得目前是第幾項
-        
-        const row = document.createElement('div');
-        row.className = 'product-row';
-        row.innerHTML = `
-            <input type="text" class="product-name-input" name="productName[]" placeholder="項目 ${index}：產品名稱 / 型號">
-            <input type="number" class="product-qty-input" name="productQty[]" placeholder="數量" min="1" value="1">
-        `;
-        container.appendChild(row);
-    }
-
-    // 切換服務類別顯示
-    function toggleFields() {
-        var type = document.getElementById("serviceType").value;
-        
-        // 隱藏所有區塊
-        document.getElementById("section-return").style.display = "none";
-        document.getElementById("section-sample").style.display = "none";
-        document.getElementById("section-exchange").style.display = "none";
-
-        // 顯示對應區塊
-        if (type) {
-            document.getElementById("section-" + type).style.display = "block";
-        }
-    }
-
-    // 處理表單送出
-    document.getElementById("returnForm").addEventListener("submit", function(e){
-        e.preventDefault();
-        
-        // 蒐集產品資料的邏輯示範 (未來傳送給 Firebase 用)
-        const productNames = document.getElementsByName('productName[]');
-        const productQtys = document.getElementsByName('productQty[]');
-        let products = [];
-        
-        for(let i=0; i<productNames.length; i++) {
-            if(productNames[i].value.trim() !== "") {
-                products.push({
-                    name: productNames[i].value,
-                    qty: productQtys[i].value
-                });
-            }
-        }
-
-        // 如果連一個產品都沒填
-        if(products.length === 0) {
-            alert("請至少填寫一項產品資訊");
-            return;
-        }
-
-        console.log("準備送出的資料:", products);
-        
-        // 顯示成功視窗
-        document.getElementById("successModal").style.display = "flex";
-    });
-
-    // 關閉成功視窗
-    function closeModal() {
-        document.getElementById("successModal").style.display = "none";
-        document.getElementById("returnForm").reset(); // 清空表單
-        
-        // 重置為 7 行空表格
-        document.getElementById('productListContainer').innerHTML = '';
-        for(let i=0; i<7; i++) { addNewRow(); }
-        
-        // 重置動態區塊隱藏
-        toggleFields();
-    }
-</script>
-
-</body>
-</html>
+  );
+}
