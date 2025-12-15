@@ -26,7 +26,7 @@ export default function App() {
     orderNumber: '',
     salesPerson: '',
     files: [],
-    // 初始化產品列表
+    // 初始化產品列表，確保 quantity 有預設值
     products: [{ id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
   });
 
@@ -91,7 +91,7 @@ export default function App() {
   };
 
   const addProduct = () => {
-    // 使用 Date.now() + Math.random() 確保 ID 唯一，避免快速點擊時重複
+    // 使用 Date.now() + Math.random() 確保 ID 唯一
     const newId = Date.now() + Math.random();
     setFormData(prev => ({
       ...prev,
@@ -150,7 +150,7 @@ export default function App() {
               )}
             </div>
 
-            {/* 欄位 1: 型號 (所有類型都通用) */}
+            {/* 欄位 1: 型號 */}
             <div className="flex-1">
               <input
                 type="text"
@@ -203,14 +203,14 @@ export default function App() {
               </div>
             )}
 
-            {/* 欄位 3: 數量 (修正警告問題) */}
+            {/* 欄位 3: 數量 */}
             <div className="w-full md:w-24">
               <input
                 type="number"
                 min="1"
                 placeholder="數量"
-                // 修正重點：使用 || '' 確保即使是 undefined 或 null 也會轉為空字串，完全避免警告
-                value={product.quantity || ''}
+                // 絕對修正：將數值強制轉為字串，若為 null/undefined 則轉為空字串
+                value={String(product.quantity ?? '')}
                 onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm text-center"
@@ -558,7 +558,7 @@ export default function App() {
         </div>
         
         <footer className="mt-8 text-center text-sm text-gray-400">
-          © 2025 B2B 客戶服務系統 v1.3.2
+          © 2025 B2B 客戶服務系統 v1.3.3
         </footer>
       </div>
     </div>
