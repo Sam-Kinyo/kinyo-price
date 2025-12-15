@@ -18,8 +18,8 @@ import {
   HelpCircle
 } from 'lucide-react';
 
-// --- 1. 將子元件移出主 App 外 (關鍵修正) ---
-// 這能確保 React 不會因為重新渲染而失去輸入框焦點
+// --- 1. 將子元件移出主 App 外 ---
+// 在 Vite/React 標準開發中，這能確保輸入框不會因為主元件重新渲染而失去焦點
 const InputField = ({ label, required, ...props }) => {
   return (
     <div className="space-y-1.5">
@@ -46,7 +46,7 @@ export default function App() {
     salesPerson: '',
     defectiveDesc: '',
     files: [],
-    // 預設數量給字串 "1"
+    // 預設數量給字串 "1"，確保在 Vite 環境下型別正確
     products: [{ id: Date.now(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }]
   });
 
@@ -102,7 +102,7 @@ export default function App() {
   const handleInputChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
   
   const handleProductChange = (id, field, value) => {
-    // 數量欄位只允許數字
+    // 數量欄位只允許數字，並保持為字串型態
     if (field === 'quantity') {
       const val = value.replace(/[^0-9]/g, '');
       setFormData(prev => ({ 
