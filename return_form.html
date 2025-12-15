@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>售後服務中心 | 您的個人品牌</title>
+    <style>
+        /* 簡單的 CSS 美化，讓表單看起來專業 */
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            width: 100%;
+            max-width: 500px; /* 手機版寬度 */
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box; /* 確保 padding 不會撐破寬度 */
+            font-size: 16px;
+        }
+        
+        /* 重點：預設隱藏的動態區塊 */
+        .dynamic-section {
+            display: none; /* 預設不顯示 */
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #007bff; /* 藍色裝飾線 */
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: -10px;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>售後服務申請</h2>
+    <p style="text-align:center; color:#666; font-size:14px;">感謝您對我的信任，請填寫下表，我與助理會盡快為您處理。</p>
+    
+    <form id="returnForm">
+        
+        <div class="form-group">
+            <label for="orderId">訂單編號 / 客戶名稱</label>
+            <input type="text" id="orderId" placeholder="例如：20241203-01 或 王小明" required>
+        </div>
+
+        <div class="form-group">
+            <label for="productName">產品名稱 / 型號</label>
+            <input type="text" id="productName" placeholder="例如：Kinyo 藍牙喇叭" required>
+        </div>
+
+        <div class="form-group">
+            <label for="serviceType">請問您需要什麼服務？</label>
+            <select id="serviceType" onchange="toggleFields()" required>
+                <option value="" disabled selected>-- 請選擇 --</option>
+                <option value="return">1. 銷貨退貨 (買錯/不適用)</option>
+                <option value="sample">2. 樣品歸還 (試用完畢)</option>
+                <option value="exchange">3. 新品不良 (換貨/維修)</option>
+            </select>
+        </div>
+
+        <div id="section-return" class="dynamic-section">
+            <label>退款帳戶資訊</label>
+            <input type="text" id="bankCode" placeholder="銀行代碼 (例如：822)">
+            <input type="text" id="bankAccount" placeholder="銀行帳號" style="margin-top:10px;">
+            <span class="hint">收到商品核實無誤後，將退款至此帳戶。</span>
+        </div>
+
+        <div id="section-sample" class="dynamic-section">
+            <label>預計歸還日期</label>
+            <input type="date" id="returnDate">
+            <span class="hint">感謝您的試用，期待您的反饋！</span>
+        </div>
+
+        <div id="section-exchange" class="dynamic-section">
+            <label>方便司機交換件的時段</label>
+            <select id="pickupTime">
+                <option value="any">不限皆可</option>
+                <option value="morning">上午 (09:00 - 12:00)</option>
+                <option value="afternoon">下午 (13:00 - 18:00)</option>
+            </select>
+            <div style="margin-top:10px; background:#fff3cd; padding:10px; font-size:14px; border-radius:4px;">
+                <strong>💡 小提醒：</strong><br>
+                寄出前請確認是否已嘗試過「重置設備」？<br>
+                <a href="#" style="color:#856404;">點此查看常見故障排除教學</a>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="contactPhone">聯絡電話</label>
+            <input type="tel" id="contactPhone" required>
+        </div>
+
+        <div class="form-group">
+            <label for="note">備註 (選填)</label>
+            <textarea id="note" rows="3" placeholder="有什麼特別需要注意的嗎？"></textarea>
+        </div>
+
+        <button type="submit">送出申請</button>
+    </form>
+</div>
+
+<script>
+    // 這是控制顯示/隱藏的核心邏輯
+    function toggleFields() {
+        // 1. 取得使用者選了什麼
+        var type = document.getElementById("serviceType").value;
+
+        // 2. 先把所有動態區塊都藏起來 (重置)
+        document.getElementById("section-return").style.display = "none";
+        document.getElementById("section-sample").style.display = "none";
+        document.getElementById("section-exchange").style.display = "none";
+
+        // 3. 根據選擇，打開特定的區塊
+        if (type === "return") {
+            document.getElementById("section-return").style.display = "block";
+        } else if (type === "sample") {
+            document.getElementById("section-sample").style.display = "block";
+        } else if (type === "exchange") {
+            document.getElementById("section-exchange").style.display = "block";
+        }
+    }
+
+    // 模擬送出表單的動作
+    document.getElementById("returnForm").addEventListener("submit", function(e){
+        e.preventDefault(); // 防止頁面刷新
+        
+        // 這裡未來要接 Firebase 的程式碼
+        // const db = firebase.firestore();
+        // db.collection("returns").add({ ... });
+
+        alert("【模擬成功】\n申請已送出！\n系統將自動發送 Email 通知相關人員核實。");
+        // 這裡可以做清空表單或跳轉頁面
+    });
+</script>
+
+</body>
+</html>
