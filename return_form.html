@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { 
-  PackageMinus, 
-  RotateCcw, 
-  AlertTriangle, 
-  ArrowRight, 
-  CheckCircle2, 
+import React, { useMemo, useRef, useState } from 'react';
+import {
+  PackageMinus,
+  RotateCcw,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
   ArrowLeft,
   UploadCloud,
   FileText,
@@ -17,9 +17,17 @@ import {
 } from 'lucide-react';
 
 export default function App() {
-  // 1. 狀態管理
+  // ----------------------
+  // 1) 狀態管理
+  // ----------------------
   const [selectedType, setSelectedType] = useState(null);
   const [step, setStep] = useState(1);
+
+  const [errors, setErrors] = useState({});
+  const [caseNo, setCaseNo] = useState('');
+
+  const fileInputRef = useRef(null);
+
   const [formData, setFormData] = useState({
     // B2B 基本資料
     companyName: '',
@@ -30,119 +38,227 @@ export default function App() {
     salesPerson: '',
     defectiveDesc: '',
     // 檔案與產品列表
-    files: [],
-    products: [{ id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
+    files: /** @type {File[]} */ ([]),
+    products: [
+      {
+        id: Date.now(),
+        model: '',
+        quantity: 1,
+        reason: '',
+        serialNumber: '',
+        note: ''
+      }
+    ]
   });
 
-  // 2. 定義三大申請類別
-  const returnTypes = [
-    {
-      id: 'sales_return',
-      title: '銷貨退貨',
-      icon: <PackageMinus size={32} />,
-      description: '訂錯商品、多訂商品或一般退貨申請。',
-      color: 'blue',
-      bgColor: 'bg-blue-50',
-      borderColor: 'border-blue-200',
-      textColor: 'text-blue-600'
-    },
-    {
-      id: 'sample_return',
-      title: '樣品歸還',
-      icon: <RotateCcw size={32} />,
-      description: '歸還業務借出之樣品、測試機台。',
-      color: 'purple',
-      bgColor: 'bg-purple-50',
-      borderColor: 'border-purple-200',
-      textColor: 'text-purple-600'
-    },
-    {
-      id: 'new_defective',
-      title: '新品不良',
-      icon: <AlertTriangle size={32} />,
-      description: 'DOA (Dead on Arrival) 到貨即損壞報修。',
-      color: 'red',
-      bgColor: 'bg-red-50',
-      borderColor: 'border-red-200',
-      textColor: 'text-red-600'
-    }
-  ];
+  // ----------------------
+  // 2) 定義三大申請類別
+  // ----------------------
+  const returnTypes = useMemo(
+    () => [
+      {
+        id: 'sales_return',
+        title: '銷貨退貨',
+        icon: <PackageMinus size={32} />,
+        description: '訂錯商品、多訂商品或一般退貨申請。',
+        bgColor: 'bg-blue-50',
+        borderColor: 'border-blue-200',
+        textColor: 'text-blue-600'
+      },
+      {
+        id: 'sample_return',
+        title: '樣品歸還',
+        icon: <RotateCcw size={32} />,
+        description: '歸還業務借出之樣品、測試機台。',
+        bgColor: 'bg-purple-50',
+        borderColor: 'border-purple-200',
+        textColor: 'text-purple-600'
+      },
+      {
+        id: 'new_defective',
+        title: '新品不良',
+        icon: <AlertTriangle size={32} />,
+        description: 'DOA (Dead on Arrival) 到貨即損壞報修。',
+        bgColor: 'bg-red-50',
+        borderColor: 'border-red-200',
+        textColor: 'text-red-600'
+      }
+    ],
+    []
+  );
 
-  // 3. 頁面切換邏輯
+  const currentTypeData = returnTypes.find((t) => t.id === selectedType);
+
+  // ----------------------
+  // 3) 工具：案件編號
+  // ----------------------
+  const makeCaseNo = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const rnd = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+    return `RMA-${y}${m}${day}-${rnd}`;
+  };
+
+  // ----------------------
+  // 4) 頁面切換邏輯
+  // ----------------------
   const handleNext = () => {
-    if (selectedType) setStep(2);
+    if (!selectedType) return;
+    setErrors({});
+    setStep(2);
   };
 
   const handleBack = () => {
-    if (step === 2) {
-      setStep(1);
-      setSelectedType(null);
-      // 重置產品列表與檔案，保留公司基本資料，提升體驗
-      setFormData(prev => ({ 
-        ...prev, 
-        files: [],
-        products: [{ id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }] 
-      }));
-    }
+    if (step !== 2) return;
+
+    setStep(1);
+    setSelectedType(null);
+    setErrors({});
+    setCaseNo('');
+
+    // 重置產品列表與檔案，保留公司基本資料
+    setFormData((prev) => ({
+      ...prev,
+      files: [],
+      products: [
+        {
+          id: Date.now(),
+          model: '',
+          quantity: 1,
+          reason: '',
+          serialNumber: '',
+          note: ''
+        }
+      ],
+      orderNumber: '',
+      salesPerson: '',
+      defectiveDesc: ''
+    }));
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setStep(3);
-  };
-
-  // 4. 輸入處理邏輯
+  // ----------------------
+  // 5) 輸入處理邏輯
+  // ----------------------
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 產品列表操作：變更數值
   const handleProductChange = (id, field, value) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      products: prev.products.map(p => p.id === id ? { ...p, [field]: value } : p)
+      products: prev.products.map((p) => {
+        if (p.id !== id) return p;
+
+        if (field === 'quantity') {
+          const n = typeof value === 'number' ? value : Number(value);
+          return { ...p, quantity: Number.isFinite(n) && n >= 1 ? n : 1 };
+        }
+
+        return { ...p, [field]: value };
+      })
     }));
   };
 
-  // 產品列表操作：新增一列
   const addProduct = () => {
-    const newId = Date.now() + Math.random(); // 確保 ID 唯一
-    setFormData(prev => ({
+    const newId = Date.now() + Math.random();
+    setFormData((prev) => ({
       ...prev,
-      products: [...prev.products, { id: newId, model: '', quantity: 1, reason: '', serialNumber: '', note: '' }]
+      products: [
+        ...prev.products,
+        { id: newId, model: '', quantity: 1, reason: '', serialNumber: '', note: '' }
+      ]
     }));
   };
 
-  // 產品列表操作：刪除一列
   const removeProduct = (id) => {
-    if (formData.products.length > 1) {
-      setFormData(prev => ({
-        ...prev,
-        products: prev.products.filter(p => p.id !== id)
-      }));
-    }
+    if (formData.products.length <= 1) return;
+    setFormData((prev) => ({
+      ...prev,
+      products: prev.products.filter((p) => p.id !== id)
+    }));
   };
 
-  // 檔案上傳模擬
+  // 檔案上傳：存 File 本體，後續可直接送後端
   const handleFileUpload = (e) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).map(file => ({
-        name: file.name,
-        size: (file.size / 1024 / 1024).toFixed(2) + ' MB'
-      }));
-      setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
-    }
+    const picked = Array.from(e.target.files || []);
+    if (picked.length === 0) return;
+
+    setFormData((prev) => ({ ...prev, files: [...prev.files, ...picked] }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.files;
+      return next;
+    });
   };
 
   const removeFile = (index) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       files: prev.files.filter((_, i) => i !== index)
     }));
   };
 
-  // 5. 元件渲染：動態產品清單 (最複雜的部分)
+  // ----------------------
+  // 6) 送出前驗證
+  // ----------------------
+  const validateBeforeSubmit = () => {
+    const e = {};
+
+    // 基本必填：雖然 input 有 required，但這裡做更一致的提示/擴充
+    if (!formData.companyName.trim()) e.companyName = '請輸入公司名稱';
+    if (!formData.contactPerson.trim()) e.contactPerson = '請輸入聯絡人與電話';
+
+    const tax = formData.taxId.trim();
+    if (!/^\d{8}$/.test(tax)) e.taxId = '統一編號需為 8 碼數字';
+
+    // 產品：型號必填
+    if (formData.products.some((p) => !p.model.trim())) {
+      e.products = '每筆品項都需填寫型號 / 料號';
+    }
+
+    // 類型特定：銷退原因
+    if (selectedType === 'sales_return') {
+      if (formData.products.some((p) => !p.reason)) {
+        e.products = '銷貨退貨：每筆品項需選擇退貨原因';
+      }
+    }
+
+    // 類型特定：樣品歸還必填業務姓名
+    if (selectedType === 'sample_return') {
+      if (!formData.salesPerson.trim()) e.salesPerson = '請填寫借出業務員姓名';
+    }
+
+    // 類型特定：新品不良必須上傳附件
+    if (selectedType === 'new_defective') {
+      if (formData.files.length === 0) e.files = '新品不良：請至少上傳 1 個佐證檔案';
+    }
+
+    return e;
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+
+    const eMap = validateBeforeSubmit();
+    if (Object.keys(eMap).length > 0) {
+      setErrors(eMap);
+      // 捲動到第一個錯誤（可選）
+      return;
+    }
+
+    setErrors({});
+    setCaseNo(makeCaseNo());
+    setStep(3);
+  };
+
+  // ----------------------
+  // 7) 元件渲染：動態產品清單
+  // ----------------------
   const renderProductList = () => {
     return (
       <div className="space-y-4">
@@ -155,14 +271,20 @@ export default function App() {
           </span>
         </div>
 
+        {errors.products && <p className="text-sm text-red-600">{errors.products}</p>}
+
         {formData.products.map((product, index) => (
-          <div key={product.id} className="flex flex-col md:flex-row gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg relative group transition-all hover:border-gray-300 hover:shadow-sm">
-            
+          <div
+            key={product.id}
+            className="flex flex-col md:flex-row gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg relative group transition-all hover:border-gray-300 hover:shadow-sm"
+          >
             {/* Mobile Header */}
             <div className="md:hidden flex justify-between items-center text-xs text-gray-400 mb-1">
               <span>項目 #{index + 1}</span>
               {formData.products.length > 1 && (
-                <button type="button" onClick={() => removeProduct(product.id)} className="text-red-500">刪除</button>
+                <button type="button" onClick={() => removeProduct(product.id)} className="text-red-500">
+                  刪除
+                </button>
               )}
             </div>
 
@@ -181,22 +303,22 @@ export default function App() {
             {/* 欄位 2: 根據類型變動的中間欄位 */}
             {selectedType === 'sales_return' && (
               <div className="flex-[1.5]">
-                 <select 
-                    value={product.reason}
-                    onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
-                 >
-                    <option value="">選擇退貨原因...</option>
-                    <option value="spec_error">規格不符</option>
-                    <option value="duplicate">重複下單</option>
-                    <option value="excess">多訂/專案取消</option>
-                    <option value="other">其他</option>
-                 </select>
+                <select
+                  value={product.reason}
+                  onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm bg-white"
+                >
+                  <option value="">選擇退貨原因...</option>
+                  <option value="spec_error">規格不符</option>
+                  <option value="duplicate">重複下單</option>
+                  <option value="excess">多訂/專案取消</option>
+                  <option value="other">其他</option>
+                </select>
               </div>
             )}
-            
+
             {selectedType === 'new_defective' && (
-               <div className="flex-[1.5]">
+              <div className="flex-[1.5]">
                 <input
                   type="text"
                   placeholder="產品序號 (S/N)"
@@ -208,7 +330,7 @@ export default function App() {
             )}
 
             {selectedType === 'sample_return' && (
-               <div className="flex-[1.5]">
+              <div className="flex-[1.5]">
                 <input
                   type="text"
                   placeholder="備註 (如：缺配件)"
@@ -225,9 +347,8 @@ export default function App() {
                 type="number"
                 min="1"
                 placeholder="數量"
-                // 修正：回歸最標準的寫法，移除 String() 包裹
                 value={product.quantity}
-                onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
+                onChange={(e) => handleProductChange(product.id, 'quantity', e.target.valueAsNumber)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm text-center"
               />
@@ -258,37 +379,74 @@ export default function App() {
     );
   };
 
-  // 6. 頁面渲染開始
-  const currentTypeData = returnTypes.find(t => t.id === selectedType);
+  // ----------------------
+  // 8) 重新開始
+  // ----------------------
+  const resetAll = () => {
+    setStep(1);
+    setSelectedType(null);
+    setErrors({});
+    setCaseNo('');
+    setFormData({
+      companyName: '',
+      taxId: '',
+      contactPerson: '',
+      orderNumber: '',
+      salesPerson: '',
+      defectiveDesc: '',
+      files: [],
+      products: [
+        { id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: '' }
+      ]
+    });
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
+  // ----------------------
+  // 9) 畫面渲染
+  // ----------------------
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-800 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        
         {/* 標題區 */}
         <header className="mb-8 text-center">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">B2B 售後服務申請中心</h1>
-          <p className="text-gray-500">
-            {step === 1 ? '請選擇您的申請項目' : '請填寫詳細申請資料'}
-          </p>
+          <p className="text-gray-500">{step === 1 ? '請選擇您的申請項目' : '請填寫詳細申請資料'}</p>
         </header>
 
         {/* 進度條 */}
         <div className="mb-8 flex items-center justify-center space-x-4">
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'} font-bold`}>1</div>
-          <div className="w-16 h-1 bg-gray-200">
-            <div className={`h-full bg-blue-600 transition-all duration-300 ${step >= 2 ? 'w-full' : 'w-0'}`}></div>
+          <div
+            className={`flex items-center justify-center w-8 h-8 rounded-full ${
+              step >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+            } font-bold`}
+          >
+            1
           </div>
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'} font-bold`}>2</div>
           <div className="w-16 h-1 bg-gray-200">
-            <div className={`h-full bg-blue-600 transition-all duration-300 ${step >= 3 ? 'w-full' : 'w-0'}`}></div>
+            <div className={`h-full bg-blue-600 transition-all duration-300 ${step >= 2 ? 'w-full' : 'w-0'}`} />
           </div>
-          <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'} font-bold`}>3</div>
+          <div
+            className={`flex items-center justify-center w-8 h-8 rounded-full ${
+              step >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+            } font-bold`}
+          >
+            2
+          </div>
+          <div className="w-16 h-1 bg-gray-200">
+            <div className={`h-full bg-blue-600 transition-all duration-300 ${step >= 3 ? 'w-full' : 'w-0'}`} />
+          </div>
+          <div
+            className={`flex items-center justify-center w-8 h-8 rounded-full ${
+              step >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-500'
+            } font-bold`}
+          >
+            3
+          </div>
         </div>
 
         {/* 主內容區塊 */}
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden transition-all duration-500 min-h-[400px]">
-          
           {/* STEP 1: 選擇類型 */}
           {step === 1 && (
             <div className="p-6 md:p-10 space-y-6 animate-in fade-in zoom-in duration-300">
@@ -296,12 +454,17 @@ export default function App() {
                 {returnTypes.map((type) => (
                   <div
                     key={type.id}
-                    onClick={() => setSelectedType(type.id)}
+                    onClick={() => {
+                      setSelectedType(type.id);
+                      setErrors({});
+                    }}
                     className={`
                       relative cursor-pointer rounded-xl border-2 p-6 flex flex-col items-center text-center transition-all duration-200 hover:shadow-lg
-                      ${selectedType === type.id 
-                        ? `${type.borderColor} ${type.bgColor} transform scale-[1.02]` 
-                        : 'border-gray-200 hover:border-gray-300 bg-white'}
+                      ${
+                        selectedType === type.id
+                          ? `${type.borderColor} ${type.bgColor} transform scale-[1.02]`
+                          : 'border-gray-200 hover:border-gray-300 bg-white'
+                      }
                     `}
                   >
                     {selectedType === type.id && (
@@ -309,9 +472,7 @@ export default function App() {
                         <CheckCircle2 size={24} fill="currentColor" className="text-white" />
                       </div>
                     )}
-                    <div className={`mb-4 p-4 rounded-full bg-white shadow-sm ${type.textColor}`}>
-                      {type.icon}
-                    </div>
+                    <div className={`mb-4 p-4 rounded-full bg-white shadow-sm ${type.textColor}`}>{type.icon}</div>
                     <h3 className="text-lg font-bold mb-2">{type.title}</h3>
                     <p className="text-sm text-gray-500 leading-relaxed">{type.description}</p>
                   </div>
@@ -324,9 +485,11 @@ export default function App() {
                   disabled={!selectedType}
                   className={`
                     flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300
-                    ${selectedType 
-                      ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:translate-x-1' 
-                      : 'bg-gray-200 text-gray-400 cursor-not-allowed'}
+                    ${
+                      selectedType
+                        ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:translate-x-1'
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                    }
                   `}
                 >
                   下一步
@@ -340,7 +503,6 @@ export default function App() {
           {step === 2 && currentTypeData && (
             <div className="p-6 md:p-10 animate-in slide-in-from-right duration-300">
               <form onSubmit={handleSubmit} className="space-y-8">
-                
                 <div className="flex items-center justify-between border-b pb-4">
                   <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
                     <span className={`p-2 rounded-lg ${currentTypeData.bgColor} ${currentTypeData.textColor}`}>
@@ -365,7 +527,9 @@ export default function App() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                       placeholder="請輸入完整公司抬頭"
                     />
+                    {errors.companyName && <p className="mt-1 text-sm text-red-600">{errors.companyName}</p>}
                   </div>
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       <FileText size={16} className="inline mr-1" /> 統一編號 <span className="text-red-500">*</span>
@@ -379,7 +543,9 @@ export default function App() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                       placeholder="8碼統編"
                     />
+                    {errors.taxId && <p className="mt-1 text-sm text-red-600">{errors.taxId}</p>}
                   </div>
+
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       <User size={16} className="inline mr-1" /> 聯絡人與電話 <span className="text-red-500">*</span>
@@ -393,12 +559,12 @@ export default function App() {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white"
                       placeholder="姓名 / 分機或手機"
                     />
+                    {errors.contactPerson && <p className="mt-1 text-sm text-red-600">{errors.contactPerson}</p>}
                   </div>
                 </div>
 
                 {/* B. 各類別特定欄位 + 產品清單 */}
                 <div className={`p-6 rounded-xl border ${currentTypeData.bgColor} ${currentTypeData.borderColor}`}>
-                  
                   {/* B-1. 特定欄位 */}
                   <div className="mb-6 grid grid-cols-1 gap-6">
                     {selectedType === 'sales_return' && (
@@ -431,11 +597,12 @@ export default function App() {
                           placeholder="例如：王小明"
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none bg-white"
                         />
+                        {errors.salesPerson && <p className="mt-1 text-sm text-red-600">{errors.salesPerson}</p>}
                       </div>
                     )}
                   </div>
 
-                  {/* B-2. 產品清單 (共用元件) */}
+                  {/* B-2. 產品清單 */}
                   {renderProductList()}
 
                   {/* B-3. 新品不良的額外欄位 */}
@@ -443,25 +610,30 @@ export default function App() {
                     <div className="mt-6 space-y-6 pt-6 border-t border-red-200">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">不良狀況描述 (整體)</label>
-                        <textarea 
+                        <textarea
                           name="defectiveDesc"
                           value={formData.defectiveDesc}
                           onChange={handleInputChange}
-                          rows="3" 
+                          rows="3"
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 outline-none bg-white"
                           placeholder="請描述異常狀況，例如：開機無畫面、外觀破損..."
-                        ></textarea>
+                        />
                       </div>
-                      
+
                       {/* 檔案上傳區塊 */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           上傳佐證照片/影片 <span className="text-red-500">*</span>
                         </label>
-                        <div className="border-2 border-dashed border-red-200 rounded-xl p-6 text-center bg-white hover:bg-red-50/50 transition-colors group cursor-pointer relative">
-                          <input 
-                            type="file" 
-                            multiple 
+
+                        <div
+                          className="border-2 border-dashed border-red-200 rounded-xl p-6 text-center bg-white hover:bg-red-50/50 transition-colors group cursor-pointer relative"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            multiple
                             accept="image/*,video/*"
                             onChange={handleFileUpload}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -473,17 +645,24 @@ export default function App() {
                           </div>
                         </div>
 
+                        {errors.files && <p className="mt-2 text-sm text-red-600">{errors.files}</p>}
+
                         {/* 檔案列表 */}
                         {formData.files.length > 0 && (
                           <div className="mt-4 space-y-2">
                             {formData.files.map((file, index) => (
-                              <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg text-sm">
+                              <div
+                                key={`${file.name}-${index}`}
+                                className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg text-sm"
+                              >
                                 <div className="flex items-center gap-2 text-gray-700">
                                   <FileText size={16} className="text-red-500" />
                                   <span className="truncate max-w-[200px]">{file.name}</span>
-                                  <span className="text-gray-400 text-xs">({file.size})</span>
+                                  <span className="text-gray-400 text-xs">
+                                    ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                  </span>
                                 </div>
-                                <button 
+                                <button
                                   type="button"
                                   onClick={() => removeFile(index)}
                                   className="text-gray-400 hover:text-red-500"
@@ -527,12 +706,12 @@ export default function App() {
                 <CheckCircle2 size={64} />
               </div>
               <h2 className="text-3xl font-bold text-gray-900 mb-4">申請已送出！</h2>
-              
+
               <div className="bg-gray-50 p-6 rounded-xl max-w-md mx-auto mb-8 text-left border border-gray-100">
                 <p className="text-sm text-gray-500 mb-2">案件摘要：</p>
                 <div className="flex justify-between mb-2">
-                   <span className="font-semibold">{formData.companyName}</span>
-                   <span className={`font-bold ${currentTypeData?.textColor}`}>{currentTypeData?.title}</span>
+                  <span className="font-semibold">{formData.companyName}</span>
+                  <span className={`font-bold ${currentTypeData?.textColor}`}>{currentTypeData?.title}</span>
                 </div>
                 <div className="text-sm text-gray-600 border-t pt-2">
                   共申請 <span className="font-bold text-black">{formData.products.length}</span> 筆品項
@@ -541,27 +720,20 @@ export default function App() {
               </div>
 
               <p className="text-gray-500 mb-8 max-w-lg mx-auto">
-                案件編號：<span className="font-mono bg-gray-100 px-2 py-1 rounded">RMA-20251215-001</span>
+                案件編號：
+                <span className="font-mono bg-gray-100 px-2 py-1 rounded ml-2">{caseNo || 'RMA-UNKNOWN'}</span>
                 <br />
                 專員將於 24 小時內審核並聯繫貴司聯絡人。
               </p>
-              <button
-                onClick={() => { setStep(1); setSelectedType(null); setFormData({
-                  companyName: '', taxId: '', contactPerson: '', orderNumber: '', salesPerson: '', defectiveDesc: '',
-                  files: [], products: [{id: Date.now(), model: '', quantity: 1, reason: '', serialNumber: '', note: ''}]
-                }); }}
-                className="px-8 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800"
-              >
+
+              <button onClick={resetAll} className="px-8 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800">
                 返回首頁
               </button>
             </div>
           )}
-
         </div>
-        
-        <footer className="mt-8 text-center text-sm text-gray-400">
-          © 2025 B2B 客戶服務系統 v2.0 (Stable)
-        </footer>
+
+        <footer className="mt-8 text-center text-sm text-gray-400">© 2025 B2B 客戶服務系統 v2.0 (Stable)</footer>
       </div>
     </div>
   );
