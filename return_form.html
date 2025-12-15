@@ -225,8 +225,8 @@ export default function App() {
                 type="number"
                 min="1"
                 placeholder="數量"
-                // 關鍵修正：將數值轉為字串，避免 undefined 錯誤
-                value={String(product.quantity || '')}
+                // 修正：回歸最標準的寫法，移除 String() 包裹
+                value={product.quantity}
                 onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm text-center"
