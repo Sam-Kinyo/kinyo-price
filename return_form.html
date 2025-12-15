@@ -4,313 +4,207 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KINYO B2B 售後服務申請中心</title>
-    
-    <!-- 1. 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 2. 引入 React 和 ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    
-    <!-- 3. 引入 Babel (讓瀏覽器看懂 JSX) -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
     <style>
-        /* 避免載入時閃爍 */
         body { opacity: 0; transition: opacity 0.5s; }
-        /* 日期選擇器樣式優化 */
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            cursor: pointer;
-            opacity: 0.6;
-        }
-        input[type="date"]::-webkit-calendar-picker-indicator:hover {
-            opacity: 1;
-        }
+        input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+        /* Loading 動畫 */
+        .spinner { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3b82f6; width: 20px; height: 20px; -webkit-animation: spin 1s linear infinite; animation: spin 1s linear infinite; }
+        @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
-
-    <!-- React 應用程式掛載點 -->
     <div id="root"></div>
-
-    <!-- React 程式碼邏輯 -->
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- 0. 圖示元件定義 ---
-        const IconBase = ({ children, size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
+        // --- 0. 設定區 (請在此填入您的 Google Apps Script 網址) ---
+        // 請將下方的 "您的_GOOGLE_SCRIPT_URL" 替換為實際的 Web App URL
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCS7Gq03PeeYpymCVYM02bhST_OP_zcnEyrs41aVmLSprs2tlOCIafM9liEGR4MmIcuw/exec"; 
+
+        // --- 1. 圖示元件 ---
+        const IconBase = ({ children, size = 24, className = "" }) => (<svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>);
+        const PackageMinus = (p) => <IconBase {...p}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="M16 16h6"/></IconBase>;
+        const RotateCcw = (p) => <IconBase {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconBase>;
+        const AlertTriangle = (p) => <IconBase {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconBase>;
+        const ArrowRight = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></IconBase>;
+        const CheckCircle2 = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconBase>;
+        const ArrowLeft = (p) => <IconBase {...p}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></IconBase>;
+        const UploadCloud = (p) => <IconBase {...p}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></IconBase>;
+        const FileText = (p) => <IconBase {...p}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconBase>;
+        const Building2 = (p) => <IconBase {...p}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></IconBase>;
+        const User = (p) => <IconBase {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></IconBase>;
+        const X = (p) => <IconBase {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
+        const Plus = (p) => <IconBase {...p}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
+        const Trash2 = (p) => <IconBase {...p}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
+        const Box = (p) => <IconBase {...p}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></IconBase>;
+        const Globe = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconBase>;
+        const HelpCircle = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>;
+
+        // --- 2. 元件定義 ---
+        const InputField = ({ label, required, ...props }) => (
+            <div className="space-y-1.5">
+                <label className="block text-sm font-semibold text-gray-700">{label} {required && <span className="text-red-500">*</span>}</label>
+                <input {...props} className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400" />
+            </div>
         );
-        const PackageMinus = (props) => <IconBase {...props}><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/><path d="M16 16h6"/></IconBase>;
-        const RotateCcw = (props) => <IconBase {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconBase>;
-        const AlertTriangle = (props) => <IconBase {...props}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconBase>;
-        const ArrowRight = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></IconBase>;
-        const CheckCircle2 = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></IconBase>;
-        const ArrowLeft = (props) => <IconBase {...props}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></IconBase>;
-        const UploadCloud = (props) => <IconBase {...props}><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></IconBase>;
-        const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconBase>;
-        const Building2 = (props) => <IconBase {...props}><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/></IconBase>;
-        const User = (props) => <IconBase {...props}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></IconBase>;
-        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
-        const Plus = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
-        const Trash2 = (props) => <IconBase {...props}><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
-        const Box = (props) => <IconBase {...props}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></IconBase>;
-        const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconBase>;
-        const HelpCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>;
-        const Truck = (props) => <IconBase {...props}><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></IconBase>;
-        const Calendar = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconBase>;
 
-        // --- 1. 元件定義 (InputField) ---
-        const InputField = ({ label, required, ...props }) => {
-            return (
-                <div className="space-y-1.5">
-                    <label className="block text-sm font-semibold text-gray-700">
-                        {label} {required && <span className="text-red-500">*</span>}
-                    </label>
-                    <input 
-                        {...props}
-                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400"
-                    />
-                </div>
-            );
-        };
-
-        // --- 2. 主程式 (App) ---
+        // --- 3. 主程式 ---
         function App() {
             const [selectedType, setSelectedType] = useState(null);
             const [step, setStep] = useState(1);
+            const [isSubmitting, setIsSubmitting] = useState(false); // 傳送狀態
             const [formData, setFormData] = useState({
-                // 共用資料 (B2B)
-                companyName: '', // 經銷商名稱
-                contactName: '', 
-                contactPhone: '', 
-                
-                // 新品不良專用 - 消費者資料
-                consumerName: '',
-                consumerPhone: '',
-                consumerAddress: '',
-
-                // 各類別專用
-                orderNumber: '',
-                shippingCarrier: '', 
-                trackingNumber: '',  
-                projectName: '',     
-                defectiveDesc: '',
-                files: [],
-                // 產品明細 (新增 purchaseDate)
+                companyName: '', contactName: '', contactPhone: '', 
+                orderNumber: '', shippingCarrier: '', trackingNumber: '', projectName: '',
+                consumerName: '', consumerPhone: '', consumerAddress: '',
+                defectiveDesc: '', files: [],
                 products: [{ id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }]
             });
 
             const returnTypes = [
-                {
-                    id: 'sales_return',
-                    title: '銷貨退貨',
-                    icon: <PackageMinus size={28} />,
-                    description: '訂錯或多訂商品之退貨申請',
-                    color: 'blue',
-                    activeClass: 'ring-2 ring-blue-500 bg-blue-50 border-blue-500',
-                    iconBg: 'bg-blue-100 text-blue-600',
-                    tagColor: 'text-blue-700 bg-blue-50 border-blue-100'
-                },
-                {
-                    id: 'sample_return',
-                    title: '樣品歸還',
-                    icon: <RotateCcw size={28} />,
-                    description: '歸還借出之樣品或測試機台',
-                    color: 'purple',
-                    activeClass: 'ring-2 ring-purple-500 bg-purple-50 border-purple-500',
-                    iconBg: 'bg-purple-100 text-purple-600',
-                    tagColor: 'text-purple-700 bg-purple-50 border-purple-100'
-                },
-                {
-                    id: 'new_defective',
-                    title: '新品不良',
-                    icon: <AlertTriangle size={28} />,
-                    description: 'DOA 到貨即損壞之報修申請',
-                    color: 'red',
-                    activeClass: 'ring-2 ring-red-500 bg-red-50 border-red-500',
-                    iconBg: 'bg-red-100 text-red-600',
-                    tagColor: 'text-red-700 bg-red-50 border-red-100'
-                }
+                { id: 'sales_return', title: '銷貨退貨', icon: <PackageMinus size={28} />, description: '訂錯或多訂商品之退貨申請', color: 'blue', activeClass: 'ring-2 ring-blue-500 bg-blue-50 border-blue-500', iconBg: 'bg-blue-100 text-blue-600', tagColor: 'text-blue-700 bg-blue-50 border-blue-100' },
+                { id: 'sample_return', title: '樣品歸還', icon: <RotateCcw size={28} />, description: '歸還借出之樣品或測試機台', color: 'purple', activeClass: 'ring-2 ring-purple-500 bg-purple-50 border-purple-500', iconBg: 'bg-purple-100 text-purple-600', tagColor: 'text-purple-700 bg-purple-50 border-purple-100' },
+                { id: 'new_defective', title: '新品不良', icon: <AlertTriangle size={28} />, description: 'DOA 到貨即損壞之報修申請', color: 'red', activeClass: 'ring-2 ring-red-500 bg-red-50 border-red-500', iconBg: 'bg-red-100 text-red-600', tagColor: 'text-red-700 bg-red-50 border-red-100' }
             ];
-
             const currentTypeData = returnTypes.find(t => t.id === selectedType);
 
+            // --- 檔案轉 Base64 邏輯 ---
+            const getBase64 = (file) => {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result.split(',')[1]); // 只取 Base64 內容，去掉檔頭
+                    reader.onerror = error => reject(error);
+                });
+            };
+
             const handleNext = () => { if (selectedType) setStep(2); };
-            
             const handleBack = () => {
                 if (step === 2) {
-                    setStep(1);
-                    setSelectedType(null);
+                    setStep(1); setSelectedType(null);
                     setFormData(prev => ({ ...prev, files: [], products: [{ id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }] }));
                 }
             };
 
-            const handleSubmit = (e) => { e.preventDefault(); setStep(3); };
-            
+            // --- 送出資料給 Google Apps Script ---
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setIsSubmitting(true);
+
+                // 1. 處理檔案轉碼
+                let fileData = [];
+                if (formData.files.length > 0) {
+                    try {
+                        const filePromises = formData.files.map(async (fileObj) => {
+                            const base64 = await getBase64(fileObj.file); // 注意這裡需要原始 File 物件
+                            return { name: fileObj.name, mimeType: fileObj.file.type, base64: base64 };
+                        });
+                        fileData = await Promise.all(filePromises);
+                    } catch (error) {
+                        alert("檔案處理失敗，請重試");
+                        setIsSubmitting(false);
+                        return;
+                    }
+                }
+
+                // 2. 準備 Payload
+                const rmaId = `RMA-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*1000)}`;
+                const payload = {
+                    ...formData,
+                    type: selectedType,
+                    typeTitle: currentTypeData?.title,
+                    rmaId: rmaId,
+                    files: fileData // 替換為 Base64 資料
+                };
+
+                // 3. 發送 POST 請求
+                // 注意：這裡使用 text/plain 是為了避開 Google 的複雜 CORS 預檢
+                try {
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
+                        method: "POST",
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    if (response.ok) {
+                        setStep(3); // 成功跳轉
+                    } else {
+                        alert("送出失敗，請檢查網路或聯繫客服。");
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                    // 備註：跨域有時會報錯但其實成功，這裡簡單處理
+                    alert("送出過程發生異常，若已收到確認信請忽略。");
+                    setStep(3); // 暫時允許跳轉 (因 GAS 有時回傳 opaque response)
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
             const handleInputChange = (e) => { const { name, value } = e.target; setFormData(prev => ({ ...prev, [name]: value })); };
-            
             const handleProductChange = (id, field, value) => {
-                if (field === 'quantity') {
-                    const val = value.replace(/[^0-9]/g, '');
-                    setFormData(prev => ({ 
-                        ...prev, 
-                        products: prev.products.map(p => p.id === id ? { ...p, [field]: val } : p) 
-                    }));
-                } else {
-                    setFormData(prev => ({ 
-                        ...prev, 
-                        products: prev.products.map(p => p.id === id ? { ...p, [field]: value } : p) 
-                    }));
-                }
+                const val = (field === 'quantity') ? value.replace(/[^0-9]/g, '') : value;
+                setFormData(prev => ({ ...prev, products: prev.products.map(p => p.id === id ? { ...p, [field]: val } : p) }));
             };
+            const addProduct = () => { setFormData(prev => ({ ...prev, products: [...prev.products, { id: Date.now() + Math.random(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }] })); };
+            const removeProduct = (id) => { if (formData.products.length > 1) { setFormData(prev => ({ ...prev, products: prev.products.filter(p => p.id !== id) })); } };
             
-            const addProduct = () => {
-                setFormData(prev => ({ 
-                    ...prev, 
-                    products: [...prev.products, { id: Date.now() + Math.random(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }] 
-                }));
-            };
-            
-            const removeProduct = (id) => {
-                if (formData.products.length > 1) { 
-                    setFormData(prev => ({ ...prev, products: prev.products.filter(p => p.id !== id) })); 
-                }
-            };
-            
+            // 修改：保存原始 File 物件以便轉碼
             const handleFileUpload = (e) => {
                 if (e.target.files) {
-                    const newFiles = Array.from(e.target.files).map(file => ({ name: file.name, size: (file.size / 1024 / 1024).toFixed(2) + ' MB' }));
+                    const newFiles = Array.from(e.target.files).map(file => ({ 
+                        name: file.name, 
+                        size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
+                        file: file // 關鍵：保存原始物件
+                    }));
                     setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
                 }
             };
-            
             const removeFile = (index) => { setFormData(prev => ({ ...prev, files: prev.files.filter((_, i) => i !== index) })); };
 
-            // 渲染產品清單
-            const renderProductList = () => {
-                return (
-                    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-                            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                                <Box size={18} /> 產品明細
-                            </h3>
-                            <span className="text-xs font-medium px-2.5 py-1 bg-white border border-gray-200 rounded-full text-gray-600">
-                                共 {formData.products.length} 筆
-                            </span>
-                        </div>
-                        
-                        <div className="p-4 space-y-4">
-                            {formData.products.map((product, index) => (
-                                <div key={product.id} className="relative p-4 rounded-lg border border-gray-200 bg-white hover:border-gray-400 transition-colors group">
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                                        <div className="md:col-span-1 flex items-center gap-2 md:block">
-                                            <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#{index + 1}</span>
-                                            {formData.products.length > 1 && (
-                                                <button type="button" onClick={() => removeProduct(product.id)} className="md:hidden text-red-500 p-1">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {/* 產品型號 (Model) */}
-                                        <div className="md:col-span-4">
-                                            <input
-                                                type="text"
-                                                placeholder="產品型號 / 料號"
-                                                value={product.model}
-                                                onChange={(e) => handleProductChange(product.id, 'model', e.target.value)}
-                                                required
-                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
-                                            />
-                                        </div>
-
-                                        {/* 動態欄位區 (Date / Reason / Note) */}
-                                        <div className="md:col-span-5">
-                                            {/* 新品不良：顯示購買時間 (Date Picker) */}
-                                            {selectedType === 'new_defective' && (
-                                                <div className="relative">
-                                                    <input
-                                                        type="date"
-                                                        value={product.purchaseDate}
-                                                        onChange={(e) => handleProductChange(product.id, 'purchaseDate', e.target.value)}
-                                                        required
-                                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
-                                                    />
-                                                    {/* 若日期為空顯示提示 (Optional UI enhancement) */}
-                                                    {!product.purchaseDate && (
-                                                        <span className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">購買日期</span>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {selectedType === 'sales_return' && (
-                                                <select 
-                                                    value={product.reason}
-                                                    onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm bg-white"
-                                                >
-                                                    <option value="">選擇退貨原因...</option>
-                                                    <option value="spec_error">規格不符</option>
-                                                    <option value="duplicate">重複下單</option>
-                                                    <option value="excess">多訂/專案取消</option>
-                                                    <option value="other">其他</option>
-                                                </select>
-                                            )}
-                                            
-                                            {selectedType === 'sample_return' && (
-                                                <input
-                                                    type="text"
-                                                    placeholder="備註 (如：缺配件)"
-                                                    value={product.note}
-                                                    onChange={(e) => handleProductChange(product.id, 'note', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
-                                                />
-                                            )}
-                                        </div>
-
-                                        {/* 數量 */}
-                                        <div className="md:col-span-2">
-                                            <input
-                                                type="text"
-                                                inputMode="numeric"
-                                                placeholder="數量"
-                                                value={product.quantity}
-                                                onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
-                                                required
-                                                className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm text-center"
-                                            />
-                                        </div>
-
-                                        {/* 刪除 (Desktop) */}
-                                        <div className="hidden md:flex md:col-span-1 justify-center pt-2">
-                                            {formData.products.length > 1 && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeProduct(product.id)}
-                                                    className="text-gray-400 hover:text-red-500 transition-colors"
-                                                    title="移除"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            )}
-                                        </div>
+            // ... (Render Functions: renderProductList 保持不變) ...
+            const renderProductList = () => (
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+                        <h3 className="font-semibold text-gray-800 flex items-center gap-2"><Box size={18} /> 產品明細</h3>
+                        <span className="text-xs font-medium px-2.5 py-1 bg-white border border-gray-200 rounded-full text-gray-600">共 {formData.products.length} 筆</span>
+                    </div>
+                    <div className="p-4 space-y-4">
+                        {formData.products.map((product, index) => (
+                            <div key={product.id} className="relative p-4 rounded-lg border border-gray-200 bg-white hover:border-gray-400 transition-colors group">
+                                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                                    <div className="md:col-span-1 flex items-center gap-2 md:block">
+                                        <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">#{index + 1}</span>
+                                        {formData.products.length > 1 && (<button type="button" onClick={() => removeProduct(product.id)} className="md:hidden text-red-500 p-1"><Trash2 size={16} /></button>)}
+                                    </div>
+                                    <div className="md:col-span-4">
+                                        <input type="text" placeholder="產品型號 / 料號" value={product.model} onChange={(e) => handleProductChange(product.id, 'model', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm" />
+                                    </div>
+                                    <div className="md:col-span-5">
+                                        {selectedType === 'new_defective' && (<div className="relative"><input type="date" value={product.purchaseDate} onChange={(e) => handleProductChange(product.id, 'purchaseDate', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm" />{!product.purchaseDate && <span className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">購買日期</span>}</div>)}
+                                        {selectedType === 'sales_return' && (<select value={product.reason} onChange={(e) => handleProductChange(product.id, 'reason', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm bg-white"><option value="">選擇退貨原因...</option><option value="spec_error">規格不符</option><option value="duplicate">重複下單</option><option value="excess">多訂/專案取消</option><option value="other">其他</option></select>)}
+                                        {selectedType === 'sample_return' && (<input type="text" placeholder="備註 (如：缺配件)" value={product.note} onChange={(e) => handleProductChange(product.id, 'note', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm" />)}
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <input type="text" inputMode="numeric" placeholder="數量" value={product.quantity} onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)} required className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm text-center" />
+                                    </div>
+                                    <div className="hidden md:flex md:col-span-1 justify-center pt-2">
+                                        {formData.products.length > 1 && (<button type="button" onClick={() => removeProduct(product.id)} className="text-gray-400 hover:text-red-500 transition-colors" title="移除"><Trash2 size={18} /></button>)}
                                     </div>
                                 </div>
-                            ))}
-
-                            <button
-                                type="button"
-                                onClick={addProduct}
-                                className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"
-                            >
-                                <Plus size={16} /> 新增品項
-                            </button>
-                        </div>
+                            </div>
+                        ))}
+                        <button type="button" onClick={addProduct} className="w-full py-3 border border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 text-sm font-medium"><Plus size={16} /> 新增品項</button>
                     </div>
-                );
-            };
+                </div>
+            );
 
+            // --- Render ---
             return (
                 <div className="min-h-screen bg-gray-50 font-sans text-gray-800 flex flex-col">
                     <nav className="bg-gray-900 text-white shadow-md sticky top-0 z-50">
@@ -321,238 +215,81 @@
                             </div>
                             <div className="flex items-center gap-6 text-sm text-gray-300">
                                 <span className="hidden md:inline hover:text-white cursor-pointer transition-colors">使用教學</span>
-                                <div className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors">
-                                    <HelpCircle size={18} />
-                                    <span className="hidden md:inline">客服</span>
-                                </div>
+                                <div className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors"><HelpCircle size={18} /><span className="hidden md:inline">客服</span></div>
                             </div>
                         </div>
                     </nav>
 
                     <main className="flex-grow py-12 px-4 md:px-8">
                         <div className="max-w-4xl mx-auto">
-                            
+                            {/* Stepper */}
                             <div className="mb-12">
                                 <div className="flex items-center justify-between relative">
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 -z-10"></div>
                                     <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gray-800 transition-all duration-500 -z-10" style={{ width: step === 1 ? '0%' : step === 2 ? '50%' : '100%' }}></div>
-                                    
                                     {[1, 2, 3].map((s) => (
                                         <div key={s} className="flex flex-col items-center gap-2 bg-gray-50 px-2">
-                                            <div className={`
-                                                w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm
-                                                ${step >= s ? 'bg-gray-800 text-white scale-110' : 'bg-white border-2 border-gray-200 text-gray-400'}
-                                            `}>
-                                                {step > s ? <CheckCircle2 size={20} /> : s}
-                                            </div>
-                                            <span className={`text-xs font-medium ${step >= s ? 'text-gray-800' : 'text-gray-400'}`}>
-                                                {s === 1 ? '選擇類別' : s === 2 ? '填寫資料' : '完成申請'}
-                                            </span>
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-sm ${step >= s ? 'bg-gray-800 text-white scale-110' : 'bg-white border-2 border-gray-200 text-gray-400'}`}>{step > s ? <CheckCircle2 size={20} /> : s}</div>
+                                            <span className={`text-xs font-medium ${step >= s ? 'text-gray-800' : 'text-gray-400'}`}>{s === 1 ? '選擇類別' : s === 2 ? '填寫資料' : '完成申請'}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
+                            {/* Content */}
                             <div className="bg-white rounded-2xl shadow-xl shadow-gray-200/50 overflow-hidden border border-gray-100 min-h-[500px] transition-all duration-500">
-                                
+                                {/* STEP 1 */}
                                 {step === 1 && (
                                     <div className="p-8 md:p-12 animate-in fade-in zoom-in duration-300">
-                                        <div className="text-center mb-10">
-                                            <h2 className="text-2xl font-bold text-gray-900">請選擇您的申請項目</h2>
-                                            <p className="text-gray-500 mt-2">請依照您的需求點選下方類別，系統將引導您完成後續流程</p>
-                                        </div>
-                                        
+                                        <div className="text-center mb-10"><h2 className="text-2xl font-bold text-gray-900">請選擇您的申請項目</h2><p className="text-gray-500 mt-2">請依照您的需求點選下方類別，系統將引導您完成後續流程</p></div>
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                             {returnTypes.map((type) => (
-                                                <div
-                                                    key={type.id}
-                                                    onClick={() => setSelectedType(type.id)}
-                                                    className={`
-                                                        group relative cursor-pointer rounded-xl border-2 p-6 flex flex-col items-center text-center transition-all duration-300
-                                                        ${selectedType === type.id 
-                                                            ? type.activeClass
-                                                            : 'border-gray-100 hover:border-gray-300 hover:shadow-lg bg-white'}
-                                                    `}
-                                                >
-                                                    <div className={`mb-4 p-4 rounded-full transition-colors ${selectedType === type.id ? type.iconBg : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'}`}>
-                                                        {type.icon}
-                                                    </div>
+                                                <div key={type.id} onClick={() => setSelectedType(type.id)} className={`group relative cursor-pointer rounded-xl border-2 p-6 flex flex-col items-center text-center transition-all duration-300 ${selectedType === type.id ? type.activeClass : 'border-gray-100 hover:border-gray-300 hover:shadow-lg bg-white'}`}>
+                                                    <div className={`mb-4 p-4 rounded-full transition-colors ${selectedType === type.id ? type.iconBg : 'bg-gray-100 text-gray-500 group-hover:bg-gray-200'}`}>{type.icon}</div>
                                                     <h3 className="text-lg font-bold mb-2 text-gray-800">{type.title}</h3>
                                                     <p className="text-sm text-gray-500 leading-relaxed">{type.description}</p>
-                                                    {selectedType === type.id && (
-                                                        <div className="absolute -top-3 -right-3 bg-gray-800 text-white rounded-full p-1 shadow-md">
-                                                            <CheckCircle2 size={20} />
-                                                        </div>
-                                                    )}
+                                                    {selectedType === type.id && (<div className="absolute -top-3 -right-3 bg-gray-800 text-white rounded-full p-1 shadow-md"><CheckCircle2 size={20} /></div>)}
                                                 </div>
                                             ))}
                                         </div>
-
                                         <div className="mt-12 flex justify-end border-t border-gray-100 pt-6">
-                                            <button
-                                                onClick={handleNext}
-                                                disabled={!selectedType}
-                                                className={`
-                                                    flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300 shadow-sm
-                                                    ${selectedType 
-                                                        ? 'bg-gray-900 text-white hover:bg-gray-800 hover:translate-x-1 hover:shadow-md' 
-                                                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
-                                                `}
-                                            >
-                                                下一步
-                                                <ArrowRight size={20} />
-                                            </button>
+                                            <button onClick={handleNext} disabled={!selectedType} className={`flex items-center gap-2 px-8 py-3 rounded-lg font-semibold transition-all duration-300 shadow-sm ${selectedType ? 'bg-gray-900 text-white hover:bg-gray-800 hover:translate-x-1 hover:shadow-md' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>下一步 <ArrowRight size={20} /></button>
                                         </div>
                                     </div>
                                 )}
 
+                                {/* STEP 2 */}
                                 {step === 2 && currentTypeData && (
                                     <div className="animate-in slide-in-from-right duration-500">
                                         <div className="bg-gray-50 border-b border-gray-100 px-8 py-6 flex items-center justify-between">
-                                            <div className="flex items-center gap-3">
-                                                <button onClick={handleBack} className="text-gray-400 hover:text-gray-600 transition-colors">
-                                                    <ArrowLeft size={24} />
-                                                </button>
-                                                <div>
-                                                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                                                        填寫申請資料
-                                                        <span className={`text-xs px-2 py-0.5 rounded border ${currentTypeData.tagColor}`}>
-                                                            {currentTypeData.title}
-                                                        </span>
-                                                    </h2>
-                                                </div>
-                                            </div>
+                                            <div className="flex items-center gap-3"><button onClick={handleBack} className="text-gray-400 hover:text-gray-600 transition-colors"><ArrowLeft size={24} /></button><div><h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">填寫申請資料<span className={`text-xs px-2 py-0.5 rounded border ${currentTypeData.tagColor}`}>{currentTypeData.title}</span></h2></div></div>
                                         </div>
-
                                         <div className="p-8 md:p-12">
                                             <form onSubmit={handleSubmit} className="space-y-10">
                                                 <section>
-                                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                                        <Building2 size={16} /> 公司與聯絡人資料
-                                                    </h3>
-                                                    {/* 共用欄位：公司、聯絡人、電話 */}
+                                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Building2 size={16} /> 公司與聯絡人資料</h3>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <div className="md:col-span-2">
-                                                            <InputField label="經銷商名稱 (公司名稱)" required name="companyName" value={formData.companyName} onChange={handleInputChange} placeholder="請輸入完整抬頭" />
-                                                        </div>
+                                                        <div className="md:col-span-2"><InputField label="經銷商名稱 (公司名稱)" required name="companyName" value={formData.companyName} onChange={handleInputChange} placeholder="請輸入完整抬頭" /></div>
                                                         <InputField label="聯絡人姓名" required name="contactName" value={formData.contactName} onChange={handleInputChange} placeholder="請輸入姓名" />
                                                         <InputField label="聯絡人電話" required name="contactPhone" value={formData.contactPhone} onChange={handleInputChange} placeholder="分機或手機" />
                                                     </div>
                                                 </section>
 
                                                 <section>
-                                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                                        <FileText size={16} /> 申請內容詳情
-                                                    </h3>
-                                                    
+                                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2"><FileText size={16} /> 申請內容詳情</h3>
                                                     <div className={`p-6 rounded-xl border-l-4 bg-gray-50 border-gray-200 space-y-6`}>
                                                         <div className="grid grid-cols-1 gap-6">
-                                                            {/* 銷貨退貨專用欄位 */}
-                                                            {selectedType === 'sales_return' && (
-                                                                <InputField label="原訂單編號 (選填)" name="orderNumber" value={formData.orderNumber} onChange={handleInputChange} placeholder="原 PO 單號或發票號碼" />
-                                                            )}
-                                                            
-                                                            {/* 樣品歸還專用欄位 */}
-                                                            {selectedType === 'sample_return' && (
-                                                                <div className="grid grid-cols-1 gap-6">
-                                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                                        <div>
-                                                                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                                                                貨運寄回 (物流公司) <span className="text-red-500">*</span>
-                                                                            </label>
-                                                                            <select
-                                                                                name="shippingCarrier"
-                                                                                value={formData.shippingCarrier}
-                                                                                onChange={handleInputChange}
-                                                                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
-                                                                            >
-                                                                                <option value="">請選擇物流公司...</option>
-                                                                                <option value="大榮貨運">大榮貨運</option>
-                                                                                <option value="新竹貨運">新竹貨運</option>
-                                                                                <option value="宅急便">宅急便</option>
-                                                                                <option value="郵局">郵局</option>
-                                                                                <option value="宅配通">宅配通</option>
-                                                                                <option value="其他">其他</option>
-                                                                            </select>
-                                                                        </div>
-                                                                        <InputField label="貨運單號" required name="trackingNumber" value={formData.trackingNumber} onChange={handleInputChange} placeholder="請輸入單號" />
-                                                                    </div>
-                                                                    <InputField label="借出樣品案名 (選填)" name="projectName" value={formData.projectName} onChange={handleInputChange} placeholder="例如：2025 Q1 新品展示專案" />
-                                                                </div>
-                                                            )}
-
-                                                            {/* 新品不良專用：消費者資訊區塊 */}
-                                                            {selectedType === 'new_defective' && (
-                                                                <div className="bg-red-50/50 p-6 rounded-lg border border-red-100">
-                                                                    <h4 className="text-sm font-bold text-red-800 mb-4 flex items-center gap-2">
-                                                                        <User size={16} /> 消費者資訊 (End User)
-                                                                    </h4>
-                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                                        <InputField label="消費者姓名" required name="consumerName" value={formData.consumerName} onChange={handleInputChange} placeholder="請輸入消費者姓名" />
-                                                                        <InputField label="消費者電話" required name="consumerPhone" value={formData.consumerPhone} onChange={handleInputChange} placeholder="請輸入聯絡電話" />
-                                                                        <div className="md:col-span-2">
-                                                                            <InputField label="消費者地址 (來回件)" required name="consumerAddress" value={formData.consumerAddress} onChange={handleInputChange} placeholder="請輸入完整收送地址" />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
+                                                            {selectedType === 'sales_return' && (<InputField label="原訂單編號 (選填)" name="orderNumber" value={formData.orderNumber} onChange={handleInputChange} placeholder="原 PO 單號或發票號碼" />)}
+                                                            {selectedType === 'sample_return' && (<div className="grid grid-cols-1 gap-6"><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label className="block text-sm font-semibold text-gray-700 mb-1.5">貨運寄回 (物流公司) <span className="text-red-500">*</span></label><select name="shippingCarrier" value={formData.shippingCarrier} onChange={handleInputChange} className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"><option value="">請選擇物流公司...</option><option value="大榮貨運">大榮貨運</option><option value="新竹貨運">新竹貨運</option><option value="宅急便">宅急便</option><option value="郵局">郵局</option><option value="宅配通">宅配通</option><option value="其他">其他</option></select></div><InputField label="貨運單號" required name="trackingNumber" value={formData.trackingNumber} onChange={handleInputChange} placeholder="請輸入單號" /></div><InputField label="借出樣品案名 (選填)" name="projectName" value={formData.projectName} onChange={handleInputChange} placeholder="例如：2025 Q1 新品展示專案" /></div>)}
+                                                            {selectedType === 'new_defective' && (<div className="bg-red-50/50 p-6 rounded-lg border border-red-100"><h4 className="text-sm font-bold text-red-800 mb-4 flex items-center gap-2"><User size={16} /> 消費者資訊 (End User)</h4><div className="grid grid-cols-1 md:grid-cols-2 gap-6"><InputField label="消費者姓名" required name="consumerName" value={formData.consumerName} onChange={handleInputChange} placeholder="請輸入消費者姓名" /><InputField label="消費者電話" required name="consumerPhone" value={formData.consumerPhone} onChange={handleInputChange} placeholder="請輸入聯絡電話" /><div className="md:col-span-2"><InputField label="消費者地址 (來回件)" required name="consumerAddress" value={formData.consumerAddress} onChange={handleInputChange} placeholder="請輸入完整收送地址" /></div></div></div>)}
                                                         </div>
-
                                                         {renderProductList()}
-
-                                                        {selectedType === 'new_defective' && (
-                                                            <div className="pt-6 border-t border-gray-200 space-y-6">
-                                                                <div className="space-y-1.5">
-                                                                    <label className="block text-sm font-semibold text-gray-700">不良狀況描述 (整體)</label>
-                                                                    <textarea 
-                                                                        name="defectiveDesc"
-                                                                        value={formData.defectiveDesc}
-                                                                        onChange={handleInputChange}
-                                                                        rows="3" 
-                                                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400"
-                                                                        placeholder="請詳細描述異常狀況..."
-                                                                    ></textarea>
-                                                                </div>
-                                                                
-                                                                <div className="space-y-1.5">
-                                                                    <label className="block text-sm font-semibold text-gray-700">佐證照片/影片 <span className="text-red-500">*</span></label>
-                                                                    <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-white hover:bg-gray-50 hover:border-gray-400 transition-all cursor-pointer relative group">
-                                                                        <input type="file" multiple accept="image/*,video/*" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
-                                                                        <div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-gray-600">
-                                                                            <UploadCloud size={40} className="mb-3" />
-                                                                            <p className="font-medium text-gray-700">點擊或拖曳檔案至此</p>
-                                                                            <p className="text-xs mt-1">支援 JPG, PNG, MP4</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    {formData.files.length > 0 && (
-                                                                        <div className="space-y-2 mt-3">
-                                                                            {formData.files.map((file, index) => (
-                                                                                <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg text-sm shadow-sm">
-                                                                                    <div className="flex items-center gap-2 text-gray-600">
-                                                                                        <FileText size={16} />
-                                                                                        <span className="truncate max-w-[200px]">{file.name}</span>
-                                                                                        <span className="text-gray-400 text-xs">({file.size})</span>
-                                                                                    </div>
-                                                                                    <button type="button" onClick={() => removeFile(index)} className="text-gray-400 hover:text-red-500">
-                                                                                        <X size={16} />
-                                                                                    </button>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
+                                                        {selectedType === 'new_defective' && (<div className="pt-6 border-t border-gray-200 space-y-6"><div className="space-y-1.5"><label className="block text-sm font-semibold text-gray-700">不良狀況描述 (整體)</label><textarea name="defectiveDesc" value={formData.defectiveDesc} onChange={handleInputChange} rows="3" className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400" placeholder="請詳細描述異常狀況..."></textarea></div><div className="space-y-1.5"><label className="block text-sm font-semibold text-gray-700">佐證照片/影片 <span className="text-red-500">*</span></label><div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center bg-white hover:bg-gray-50 hover:border-gray-400 transition-all cursor-pointer relative group"><input type="file" multiple accept="image/*,video/*" onChange={handleFileUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" /><div className="flex flex-col items-center justify-center text-gray-400 group-hover:text-gray-600"><UploadCloud size={40} className="mb-3" /><p className="font-medium text-gray-700">點擊或拖曳檔案至此</p><p className="text-xs mt-1">支援 JPG, PNG, MP4</p></div></div>{formData.files.length > 0 && (<div className="space-y-2 mt-3">{formData.files.map((file, index) => (<div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg text-sm shadow-sm"><div className="flex items-center gap-2 text-gray-600"><FileText size={16} /><span className="truncate max-w-[200px]">{file.name}</span><span className="text-gray-400 text-xs">({file.size})</span></div><button type="button" onClick={() => removeFile(index)} className="text-gray-400 hover:text-red-500"><X size={16} /></button></div>))}</div>)}</div></div>)}
                                                     </div>
                                                 </section>
-
                                                 <div className="flex justify-end pt-6">
-                                                    <button
-                                                        type="submit"
-                                                        className="flex items-center gap-2 px-8 py-3 bg-gray-900 text-white rounded-lg font-semibold shadow-md hover:bg-gray-800 hover:translate-x-1 transition-all"
-                                                    >
-                                                        送出申請
-                                                        <ArrowRight size={20} />
+                                                    <button type="submit" disabled={isSubmitting} className={`flex items-center gap-2 px-8 py-3 bg-gray-900 text-white rounded-lg font-semibold shadow-md hover:bg-gray-800 hover:translate-x-1 transition-all ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>
+                                                        {isSubmitting ? <><div className="spinner mr-2"></div> 傳送中...</> : <>送出申請 <ArrowRight size={20} /></>}
                                                     </button>
                                                 </div>
                                             </form>
@@ -560,82 +297,31 @@
                                     </div>
                                 )}
 
+                                {/* STEP 3 */}
                                 {step === 3 && (
                                     <div className="p-12 text-center animate-in zoom-in duration-500 flex flex-col items-center justify-center min-h-[500px]">
-                                        <div className="w-20 h-20 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6 shadow-sm">
-                                            <CheckCircle2 size={40} />
-                                        </div>
+                                        <div className="w-20 h-20 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6 shadow-sm"><CheckCircle2 size={40} /></div>
                                         <h2 className="text-3xl font-bold text-gray-900 mb-2">申請已送出</h2>
                                         <p className="text-gray-500 mb-8">系統已收到您的申請，我們將儘速處理。</p>
-                                        
                                         <div className="bg-gray-50 p-6 rounded-xl w-full max-w-md text-left border border-gray-200 mb-8 shadow-sm">
-                                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200">
-                                                <span className="text-sm text-gray-500">案件編號</span>
-                                                <span className="font-mono font-bold text-gray-800">RMA-20251215-001</span>
-                                            </div>
+                                            <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200"><span className="text-sm text-gray-500">案件編號</span><span className="font-mono font-bold text-gray-800">系統自動生成...</span></div>
                                             <div className="space-y-2 text-sm">
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-500">申請公司</span>
-                                                    <span className="font-medium text-gray-800">{formData.companyName}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-500">聯絡人</span>
-                                                    <span className="font-medium text-gray-800">{formData.contactName} / {formData.contactPhone}</span>
-                                                </div>
-                                                <div className="flex justify-between">
-                                                    <span className="text-gray-500">申請類別</span>
-                                                    <span className={`font-medium ${currentTypeData?.tagColor?.split(' ')[0]}`}>{currentTypeData?.title}</span>
-                                                </div>
-                                                
-                                                {/* 根據不同類型顯示重點資訊 */}
-                                                {selectedType === 'sample_return' && (
-                                                    <div className="flex justify-between">
-                                                        <span className="text-gray-500">物流/單號</span>
-                                                        <span className="font-medium text-gray-800">{formData.shippingCarrier} / {formData.trackingNumber}</span>
-                                                    </div>
-                                                )}
-                                                {selectedType === 'new_defective' && (
-                                                    <div className="flex justify-between border-t border-dashed pt-2 mt-2">
-                                                        <span className="text-gray-500">消費者</span>
-                                                        <span className="font-medium text-gray-800">{formData.consumerName}</span>
-                                                    </div>
-                                                )}
-
-                                                <div className="flex justify-between mt-2 pt-2 border-t border-gray-200">
-                                                    <span className="text-gray-500">申請項目數</span>
-                                                    <span className="font-medium text-gray-800">{formData.products.length} 筆</span>
-                                                </div>
+                                                <div className="flex justify-between"><span className="text-gray-500">申請公司</span><span className="font-medium text-gray-800">{formData.companyName}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">聯絡人</span><span className="font-medium text-gray-800">{formData.contactName}</span></div>
+                                                <div className="flex justify-between"><span className="text-gray-500">申請類別</span><span className={`font-medium ${currentTypeData?.tagColor?.split(' ')[0]}`}>{currentTypeData?.title}</span></div>
                                             </div>
                                         </div>
-                                        
                                         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-                                            <button onClick={() => window.location.href = 'https://www.kinyo-gift.com/'} className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
-                                                <Globe size={18} /> 前往官網
-                                            </button>
-                                            <button onClick={() => { setStep(1); setSelectedType(null); setFormData({ 
-                                                companyName: '', contactName: '', contactPhone: '', orderNumber: '', 
-                                                consumerName: '', consumerPhone: '', consumerAddress: '',
-                                                shippingCarrier: '', trackingNumber: '', projectName: '',
-                                                salesPerson: '', defectiveDesc: '', files: [], 
-                                                products: [{id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: ''}] 
-                                            }); }} className="px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-all">
-                                                返回首頁
-                                            </button>
+                                            <button onClick={() => window.location.href = 'https://www.kinyo-gift.com/'} className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2"><Globe size={18} /> 前往官網</button>
+                                            <button onClick={() => { setStep(1); setSelectedType(null); setFormData({ companyName: '', contactName: '', contactPhone: '', orderNumber: '', consumerName: '', consumerPhone: '', consumerAddress: '', shippingCarrier: '', trackingNumber: '', projectName: '', salesPerson: '', defectiveDesc: '', files: [], products: [{id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: ''}] }); }} className="px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-all">返回首頁</button>
                                         </div>
                                     </div>
                                 )}
-
                             </div>
-
                             <footer className="mt-12 text-center text-sm text-gray-400">
                                 <p>© 2025 KINYO. All rights reserved.</p>
-                                <div className="flex justify-center gap-4 mt-2">
-                                    <a href="#" className="hover:text-gray-600 transition-colors">隱私權政策</a>
-                                    <span>|</span>
-                                    <a href="#" className="hover:text-gray-600 transition-colors">服務條款</a>
-                                </div>
+                                <div className="flex justify-center gap-4 mt-2"><a href="#" className="hover:text-gray-600 transition-colors">隱私權政策</a><span>|</span><a href="#" className="hover:text-gray-600 transition-colors">服務條款</a></div>
                             </footer>
-
                         </div>
                     </main>
                 </div>
@@ -645,8 +331,6 @@
         // --- 3. 啟動 React ---
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
-
-        // 載入完成後顯示 body (避免閃爍)
         window.onload = () => document.body.style.opacity = '1';
     </script>
 </body>
