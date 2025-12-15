@@ -18,6 +18,14 @@
     <style>
         /* 避免載入時閃爍 */
         body { opacity: 0; transition: opacity 0.5s; }
+        /* 日期選擇器樣式優化 */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -29,7 +37,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- 0. 圖示元件定義 (替代 import) ---
+        // --- 0. 圖示元件定義 ---
         const IconBase = ({ children, size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>{children}</svg>
         );
@@ -49,6 +57,8 @@
         const Box = (props) => <IconBase {...props}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></IconBase>;
         const Globe = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconBase>;
         const HelpCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>;
+        const Truck = (props) => <IconBase {...props}><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></IconBase>;
+        const Calendar = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconBase>;
 
         // --- 1. 元件定義 (InputField) ---
         const InputField = ({ label, required, ...props }) => {
@@ -70,14 +80,25 @@
             const [selectedType, setSelectedType] = useState(null);
             const [step, setStep] = useState(1);
             const [formData, setFormData] = useState({
-                companyName: '',
-                taxId: '',
-                contactPerson: '',
+                // 共用資料 (B2B)
+                companyName: '', // 經銷商名稱
+                contactName: '', 
+                contactPhone: '', 
+                
+                // 新品不良專用 - 消費者資料
+                consumerName: '',
+                consumerPhone: '',
+                consumerAddress: '',
+
+                // 各類別專用
                 orderNumber: '',
-                salesPerson: '',
+                shippingCarrier: '', 
+                trackingNumber: '',  
+                projectName: '',     
                 defectiveDesc: '',
                 files: [],
-                products: [{ id: Date.now(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }]
+                // 產品明細 (新增 purchaseDate)
+                products: [{ id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }]
             });
 
             const returnTypes = [
@@ -121,7 +142,7 @@
                 if (step === 2) {
                     setStep(1);
                     setSelectedType(null);
-                    setFormData(prev => ({ ...prev, files: [], products: [{ id: Date.now(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }] }));
+                    setFormData(prev => ({ ...prev, files: [], products: [{ id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }] }));
                 }
             };
 
@@ -147,7 +168,7 @@
             const addProduct = () => {
                 setFormData(prev => ({ 
                     ...prev, 
-                    products: [...prev.products, { id: Date.now() + Math.random(), model: '', quantity: "1", reason: '', serialNumber: '', note: '' }] 
+                    products: [...prev.products, { id: Date.now() + Math.random(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }] 
                 }));
             };
             
@@ -192,7 +213,8 @@
                                             )}
                                         </div>
 
-                                        <div className="md:col-span-5">
+                                        {/* 產品型號 (Model) */}
+                                        <div className="md:col-span-4">
                                             <input
                                                 type="text"
                                                 placeholder="產品型號 / 料號"
@@ -203,7 +225,25 @@
                                             />
                                         </div>
 
-                                        <div className="md:col-span-4">
+                                        {/* 動態欄位區 (Date / Reason / Note) */}
+                                        <div className="md:col-span-5">
+                                            {/* 新品不良：顯示購買時間 (Date Picker) */}
+                                            {selectedType === 'new_defective' && (
+                                                <div className="relative">
+                                                    <input
+                                                        type="date"
+                                                        value={product.purchaseDate}
+                                                        onChange={(e) => handleProductChange(product.id, 'purchaseDate', e.target.value)}
+                                                        required
+                                                        className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
+                                                    />
+                                                    {/* 若日期為空顯示提示 (Optional UI enhancement) */}
+                                                    {!product.purchaseDate && (
+                                                        <span className="absolute right-8 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">購買日期</span>
+                                                    )}
+                                                </div>
+                                            )}
+
                                             {selectedType === 'sales_return' && (
                                                 <select 
                                                     value={product.reason}
@@ -217,15 +257,7 @@
                                                     <option value="other">其他</option>
                                                 </select>
                                             )}
-                                            {selectedType === 'new_defective' && (
-                                                <input
-                                                    type="text"
-                                                    placeholder="產品序號 (S/N)"
-                                                    value={product.serialNumber}
-                                                    onChange={(e) => handleProductChange(product.id, 'serialNumber', e.target.value)}
-                                                    className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-gray-800 outline-none text-sm"
-                                                />
-                                            )}
+                                            
                                             {selectedType === 'sample_return' && (
                                                 <input
                                                     type="text"
@@ -237,6 +269,7 @@
                                             )}
                                         </div>
 
+                                        {/* 數量 */}
                                         <div className="md:col-span-2">
                                             <input
                                                 type="text"
@@ -249,6 +282,7 @@
                                             />
                                         </div>
 
+                                        {/* 刪除 (Desktop) */}
                                         <div className="hidden md:flex md:col-span-1 justify-center pt-2">
                                             {formData.products.length > 1 && (
                                                 <button
@@ -394,14 +428,15 @@
                                             <form onSubmit={handleSubmit} className="space-y-10">
                                                 <section>
                                                     <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
-                                                        <Building2 size={16} /> 公司基本資料
+                                                        <Building2 size={16} /> 公司與聯絡人資料
                                                     </h3>
+                                                    {/* 共用欄位：公司、聯絡人、電話 */}
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                        <InputField label="公司名稱" required name="companyName" value={formData.companyName} onChange={handleInputChange} placeholder="請輸入完整抬頭" />
-                                                        <InputField label="統一編號" required name="taxId" value={formData.taxId} onChange={handleInputChange} placeholder="8碼統編" />
                                                         <div className="md:col-span-2">
-                                                            <InputField label="聯絡人 / 電話" required name="contactPerson" value={formData.contactPerson} onChange={handleInputChange} placeholder="姓名 / 分機或手機" />
+                                                            <InputField label="經銷商名稱 (公司名稱)" required name="companyName" value={formData.companyName} onChange={handleInputChange} placeholder="請輸入完整抬頭" />
                                                         </div>
+                                                        <InputField label="聯絡人姓名" required name="contactName" value={formData.contactName} onChange={handleInputChange} placeholder="請輸入姓名" />
+                                                        <InputField label="聯絡人電話" required name="contactPhone" value={formData.contactPhone} onChange={handleInputChange} placeholder="分機或手機" />
                                                     </div>
                                                 </section>
 
@@ -412,11 +447,54 @@
                                                     
                                                     <div className={`p-6 rounded-xl border-l-4 bg-gray-50 border-gray-200 space-y-6`}>
                                                         <div className="grid grid-cols-1 gap-6">
+                                                            {/* 銷貨退貨專用欄位 */}
                                                             {selectedType === 'sales_return' && (
                                                                 <InputField label="原訂單編號 (選填)" name="orderNumber" value={formData.orderNumber} onChange={handleInputChange} placeholder="原 PO 單號或發票號碼" />
                                                             )}
+                                                            
+                                                            {/* 樣品歸還專用欄位 */}
                                                             {selectedType === 'sample_return' && (
-                                                                <InputField label="借出業務員姓名" required name="salesPerson" value={formData.salesPerson} onChange={handleInputChange} placeholder="例如：王小明" />
+                                                                <div className="grid grid-cols-1 gap-6">
+                                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                        <div>
+                                                                            <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                                                                貨運寄回 (物流公司) <span className="text-red-500">*</span>
+                                                                            </label>
+                                                                            <select
+                                                                                name="shippingCarrier"
+                                                                                value={formData.shippingCarrier}
+                                                                                onChange={handleInputChange}
+                                                                                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all"
+                                                                            >
+                                                                                <option value="">請選擇物流公司...</option>
+                                                                                <option value="大榮貨運">大榮貨運</option>
+                                                                                <option value="新竹貨運">新竹貨運</option>
+                                                                                <option value="宅急便">宅急便</option>
+                                                                                <option value="郵局">郵局</option>
+                                                                                <option value="宅配通">宅配通</option>
+                                                                                <option value="其他">其他</option>
+                                                                            </select>
+                                                                        </div>
+                                                                        <InputField label="貨運單號" required name="trackingNumber" value={formData.trackingNumber} onChange={handleInputChange} placeholder="請輸入單號" />
+                                                                    </div>
+                                                                    <InputField label="借出樣品案名 (選填)" name="projectName" value={formData.projectName} onChange={handleInputChange} placeholder="例如：2025 Q1 新品展示專案" />
+                                                                </div>
+                                                            )}
+
+                                                            {/* 新品不良專用：消費者資訊區塊 */}
+                                                            {selectedType === 'new_defective' && (
+                                                                <div className="bg-red-50/50 p-6 rounded-lg border border-red-100">
+                                                                    <h4 className="text-sm font-bold text-red-800 mb-4 flex items-center gap-2">
+                                                                        <User size={16} /> 消費者資訊 (End User)
+                                                                    </h4>
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                                        <InputField label="消費者姓名" required name="consumerName" value={formData.consumerName} onChange={handleInputChange} placeholder="請輸入消費者姓名" />
+                                                                        <InputField label="消費者電話" required name="consumerPhone" value={formData.consumerPhone} onChange={handleInputChange} placeholder="請輸入聯絡電話" />
+                                                                        <div className="md:col-span-2">
+                                                                            <InputField label="消費者地址 (來回件)" required name="consumerAddress" value={formData.consumerAddress} onChange={handleInputChange} placeholder="請輸入完整收送地址" />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             )}
                                                         </div>
 
@@ -432,7 +510,7 @@
                                                                         onChange={handleInputChange}
                                                                         rows="3" 
                                                                         className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400"
-                                                                        placeholder="請描述異常狀況..."
+                                                                        placeholder="請詳細描述異常狀況..."
                                                                     ></textarea>
                                                                 </div>
                                                                 
@@ -501,10 +579,29 @@
                                                     <span className="font-medium text-gray-800">{formData.companyName}</span>
                                                 </div>
                                                 <div className="flex justify-between">
+                                                    <span className="text-gray-500">聯絡人</span>
+                                                    <span className="font-medium text-gray-800">{formData.contactName} / {formData.contactPhone}</span>
+                                                </div>
+                                                <div className="flex justify-between">
                                                     <span className="text-gray-500">申請類別</span>
                                                     <span className={`font-medium ${currentTypeData?.tagColor?.split(' ')[0]}`}>{currentTypeData?.title}</span>
                                                 </div>
-                                                <div className="flex justify-between">
+                                                
+                                                {/* 根據不同類型顯示重點資訊 */}
+                                                {selectedType === 'sample_return' && (
+                                                    <div className="flex justify-between">
+                                                        <span className="text-gray-500">物流/單號</span>
+                                                        <span className="font-medium text-gray-800">{formData.shippingCarrier} / {formData.trackingNumber}</span>
+                                                    </div>
+                                                )}
+                                                {selectedType === 'new_defective' && (
+                                                    <div className="flex justify-between border-t border-dashed pt-2 mt-2">
+                                                        <span className="text-gray-500">消費者</span>
+                                                        <span className="font-medium text-gray-800">{formData.consumerName}</span>
+                                                    </div>
+                                                )}
+
+                                                <div className="flex justify-between mt-2 pt-2 border-t border-gray-200">
                                                     <span className="text-gray-500">申請項目數</span>
                                                     <span className="font-medium text-gray-800">{formData.products.length} 筆</span>
                                                 </div>
@@ -515,7 +612,13 @@
                                             <button onClick={() => window.location.href = 'https://www.kinyo-gift.com/'} className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all flex items-center justify-center gap-2">
                                                 <Globe size={18} /> 前往官網
                                             </button>
-                                            <button onClick={() => { setStep(1); setSelectedType(null); setFormData({ companyName: '', taxId: '', contactPerson: '', orderNumber: '', salesPerson: '', defectiveDesc: '', files: [], products: [{id: Date.now(), model: '', quantity: "1", reason: '', serialNumber: '', note: ''}] }); }} className="px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-all">
+                                            <button onClick={() => { setStep(1); setSelectedType(null); setFormData({ 
+                                                companyName: '', contactName: '', contactPhone: '', orderNumber: '', 
+                                                consumerName: '', consumerPhone: '', consumerAddress: '',
+                                                shippingCarrier: '', trackingNumber: '', projectName: '',
+                                                salesPerson: '', defectiveDesc: '', files: [], 
+                                                products: [{id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: ''}] 
+                                            }); }} className="px-6 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-all">
                                                 返回首頁
                                             </button>
                                         </div>
