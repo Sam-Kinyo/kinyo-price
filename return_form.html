@@ -5,75 +5,164 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>售後服務中心 | 您的個人品牌</title>
     <style>
-        /* 簡單的 CSS 美化，讓表單看起來專業 */
+        /* CSS 樣式區 */
         body {
-            font-family: "Microsoft JhengHei", sans-serif;
-            background-color: #f4f4f9;
+            font-family: "Microsoft JhengHei", "Heiti TC", sans-serif;
+            background-color: #f0f2f5;
             display: flex;
             justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
             padding: 20px;
+            color: #333;
         }
+
         .container {
             background: white;
             width: 100%;
-            max-width: 500px; /* 手機版寬度 */
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 600px; /* 稍微加寬以容納產品列表 */
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
         }
+
         h2 {
             text-align: center;
-            color: #333;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .sub-title {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
             margin-bottom: 20px;
         }
-        .form-group {
-            margin-bottom: 15px;
-        }
+
         label {
             display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #444;
+            font-size: 15px;
         }
+
         input, select, textarea {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box; /* 確保 padding 不會撐破寬度 */
-            font-size: 16px;
+            border-radius: 8px;
+            box-sizing: border-box;
+            font-size: 15px;
+            transition: border-color 0.3s;
+            background-color: #fff;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            border-color: #007bff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+        }
+
+        /* 產品列表樣式 */
+        .product-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
         }
         
-        /* 重點：預設隱藏的動態區塊 */
+        .product-name-input {
+            flex: 3; /* 產品名稱佔寬一點 */
+        }
+        
+        .product-qty-input {
+            flex: 1; /* 數量欄位窄一點 */
+            text-align: center;
+        }
+
+        .add-row-btn {
+            background-color: #f8f9fa;
+            border: 1px dashed #ccc;
+            color: #555;
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .add-row-btn:hover {
+            background-color: #e9ecef;
+            border-color: #adb5bd;
+            color: #333;
+        }
+
+        /* 動態區塊 */
         .dynamic-section {
-            display: none; /* 預設不顯示 */
-            background-color: #f9f9f9;
-            padding: 15px;
-            border-left: 4px solid #007bff; /* 藍色裝飾線 */
-            margin-bottom: 15px;
+            display: none;
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            margin-bottom: 20px;
             border-radius: 4px;
         }
 
-        button {
+        /* 提交按鈕 */
+        .submit-btn {
             width: 100%;
-            padding: 12px;
-            background-color: #28a745;
+            padding: 14px;
+            background-color: #007bff;
             color: white;
             border: none;
-            border-radius: 5px;
-            font-size: 18px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.3s, transform 0.1s;
         }
-        button:hover {
-            background-color: #218838;
+
+        .submit-btn:hover {
+            background-color: #0056b3;
         }
-        .hint {
-            font-size: 12px;
-            color: #888;
-            margin-top: -10px;
-            margin-bottom: 10px;
-            display: block;
+
+        .submit-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* 成功訊息遮罩 */
+        #successModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+        .check-icon {
+            color: #28a745;
+            font-size: 50px;
+            margin-bottom: 15px;
         }
     </style>
 </head>
@@ -81,57 +170,67 @@
 
 <div class="container">
     <h2>售後服務申請</h2>
-    <p style="text-align:center; color:#666; font-size:14px;">感謝您對我的信任，請填寫下表，我與助理會盡快為您處理。</p>
+    <p class="sub-title">請填寫詳細資訊，我們將在收到後儘速為您處理。</p>
     
     <form id="returnForm">
         
+        <!-- 基本資料 -->
         <div class="form-group">
             <label for="orderId">訂單編號 / 客戶名稱</label>
-            <input type="text" id="orderId" placeholder="例如：20241203-01 或 王小明" required>
+            <input type="text" id="orderId" placeholder="例如：20241215-01 或 王小明" required>
         </div>
 
+        <!-- 服務類別 (切換開關) -->
         <div class="form-group">
-            <label for="productName">產品名稱 / 型號</label>
-            <input type="text" id="productName" placeholder="例如：Kinyo 藍牙喇叭" required>
-        </div>
-
-        <div class="form-group">
-            <label for="serviceType">請問您需要什麼服務？</label>
+            <label for="serviceType">服務類別</label>
             <select id="serviceType" onchange="toggleFields()" required>
-                <option value="" disabled selected>-- 請選擇 --</option>
+                <option value="" disabled selected>-- 請選擇服務項目 --</option>
                 <option value="return">1. 銷貨退貨 (買錯/不適用)</option>
                 <option value="sample">2. 樣品歸還 (試用完畢)</option>
                 <option value="exchange">3. 新品不良 (換貨/維修)</option>
             </select>
         </div>
 
-        <div id="section-return" class="dynamic-section">
-            <label>退款帳戶資訊</label>
-            <input type="text" id="bankCode" placeholder="銀行代碼 (例如：822)">
-            <input type="text" id="bankAccount" placeholder="銀行帳號" style="margin-top:10px;">
-            <span class="hint">收到商品核實無誤後，將退款至此帳戶。</span>
+        <!-- 產品清單區塊 (動態增加) -->
+        <div class="form-group">
+            <label>產品明細 (名稱/型號 與 數量)</label>
+            <div id="productListContainer">
+                <!-- JavaScript 會在這裡自動生成 7 行 -->
+            </div>
+            <button type="button" class="add-row-btn" onclick="addNewRow()">+ 增加一項產品</button>
         </div>
 
+        <!-- 動態區塊 A：銷貨退貨 -->
+        <div id="section-return" class="dynamic-section">
+            <label>退款帳戶資訊</label>
+            <div style="display:flex; gap:10px;">
+                <input type="text" id="bankCode" placeholder="銀行代碼 (如: 822)" style="flex:1;">
+                <input type="text" id="bankAccount" placeholder="銀行帳號" style="flex:3;">
+            </div>
+            <small style="color:#666; display:block; margin-top:5px;">* 核實商品無誤後，款項將退至此帳戶。</small>
+        </div>
+
+        <!-- 動態區塊 B：樣品歸還 -->
         <div id="section-sample" class="dynamic-section">
             <label>預計歸還日期</label>
             <input type="date" id="returnDate">
-            <span class="hint">感謝您的試用，期待您的反饋！</span>
         </div>
 
+        <!-- 動態區塊 C：新品不良 -->
         <div id="section-exchange" class="dynamic-section">
-            <label>方便司機交換件的時段</label>
+            <label>方便司機交換件時段</label>
             <select id="pickupTime">
                 <option value="any">不限皆可</option>
                 <option value="morning">上午 (09:00 - 12:00)</option>
                 <option value="afternoon">下午 (13:00 - 18:00)</option>
             </select>
-            <div style="margin-top:10px; background:#fff3cd; padding:10px; font-size:14px; border-radius:4px;">
-                <strong>💡 小提醒：</strong><br>
-                寄出前請確認是否已嘗試過「重置設備」？<br>
-                <a href="#" style="color:#856404;">點此查看常見故障排除教學</a>
+            <div style="margin-top:15px; background:#fff8d6; padding:12px; border-radius:6px; font-size:14px; color:#856404;">
+                <strong>💡 故障排除小撇步：</strong><br>
+                寄出前，建議您先嘗試重置設備，這能解決 80% 的連線問題喔！
             </div>
         </div>
 
+        <!-- 聯絡資訊 -->
         <div class="form-group">
             <label for="contactPhone">聯絡電話</label>
             <input type="tel" id="contactPhone" required>
@@ -139,45 +238,102 @@
 
         <div class="form-group">
             <label for="note">備註 (選填)</label>
-            <textarea id="note" rows="3" placeholder="有什麼特別需要注意的嗎？"></textarea>
+            <textarea id="note" rows="3" placeholder="例如：配件缺漏、外箱受損..."></textarea>
         </div>
 
-        <button type="submit">送出申請</button>
+        <button type="submit" class="submit-btn">送出申請單</button>
     </form>
 </div>
 
-<script>
-    // 這是控制顯示/隱藏的核心邏輯
-    function toggleFields() {
-        // 1. 取得使用者選了什麼
-        var type = document.getElementById("serviceType").value;
+<!-- 成功提示視窗 -->
+<div id="successModal">
+    <div class="modal-content">
+        <div class="check-icon">✓</div>
+        <h3>申請已送出</h3>
+        <p>我們會盡快審核，並透過 Email 通知您進度。</p>
+        <button class="submit-btn" style="margin-top:15px;" onclick="closeModal()">好的，我知道了</button>
+    </div>
+</div>
 
-        // 2. 先把所有動態區塊都藏起來 (重置)
+<script>
+    // 頁面載入時，自動產生 7 列產品輸入格
+    window.onload = function() {
+        for(let i=0; i<7; i++) {
+            addNewRow();
+        }
+    }
+
+    // 新增一列產品輸入格的功能
+    function addNewRow() {
+        const container = document.getElementById('productListContainer');
+        const index = container.children.length + 1; // 取得目前是第幾項
+        
+        const row = document.createElement('div');
+        row.className = 'product-row';
+        row.innerHTML = `
+            <input type="text" class="product-name-input" name="productName[]" placeholder="項目 ${index}：產品名稱 / 型號">
+            <input type="number" class="product-qty-input" name="productQty[]" placeholder="數量" min="1" value="1">
+        `;
+        container.appendChild(row);
+    }
+
+    // 切換服務類別顯示
+    function toggleFields() {
+        var type = document.getElementById("serviceType").value;
+        
+        // 隱藏所有區塊
         document.getElementById("section-return").style.display = "none";
         document.getElementById("section-sample").style.display = "none";
         document.getElementById("section-exchange").style.display = "none";
 
-        // 3. 根據選擇，打開特定的區塊
-        if (type === "return") {
-            document.getElementById("section-return").style.display = "block";
-        } else if (type === "sample") {
-            document.getElementById("section-sample").style.display = "block";
-        } else if (type === "exchange") {
-            document.getElementById("section-exchange").style.display = "block";
+        // 顯示對應區塊
+        if (type) {
+            document.getElementById("section-" + type).style.display = "block";
         }
     }
 
-    // 模擬送出表單的動作
+    // 處理表單送出
     document.getElementById("returnForm").addEventListener("submit", function(e){
-        e.preventDefault(); // 防止頁面刷新
+        e.preventDefault();
         
-        // 這裡未來要接 Firebase 的程式碼
-        // const db = firebase.firestore();
-        // db.collection("returns").add({ ... });
+        // 蒐集產品資料的邏輯示範 (未來傳送給 Firebase 用)
+        const productNames = document.getElementsByName('productName[]');
+        const productQtys = document.getElementsByName('productQty[]');
+        let products = [];
+        
+        for(let i=0; i<productNames.length; i++) {
+            if(productNames[i].value.trim() !== "") {
+                products.push({
+                    name: productNames[i].value,
+                    qty: productQtys[i].value
+                });
+            }
+        }
 
-        alert("【模擬成功】\n申請已送出！\n系統將自動發送 Email 通知相關人員核實。");
-        // 這裡可以做清空表單或跳轉頁面
+        // 如果連一個產品都沒填
+        if(products.length === 0) {
+            alert("請至少填寫一項產品資訊");
+            return;
+        }
+
+        console.log("準備送出的資料:", products);
+        
+        // 顯示成功視窗
+        document.getElementById("successModal").style.display = "flex";
     });
+
+    // 關閉成功視窗
+    function closeModal() {
+        document.getElementById("successModal").style.display = "none";
+        document.getElementById("returnForm").reset(); // 清空表單
+        
+        // 重置為 7 行空表格
+        document.getElementById('productListContainer').innerHTML = '';
+        for(let i=0; i<7; i++) { addNewRow(); }
+        
+        // 重置動態區塊隱藏
+        toggleFields();
+    }
 </script>
 
 </body>
