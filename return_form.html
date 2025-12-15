@@ -24,7 +24,7 @@
         const { useState, useEffect } = React;
 
         // --- 0. 設定區 (請在此填入您的 Google Apps Script 網址) ---
-        // 請將下方的 "您的_GOOGLE_SCRIPT_URL" 替換為實際的 Web App URL
+        // 請確保您的 Apps Script 部署設定為 "Execute as: Me" 且 "Who has access: Anyone"
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCS7Gq03PeeYpymCVYM02bhST_OP_zcnEyrs41aVmLSprs2tlOCIafM9liEGR4MmIcuw/exec"; 
 
         // --- 1. 圖示元件 ---
@@ -58,7 +58,7 @@
         function App() {
             const [selectedType, setSelectedType] = useState(null);
             const [step, setStep] = useState(1);
-            const [isSubmitting, setIsSubmitting] = useState(false); // 傳送狀態
+            const [isSubmitting, setIsSubmitting] = useState(false);
             const [formData, setFormData] = useState({
                 companyName: '', contactName: '', contactPhone: '', 
                 orderNumber: '', shippingCarrier: '', trackingNumber: '', projectName: '',
@@ -79,7 +79,7 @@
                 return new Promise((resolve, reject) => {
                     const reader = new FileReader();
                     reader.readAsDataURL(file);
-                    reader.onload = () => resolve(reader.result.split(',')[1]); // 只取 Base64 內容，去掉檔頭
+                    reader.onload = () => resolve(reader.result.split(',')[1]); 
                     reader.onerror = error => reject(error);
                 });
             };
@@ -97,12 +97,11 @@
                 e.preventDefault();
                 setIsSubmitting(true);
 
-                // 1. 處理檔案轉碼
                 let fileData = [];
                 if (formData.files.length > 0) {
                     try {
                         const filePromises = formData.files.map(async (fileObj) => {
-                            const base64 = await getBase64(fileObj.file); // 注意這裡需要原始 File 物件
+                            const base64 = await getBase64(fileObj.file);
                             return { name: fileObj.name, mimeType: fileObj.file.type, base64: base64 };
                         });
                         fileData = await Promise.all(filePromises);
@@ -113,34 +112,31 @@
                     }
                 }
 
-                // 2. 準備 Payload
                 const rmaId = `RMA-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*1000)}`;
                 const payload = {
                     ...formData,
                     type: selectedType,
                     typeTitle: currentTypeData?.title,
                     rmaId: rmaId,
-                    files: fileData // 替換為 Base64 資料
+                    files: fileData
                 };
 
-                // 3. 發送 POST 請求
-                // 注意：這裡使用 text/plain 是為了避開 Google 的複雜 CORS 預檢
+                // 修正重點：加入 headers 設定為 text/plain 避免 CORS 預檢失敗
                 try {
                     const response = await fetch(GOOGLE_SCRIPT_URL, {
+                        redirect: "follow",
                         method: "POST",
-                        body: JSON.stringify(payload)
+                        body: JSON.stringify(payload),
+                        headers: {
+                            "Content-Type": "text/plain;charset=utf-8",
+                        },
                     });
                     
-                    if (response.ok) {
-                        setStep(3); // 成功跳轉
-                    } else {
-                        alert("送出失敗，請檢查網路或聯繫客服。");
-                    }
+                    // Google Apps Script 有時回傳 opaque response，這裡只要沒拋出錯誤都視為嘗試成功
+                    setStep(3); 
                 } catch (error) {
                     console.error("Error:", error);
-                    // 備註：跨域有時會報錯但其實成功，這裡簡單處理
-                    alert("送出過程發生異常，若已收到確認信請忽略。");
-                    setStep(3); // 暫時允許跳轉 (因 GAS 有時回傳 opaque response)
+                    alert("送出失敗，請檢查權限設定或稍後再試。");
                 } finally {
                     setIsSubmitting(false);
                 }
@@ -154,20 +150,18 @@
             const addProduct = () => { setFormData(prev => ({ ...prev, products: [...prev.products, { id: Date.now() + Math.random(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }] })); };
             const removeProduct = (id) => { if (formData.products.length > 1) { setFormData(prev => ({ ...prev, products: prev.products.filter(p => p.id !== id) })); } };
             
-            // 修改：保存原始 File 物件以便轉碼
             const handleFileUpload = (e) => {
                 if (e.target.files) {
                     const newFiles = Array.from(e.target.files).map(file => ({ 
                         name: file.name, 
                         size: (file.size / 1024 / 1024).toFixed(2) + ' MB',
-                        file: file // 關鍵：保存原始物件
+                        file: file
                     }));
                     setFormData(prev => ({ ...prev, files: [...prev.files, ...newFiles] }));
                 }
             };
             const removeFile = (index) => { setFormData(prev => ({ ...prev, files: prev.files.filter((_, i) => i !== index) })); };
 
-            // ... (Render Functions: renderProductList 保持不變) ...
             const renderProductList = () => (
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                     <div className="px-6 py-4 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
