@@ -209,8 +209,8 @@ export default function App() {
                 type="number"
                 min="1"
                 placeholder="數量"
-                // 修正：確保值存在，若無值則給空字串，避免瀏覽器警告
-                value={product.quantity ?? ''} 
+                // 修正重點：使用 || '' 確保即使是 undefined 或 null 也會轉為空字串，完全避免警告
+                value={product.quantity || ''}
                 onChange={(e) => handleProductChange(product.id, 'quantity', e.target.value)}
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 outline-none text-sm text-center"
@@ -558,7 +558,7 @@ export default function App() {
         </div>
         
         <footer className="mt-8 text-center text-sm text-gray-400">
-          © 2025 B2B 客戶服務系統 v1.3.1
+          © 2025 B2B 客戶服務系統 v1.3.2
         </footer>
       </div>
     </div>
