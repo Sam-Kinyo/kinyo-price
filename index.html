@@ -1,6 +1,23 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+    <!-- Google tag (gtag.js) - 你的廣告帳號追蹤碼 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17808239126"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'AW-17808239126');
+
+  // 🚀 [新增] 追蹤 LINE 按鈕點擊的函式
+  // 請記得去 Google Ads 後台建立一個「聯絡人」轉換動作，並把下面的 'AW-17808239126/你的轉換標籤' 換成真的
+  function trackLineConversion() {
+    console.log("已記錄 Google Ads 轉換: LINE 點擊");
+    // 如果你有申請到轉換標籤 (Conversion Label)，請把下面這行的註解拿掉並填入：
+    // gtag('event', 'conversion', {'send_to': 'AW-17808239126/你的轉換標籤'});
+  }
+</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KINYO 企業採購專區 | 原廠直營．團購批發</title>
@@ -360,9 +377,9 @@
                 
                 <div class="cta-group">
                     <div class="line-btn-wrapper">
-                        <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-line" target="_blank">
-                            LINE 線上諮詢
-                        </a>
+                        <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-line" target="_blank" onclick="trackLineConversion()">
+    LINE 線上諮詢
+</a>
                         <div class="line-hint">🚀 急單/客製化需求 專人線上秒回</div>
                     </div>
 
