@@ -24,9 +24,10 @@
         color: var(--primary); line-height: 1.6; overflow-x: hidden;
     }
 
+    /* --- 導覽列 --- */
     nav {
         display: flex; justify-content: space-between; align-items: center;
-        padding: 0 6%; height: 72px;
+        padding: 0 4%; height: 72px; 
         background: rgba(255,255,255,0.98);
         box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         position: sticky; top: 0; z-index: 999;
@@ -34,16 +35,15 @@
     .logo-link img { height: 42px; width: auto; display: block; }
     
     /* 導覽列右側群組 */
-    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-right { display: flex; align-items: center; gap: 10px; }
 
     .nav-btn {
         text-decoration: none; color: white; background: var(--primary);
-        font-weight: 500; font-size: 14px; padding: 8px 24px; border-radius: 4px;
-        transition: 0.3s; letter-spacing: 1px; display: inline-block;
+        font-weight: 500; font-size: 14px; padding: 8px 20px; border-radius: 4px;
+        transition: 0.3s; letter-spacing: 1px; display: inline-block; white-space: nowrap;
     }
     .nav-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
 
-    /* 次要按鈕樣式 (白底) */
     .nav-btn-outline {
         background: white; color: #555; border: 1px solid #ddd;
     }
@@ -59,7 +59,19 @@
         min-height: 600px; gap: 50px; position: relative;
         max-width: var(--container-width); margin: 0 auto; 
     }
-    .hero-content { flex: 0.8; max-width: 600px; animation: fadeIn 1s ease; z-index: 2; padding-top: 20px; }
+    .hero-content { flex: 0.8; max-width: 600px; animation: fadeIn 1s ease; z-index: 2; padding-top: 0; }
+    
+    /* 置頂搜尋框樣式 */
+    .top-search-bar {
+        position: relative; 
+        margin-bottom: 40px; /* 與下方標籤的距離 */
+        max-width: 480px; /* 搜尋框寬度 */
+        width: 100%;
+        /* 雖然 hero-content 是左對齊，但這裡強制置中搜尋框自己 */
+        margin-left: auto; 
+        margin-right: auto;
+    }
+    /* 為了配合置中設計，我們在 Hero 內容區也做一點微調，讓上方搜尋框能獨立置中 */
     
     .hero-label {
         display: inline-block; background: #e3effd; color: var(--accent);
@@ -80,21 +92,20 @@
 
     .hero p { font-size: 16px; color: var(--text-gray); margin-bottom: 25px; font-weight: 400; text-align: justify; }
 
-    /* --- 🔍 搜尋框樣式 --- */
-    .search-wrapper { position: relative; margin-bottom: 30px; max-width: 360px; }
+    /* 通用搜尋框樣式 */
     .search-input {
-        width: 100%; padding: 12px 16px; padding-left: 50px; padding-right: 90px; 
+        width: 100%; padding: 14px 20px; padding-left: 54px; padding-right: 100px; 
         border: 2px solid white; border-radius: 50px;
-        font-size: 15px; outline: none; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        transition: all 0.3s; height: 54px; box-sizing: border-box; 
+        font-size: 16px; outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+        transition: all 0.3s; height: 58px; box-sizing: border-box; 
     }
     .search-input:focus { border-color: var(--accent); box-shadow: 0 10px 30px rgba(0, 85, 170, 0.2); }
-    .search-icon { position: absolute; left: 18px; top: 50%; transform: translateY(-50%); font-size: 20px; color: #999; }
+    .search-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); font-size: 22px; color: #999; }
     .search-btn-submit {
-        position: absolute; right: 5px; top: 50%; transform: translateY(-50%); 
-        height: 44px; background: var(--accent); color: white; border: none;
-        border-radius: 50px; padding: 0 28px; font-weight: 600; cursor: pointer;
-        transition: 0.2s; font-size: 14px; box-shadow: 0 2px 6px rgba(0,85,170,0.2);
+        position: absolute; right: 6px; top: 50%; transform: translateY(-50%); 
+        height: 46px; background: var(--accent); color: white; border: none;
+        border-radius: 50px; padding: 0 30px; font-weight: 600; cursor: pointer;
+        transition: 0.2s; font-size: 15px; box-shadow: 0 2px 6px rgba(0,85,170,0.2);
     }
     .search-btn-submit:hover { background: var(--accent-dark); transform: translateY(-50%) scale(1.05); }
 
@@ -153,43 +164,27 @@
     .mini-count { font-size: 11px; color: #666; }
     .mini-count b { color: #d32f2f; }
 
-    /* --- 🆕 雙欄區塊 --- */
+    /* --- 🆕 預算區塊 (原本的雙欄區塊調整) --- */
     .dual-section {
         padding: 80px 6%; background: white; border-bottom: 1px solid #eee;
     }
     .dual-container {
         max-width: var(--container-width); margin: 0 auto;
-        display: flex; gap: 40px; align-items: stretch;
-    }
-    .dual-col {
-        flex: 1; width: 100%; border-radius: 16px; padding: 40px;
-        display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
+        display: flex; 
+        justify-content: center; /* 讓內容置中 */
+        align-items: center;
     }
     
-    .col-carousel {
-        background: #ffffff; border: 1px solid #eee; 
-        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-    }
-    .photo-frame {
-        width: 100%; max-width: 400px; aspect-ratio: 1/1;
-        background: #f9f9f9; border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-        position: relative; overflow: hidden; border: 4px solid #fff;
-    }
-    .slide-img {
-        position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover;
-        transform: translateX(100%); transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
-    }
-    .slide-img.active { transform: translateX(0); }
-    .slide-img.exit { transform: translateX(-100%); }
-    .slide-img.reset { transition: none !important; transform: translateX(100%); }
-
+    /* 預算神器樣式調整 */
     .col-budget {
         background: #eef7ff; border: 1px solid #dcebf7;
         box-shadow: 0 4px 20px rgba(0,85,170,0.08);
+        border-radius: 16px; padding: 50px;
+        width: 100%; max-width: 600px; /* 限制最大寬度，置中更好看 */
+        display: flex; flex-direction: column; align-items: center;
     }
     .budget-form {
-        width: 100%; max-width: 400px;
+        width: 100%;
         display: flex; flex-direction: column; gap: 20px;
     }
     .input-group { text-align: left; width: 100%; }
@@ -287,10 +282,9 @@
         .cta-group { justify-content: center; }
         
         .dual-container { flex-direction: column; } 
-        .dual-col { padding: 30px 20px; }
+        .col-budget { width: 100%; padding: 30px 20px; }
         
         .footer-content { flex-direction: column; }
-        .search-wrapper { margin: 0 auto 30px auto; }
         .budget-inputs { flex-direction: column; align-items: stretch; }
         .btn-calc { width: 100%; }
         
@@ -299,6 +293,9 @@
         /* 手機版按鈕調整 */
         .nav-right { gap: 8px; }
         .nav-btn { padding: 6px 12px; font-size: 12px; }
+
+        /* 手機版讓置頂搜尋框更寬 */
+        .top-search-bar { max-width: 100%; }
     }
 </style>
 </head>
@@ -308,6 +305,7 @@
         <a href="index.html" class="logo-link">
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO" class="logo-img">
         </a>
+
         <div class="nav-right">
             <!-- ✨ 新增的按鈕在這裡 ✨ -->
             <a href="https://www.kinyo-gift.com/return_form" target="_blank" class="nav-btn nav-btn-outline">
@@ -320,6 +318,15 @@
     <!-- Hero Section -->
     <section class="hero">
         <div class="hero-content">
+            <!-- 🔍 置頂搜尋框 (全螢幕通用) -->
+            <div class="top-search-bar">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="publicSearchInput" class="search-input" 
+                       placeholder="搜尋 2000+ 樣商品... 電暖器、電熱毯、型號...等" 
+                       onkeydown="if(event.key === 'Enter') performPublicSearch()">
+                <button class="search-btn-submit" onclick="performPublicSearch()">搜尋</button>
+            </div>
+
             <span class="hero-label">B2B 企業專屬服務</span>
             <h1>KINYO 企業禮贈品採購中心<br>
                 <span class="highlight">2000+ SKU</span>・<span class="highlight">大小量客製</span><br>
@@ -327,15 +334,6 @@
             </h1>
             
             <p>專為公司行號、福委會、團購主打造的數位化採購平台。提供規模不設限的專業服務，從年度尾牙到單件客製皆可滿足。</p>
-
-            <!-- 🔍 產品搜尋框 -->
-            <div class="search-wrapper">
-                <span class="search-icon">🔍</span>
-                <input type="text" id="publicSearchInput" class="search-input" 
-                       placeholder="搜尋 2000+ 樣商品... 電暖器、電熱毯、型號...等" 
-                       onkeydown="if(event.key === 'Enter') performPublicSearch()">
-                <button class="search-btn-submit" onclick="performPublicSearch()">搜尋</button>
-            </div>
             
             <div class="cta-group">
                 <div class="line-btn-wrapper">
@@ -365,17 +363,10 @@
         </div>
     </section>
 
-    <!-- 🆕 雙欄區塊：櫥窗 + 預算神器 -->
+    <!-- 🆕 預算神器 (置中版) -->
     <section class="dual-section">
         <div class="dual-container">
-            <!-- 左欄：精選櫥窗 -->
-            <div class="dual-col col-carousel">
-                <h3 class="section-title">精選商品櫥窗</h3>
-                <p class="section-desc" style="margin-bottom: 20px;">KINYO 熱銷商品一覽，滿足多元採購需求</p>
-                <div class="photo-frame" id="carousel-frame"></div>
-            </div>
-
-            <!-- 右欄：預算逆推神器 -->
+            <!-- 預算逆推神器 -->
             <div class="dual-col col-budget">
                 <h3 class="section-title">預算逆推神器</h3>
                 <p class="section-desc" style="margin-bottom: 20px;">輸入採購條件，系統自動推薦黃金組合</p>
@@ -457,7 +448,6 @@
 
 <!-- Firebase & Search Script -->
 <script type="module">
-    // ✨ 這裡補上了 doc, getDoc 確保熱門榜能運作
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where, limit, orderBy, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
@@ -503,17 +493,13 @@
         }
     }
 
-    // --- 🔥 雲端連線版熱門榜 (配合你的 System.html) ---
+    // --- 🔥 雲端連線版熱門榜 ---
     async function loadHotProducts() {
         const hotGrid = document.getElementById('hot-grid');
-        
-        // 1. 確保基礎資料載入
         await ensureDataLoaded(); 
 
-        // 2. 🟢 從 Firebase 雲端讀取 (對應你的 System 設定)
         let displayData = [];
         try {
-            // 這裡對應你在 system.html 寫入的路徑：SiteConfig -> homeHotList
             const docRef = doc(db, "SiteConfig", "homeHotList"); 
             const docSnap = await getDoc(docRef);
 
@@ -521,14 +507,12 @@
                 const data = docSnap.data();
                 if (data.items && Array.isArray(data.items)) {
                     displayData = data.items;
-                    console.log("✅ 成功從雲端讀取熱門榜:", displayData);
                 }
             }
         } catch (e) {
             console.error("讀取熱門榜失敗:", e);
         }
 
-        // 3. 如果雲端沒資料，顯示預設 (Fallback)
         if (displayData.length === 0) {
             displayData = [
                 { model: 'KIA-25',   count: 128 }, 
@@ -538,7 +522,6 @@
             ];
         }
 
-        // 4. 開始渲染
         hotGrid.innerHTML = '';
         displayData.forEach((hotItem, index) => {
             const productDetail = allProductsCache.find(p => 
@@ -548,7 +531,6 @@
 
             if (!productDetail) return;
 
-            // 圖片處理
             let imgDisplay = productDetail.imageUrl;
             if (!imgDisplay || !imgDisplay.startsWith('http')) {
                 imgDisplay = 'https://placehold.co/300x300?text=No+Image';
@@ -564,7 +546,6 @@
                   });
             };
             
-            // 排名顏色
             let rankClass = "background:#0055aa;";
             if(index === 0) rankClass = "background:#ef4444; box-shadow: 0 2px 4px rgba(239,68,68,0.4);";
             if(index === 1) rankClass = "background:#f97316;";
@@ -671,6 +652,7 @@
         }
     }
 
+    // 🚀 回歸原本單一搜尋框邏輯
     window.performPublicSearch = async function() {
         const keyword = document.getElementById('publicSearchInput').value.trim().toLowerCase();
         if (!keyword) { alert("請輸入關鍵字"); return; }
@@ -726,57 +708,6 @@
             prompt("請手動複製信箱：", email);
         });
     }
-
-    document.addEventListener("DOMContentLoaded", function() {
-        const frame = document.getElementById('carousel-frame');
-        const bestProductIds = [
-            "1cifWvIc1TMxwnFH4H6BA1UiQ3Ln94eGr", "1eDWz8pB-tmPplsqHQraUJAOv8VrF3scO",
-            "1GF8kznfWpz0SmFwSWSxA6MzM_4QsQSiM", "1qRrowvs9zHbIHj53clriLIo4-KjIgQ4Z",
-            "1dBu2aAXX2n7WDuLHgx3fJvIK2zohG-7q", "11-OdFMgRx5Dwj3PWxLvZAGrAsI6h8pzs",
-            "1h002x1weKbF4O7E-__rNx3jTAdjJYmiE", "1xWm8ekfeqtJUlERgzHfKcNHhk2WK7seD",
-            "1qbgAitS3MrxWuNk4h82fF_kguXuYR2AC", "1at8c8q0zV6j1qimq47loibNljiRjiHwS",
-            "1TPDBefHw9Z3DhZzefm-iFQ5vSdbmcRx-"
-        ];
-
-        function getDirectUrl(id) {
-            if (!id) return null;
-            return `https://images.weserv.nl/?url=https://drive.google.com/uc?id=${id}&w=1000&q=85&output=jpg`;
-        }
-
-        function renderCarousel(ids) {
-            frame.innerHTML = ''; 
-            const validIds = ids.filter(Boolean);
-            if (validIds.length === 0) {
-                frame.innerHTML = '<img src="https://placehold.co/800x800?text=KINYO" class="slide-img active">';
-                return;
-            }
-            validIds.forEach((id, index) => {
-                const img = document.createElement('img');
-                img.src = getDirectUrl(id);
-                img.className = 'slide-img';
-                if(index === 0) img.classList.add('active'); 
-                frame.appendChild(img);
-            });
-            let currentIndex = 0;
-            const slides = frame.querySelectorAll('.slide-img');
-            if(slides.length > 1) {
-                setInterval(() => {
-                    const currentSlide = slides[currentIndex];
-                    const nextIndex = (currentIndex + 1) % slides.length;
-                    const nextSlide = slides[nextIndex];
-                    nextSlide.classList.add('reset');
-                    nextSlide.classList.remove('active', 'exit');
-                    void nextSlide.offsetWidth; 
-                    nextSlide.classList.remove('reset'); 
-                    currentSlide.classList.remove('active');
-                    currentSlide.classList.add('exit'); 
-                    nextSlide.classList.add('active'); 
-                    currentIndex = nextIndex;
-                }, 3000); 
-            }
-        }
-        renderCarousel(bestProductIds);
-    });
 </script>
 
 </body>
