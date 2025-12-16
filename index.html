@@ -16,7 +16,7 @@
         --text-gray: #555555;
         --border: #eeeeee;
         --shadow: 0 4px 20px rgba(0,0,0,0.08);
-        --container-width: 1440px; /* 🚀 升級：全站最大寬度變數 */
+        --container-width: 1440px;
     }
     
     body { 
@@ -33,12 +33,23 @@
     }
     .logo-link img { height: 42px; width: auto; display: block; }
     
+    /* 導覽列右側群組 */
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+
     .nav-btn {
         text-decoration: none; color: white; background: var(--primary);
         font-weight: 500; font-size: 14px; padding: 8px 24px; border-radius: 4px;
-        transition: 0.3s; letter-spacing: 1px;
+        transition: 0.3s; letter-spacing: 1px; display: inline-block;
     }
-    .nav-btn:hover { background: var(--accent); }
+    .nav-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+    /* 次要按鈕樣式 (白底) */
+    .nav-btn-outline {
+        background: white; color: #555; border: 1px solid #ddd;
+    }
+    .nav-btn-outline:hover {
+        background: #f8f9fa; color: #333; border-color: #bbb;
+    }
 
     /* --- Hero Section --- */
     .hero {
@@ -46,10 +57,8 @@
         justify-content: space-between;
         padding: 80px 6%; background: linear-gradient(105deg, #f3f6f9 0%, #eef2f6 100%);
         min-height: 600px; gap: 50px; position: relative;
-        /* 🚀 升級：使用更寬的容器限制 */
         max-width: var(--container-width); margin: 0 auto; 
     }
-    /* 🚀 升級：放寬內容最大寬度，避免在大螢幕顯得太窄 */
     .hero-content { flex: 0.8; max-width: 600px; animation: fadeIn 1s ease; z-index: 2; padding-top: 20px; }
     
     .hero-label {
@@ -110,7 +119,6 @@
     .btn-copy:hover { background: #e0e0e0; color: #333; }
 
     /* --- 🔥 Hero 右側熱門榜 --- */
-    /* 🚀 升級：放寬右側欄位，讓 3 欄排列更舒適 */
     .hero-right-col {
         flex: 1.2; max-width: 800px;
         display: flex; flex-direction: column; gap: 20px;
@@ -241,7 +249,6 @@
 
     /* 其他區塊 */
     .process-section { padding: 80px 6%; background: white; }
-    /* 🚀 升級：流程圖區域加寬 */
     .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; max-width: var(--container-width); margin: 0 auto; text-align: center; }
     .process-item { position: relative; }
     .p-icon { width: 70px; height: 70px; background: #f0f7ff; color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 30px; font-weight: bold; }
@@ -249,14 +256,12 @@
     .process-item p { font-size: 14px; color: #777; line-height: 1.6; }
     
     .cat-section { padding: 80px 6%; background: var(--bg-light); }
-    /* 🚀 升級：分類區域加寬 */
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: var(--container-width); margin: 0 auto; }
     .cat-card { background: white; border-radius: 8px; padding: 30px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; text-decoration: none; display: block; border: 1px solid transparent; }
     .cat-card:hover { transform: translateY(-5px); border-color: var(--accent); }
     .cat-icon { font-size: 40px; margin-bottom: 15px; display: block; }
     
     .features-section { background: white; padding: 80px 5%; border-top: 1px solid #eee; }
-    /* 🚀 升級：優勢區域加寬 */
     .features-container { max-width: var(--container-width); margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
     .card { background: white; padding: 40px 30px; border-radius: 8px; border: 1px solid #f1f1f1; transition: 0.3s; }
     .card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: #eee; }
@@ -267,7 +272,6 @@
     .trust-text { font-size: 14px; color: #999; letter-spacing: 1px; font-weight: 500; text-transform: uppercase; }
 
     footer { background: #1a1a1a; color: #888; padding: 60px 6%; font-size: 13px; }
-    /* 🚀 升級：頁尾加寬 */
     .footer-content { max-width: var(--container-width); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; }
     .footer-col h4 { color: white; margin-bottom: 20px; font-size: 16px; }
     .footer-col p { margin-bottom: 10px; }
@@ -282,7 +286,7 @@
         .hero h1 { font-size: 32px; }
         .cta-group { justify-content: center; }
         
-        .dual-container { flex-direction: column; } /* 手機版並排變上下 */
+        .dual-container { flex-direction: column; } 
         .dual-col { padding: 30px 20px; }
         
         .footer-content { flex-direction: column; }
@@ -290,8 +294,11 @@
         .budget-inputs { flex-direction: column; align-items: stretch; }
         .btn-calc { width: 100%; }
         
-        /* 手機版網格調整 */
         .hero-hot-grid { grid-template-columns: 1fr 1fr; } 
+        nav { padding: 0 4%; }
+        /* 手機版按鈕調整 */
+        .nav-right { gap: 8px; }
+        .nav-btn { padding: 6px 12px; font-size: 12px; }
     }
 </style>
 </head>
@@ -301,7 +308,13 @@
         <a href="index.html" class="logo-link">
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO" class="logo-img">
         </a>
-        <a href="system.html" class="nav-btn">經銷夥伴登入</a>
+        <div class="nav-right">
+            <!-- ✨ 新增的按鈕在這裡 ✨ -->
+            <a href="https://www.kinyo-gift.com/return_form" target="_blank" class="nav-btn nav-btn-outline">
+                🛠️ 售後退換申請
+            </a>
+            <a href="system.html" class="nav-btn">經銷夥伴登入</a>
+        </div>
     </nav>
 
     <!-- Hero Section -->
@@ -444,6 +457,7 @@
 
 <!-- Firebase & Search Script -->
 <script type="module">
+    // ✨ 這裡補上了 doc, getDoc 確保熱門榜能運作
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
     import { getFirestore, collection, getDocs, query, where, limit, orderBy, addDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
@@ -489,89 +503,102 @@
         }
     }
 
-// --- 🔥 雲端連線版熱門榜 (配合你的 System.html) ---
-async function loadHotProducts() {
-    const hotGrid = document.getElementById('hot-grid');
-    
-    // 1. 確保基礎資料載入
-    await ensureDataLoaded(); 
-
-    // 2. 🟢 從 Firebase 雲端讀取 (對應你的 System 設定)
-    let displayData = [];
-    try {
-        // 這裡對應你在 system.html 寫入的路徑：SiteConfig -> homeHotList
-        const docRef = doc(db, "SiteConfig", "homeHotList"); 
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            if (data.items && Array.isArray(data.items)) {
-                displayData = data.items;
-                console.log("✅ 成功從雲端讀取熱門榜:", displayData);
-            }
-        }
-    } catch (e) {
-        console.error("讀取熱門榜失敗:", e);
-    }
-
-    // 3. 如果雲端沒資料，顯示預設 (Fallback)
-    if (displayData.length === 0) {
-        displayData = [
-            { model: 'KIA-25',   count: 128 }, 
-            { model: 'KHD-9660', count: 95 },  
-            { model: 'KCR-195',  count: 86 },
-            { model: 'AY-012',   count: 72 }
-        ];
-    }
-
-    // 4. 開始渲染 (這部分與之前相同)
-    hotGrid.innerHTML = '';
-    displayData.forEach((hotItem, index) => {
-        const productDetail = allProductsCache.find(p => 
-            p.model.toLowerCase() === hotItem.model.toLowerCase() || 
-            p.mainModel.toLowerCase() === hotItem.model.toLowerCase()
-        );
-
-        if (!productDetail) return;
-
-        // 圖片處理
-        let imgDisplay = productDetail.imageUrl;
-        if (!imgDisplay || !imgDisplay.startsWith('http')) {
-            imgDisplay = 'https://placehold.co/300x300?text=No+Image';
-        } else {
-            imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(productDetail.imageUrl)}&w=300&output=jpg`;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'mini-card';
-        card.onclick = function() {
-              navigator.clipboard.writeText(`詢問：${productDetail.name} (${productDetail.model})`).then(() => {
-                 window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
-              });
-        };
+    // --- 🔥 雲端連線版熱門榜 (配合你的 System.html) ---
+    async function loadHotProducts() {
+        const hotGrid = document.getElementById('hot-grid');
         
-        // 排名顏色
-        let rankClass = "background:#0055aa;";
-        if(index === 0) rankClass = "background:#ef4444; box-shadow: 0 2px 4px rgba(239,68,68,0.4);";
-        if(index === 1) rankClass = "background:#f97316;";
-        if(index === 2) rankClass = "background:#eab308;";
+        // 1. 確保基礎資料載入
+        await ensureDataLoaded(); 
 
-        const rankHtml = `<div class="mini-rank" style="${rankClass}">TOP ${index+1}</div>`;
-        const countHtml = `<div class="mini-count">本週詢價 <b>${hotItem.count || 99}</b> 次</div>`;
+        // 2. 🟢 從 Firebase 雲端讀取 (對應你的 System 設定)
+        let displayData = [];
+        try {
+            // 這裡對應你在 system.html 寫入的路徑：SiteConfig -> homeHotList
+            const docRef = doc(db, "SiteConfig", "homeHotList"); 
+            const docSnap = await getDoc(docRef);
 
-        card.innerHTML = `
-            ${rankHtml}
-            <img src="${imgDisplay}" loading="lazy" alt="${productDetail.name}">
-            <div class="mini-name">${productDetail.name}</div>
-            ${countHtml}
-        `;
-        hotGrid.appendChild(card);
-    });
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.items && Array.isArray(data.items)) {
+                    displayData = data.items;
+                    console.log("✅ 成功從雲端讀取熱門榜:", displayData);
+                }
+            }
+        } catch (e) {
+            console.error("讀取熱門榜失敗:", e);
+        }
 
-    if (displayData.length === 0) {
-         hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">熱門榜更新中...</div>';
+        // 3. 如果雲端沒資料，顯示預設 (Fallback)
+        if (displayData.length === 0) {
+            displayData = [
+                { model: 'KIA-25',   count: 128 }, 
+                { model: 'KHD-9660', count: 95 },  
+                { model: 'KCR-195',  count: 86 },
+                { model: 'AY-012',   count: 72 }
+            ];
+        }
+
+        // 4. 開始渲染
+        hotGrid.innerHTML = '';
+        displayData.forEach((hotItem, index) => {
+            const productDetail = allProductsCache.find(p => 
+                p.model.toLowerCase() === hotItem.model.toLowerCase() || 
+                p.mainModel.toLowerCase() === hotItem.model.toLowerCase()
+            );
+
+            if (!productDetail) return;
+
+            // 圖片處理
+            let imgDisplay = productDetail.imageUrl;
+            if (!imgDisplay || !imgDisplay.startsWith('http')) {
+                imgDisplay = 'https://placehold.co/300x300?text=No+Image';
+            } else {
+                imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(productDetail.imageUrl)}&w=300&output=jpg`;
+            }
+
+            const card = document.createElement('div');
+            card.className = 'mini-card';
+            card.onclick = function() {
+                  navigator.clipboard.writeText(`詢問：${productDetail.name} (${productDetail.model})`).then(() => {
+                     window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
+                  });
+            };
+            
+            // 排名顏色
+            let rankClass = "background:#0055aa;";
+            if(index === 0) rankClass = "background:#ef4444; box-shadow: 0 2px 4px rgba(239,68,68,0.4);";
+            if(index === 1) rankClass = "background:#f97316;";
+            if(index === 2) rankClass = "background:#eab308;";
+
+            const rankHtml = `<div class="mini-rank" style="${rankClass}">TOP ${index+1}</div>`;
+            const countHtml = `<div class="mini-count">本週詢價 <b>${hotItem.count || 99}</b> 次</div>`;
+
+            card.innerHTML = `
+                ${rankHtml}
+                <img src="${imgDisplay}" loading="lazy" alt="${productDetail.name}">
+                <div class="mini-name">${productDetail.name}</div>
+                ${countHtml}
+            `;
+            hotGrid.appendChild(card);
+        });
+
+        if (displayData.length === 0) {
+             hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">熱門榜更新中...</div>';
+        }
     }
-}
+
+    async function logProductClick(product) {
+        try {
+            const analyticsRef = collection(db, "ProductClicks");
+            addDoc(analyticsRef, {
+                model: product.model,
+                name: product.name,
+                price: product.marketPrice,
+                clickedAt: new Date(),
+                source: 'homepage_search'
+            });
+        } catch (e) { console.warn("Analytics write failed:", e); }
+    }
 
     function displayProducts(products, titleOverride) {
         const resultsSection = document.getElementById('search-results-section');
