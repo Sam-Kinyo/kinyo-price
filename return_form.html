@@ -205,8 +205,17 @@
                     <nav className="bg-gray-900 text-white shadow-md sticky top-0 z-50">
                         <div className="max-w-6xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
                             <div className="flex items-center gap-3 cursor-pointer" onClick={() => window.location.href='https://www.kinyo-gift.com/'}>
-                                <div className="w-8 h-8 bg-red-600 rounded flex items-center justify-center font-bold text-white text-lg tracking-tighter">K</div>
-                                <span className="text-xl font-bold tracking-wide">KINYO <span className="text-gray-400 font-normal text-sm ml-1">B2B Service Portal</span></span>
+                                <img 
+                                    src="https://www.kinyo.tw/assets/images/logo.png" 
+                                    alt="KINYO" 
+                                    className="h-8" 
+                                    onError={(e) => {
+                                        e.target.style.display='none';
+                                        e.target.nextSibling.style.display='inline-block';
+                                    }}
+                                />
+                                <span className="hidden text-xl font-bold tracking-wide">KINYO</span>
+                                <span className="text-gray-400 font-normal text-sm ml-1 border-l border-gray-600 pl-3">B2B 售後服務申請中心</span>
                             </div>
                             <div className="flex items-center gap-6 text-sm text-gray-300">
                                 <span className="hidden md:inline hover:text-white cursor-pointer transition-colors">使用教學</span>
@@ -264,7 +273,7 @@
                                                 
                                                 {/* 0. 寄送資訊 (置頂顯示) */}
                                                 {selectedType === 'sales_return' && (
-                                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 text-sm text-blue-800">
+                                                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 text-sm text-blue-800 mb-6">
                                                         <h4 className="font-bold mb-2 flex items-center gap-2"><Truck size={16}/> 寄送資訊 (請寄回以下地址)</h4>
                                                         <div className="space-y-1 pl-6">
                                                             <p><span className="font-semibold">收件人：</span>郭庭豪-xxx公司-退貨</p>
@@ -275,7 +284,7 @@
                                                 )}
 
                                                 {selectedType === 'sample_return' && (
-                                                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-sm text-purple-800">
+                                                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 text-sm text-purple-800 mb-6">
                                                         <h4 className="font-bold mb-2 flex items-center gap-2"><Truck size={16}/> 寄送資訊 (請寄回以下地址)</h4>
                                                         <div className="space-y-1 pl-6">
                                                             <p><span className="font-semibold">收件人：</span>郭庭豪-xxx公司-樣品歸還</p>
