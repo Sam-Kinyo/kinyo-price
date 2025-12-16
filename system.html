@@ -2885,18 +2885,27 @@ async function saveProductDataToFirestore(actions) {
             }
 
             // 確保要寫入資料庫的 barcode 也是乾淨的字串
-            item.data.internationalBarcode = excelBc;
+            // 確保要寫入資料庫的 barcode 也是乾淨的字串
+item.data.internationalBarcode = excelBc;
 
-            if(rawMap.has(excelBc)) {
-                // Update existing doc
-                const docId = rawMap.get(excelBc);
-                const docRef = doc(db, "Products", docId);
-                batch.update(docRef, { ...item.data, status: 'active' });
-            } else {
-                // Create new doc
-                const newDocRef = doc(collection(db, "Products"));
-                batch.set(newDocRef, { ...item.data, status: 'active', inventory: 0 });
-            }
+// 🆕 決定狀態：如果 Excel 有讀到就用讀到的，沒有就預設 active
+const finalStatus = item.data.status || 'active';
+
+if(rawMap.has(excelBc)) {
+    // Update existing doc (更新舊商品)
+    const docId = rawMap.get(excelBc);
+    const docRef = doc(db, "Products", docId);
+
+    // ⚠️ 修改重點：這裡使用 finalStatus，不再強制 'active'
+    batch.update(docRef, { ...item.data, status: finalStatus });
+
+} else {
+    // Create new doc (建立新商品)
+    const newDocRef = doc(collection(db, "Products"));
+
+    // ⚠️ 修改重點：這裡也使用 finalStatus
+    batch.set(newDocRef, { ...item.data, status: finalStatus, inventory: 0 });
+}
             
             opCount++;
             successCount++;
@@ -3034,6 +3043,7 @@ if(productUpload) {
                     inventory: -1, // 單一庫存
                     finished: -1,  // 成品倉
                     exclusive: -1  // 專賣倉
+                   status: -1     // 🆕 新增這個：上下架狀態
                 };
                 
                 let vipHeaders = {}; 
@@ -3076,6 +3086,8 @@ if(productUpload) {
                         if (cellLower.includes('成品倉') || cellLower === '成品') h.finished = c;
                         if (cellLower.includes('專賣倉') || cellLower === '專賣') h.exclusive = c;
                         if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
+                       // 🆕 新增：偵測 "狀態", "上下架", "status"
+if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower === 'status') h.status = c;
 
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
@@ -3157,11 +3169,26 @@ if(productUpload) {
                         }
                     }
 
-                    obj.model = modelVal;
-                    obj.mainModel = modelVal.split('-')[0]; 
+                    // 🆕 [開始] 新增：解析上下架狀態
+    if (h.status !== -1 && hasVal(row[h.status])) {
+        const rawStatus = String(row[h.status]).trim().toLowerCase();
+        // 如果 Excel 填入 下架, 停售, N, 0, False，系統就標記為 inactive
+        if (['下架', '停售', 'inactive', 'off', 'n', 'false', '0'].includes(rawStatus)) {
+            obj.status = 'inactive';
+        } else {
+            obj.status = 'active';
+        }
+    } else {
+        // 沒填寫預設為上架
+        obj.status = 'active';
+    }
+    // 🆕 [結束]
 
-                    actions.push({ data: obj, model: modelVal });
-                });
+    obj.model = modelVal;
+    obj.mainModel = modelVal.split('-')[0]; 
+
+    actions.push({ data: obj, model: modelVal });
+});
 
                 previewHeader.textContent = "全能匯入確認 (雙倉加總 + 廠價公式)";
                 previewContent.innerHTML = `
