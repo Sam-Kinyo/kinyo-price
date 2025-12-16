@@ -12,11 +12,14 @@
       gtag('config', 'AW-17808239126');
 
       // 🚀 [新增] 追蹤轉換按鈕點擊的函式 (LINE / Email / 電話 通用)
-      // 請記得去 Google Ads 後台建立一個「聯絡人」轉換動作，並把下面的 'AW-17808239126/你的轉換標籤' 換成真的
       function trackLineConversion() {
         console.log("已記錄 Google Ads 轉換: 客戶嘗試聯絡 (LINE/Email/電話)");
-        // 如果你有申請到轉換標籤 (Conversion Label)，請把下面這行的註解拿掉並填入：
-        // gtag('event', 'conversion', {'send_to': 'AW-17808239126/你的轉換標籤'});
+        
+        // ⚠️ 重要：請去 Google Ads 後台複製您的「轉換標籤 (Conversion Label)」
+        // 格式通常是英數亂碼，例如：'AbCdEfGhIjKlM'
+        // 填入後把下面這行的 // 拿掉：
+        
+        // gtag('event', 'conversion', {'send_to': 'AW-17808239126/您的轉換標籤_請填在這裡'});
       }
     </script>
     <!-- 👆👆👆 代碼結束 👆👆👆 -->
@@ -589,7 +592,7 @@
             card.className = 'mini-card';
             card.onclick = function() {
                   navigator.clipboard.writeText(`詢問：${productDetail.name} (${productDetail.model})`).then(() => {
-                     window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
+                      window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); 
                   });
             };
             
@@ -748,6 +751,11 @@
 <!-- 其他 UI 腳本 -->
 <script>
     function copyEmail() {
+        // 🚀 也追蹤「複製信箱」這個動作
+        if (typeof trackLineConversion === 'function') {
+            trackLineConversion();
+        }
+
         const email = "sam.kuo@kinyo.tw";
         navigator.clipboard.writeText(email).then(() => {
             alert("✅ 信箱已複製：\n" + email);
