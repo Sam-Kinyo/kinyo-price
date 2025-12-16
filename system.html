@@ -2887,15 +2887,21 @@ async function saveProductDataToFirestore(actions) {
             // 確保要寫入資料庫的 barcode 也是乾淨的字串
             item.data.internationalBarcode = excelBc;
 
+           const finalStatus = item.data.status || 'active';
+
             if(rawMap.has(excelBc)) {
                 // Update existing doc
                 const docId = rawMap.get(excelBc);
                 const docRef = doc(db, "Products", docId);
-                batch.update(docRef, { ...item.data, status: 'active' });
+                
+                // ✅ 第二步：這裡改成用 finalStatus
+                batch.update(docRef, { ...item.data, status: finalStatus });
             } else {
                 // Create new doc
                 const newDocRef = doc(collection(db, "Products"));
-                batch.set(newDocRef, { ...item.data, status: 'active', inventory: 0 });
+                
+                // ✅ 第三步：這裡也改成用 finalStatus
+                batch.set(newDocRef, { ...item.data, status: finalStatus, inventory: 0 });
             }
             
             opCount++;
@@ -3034,6 +3040,7 @@ if(productUpload) {
                     inventory: -1, // 單一庫存
                     finished: -1,  // 成品倉
                     exclusive: -1  // 專賣倉
+                   status: -1      // ✨ [新增] 狀態欄位索引
                 };
                 
                 let vipHeaders = {}; 
@@ -3076,6 +3083,7 @@ if(productUpload) {
                         if (cellLower.includes('成品倉') || cellLower === '成品') h.finished = c;
                         if (cellLower.includes('專賣倉') || cellLower === '專賣') h.exclusive = c;
                         if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
+                       if (cellLower === 'status' || cellLower === '狀態') h.status = c;
 
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
@@ -3119,6 +3127,9 @@ if(productUpload) {
                     } else if (h.inventory !== -1 && hasVal(row[h.inventory])) {
                         obj.inventory = parseInt(row[h.inventory], 10);
                     }
+                   if (h.status !== -1 && hasVal(row[h.status])) {
+    obj.status = String(row[h.status]).trim();
+}
 
                     // 廠價運算
                     let tempCost = 0;
