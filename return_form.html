@@ -15,6 +15,11 @@
         .spinner { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3b82f6; width: 20px; height: 20px; -webkit-animation: spin 1s linear infinite; animation: spin 1s linear infinite; }
         @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Modal 動畫 */
+        .modal-enter { opacity: 0; transform: scale(0.95); }
+        .modal-enter-active { opacity: 1; transform: scale(1); transition: opacity 300ms, transform 300ms; }
+        .modal-exit { opacity: 1; transform: scale(1); }
+        .modal-exit-active { opacity: 0; transform: scale(0.95); transition: opacity 300ms, transform 300ms; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -44,6 +49,7 @@
         const Globe = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></IconBase>;
         const HelpCircle = (p) => <IconBase {...p}><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></IconBase>;
         const Truck = (p) => <IconBase {...p}><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></IconBase>;
+        const BookOpen = (p) => <IconBase {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
 
         // --- 2. 元件定義 ---
         const InputField = ({ label, required, ...props }) => (
@@ -53,12 +59,83 @@
             </div>
         );
 
+        // --- 新增：使用教學 Modal 元件 ---
+        const HelpModal = ({ onClose }) => {
+            return (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm transition-opacity" onClick={onClose}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {/* Modal Header */}
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                <BookOpen size={20} className="text-blue-600"/> 操作手冊
+                            </h3>
+                            <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500">
+                                <X size={20} />
+                            </button>
+                        </div>
+                        
+                        {/* Modal Content - Scrollable */}
+                        <div className="p-6 overflow-y-auto text-sm leading-relaxed text-gray-600 space-y-6">
+                            
+                            <section>
+                                <h4 className="font-bold text-gray-900 text-base mb-2">📋 申請流程概覽</h4>
+                                <ol className="list-decimal pl-5 space-y-1">
+                                    <li><strong>選擇類別</strong>：依據您的需求選擇對應的申請項目。</li>
+                                    <li><strong>填寫資料</strong>：輸入公司資訊、詳細申請內容及產品明細。</li>
+                                    <li><strong>完成送出</strong>：系統自動產生案件編號，並通知專人處理。</li>
+                                </ol>
+                            </section>
+
+                            <section>
+                                <h4 className="font-bold text-gray-900 text-base mb-2">📦 銷貨退貨</h4>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li><strong>適用情境</strong>：訂錯商品、多訂商品、規格不符等。</li>
+                                    <li><strong>準備資料</strong>：原訂單編號 (選填)、欲退貨之產品型號與數量。</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h4 className="font-bold text-gray-900 text-base mb-2">🔄 樣品歸還</h4>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li><strong>適用情境</strong>：歸還業務借出之測試樣品、展示機台。</li>
+                                    <li><strong>準備資料</strong>：寄回之物流公司名稱、貨運單號。</li>
+                                </ul>
+                            </section>
+
+                            <section>
+                                <h4 className="font-bold text-gray-900 text-base mb-2">⚠️ 新品不良 (DOA)</h4>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li><strong>適用情境</strong>：商品到貨即損壞、開箱功能異常。</li>
+                                    <li><strong>準備資料</strong>：消費者 (End User) 的聯絡資訊與地址、不良狀況描述、佐證照片/影片。</li>
+                                </ul>
+                            </section>
+
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 text-blue-800 mt-4">
+                                <h4 className="font-bold mb-2">📞 客服與支援</h4>
+                                <p>若操作有任何問題，歡迎聯繫：</p>
+                                <p><strong>郭庭豪</strong> (03-5396966 #259)</p>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                            <button onClick={onClose} className="px-6 py-2 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800 transition-colors">
+                                我瞭解了
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         // --- 3. 主程式 ---
         function App() {
             const [selectedType, setSelectedType] = useState(null);
             const [step, setStep] = useState(1);
             const [isSubmitting, setIsSubmitting] = useState(false);
-            const [submittedRmaId, setSubmittedRmaId] = useState(''); // 新增：用於儲存生成的單號
+            const [submittedRmaId, setSubmittedRmaId] = useState('');
+            const [showHelp, setShowHelp] = useState(false); // 新增：控制教學 Modal 顯示
+
             const [formData, setFormData] = useState({
                 companyName: '', contactName: '', contactPhone: '', 
                 orderNumber: '', shippingCarrier: '', trackingNumber: '', projectName: '',
@@ -218,8 +295,8 @@
                                 <span className="text-gray-400 font-normal text-sm ml-1 border-l border-gray-600 pl-3">B2B 售後服務申請中心</span>
                             </div>
                             <div className="flex items-center gap-6 text-sm text-gray-300">
-                                <span className="hidden md:inline hover:text-white cursor-pointer transition-colors">使用教學</span>
-                                <div className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors"><HelpCircle size={18} /><span className="hidden md:inline">客服</span></div>
+                                <span onClick={() => setShowHelp(true)} className="hidden md:inline hover:text-white cursor-pointer transition-colors">使用教學</span>
+                                <div onClick={() => setShowHelp(true)} className="flex items-center gap-1 hover:text-white cursor-pointer transition-colors"><HelpCircle size={18} /><span className="hidden md:inline">客服</span></div>
                             </div>
                         </div>
                     </nav>
@@ -371,6 +448,9 @@
                             </footer>
                         </div>
                     </main>
+
+                    {/* 教學 Modal */}
+                    {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
                 </div>
             );
         }
