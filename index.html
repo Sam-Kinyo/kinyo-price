@@ -1,24 +1,26 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <!-- Google tag (gtag.js) - 你的廣告帳號追蹤碼 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=AW-17808239126"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <!-- 👇👇👇 Google Ads 追蹤代碼 (已更新) 👇👇👇 -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17808239126"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
 
-  gtag('config', 'AW-17808239126');
+      gtag('config', 'AW-17808239126');
+
+      // 🚀 [新增] 追蹤轉換按鈕點擊的函式 (LINE / Email / 電話 通用)
+      // 請記得去 Google Ads 後台建立一個「聯絡人」轉換動作，並把下面的 'AW-17808239126/你的轉換標籤' 換成真的
+      function trackLineConversion() {
+        console.log("已記錄 Google Ads 轉換: 客戶嘗試聯絡 (LINE/Email/電話)");
+        // 如果你有申請到轉換標籤 (Conversion Label)，請把下面這行的註解拿掉並填入：
+        // gtag('event', 'conversion', {'send_to': 'AW-17808239126/你的轉換標籤'});
+      }
     </script>
+    <!-- 👆👆👆 代碼結束 👆👆👆 -->
 
-  // 🚀 [新增] 追蹤 LINE 按鈕點擊的函式
-  // 請記得去 Google Ads 後台建立一個「聯絡人」轉換動作，並把下面的 'AW-17808239126/你的轉換標籤' 換成真的
-  function trackLineConversion() {
-    console.log("已記錄 Google Ads 轉換: LINE 點擊");
-    // 如果你有申請到轉換標籤 (Conversion Label)，請把下面這行的註解拿掉並填入：
-    // gtag('event', 'conversion', {'send_to': 'AW-17808239126/你的轉換標籤'});
-  }
-</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KINYO 企業採購專區 | 原廠直營．團購批發</title>
@@ -379,14 +381,16 @@
                 <div class="cta-group">
                     <div class="line-btn-wrapper">
                         <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-line" target="_blank" onclick="trackLineConversion()">
-    LINE 線上諮詢
-</a>
+                            LINE 線上諮詢
+                        </a>
                         <div class="line-hint">🚀 急單/客製化需求 專人線上秒回</div>
                     </div>
 
-                    <div class="email-group" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
-                        <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-email" title="sam.kuo@kinyo.tw">Email 詢價</a>
+                    <!-- 這裡加入 trackLineConversion() 到 Email 和 電話 -->
+                    <div class="email-group" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap:wrap;">
+                        <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-email" title="sam.kuo@kinyo.tw" onclick="trackLineConversion()">✉️ Email</a>
                         <button onclick="copyEmail()" class="btn-copy" title="複製信箱">📋</button>
+                        <a href="tel:0976966333" class="btn btn-email" title="點擊撥打" onclick="trackLineConversion()">📞 電話洽詢</a>
                     </div>
                 </div>
             </div>
@@ -482,7 +486,7 @@
             <div class="footer-col">
                 <h4>聯絡資訊</h4>
                 <p>聯絡人：KINYO-郭庭豪</p>
-                <p>電話：0933-296-380</p>
+                <p>電話：0976-966-333</p>
                 <p>信箱：sam.kuo@kinyo.tw</p>
             </div>
         </div>
