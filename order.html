@@ -28,7 +28,8 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // --- 設定區：請填入您的 Web App URL ---
+        // ★★★ 請務必確認這裡的網址是否與您 Apps Script 的「網頁應用程式網址」一致 ★★★
+        // 如果您按下「新增佈署」導致網址變了，請更新這裡
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCS7Gq03PeeYpymCVYM02bhST_OP_zcnEyrs41aVmLSprs2tlOCIafM9liEGR4MmIcuw/exec"; 
 
         // Icons
@@ -52,7 +53,7 @@
         const ClipboardList = (p) => <IconBase {...p}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></IconBase>;
         const Send = (p) => <IconBase {...p}><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></IconBase>;
 
-        // ★★★ 修正 InputField：確保 required 屬性有正確傳遞給 input ★★★
+        // InputField 元件
         const InputField = ({ label, required, ...props }) => (
             <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-slate-700">{label} {required && <span className="text-red-500">*</span>}</label>
@@ -60,25 +61,27 @@
             </div>
         );
 
-        // --- Toast 元件 (右下角通知) ---
-        const Toast = ({ message, onClose }) => {
+        // Toast 元件
+        const Toast = ({ message, type = 'success', onClose }) => {
             useEffect(() => {
-                const timer = setTimeout(onClose, 3000);
+                const timer = setTimeout(onClose, 4000);
                 return () => clearTimeout(timer);
             }, [onClose]);
 
+            const isError = type === 'error';
+
             return (
-                <div className="fixed bottom-6 right-6 z-[80] bg-slate-800 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-[slideIn_0.3s_ease-out]">
-                    <CheckCircle2 className="text-green-400" size={24} />
+                <div className={`fixed bottom-6 right-6 z-[80] px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-[slideIn_0.3s_ease-out] ${isError ? 'bg-red-600 text-white' : 'bg-slate-800 text-white'}`}>
+                    {isError ? <AlertTriangle size={24} className="text-white" /> : <CheckCircle2 className="text-green-400" size={24} />}
                     <div>
-                        <h4 className="font-bold text-sm">訂單建立成功</h4>
-                        <p className="text-xs text-slate-300">{message}</p>
+                        <h4 className="font-bold text-sm">{isError ? '發生錯誤' : '訂單建立成功'}</h4>
+                        <p className="text-xs opacity-90">{message}</p>
                     </div>
                 </div>
             );
         };
 
-        // --- 查詢 Modal ---
+        // 查詢 Modal
         const TrackingModal = ({ onClose }) => {
             const [searchId, setSearchId] = useState('');
             const [searchPhone, setSearchPhone] = useState('');
@@ -169,7 +172,7 @@
             const [step, setStep] = useState(1);
             const [showTracking, setShowTracking] = useState(false);
             const [sessionHistory, setSessionHistory] = useState([]);
-            const [toast, setToast] = useState(null);
+            const [toast, setToast] = useState(null); // { message: string, type: 'success' | 'error' }
 
             const [formData, setFormData] = useState({
                 type: 'new_order', 
@@ -224,16 +227,12 @@
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 
-                // ★★★ 雙重檢查必填欄位 ★★★
                 if (!formData.companyName || !formData.contactName || !formData.contactPhone || !formData.contactEmail || !formData.shipDate) {
                     alert("請檢查必填欄位 (公司名稱、聯絡人、電話、Email、出貨日) 是否已填寫");
                     return;
                 }
 
                 setIsSubmitting(true);
-
-                // 判斷是哪個按鈕送出的 (quick 或 finish)
-                // 使用 nativeEvent.submitter 來獲取觸發 submit 的按鈕
                 const submitterValue = e.nativeEvent.submitter?.value;
 
                 let fileData = [];
@@ -263,14 +262,21 @@
                 };
 
                 try {
-                    await fetch(GOOGLE_SCRIPT_URL, {
+                    const res = await fetch(GOOGLE_SCRIPT_URL, {
                         redirect: "follow",
                         method: "POST",
                         body: JSON.stringify(payload),
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                     });
                     
-                    // 新增：加入歷史清單
+                    const resultJson = await res.json();
+
+                    // ★★★ 新增：檢查後端回傳結果 ★★★
+                    if (resultJson.result !== 'success') {
+                        throw new Error(resultJson.error || "後端發生未知錯誤");
+                    }
+                    
+                    // 成功邏輯
                     setSessionHistory(prev => [{
                         id: orderId,
                         receiver: formData.receiverName || formData.contactName,
@@ -279,36 +285,31 @@
                     }, ...prev]);
 
                     if (submitterValue === 'quick') {
-                        // 快速續單模式：顯示 Toast，滾動到中間，並執行保留/清空邏輯
-                        setToast(`單號 ${orderId} 已建立，請繼續輸入`);
+                        setToast({ message: `單號 ${orderId} 已建立，請繼續輸入`, type: 'success' });
                         handleSameClientNext();
-                        // 滾動到表單中間 (出貨資訊區)
                         setTimeout(() => {
                             const shipSection = document.getElementById('ship-section');
                             if(shipSection) shipSection.scrollIntoView({ behavior: 'smooth' });
                         }, 100);
                     } else {
-                        // 正常結束模式 (送出並完成)
                         setSubmittedId(orderId);
                         setStep(2);
                     }
 
                 } catch (error) {
-                    console.error(error);
-                    alert("連線發生錯誤，請截圖聯繫管理員。");
+                    console.error("Submission Error:", error);
+                    // ★★★ 顯示錯誤給使用者 ★★★
+                    setToast({ message: "送出失敗：" + error.message, type: 'error' });
+                    alert("⚠️ 訂單送出失敗！\n\n原因：" + error.message + "\n\n請檢查您的「網頁應用程式網址」是否正確，或是 Google Sheet 欄位是否已被刪除。");
                 } finally {
                     setIsSubmitting(false);
                 }
             };
 
-            // 同客戶續單功能 (保留基本資料，清空出貨與產品)
             const handleSameClientNext = () => {
                 setStep(1);
                 setFormData(prev => ({
                     ...prev,
-                    // 保留 (根據要求): shipDate, companyName, contactName, contactPhone, contactEmail, urgency, orderType
-                    
-                    // 清空: 產品、地址、收件人、備註、檔案
                     shippingAddress: '', 
                     receiverName: '', 
                     receiverPhone: '',
@@ -318,7 +319,6 @@
                 }));
             };
 
-            // 完全重置功能
             const handleFullReset = () => {
                 setStep(1);
                 setFormData({ 
@@ -381,7 +381,7 @@
                             </div>
                         </div>
 
-                        {/* ✨ 新增按鈕：新增另外一筆訂單 (顯示在訂購內容最下方) */}
+                        {/* 快速續單按鈕 */}
                         <div className="mt-4 pt-2 border-t border-slate-100 flex justify-center md:justify-end">
                             <button 
                                 type="submit" 
@@ -517,7 +517,6 @@
                                             </div>
                                         </form>
                                         
-                                        {/* 新增：在填寫頁面下方顯示已建立清單 */}
                                         {sessionHistory.length > 0 && <SessionHistoryTable />}
                                     </div>
                                 </div>
@@ -555,7 +554,7 @@
                     </main>
 
                     {showTracking && <TrackingModal onClose={() => setShowTracking(false)} />}
-                    {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+                    {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
                 </div>
             );
         }
