@@ -13,12 +13,20 @@
         input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
         .spinner { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3b82f6; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* Toast Animation */
+        .toast-enter { transform: translateX(100%); opacity: 0; }
+        .toast-enter-active { transform: translateX(0); opacity: 1; transition: all 300ms ease-out; }
+        .toast-exit { transform: translateX(0); opacity: 1; }
+        .toast-exit-active { transform: translateX(100%); opacity: 0; transition: all 300ms ease-in; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800">
     <div id="root"></div>
     <script type="text/babel">
-        const { useState } = React;
+        const { useState, useEffect } = React;
 
         // --- 設定區：請填入您的 Web App URL ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCS7Gq03PeeYpymCVYM02bhST_OP_zcnEyrs41aVmLSprs2tlOCIafM9liEGR4MmIcuw/exec"; 
@@ -39,14 +47,36 @@
         const X = (p) => <IconBase {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
         const Search = (p) => <IconBase {...p}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconBase>;
         const AlertTriangle = (p) => <IconBase {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconBase>;
-        const MapPin = (p) => <IconBase {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></IconBase>; // 新增圖標
+        const MapPin = (p) => <IconBase {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></IconBase>;
+        const RotateCcw = (p) => <IconBase {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconBase>;
+        const ClipboardList = (p) => <IconBase {...p}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></IconBase>;
+        const Send = (p) => <IconBase {...p}><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></IconBase>;
 
+        // ★★★ 修正 InputField：確保 required 屬性有正確傳遞給 input ★★★
         const InputField = ({ label, required, ...props }) => (
             <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-slate-700">{label} {required && <span className="text-red-500">*</span>}</label>
-                <input {...props} className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all placeholder:text-slate-400" />
+                <input {...props} required={required} className="w-full px-4 py-2.5 bg-white border border-slate-300 rounded-lg text-slate-800 text-sm focus:ring-2 focus:ring-slate-800 focus:border-transparent outline-none transition-all placeholder:text-slate-400" />
             </div>
         );
+
+        // --- Toast 元件 (右下角通知) ---
+        const Toast = ({ message, onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 3000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            return (
+                <div className="fixed bottom-6 right-6 z-[80] bg-slate-800 text-white px-6 py-4 rounded-lg shadow-2xl flex items-center gap-3 animate-[slideIn_0.3s_ease-out]">
+                    <CheckCircle2 className="text-green-400" size={24} />
+                    <div>
+                        <h4 className="font-bold text-sm">訂單建立成功</h4>
+                        <p className="text-xs text-slate-300">{message}</p>
+                    </div>
+                </div>
+            );
+        };
 
         // --- 查詢 Modal ---
         const TrackingModal = ({ onClose }) => {
@@ -138,6 +168,8 @@
             const [submittedId, setSubmittedId] = useState('');
             const [step, setStep] = useState(1);
             const [showTracking, setShowTracking] = useState(false);
+            const [sessionHistory, setSessionHistory] = useState([]);
+            const [toast, setToast] = useState(null);
 
             const [formData, setFormData] = useState({
                 type: 'new_order', 
@@ -191,7 +223,18 @@
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
+                
+                // ★★★ 雙重檢查必填欄位 ★★★
+                if (!formData.companyName || !formData.contactName || !formData.contactPhone || !formData.contactEmail || !formData.shipDate) {
+                    alert("請檢查必填欄位 (公司名稱、聯絡人、電話、Email、出貨日) 是否已填寫");
+                    return;
+                }
+
                 setIsSubmitting(true);
+
+                // 判斷是哪個按鈕送出的 (quick 或 finish)
+                // 使用 nativeEvent.submitter 來獲取觸發 submit 的按鈕
+                const submitterValue = e.nativeEvent.submitter?.value;
 
                 let fileData = [];
                 if (formData.files.length > 0) {
@@ -209,12 +252,13 @@
                 }
 
                 const orderId = `ORD-${new Date().toISOString().slice(0,10).replace(/-/g,'')}-${Math.floor(Math.random()*1000)}`;
+                const totalAmt = calculateTotal();
                 
                 const payload = {
                     ...formData,
                     rmaId: orderId, 
                     typeTitle: '業務預排訂單',
-                    totalAmount: calculateTotal(),
+                    totalAmount: totalAmt,
                     files: fileData
                 };
 
@@ -225,15 +269,66 @@
                         body: JSON.stringify(payload),
                         headers: { "Content-Type": "text/plain;charset=utf-8" },
                     });
-                    setSubmittedId(orderId);
-                    setStep(2);
+                    
+                    // 新增：加入歷史清單
+                    setSessionHistory(prev => [{
+                        id: orderId,
+                        receiver: formData.receiverName || formData.contactName,
+                        amount: totalAmt,
+                        address: formData.shippingAddress || '-'
+                    }, ...prev]);
+
+                    if (submitterValue === 'quick') {
+                        // 快速續單模式：顯示 Toast，滾動到中間，並執行保留/清空邏輯
+                        setToast(`單號 ${orderId} 已建立，請繼續輸入`);
+                        handleSameClientNext();
+                        // 滾動到表單中間 (出貨資訊區)
+                        setTimeout(() => {
+                            const shipSection = document.getElementById('ship-section');
+                            if(shipSection) shipSection.scrollIntoView({ behavior: 'smooth' });
+                        }, 100);
+                    } else {
+                        // 正常結束模式 (送出並完成)
+                        setSubmittedId(orderId);
+                        setStep(2);
+                    }
+
                 } catch (error) {
                     console.error(error);
-                    setSubmittedId(orderId);
-                    setStep(2);
+                    alert("連線發生錯誤，請截圖聯繫管理員。");
                 } finally {
                     setIsSubmitting(false);
                 }
+            };
+
+            // 同客戶續單功能 (保留基本資料，清空出貨與產品)
+            const handleSameClientNext = () => {
+                setStep(1);
+                setFormData(prev => ({
+                    ...prev,
+                    // 保留 (根據要求): shipDate, companyName, contactName, contactPhone, contactEmail, urgency, orderType
+                    
+                    // 清空: 產品、地址、收件人、備註、檔案
+                    shippingAddress: '', 
+                    receiverName: '', 
+                    receiverPhone: '',
+                    internalNote: '',
+                    files: [],
+                    products: [{ id: Date.now(), model: '', price: '', quantity: "1", note: '' }]
+                }));
+            };
+
+            // 完全重置功能
+            const handleFullReset = () => {
+                setStep(1);
+                setFormData({ 
+                    type: 'new_order', 
+                    companyName: '', contactName: '', contactPhone: '', contactEmail: '', 
+                    shippingAddress: '', receiverName: '', receiverPhone: '', 
+                    shipDate: '', urgency: 'normal', orderType: 'stock', 
+                    internalNote: '', files: [], 
+                    products: [{id: Date.now(), model: '', price: '', quantity: "1", note: ''}] 
+                });
             };
 
             const renderProductList = () => (
@@ -278,13 +373,57 @@
                             </div>
                         ))}
                         
-                        <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                        <div className="flex flex-col md:flex-row justify-between items-center pt-4 border-t border-slate-100 gap-4">
                             <button type="button" onClick={addProduct} className="px-4 py-2 border border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-all flex items-center gap-2 text-sm font-medium"><Plus size={16} /> 新增品項</button>
-                            <div className="text-right">
+                            <div className="text-right w-full md:w-auto">
                                 <span className="text-sm text-slate-500 mr-3">訂單總金額 (含稅)</span>
                                 <span className="text-2xl font-bold text-blue-600">${calculateTotal().toLocaleString()}</span>
                             </div>
                         </div>
+
+                        {/* ✨ 新增按鈕：新增另外一筆訂單 (顯示在訂購內容最下方) */}
+                        <div className="mt-4 pt-2 border-t border-slate-100 flex justify-center md:justify-end">
+                            <button 
+                                type="submit" 
+                                name="action" 
+                                value="quick"
+                                className="w-full md:w-auto px-6 py-2.5 bg-blue-100 text-blue-700 border border-blue-200 hover:bg-blue-200 rounded-lg font-bold transition-all flex items-center justify-center gap-2 text-sm"
+                            >
+                                <Plus size={18} /> 新增另外一筆訂單
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // Session History Table Component
+            const SessionHistoryTable = () => (
+                <div className="mt-12 border-t border-slate-200 pt-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                    <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <ClipboardList size={16}/> 📊 本次作業已建立清單 ({sessionHistory.length})
+                    </h4>
+                    <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-sm">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                                <tr>
+                                    <th className="px-4 py-3">訂單編號</th>
+                                    <th className="px-4 py-3">收件人 / 地點</th>
+                                    <th className="px-4 py-3 text-right">金額</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {sessionHistory.map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-4 py-3 font-mono text-blue-600 font-medium">{item.id}</td>
+                                        <td className="px-4 py-3 text-slate-700">
+                                            <div className="font-medium">{item.receiver}</div>
+                                            <div className="text-xs text-slate-400 truncate max-w-[200px]">{item.address}</div>
+                                        </td>
+                                        <td className="px-4 py-3 text-right font-bold text-slate-800">${item.amount.toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             );
@@ -342,8 +481,8 @@
                                                 </div>
                                             </section>
 
-                                            {/* 新增：指定出貨資訊區塊 */}
-                                            <section>
+                                            {/* 指定出貨資訊區塊 (加上 ID 方便滾動定位) */}
+                                            <section id="ship-section">
                                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><MapPin size={16} /> 指定出貨資訊</h3>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                     <div className="md:col-span-2">
@@ -374,9 +513,12 @@
                                             </section>
 
                                             <div className="flex justify-end pt-6 border-t border-slate-100">
-                                                <button type="submit" disabled={isSubmitting} className={`flex items-center gap-2 px-8 py-3 bg-blue-600 text-white rounded-lg font-bold shadow-lg hover:bg-blue-700 hover:-translate-y-0.5 transition-all ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>{isSubmitting ? <><div className="spinner mr-2"></div> 處理中...</> : "確認送出訂單"}</button>
+                                                <button type="submit" name="action" value="finish" disabled={isSubmitting} className={`flex items-center gap-2 px-8 py-3 bg-slate-800 text-white rounded-lg font-bold shadow-lg hover:bg-slate-900 hover:-translate-y-0.5 transition-all ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}>{isSubmitting ? <><div className="spinner mr-2"></div> 處理中...</> : "確認送出 (完成)"}</button>
                                             </div>
                                         </form>
+                                        
+                                        {/* 新增：在填寫頁面下方顯示已建立清單 */}
+                                        {sessionHistory.length > 0 && <SessionHistoryTable />}
                                     </div>
                                 </div>
                             ) : (
@@ -384,22 +526,36 @@
                                     <div className="w-20 h-20 rounded-full bg-green-100 text-green-600 flex items-center justify-center mb-6 shadow-sm mx-auto"><CheckCircle2 size={40} /></div>
                                     <h2 className="text-3xl font-bold text-slate-900 mb-2">訂單已建立</h2>
                                     <p className="text-slate-500 mb-8">系統已排程，將自動檢查庫存並通知採購人員。</p>
+                                    
                                     <div className="bg-slate-50 p-6 rounded-xl w-full max-w-md text-left border border-slate-200 mb-8 shadow-sm mx-auto">
                                         <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-200"><span className="text-sm text-slate-500">訂單編號</span><span className="font-mono font-bold text-slate-800">{submittedId}</span></div>
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between"><span className="text-slate-500">客戶名稱</span><span className="font-medium text-slate-800">{formData.companyName}</span></div>
                                             <div className="flex justify-between"><span className="text-slate-500">預計出貨</span><span className="font-medium text-blue-600 font-bold">{formData.shipDate}</span></div>
-                                            <div className="flex justify-between"><span className="text-slate-500">急迫性</span><span className="font-medium text-slate-800">{formData.urgency === 'top_urgent' ? '🔴 特急' : formData.urgency === 'urgent' ? '🟠 急件' : '🟢 正常'}</span></div>
+                                            <div className="flex justify-between"><span className="text-slate-500">收件人</span><span className="font-medium text-slate-800">{formData.receiverName || formData.contactName}</span></div>
                                             <div className="flex justify-between border-t border-slate-200 pt-2 mt-2"><span className="text-slate-500">訂單總額</span><span className="font-bold text-blue-600">${calculateTotal().toLocaleString()}</span></div>
                                         </div>
                                     </div>
-                                    <button onClick={() => { setStep(1); setFormData({ type: 'new_order', companyName: '', contactName: '', contactPhone: '', contactEmail: '', shippingAddress: '', receiverName: '', receiverPhone: '', shipDate: '', urgency: 'normal', orderType: 'stock', internalNote: '', files: [], products: [{id: Date.now(), model: '', price: '', quantity: "1", note: ''}] }); }} className="px-8 py-3 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition-all">繼續建立下一筆</button>
+
+                                    {/* 按鈕群組 */}
+                                    <div className="flex flex-col md:flex-row gap-4 justify-center mb-10">
+                                        <button onClick={handleSameClientNext} className="px-8 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-md flex items-center justify-center gap-2">
+                                            <RotateCcw size={18} /> 同客戶續單 (保留基本資料)
+                                        </button>
+                                        <button onClick={handleFullReset} className="px-8 py-3 bg-slate-800 text-slate-200 rounded-lg font-semibold hover:bg-slate-900 transition-all flex items-center justify-center gap-2">
+                                            <Plus size={18} /> 建立全新訂單
+                                        </button>
+                                    </div>
+
+                                    {/* 成功頁面的歷史紀錄 */}
+                                    {sessionHistory.length > 0 && <SessionHistoryTable />}
                                 </div>
                             )}
                         </div>
                     </main>
 
                     {showTracking && <TrackingModal onClose={() => setShowTracking(false)} />}
+                    {toast && <Toast message={toast} onClose={() => setToast(null)} />}
                 </div>
             );
         }
