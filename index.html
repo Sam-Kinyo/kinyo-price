@@ -23,7 +23,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>KINYO 企業採購專區 | 原廠直營．團購批發</title>
 
-<!-- 🆕 [這裡修改] 網站小圖示 (Favicon) - 將原本的地球改成您的 Logo -->
+<!-- 🆕 網站小圖示 (Favicon) -->
 <link rel="icon" href="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" type="image/jpeg">
 
 <meta name="description" content="KINYO 原廠直營企業採購平台。提供公司行號禮贈品、股東會贈品、團購批發專屬優惠。立即諮詢獲取全台最低報價。">
@@ -73,7 +73,25 @@
         background: #f8f9fa; color: #333; border-color: #bbb;
     }
 
-    /* --- Hero Section (改為垂直佈局以支援置頂搜尋) --- */
+    /* 型錄下載按鈕樣式 (強調色邊框) */
+    .nav-btn-catalog {
+        background: white; color: var(--accent); border: 1px solid var(--accent);
+        display: flex; align-items: center; gap: 6px;
+    }
+    .nav-btn-catalog:hover {
+        background: var(--accent); color: white;
+    }
+
+    /* ✨ 新增：企客下單按鈕 (強調色背景，醒目) */
+    .nav-btn-order {
+        background: var(--accent); color: white; border: 1px solid var(--accent);
+        display: flex; align-items: center; gap: 6px;
+    }
+    .nav-btn-order:hover {
+        background: var(--accent-dark); color: white; border-color: var(--accent-dark);
+    }
+
+    /* --- Hero Section (垂直佈局) --- */
     .hero {
         display: flex; 
         flex-direction: column; /* 關鍵：垂直排列 */
@@ -305,6 +323,19 @@
     .footer-col p { margin-bottom: 10px; }
     .copyright { text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #333; }
 
+    /* ✨ 回到頂部按鈕 (Floating) */
+    #btn-back-to-top {
+        position: fixed; bottom: 30px; right: 30px;
+        display: none; width: 50px; height: 50px;
+        background: rgba(34, 34, 34, 0.8); color: white;
+        border: none; border-radius: 50%;
+        cursor: pointer; font-size: 20px; z-index: 1000;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        transition: 0.3s;
+        align-items: center; justify-content: center;
+    }
+    #btn-back-to-top:hover { background: var(--accent); transform: translateY(-3px); }
+
     @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 900px) {
@@ -331,8 +362,10 @@
         .hero-hot-grid { grid-template-columns: 1fr 1fr; } 
         nav { padding: 0 4%; }
         /* 手機版按鈕調整 */
-        .nav-right { gap: 8px; }
-        .nav-btn { padding: 6px 12px; font-size: 12px; }
+        .nav-right { gap: 6px; }
+        /* 手機版隱藏文字，只留圖示，避免擠壓 */
+        .nav-btn span { display: none; }
+        .nav-btn { padding: 6px 12px; font-size: 13px; }
 
         /* 手機版讓置頂搜尋框更寬 */
         .top-search-bar { max-width: 100%; }
@@ -341,17 +374,34 @@
 </head>
 <body>
 
+    <!-- ✨ 回到頂部按鈕 ✨ -->
+    <button id="btn-back-to-top" onclick="scrollToTop()" title="回到頂部">↑</button>
+
     <nav>
         <a href="index.html" class="logo-link">
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO" class="logo-img">
         </a>
 
         <div class="nav-right">
-            <!-- ✨ 新增的按鈕在這裡 ✨ -->
-            <a href="https://www.kinyo-gift.com/return_form" target="_blank" class="nav-btn nav-btn-outline">
-                🛠️ 售後退換申請
+            <!-- 1. 網頁導覽 (原下載型錄) -->
+            <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" target="_blank" class="nav-btn nav-btn-catalog">
+                🗺️ <span class="desktop-only">網頁導覽</span>
             </a>
-            <a href="system.html" class="nav-btn">經銷夥伴登入</a>
+
+            <!-- ✨ 2. 新增：企客下單系統 (售後服務的左邊) ✨ -->
+            <a href="https://www.kinyo-gift.com/order" class="nav-btn nav-btn-order" target="_blank">
+                🛒 <span class="desktop-only">企客下單系統</span>
+            </a>
+
+            <!-- 3. 原有：售後服務 -->
+            <a href="https://www.kinyo-gift.com/return_form" target="_blank" class="nav-btn nav-btn-outline">
+                🛠️ <span class="desktop-only">售後服務</span>
+            </a>
+
+            <!-- 4. 原有：夥伴登入 -->
+            <a href="system.html" class="nav-btn">
+                👤 <span class="desktop-only">夥伴登入</span>
+            </a>
         </div>
     </nav>
 
@@ -761,6 +811,19 @@
         }).catch(err => {
             prompt("請手動複製信箱：", email);
         });
+    }
+
+    // ✨ 回到頂部按鈕邏輯
+    const backToTopBtn = document.getElementById("btn-back-to-top");
+    window.onscroll = function() {
+        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+            backToTopBtn.style.display = "flex";
+        } else {
+            backToTopBtn.style.display = "none";
+        }
+    };
+    function scrollToTop() {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 </script>
 
