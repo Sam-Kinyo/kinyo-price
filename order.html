@@ -39,6 +39,7 @@
         const X = (p) => <IconBase {...p}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
         const Search = (p) => <IconBase {...p}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconBase>;
         const AlertTriangle = (p) => <IconBase {...p}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></IconBase>;
+        const MapPin = (p) => <IconBase {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></IconBase>; // 新增圖標
 
         const InputField = ({ label, required, ...props }) => (
             <div className="space-y-1.5">
@@ -136,11 +137,12 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [submittedId, setSubmittedId] = useState('');
             const [step, setStep] = useState(1);
-            const [showTracking, setShowTracking] = useState(false); // 新增：控制查詢 Modal
+            const [showTracking, setShowTracking] = useState(false);
 
             const [formData, setFormData] = useState({
                 type: 'new_order', 
                 companyName: '', contactName: '', contactPhone: '', contactEmail: '', 
+                shippingAddress: '', receiverName: '', receiverPhone: '', // 新增欄位
                 shipDate: '', 
                 urgency: 'normal', 
                 orderType: 'stock', 
@@ -340,6 +342,18 @@
                                                 </div>
                                             </section>
 
+                                            {/* 新增：指定出貨資訊區塊 */}
+                                            <section>
+                                                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><MapPin size={16} /> 指定出貨資訊</h3>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="md:col-span-2">
+                                                        <InputField label="指定出貨地址" name="shippingAddress" value={formData.shippingAddress} onChange={handleInputChange} placeholder="請輸入完整收件地址" />
+                                                    </div>
+                                                    <InputField label="收件人姓名" name="receiverName" value={formData.receiverName} onChange={handleInputChange} placeholder="現場收件人" />
+                                                    <InputField label="收件人電話" name="receiverPhone" value={formData.receiverPhone} onChange={handleInputChange} placeholder="收件聯絡電話" />
+                                                </div>
+                                            </section>
+
                                             <section>
                                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><Box size={16} /> 訂購內容</h3>
                                                 {renderProductList()}
@@ -379,7 +393,7 @@
                                             <div className="flex justify-between border-t border-slate-200 pt-2 mt-2"><span className="text-slate-500">訂單總額</span><span className="font-bold text-blue-600">${calculateTotal().toLocaleString()}</span></div>
                                         </div>
                                     </div>
-                                    <button onClick={() => { setStep(1); setFormData({ type: 'new_order', companyName: '', contactName: '', contactPhone: '', contactEmail: '', shipDate: '', urgency: 'normal', orderType: 'stock', internalNote: '', files: [], products: [{id: Date.now(), model: '', price: '', quantity: "1", note: ''}] }); }} className="px-8 py-3 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition-all">繼續建立下一筆</button>
+                                    <button onClick={() => { setStep(1); setFormData({ type: 'new_order', companyName: '', contactName: '', contactPhone: '', contactEmail: '', shippingAddress: '', receiverName: '', receiverPhone: '', shipDate: '', urgency: 'normal', orderType: 'stock', internalNote: '', files: [], products: [{id: Date.now(), model: '', price: '', quantity: "1", note: ''}] }); }} className="px-8 py-3 bg-slate-900 text-white rounded-lg font-semibold hover:bg-slate-800 transition-all">繼續建立下一筆</button>
                                 </div>
                             )}
                         </div>
