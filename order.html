@@ -28,8 +28,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ★★★ 請務必確認這裡的網址是否與您 Apps Script 的「網頁應用程式網址」一致 ★★★
-        // 如果您按下「新增佈署」導致網址變了，請更新這裡
+        // ★★★ 請確認此網址與您的 Apps Script 佈署網址一致 ★★★
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwCS7Gq03PeeYpymCVYM02bhST_OP_zcnEyrs41aVmLSprs2tlOCIafM9liEGR4MmIcuw/exec"; 
 
         // Icons
@@ -51,9 +50,8 @@
         const MapPin = (p) => <IconBase {...p}><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></IconBase>;
         const RotateCcw = (p) => <IconBase {...p}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></IconBase>;
         const ClipboardList = (p) => <IconBase {...p}><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></IconBase>;
-        const Send = (p) => <IconBase {...p}><line x1="22" x2="11" y1="2" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></IconBase>;
+        const HistoryIcon = (p) => <IconBase {...p}><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></IconBase>;
 
-        // InputField 元件
         const InputField = ({ label, required, ...props }) => (
             <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-slate-700">{label} {required && <span className="text-red-500">*</span>}</label>
@@ -81,7 +79,120 @@
             );
         };
 
-        // 查詢 Modal
+        // ★ 新增：歷史訂單查詢 Modal ★
+        const HistoryModal = ({ onClose }) => {
+            const [phone, setPhone] = useState('');
+            const [email, setEmail] = useState('');
+            const [historyData, setHistoryData] = useState(null);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            const handleHistorySearch = async (e) => {
+                e.preventDefault();
+                if (!phone || !email) {
+                    setError("請輸入完整的電話與 Email 進行驗證");
+                    return;
+                }
+                setLoading(true);
+                setError('');
+                setHistoryData(null);
+
+                try {
+                    const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=history&phone=${encodeURIComponent(phone.trim())}&email=${encodeURIComponent(email.trim())}`);
+                    const data = await res.json();
+                    
+                    if (data.found && data.history && data.history.length > 0) {
+                        setHistoryData(data.history);
+                    } else {
+                        setError("查無資料，請確認輸入的電話與 Email 是否與訂單一致。");
+                    }
+                } catch (err) {
+                    setError("連線失敗，請稍後再試。");
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const getStatusColor = (status) => {
+                if (status.includes("待審核")) return "bg-gray-100 text-gray-600";
+                if (status.includes("已出貨") || status.includes("結案")) return "bg-green-100 text-green-700";
+                if (status.includes("缺貨") || status.includes("處理中")) return "bg-orange-100 text-orange-700";
+                if (status.includes("取消") || status.includes("退件")) return "bg-red-100 text-red-700";
+                return "bg-blue-100 text-blue-700";
+            };
+
+            return (
+                <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}>
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
+                            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2"><HistoryIcon size={20}/> 歷史訂單查詢</h3>
+                            <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors text-slate-500"><X size={20} /></button>
+                        </div>
+                        
+                        <div className="p-6 overflow-y-auto">
+                            {!historyData ? (
+                                <div className="space-y-4 max-w-md mx-auto py-8">
+                                    <div className="text-center mb-6">
+                                        <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600">
+                                            <User size={32} />
+                                        </div>
+                                        <h4 className="font-bold text-lg text-slate-800">客戶身分驗證</h4>
+                                        <p className="text-sm text-slate-500">請輸入您下單時填寫的聯絡資訊</p>
+                                    </div>
+                                    <InputField label="聯絡電話" placeholder="例如：0912345678" value={phone} onChange={e => setPhone(e.target.value)} />
+                                    <InputField label="聯絡 Email" placeholder="例如：name@company.com" type="email" value={email} onChange={e => setEmail(e.target.value)} />
+                                    {error && <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2"><AlertTriangle size={16} /> {error}</div>}
+                                    <button onClick={handleHistorySearch} disabled={loading} className="w-full py-3 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-colors flex justify-center mt-4">
+                                        {loading ? <div className="spinner"></div> : "查詢紀錄"}
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-sm text-slate-500">共找到 {historyData.length} 筆資料</span>
+                                        <button onClick={() => setHistoryData(null)} className="text-sm text-blue-600 hover:underline">重新查詢</button>
+                                    </div>
+                                    <div className="border rounded-lg overflow-hidden">
+                                        <table className="w-full text-sm text-left">
+                                            <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
+                                                <tr>
+                                                    <th className="px-4 py-3">訂單編號 / 類別</th>
+                                                    <th className="px-4 py-3">日期</th>
+                                                    <th className="px-4 py-3">狀態</th>
+                                                    <th className="px-4 py-3 text-right">金額</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {historyData.map((item, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50">
+                                                        <td className="px-4 py-3">
+                                                            <div className="font-mono font-bold text-slate-800">{item.id}</div>
+                                                            <div className="text-xs text-slate-500">{item.type}</div>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-slate-600">
+                                                            <div>{item.date}</div>
+                                                            {item.shipDate && item.shipDate !== '-' && <div className="text-xs text-blue-600 mt-0.5">預計出貨: {item.shipDate}</div>}
+                                                        </td>
+                                                        <td className="px-4 py-3">
+                                                            <span className={`px-2 py-1 rounded text-xs font-bold ${getStatusColor(item.status)}`}>{item.status}</span>
+                                                        </td>
+                                                        <td className="px-4 py-3 text-right font-medium text-slate-700">
+                                                            {item.total && item.total !== '-' ? `$${parseInt(item.total).toLocaleString()}` : '-'}
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // 既有的單號查詢 Modal (維持不變)
         const TrackingModal = ({ onClose }) => {
             const [searchId, setSearchId] = useState('');
             const [searchPhone, setSearchPhone] = useState('');
@@ -171,8 +282,9 @@
             const [submittedId, setSubmittedId] = useState('');
             const [step, setStep] = useState(1);
             const [showTracking, setShowTracking] = useState(false);
+            const [showHistory, setShowHistory] = useState(false); // 新增：控制歷史查詢 Modal
             const [sessionHistory, setSessionHistory] = useState([]);
-            const [toast, setToast] = useState(null); // { message: string, type: 'success' | 'error' }
+            const [toast, setToast] = useState(null);
 
             const [formData, setFormData] = useState({
                 type: 'new_order', 
@@ -271,12 +383,10 @@
                     
                     const resultJson = await res.json();
 
-                    // ★★★ 新增：檢查後端回傳結果 ★★★
                     if (resultJson.result !== 'success') {
                         throw new Error(resultJson.error || "後端發生未知錯誤");
                     }
                     
-                    // 成功邏輯
                     setSessionHistory(prev => [{
                         id: orderId,
                         receiver: formData.receiverName || formData.contactName,
@@ -298,7 +408,6 @@
 
                 } catch (error) {
                     console.error("Submission Error:", error);
-                    // ★★★ 顯示錯誤給使用者 ★★★
                     setToast({ message: "送出失敗：" + error.message, type: 'error' });
                     alert("⚠️ 訂單送出失敗！\n\n原因：" + error.message + "\n\n請檢查您的「網頁應用程式網址」是否正確，或是 Google Sheet 欄位是否已被刪除。");
                 } finally {
@@ -381,7 +490,6 @@
                             </div>
                         </div>
 
-                        {/* 快速續單按鈕 */}
                         <div className="mt-4 pt-2 border-t border-slate-100 flex justify-center md:justify-end">
                             <button 
                                 type="submit" 
@@ -437,8 +545,10 @@
                                 <span className="hidden text-xl font-bold tracking-wide">KINYO</span>
                                 <span className="text-slate-400 font-normal text-sm ml-1 border-l border-slate-600 pl-3">業務訂單預排系統</span>
                             </div>
-                            <div className="flex items-center gap-6 text-sm text-gray-300">
-                                <span onClick={() => setShowTracking(true)} className="hover:text-white cursor-pointer transition-colors bg-blue-700 px-3 py-1 rounded text-xs flex items-center gap-1"><Search size={14}/> 訂單查詢</span>
+                            <div className="flex items-center gap-3 md:gap-6 text-sm text-gray-300">
+                                {/* 新增歷史查詢按鈕 */}
+                                <span onClick={() => setShowHistory(true)} className="hover:text-white cursor-pointer transition-colors px-2 py-1 flex items-center gap-1"><HistoryIcon size={16}/> 歷史</span>
+                                <span onClick={() => setShowTracking(true)} className="hover:text-white cursor-pointer transition-colors bg-blue-700 px-3 py-1 rounded text-xs flex items-center gap-1"><Search size={14}/> 單筆查詢</span>
                             </div>
                         </div>
                     </nav>
@@ -481,7 +591,7 @@
                                                 </div>
                                             </section>
 
-                                            {/* 指定出貨資訊區塊 (加上 ID 方便滾動定位) */}
+                                            {/* 指定出貨資訊區塊 */}
                                             <section id="ship-section">
                                                 <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2"><MapPin size={16} /> 指定出貨資訊</h3>
                                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -546,7 +656,6 @@
                                         </button>
                                     </div>
 
-                                    {/* 成功頁面的歷史紀錄 */}
                                     {sessionHistory.length > 0 && <SessionHistoryTable />}
                                 </div>
                             )}
@@ -554,6 +663,7 @@
                     </main>
 
                     {showTracking && <TrackingModal onClose={() => setShowTracking(false)} />}
+                    {showHistory && <HistoryModal onClose={() => setShowHistory(false)} />}
                     {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
                 </div>
             );
