@@ -80,7 +80,7 @@
             );
         };
 
-        // ★ 修改：歷史訂單查詢 Modal (修正 .split 錯誤) ★
+        // ★ 修改：歷史訂單查詢 Modal (修正 .split 錯誤 & 顯示收件人姓名) ★
         const HistoryModal = ({ onClose }) => {
             const [phone, setPhone] = useState('');
             const [email, setEmail] = useState('');
@@ -164,7 +164,7 @@
                                             <thead className="bg-slate-50 text-slate-600 font-semibold border-b">
                                                 <tr>
                                                     <th className="px-4 py-3 whitespace-nowrap">日期 / 單號</th>
-                                                    <th className="px-4 py-3 whitespace-nowrap">訂購人</th>
+                                                    <th className="px-4 py-3 whitespace-nowrap">收件人姓名</th>
                                                     <th className="px-4 py-3">訂購品項 (數量)</th>
                                                     <th className="px-4 py-3 whitespace-nowrap">狀態</th>
                                                     <th className="px-4 py-3 whitespace-nowrap">備註</th>
@@ -178,10 +178,10 @@
                                                             <div className="text-xs text-slate-500 font-mono mt-1">{item.id}</div>
                                                         </td>
                                                         <td className="px-4 py-3 text-slate-700 font-medium whitespace-nowrap">
-                                                            {item.contact || '-'}
+                                                            {item.receiverName || item.contact || '-'}
                                                         </td>
                                                         <td className="px-4 py-3 text-slate-600">
-                                                            {/* ★ 修正點：使用物件屬性 model 與 qty，而非 split */}
+                                                            {/* 顯示產品列表 */}
                                                             {item.products && item.products.length > 0 ? (
                                                                 <ul className="list-disc list-inside space-y-1">
                                                                     {item.products.map((p, i) => (
