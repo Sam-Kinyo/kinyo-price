@@ -80,7 +80,7 @@
             );
         };
 
-        // ★ 修改：歷史訂單查詢 Modal (顯示指定欄位) ★
+        // ★ 修改：歷史訂單查詢 Modal (修正 .split 錯誤) ★
         const HistoryModal = ({ onClose }) => {
             const [phone, setPhone] = useState('');
             const [email, setEmail] = useState('');
@@ -181,13 +181,13 @@
                                                             {item.contact || '-'}
                                                         </td>
                                                         <td className="px-4 py-3 text-slate-600">
-                                                            {/* 顯示產品列表 */}
+                                                            {/* ★ 修正點：使用物件屬性 model 與 qty，而非 split */}
                                                             {item.products && item.products.length > 0 ? (
                                                                 <ul className="list-disc list-inside space-y-1">
                                                                     {item.products.map((p, i) => (
                                                                         <li key={i}>
-                                                                            <span className="font-medium text-slate-800">{p.split(' x')[0]}</span>
-                                                                            <span className="text-slate-500 text-xs ml-1">x{p.split(' x')[1]}</span>
+                                                                            <span className="font-medium text-slate-800">{p.model}</span>
+                                                                            <span className="text-slate-500 text-xs ml-1">x{p.qty}</span>
                                                                         </li>
                                                                     ))}
                                                                 </ul>
