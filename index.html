@@ -20,14 +20,14 @@
     <!-- 👆👆👆 代碼結束 👆👆👆 -->
 
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>KINYO 企業採購專區 | 原廠直營．團購批發</title>
 
 <!-- 🆕 網站小圖示 (Favicon) -->
 <link rel="icon" href="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" type="image/jpeg">
 
 <meta name="description" content="KINYO 原廠直營企業採購平台。提供公司行號禮贈品、股東會贈品、團購批發專屬優惠。立即諮詢獲取全台最低報價。">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
 <style>
     :root {
@@ -39,11 +39,13 @@
         --border: #eeeeee;
         --shadow: 0 4px 20px rgba(0,0,0,0.08);
         --container-width: 1440px;
+        --radius: 12px;
     }
     
     body { 
         margin: 0; font-family: 'Noto Sans TC', sans-serif; 
         color: var(--primary); line-height: 1.6; overflow-x: hidden;
+        padding-bottom: 60px; /* 為了手機版底部選單預留空間 */
     }
 
     /* --- 導覽列 --- */
@@ -61,7 +63,7 @@
 
     .nav-btn {
         text-decoration: none; color: white; background: var(--primary);
-        font-weight: 500; font-size: 14px; padding: 8px 20px; border-radius: 4px;
+        font-weight: 500; font-size: 14px; padding: 8px 20px; border-radius: 6px;
         transition: 0.3s; letter-spacing: 1px; display: inline-block; white-space: nowrap;
     }
     .nav-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
@@ -73,7 +75,6 @@
         background: #f8f9fa; color: #333; border-color: #bbb;
     }
 
-    /* 型錄下載按鈕樣式 (強調色邊框) */
     .nav-btn-catalog {
         background: white; color: var(--accent); border: 1px solid var(--accent);
         display: flex; align-items: center; gap: 6px;
@@ -82,21 +83,21 @@
         background: var(--accent); color: white;
     }
 
-    /* ✨ 新增：企客下單按鈕 (強調色背景，醒目) */
     .nav-btn-order {
         background: var(--accent); color: white; border: 1px solid var(--accent);
         display: flex; align-items: center; gap: 6px;
+        box-shadow: 0 4px 10px rgba(0,85,170,0.2);
     }
     .nav-btn-order:hover {
-        background: var(--accent-dark); color: white; border-color: var(--accent-dark);
+        background: var(--accent-dark); color: white; border-color: var(--accent-dark); transform: translateY(-1px);
     }
 
     /* --- Hero Section (垂直佈局) --- */
     .hero {
         display: flex; 
-        flex-direction: column; /* 關鍵：垂直排列 */
-        align-items: center;    /* 關鍵：水平置中 */
-        padding: 60px 6% 80px 6%; /* 調整上方 padding */
+        flex-direction: column; 
+        align-items: center;    
+        padding: 60px 6% 80px 6%; 
         background: linear-gradient(105deg, #f3f6f9 0%, #eef2f6 100%);
         min-height: 600px; 
         max-width: var(--container-width); margin: 0 auto; 
@@ -105,13 +106,27 @@
     /* 置頂大搜尋框樣式 */
     .top-search-bar {
         position: relative; 
-        margin-bottom: 60px; /* 與下方內容的距離 */
-        max-width: 680px;    /* 加寬搜尋框，更大氣 */
+        margin-bottom: 60px; 
+        max-width: 720px;    
         width: 100%;
         z-index: 10;
+        display: flex; flex-direction: column; align-items: center;
     }
 
-    /* Hero 下半部內容區 (左右分欄) */
+    /* ✨ 快速標籤 (Quick Chips) */
+    .search-tags {
+        display: flex; gap: 10px; margin-top: 15px; flex-wrap: wrap; justify-content: center;
+    }
+    .tag-chip {
+        font-size: 13px; color: #666; background: white; padding: 6px 14px;
+        border-radius: 20px; cursor: pointer; border: 1px solid #ddd;
+        transition: 0.2s;
+    }
+    .tag-chip:hover {
+        color: var(--accent); border-color: var(--accent); background: #f0f7ff;
+    }
+
+    /* Hero 下半部內容區 */
     .hero-body {
         display: flex;
         width: 100%;
@@ -142,18 +157,21 @@
     .hero p { font-size: 16px; color: var(--text-gray); margin-bottom: 25px; font-weight: 400; text-align: justify; }
 
     /* 通用搜尋框樣式 */
+    .search-input-wrapper {
+        position: relative; width: 100%;
+    }
     .search-input {
-        width: 100%; padding: 16px 24px; padding-left: 60px; padding-right: 120px; 
+        width: 100%; padding: 18px 24px; padding-left: 60px; padding-right: 120px; 
         border: 2px solid white; border-radius: 50px;
-        font-size: 18px; /* 字體加大 */
+        font-size: 18px; 
         outline: none; box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-        transition: all 0.3s; height: 64px; box-sizing: border-box; 
+        transition: all 0.3s; height: 68px; box-sizing: border-box; 
     }
     .search-input:focus { border-color: var(--accent); box-shadow: 0 10px 40px rgba(0, 85, 170, 0.25); }
     .search-icon { position: absolute; left: 24px; top: 50%; transform: translateY(-50%); font-size: 24px; color: #999; }
     .search-btn-submit {
         position: absolute; right: 8px; top: 50%; transform: translateY(-50%); 
-        height: 48px; background: var(--accent); color: white; border: none;
+        height: 52px; background: var(--accent); color: white; border: none;
         border-radius: 50px; padding: 0 32px; font-weight: 600; cursor: pointer;
         transition: 0.2s; font-size: 16px; box-shadow: 0 2px 6px rgba(0,85,170,0.2);
     }
@@ -165,7 +183,7 @@
     .line-hint { font-size: 12px; color: #06c755; font-weight: 700; letter-spacing: 0.5px; }
 
     .btn {
-        padding: 10px 24px; border-radius: 4px; font-weight: 500; font-size: 14px;
+        padding: 10px 24px; border-radius: 6px; font-weight: 500; font-size: 14px;
         text-decoration: none; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;
     }
     .btn-line { background: #06c755; color: white; border: 1px solid #06c755; }
@@ -173,7 +191,7 @@
     .btn-email { background: white; color: var(--primary); border: 1px solid #ccc; }
     .btn-email:hover { border-color: var(--primary); background: #fff; }
     .btn-copy {
-        background: #f0f0f0; border: none; width: 40px; height: 40px; border-radius: 4px;
+        background: #f0f0f0; border: none; width: 40px; height: 40px; border-radius: 6px;
         cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px;
         transition: 0.2s; color: #666;
     }
@@ -183,7 +201,7 @@
     .hero-right-col {
         flex: 1.2; max-width: 800px;
         display: flex; flex-direction: column; gap: 20px;
-        margin-top: 10px; /* 微調對齊 */
+        margin-top: 10px; 
     }
     .hero-hot-title {
         font-size: 18px; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px;
@@ -197,9 +215,9 @@
     .mini-card {
         background: white; border-radius: 12px; padding: 12px; 
         box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.02);
-        transition: 0.2s; cursor: pointer; text-align: left;
+        transition: 0.2s; cursor: pointer; text-align: left; position: relative; overflow: hidden;
     }
-    .mini-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); border-color: var(--accent); }
+    .mini-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,0,0,0.1); border-color: var(--accent); }
     .mini-card img {
         width: 100%; aspect-ratio: 1/1; object-fit: contain; margin-bottom: 8px;
         background: #f9f9f9; border-radius: 8px;
@@ -207,6 +225,7 @@
     .mini-rank {
         font-size: 10px; font-weight: 700; color: white; background: #ef4444; 
         padding: 2px 6px; border-radius: 4px; display: inline-block; margin-bottom: 4px;
+        position: absolute; top: 10px; left: 10px; z-index: 2;
     }
     .mini-name {
         font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px;
@@ -215,47 +234,57 @@
     .mini-count { font-size: 11px; color: #666; }
     .mini-count b { color: #d32f2f; }
 
-    /* --- 🆕 預算區塊 (置中版) --- */
+    /* --- 🆕 預算區塊 (視覺升級版) --- */
     .dual-section {
         padding: 80px 6%; background: white; border-bottom: 1px solid #eee;
     }
     .dual-container {
         max-width: var(--container-width); margin: 0 auto;
         display: flex; 
-        justify-content: center; /* 讓內容置中 */
+        justify-content: center; 
         align-items: center;
     }
     
-    /* 預算神器樣式調整 */
     .col-budget {
-        background: #eef7ff; border: 1px solid #dcebf7;
-        box-shadow: 0 4px 20px rgba(0,85,170,0.08);
-        border-radius: 16px; padding: 50px;
-        width: 100%; max-width: 600px; /* 限制最大寬度，置中更好看 */
-        display: flex; flex-direction: column; align-items: center;
+        /* 深色背景設計，突顯工具感 */
+        background: linear-gradient(145deg, #1e293b, #0f172a); 
+        color: white;
+        border: 1px solid #334155;
+        box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+        border-radius: 20px; padding: 50px;
+        width: 100%; max-width: 650px; 
+        display: flex; flex-direction: column; align-items: center; position: relative;
     }
+    .col-budget::before {
+        content: "✨"; position: absolute; top: -20px; right: -20px; font-size: 60px; transform: rotate(15deg);
+    }
+
     .budget-form {
         width: 100%;
         display: flex; flex-direction: column; gap: 20px;
     }
     .input-group { text-align: left; width: 100%; }
-    .input-group label { display: block; font-weight: 700; margin-bottom: 8px; color: var(--accent-dark); font-size: 14px; }
-    .input-group input {
-        width: 100%; padding: 14px; border: 1px solid #cce0f5; border-radius: 8px; font-size: 16px;
-        transition: 0.2s; box-sizing: border-box; background: white;
+    .input-group label { 
+        display: block; font-weight: 500; margin-bottom: 8px; color: #94a3b8; font-size: 14px; letter-spacing: 1px;
     }
-    .input-group input:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(0,85,170,0.1); }
+    .input-group input {
+        width: 100%; padding: 16px; border: 2px solid #334155; border-radius: 10px; font-size: 18px;
+        transition: 0.2s; box-sizing: border-box; background: #0f172a; color: white;
+    }
+    .input-group input::placeholder { color: #475569; }
+    .input-group input:focus { border-color: #38bdf8; outline: none; box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1); }
     
     .btn-calc {
-        background: linear-gradient(135deg, #0055aa 0%, #003366 100%);
-        color: white; border: none; padding: 14px 32px; border-radius: 8px;
-        font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.3s;
-        width: 100%; margin-top: 10px;
-        box-shadow: 0 5px 15px rgba(0,85,170,0.3);
+        background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+        color: white; border: none; padding: 16px 32px; border-radius: 10px;
+        font-size: 18px; font-weight: 700; cursor: pointer; transition: 0.3s;
+        width: 100%; margin-top: 15px;
+        box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3);
     }
-    .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,85,170,0.4); }
+    .btn-calc:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(14, 165, 233, 0.4); filter: brightness(1.1); }
 
-    .section-title { text-align: center; font-size: 24px; font-weight: 700; margin-bottom: 8px; color: var(--primary); }
+    .section-title { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 8px; color: white; }
+    .col-budget .section-desc { color: #94a3b8; }
     .section-desc { text-align: center; color: var(--text-gray); margin-bottom: 30px; font-size: 15px; }
 
     /* --- 🔍 搜尋結果區塊 --- */
@@ -265,31 +294,31 @@
     .results-header {
         display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;
     }
-    .results-title { font-size: 24px; font-weight: 700; }
+    .results-title { font-size: 24px; font-weight: 700; color: var(--primary); }
     .close-results { cursor: pointer; color: #999; font-size: 14px; text-decoration: underline; }
     .results-grid {
-        display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-        gap: 20px;
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 25px;
     }
     .product-card {
-        border: 1px solid #eee; border-radius: 8px; overflow: hidden;
-        transition: 0.2s; background: white;
+        border: 1px solid #eee; border-radius: 12px; overflow: hidden;
+        transition: 0.2s; background: white; position: relative;
     }
-    .product-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
+    .product-card:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); border-color: #bfdbfe; }
     .pc-img-box {
         width: 100%; aspect-ratio: 1/1; overflow: hidden; background: #f9f9f9;
-        display: flex; align-items: center; justify-content: center;
+        display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;
     }
-    .pc-img { width: 100%; height: 100%; object-fit: contain; }
-    .pc-info { padding: 15px; }
-    .pc-model { font-size: 12px; color: #999; margin-bottom: 4px; }
-    .pc-name { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 8px; line-height: 1.4; height: 42px; overflow: hidden; }
-    .pc-price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; }
-    .pc-market { font-size: 13px; color: #666; text-decoration: line-through; }
+    .pc-img { width: 100%; height: 100%; object-fit: contain; transition: 0.3s; }
+    .product-card:hover .pc-img { transform: scale(1.05); }
+    .pc-info { padding: 16px; }
+    .pc-model { font-size: 12px; color: #999; margin-bottom: 4px; background: #f1f5f9; display: inline-block; padding: 2px 6px; border-radius: 4px; }
+    .pc-name { font-size: 15px; font-weight: 700; color: #333; margin-bottom: 8px; line-height: 1.4; height: 42px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+    .pc-price-row { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 10px; border-top: 1px dashed #eee; padding-top: 10px; }
     .pc-login-btn {
         display: block; width: 100%; text-align: center;
-        margin-top: 12px; padding: 8px 0; background: #f0f7ff; color: var(--accent);
-        font-size: 13px; font-weight: 600; border-radius: 4px; text-decoration: none;
+        margin-top: 12px; padding: 10px 0; background: #eff6ff; color: var(--accent);
+        font-size: 14px; font-weight: 600; border-radius: 6px; text-decoration: none; transition: 0.2s;
     }
     .pc-login-btn:hover { background: var(--accent); color: white; }
 
@@ -297,36 +326,53 @@
     .process-section { padding: 80px 6%; background: white; }
     .process-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 30px; max-width: var(--container-width); margin: 0 auto; text-align: center; }
     .process-item { position: relative; }
-    .p-icon { width: 70px; height: 70px; background: #f0f7ff; color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 30px; font-weight: bold; }
-    .process-item h4 { margin: 0 0 10px; font-size: 18px; }
+    .process-item::after {
+        content: "→"; position: absolute; right: -20px; top: 25px; font-size: 20px; color: #ddd; display: none; /* 暫時隱藏箭頭 */
+    }
+    .p-icon { width: 80px; height: 80px; background: #f0f7ff; color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; font-weight: bold; box-shadow: 0 4px 10px rgba(0,85,170,0.1); }
+    .process-item h4 { margin: 0 0 10px; font-size: 18px; color: var(--primary); }
     .process-item p { font-size: 14px; color: #777; line-height: 1.6; }
     
     .cat-section { padding: 80px 6%; background: var(--bg-light); }
     .cat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 24px; max-width: var(--container-width); margin: 0 auto; }
-    .cat-card { background: white; border-radius: 8px; padding: 30px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; text-decoration: none; display: block; border: 1px solid transparent; }
-    .cat-card:hover { transform: translateY(-5px); border-color: var(--accent); }
-    .cat-icon { font-size: 40px; margin-bottom: 15px; display: block; }
+    .cat-card { background: white; border-radius: 16px; padding: 30px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: 0.3s; cursor: pointer; text-decoration: none; display: block; border: 1px solid transparent; }
+    .cat-card:hover { transform: translateY(-5px); border-color: var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+    .cat-icon { font-size: 48px; margin-bottom: 15px; display: block; }
     
-    .features-section { background: white; padding: 80px 5%; border-top: 1px solid #eee; }
-    .features-container { max-width: var(--container-width); margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 30px; }
-    .card { background: white; padding: 40px 30px; border-radius: 8px; border: 1px solid #f1f1f1; transition: 0.3s; }
-    .card:hover { transform: translateY(-5px); box-shadow: var(--shadow); border-color: #eee; }
-    .icon { font-size: 28px; margin-bottom: 20px; display: inline-block; background: #eff6ff; width: 60px; height: 60px; line-height: 60px; text-align: center; border-radius: 50%; color: var(--accent); }
+    .trust-section { padding: 60px 6%; background: white; text-align: center; border-top: 1px solid #eee; }
+    .trust-logos { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; opacity: 0.5; grayscale: 100%; margin-top: 30px; transition: 0.3s; }
+    .trust-logos:hover { opacity: 1; grayscale: 0; }
+    .trust-text { font-size: 14px; color: #999; letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
 
-    .trust-section { padding: 50px 6%; background: var(--bg-light); text-align: center; }
-    .trust-logos { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; opacity: 0.6; grayscale: 100%; margin-top: 30px; }
-    .trust-text { font-size: 14px; color: #999; letter-spacing: 1px; font-weight: 500; text-transform: uppercase; }
-
-    footer { background: #1a1a1a; color: #888; padding: 60px 6%; font-size: 13px; }
+    footer { background: #1a1a1a; color: #888; padding: 60px 6%; font-size: 13px; margin-bottom: 50px; /* 手機版底部空間 */ }
     .footer-content { max-width: var(--container-width); margin: 0 auto; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; }
     .footer-col h4 { color: white; margin-bottom: 20px; font-size: 16px; }
     .footer-col p { margin-bottom: 10px; }
     .copyright { text-align: center; margin-top: 50px; padding-top: 20px; border-top: 1px solid #333; }
 
+    /* ✨ 手機版底部黏著選單 (Mobile Sticky Footer) */
+    .mobile-bottom-nav {
+        position: fixed; bottom: 0; left: 0; width: 100%;
+        background: white; border-top: 1px solid #eee;
+        display: none; /* Desktop 隱藏 */
+        justify-content: space-around; align-items: center;
+        height: 60px; z-index: 1000; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    .mb-item {
+        flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-decoration: none; color: #666; font-size: 11px; height: 100%;
+    }
+    .mb-item.active { color: var(--accent); font-weight: 700; }
+    .mb-icon { font-size: 20px; margin-bottom: 2px; }
+    .mb-cta {
+        background: var(--accent); color: white; width: 100%; height: 100%; 
+        display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; gap: 5px;
+    }
+
     /* ✨ 回到頂部按鈕 (Floating) */
     #btn-back-to-top {
-        position: fixed; bottom: 30px; right: 30px;
-        display: none; width: 50px; height: 50px;
+        position: fixed; bottom: 80px; right: 30px;
+        display: none; width: 45px; height: 45px;
         background: rgba(34, 34, 34, 0.8); color: white;
         border: none; border-radius: 50%;
         cursor: pointer; font-size: 20px; z-index: 1000;
@@ -339,21 +385,19 @@
     @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
     @media (max-width: 900px) {
-        /* 手機版 Hero 調整：保持垂直佈局，但縮減間距 */
+        /* 手機版 Hero 調整 */
         .hero { padding: 40px 5%; gap: 30px; }
         
-        /* 手機版 Hero 內容區：垂直堆疊 (原本是並排) */
         .hero-body { flex-direction: column; gap: 40px; }
         .hero-content { max-width: 100%; order: 1; text-align: center; }
         .hero-right-col { order: 2; width: 100%; max-width: 100%; }
         
-        /* 調整文字對齊 */
         .hero h1 { font-size: 32px; }
-        .hero p { text-align: center; } /* 手機版文字置中較美觀 */
+        .hero p { text-align: center; }
         .cta-group { justify-content: center; }
         
         .dual-container { flex-direction: column; } 
-        .col-budget { width: 100%; padding: 30px 20px; }
+        .col-budget { width: 100%; padding: 40px 24px; border-radius: 16px; }
         
         .footer-content { flex-direction: column; }
         .budget-inputs { flex-direction: column; align-items: stretch; }
@@ -361,14 +405,17 @@
         
         .hero-hot-grid { grid-template-columns: 1fr 1fr; } 
         nav { padding: 0 4%; }
-        /* 手機版按鈕調整 */
+        
         .nav-right { gap: 6px; }
-        /* 手機版隱藏文字，只留圖示，避免擠壓 */
         .nav-btn span { display: none; }
-        .nav-btn { padding: 6px 12px; font-size: 13px; }
+        .nav-btn { padding: 8px 12px; font-size: 13px; }
 
-        /* 手機版讓置頂搜尋框更寬 */
         .top-search-bar { max-width: 100%; }
+        
+        /* 顯示手機底部選單 */
+        .mobile-bottom-nav { display: flex; }
+        footer { padding-bottom: 80px; } /* 避免被底部選單擋住 */
+        #btn-back-to-top { bottom: 80px; right: 20px; } /* 調整回到頂部位置 */
     }
 </style>
 </head>
@@ -377,29 +424,50 @@
     <!-- ✨ 回到頂部按鈕 ✨ -->
     <button id="btn-back-to-top" onclick="scrollToTop()" title="回到頂部">↑</button>
 
+    <!-- ✨ 手機版底部黏著選單 ✨ -->
+    <div class="mobile-bottom-nav">
+        <a href="index.html" class="mb-item active">
+            <span class="mb-icon">🏠</span>
+            <span>首頁</span>
+        </a>
+        <a href="javascript:void(0)" onclick="document.querySelector('.hero').scrollIntoView({behavior:'smooth'})" class="mb-item">
+            <span class="mb-icon">🔍</span>
+            <span>找商品</span>
+        </a>
+        <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" target="_blank" class="mb-item">
+            <span class="mb-icon">📖</span>
+            <span>型錄</span>
+        </a>
+        <a href="https://line.me/ti/p/qiHzrCaf_P" target="_blank" class="mb-item" style="flex: 1.5;">
+            <div class="mb-cta" onclick="trackLineConversion()">
+                <span style="font-size:18px;">💬</span> 加 LINE 詢價
+            </div>
+        </a>
+    </div>
+
     <nav>
         <a href="index.html" class="logo-link">
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO" class="logo-img">
         </a>
 
         <div class="nav-right">
-            <!-- 1. 網頁導覽 (原下載型錄) -->
+            <!-- 1. 網頁導覽 -->
             <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" target="_blank" class="nav-btn nav-btn-catalog">
                 🗺️ <span class="desktop-only">網頁導覽</span>
             </a>
 
-            <!-- ✨ 2. 新增：企客下單系統 (售後服務的左邊) ✨ -->
+            <!-- 2. 企客下單系統 -->
             <a href="https://www.kinyo-gift.com/order" class="nav-btn nav-btn-order" target="_blank">
                 🛒 <span class="desktop-only">企客下單系統</span>
             </a>
 
-            <!-- 3. 原有：售後服務 -->
+            <!-- 3. 售後服務 -->
             <a href="https://www.kinyo-gift.com/return_form" target="_blank" class="nav-btn nav-btn-outline">
                 🛠️ <span class="desktop-only">售後服務</span>
             </a>
 
-            <!-- 4. 原有：夥伴登入 -->
-            <a href="system.html" class="nav-btn">
+            <!-- 4. 夥伴登入 -->
+            <a href="https://www.kinyo-gift.com/system" target="_blank" class="nav-btn">
                 👤 <span class="desktop-only">夥伴登入</span>
             </a>
         </div>
@@ -408,16 +476,26 @@
     <!-- Hero Section -->
     <section class="hero">
         
-        <!-- 🔍 置頂搜尋框 (全裝置通用，置中且在最上方) -->
+        <!-- 🔍 置頂搜尋框 (增加快速標籤) -->
         <div class="top-search-bar">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="publicSearchInput" class="search-input" 
-                   placeholder="搜尋 2000+ 樣商品... 電暖器、電熱毯、型號...等" 
-                   onkeydown="if(event.key === 'Enter') performPublicSearch()">
-            <button class="search-btn-submit" onclick="performPublicSearch()">搜尋</button>
+            <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="publicSearchInput" class="search-input" 
+                       placeholder="搜尋 2000+ 樣商品... 電暖器、電熱毯、型號...等" 
+                       onkeydown="if(event.key === 'Enter') performPublicSearch()">
+                <button class="search-btn-submit" onclick="performPublicSearch()">搜尋</button>
+            </div>
+            <!-- ✨ 新增：快速搜尋標籤 (Lazy Search) -->
+            <div class="search-tags">
+                <div class="tag-chip" onclick="quickSearch('電暖器')">🔥 電暖器</div>
+                <div class="tag-chip" onclick="quickSearch('行動電源')">🔋 行動電源</div>
+                <div class="tag-chip" onclick="quickSearch('吹風機')">💇‍♀️ 吹風機</div>
+                <div class="tag-chip" onclick="quickSearch('音響')">🎵 藍牙音響</div>
+                <div class="tag-chip" onclick="quickSearch('火鍋')">🍲 電火鍋</div>
+            </div>
         </div>
 
-        <!-- Hero 內容區 (左右兩欄容器) -->
+        <!-- Hero 內容區 -->
         <div class="hero-body">
             
             <!-- 左側文字區 -->
@@ -425,7 +503,7 @@
                 <span class="hero-label">B2B 企業專屬服務</span>
                 <h1>KINYO 企業禮贈品採購中心<br>
                     <span class="highlight">2000+ SKU</span>・<span class="highlight">大小量客製</span><br>
-                    <span class="professional-text">原廠直營</span>
+                    <span class="professional-text">原廠直營．全台最低</span>
                 </h1>
                 
                 <p>專為公司行號、福委會、團購主打造的數位化採購平台。提供規模不設限的專業服務，從年度尾牙到單件客製皆可滿足。</p>
@@ -438,7 +516,6 @@
                         <div class="line-hint">🚀 急單/客製化需求 專人線上秒回</div>
                     </div>
 
-                    <!-- 這裡加入 trackLineConversion() 到 Email 和 電話 -->
                     <div class="email-group" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap:wrap;">
                         <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-email" title="sam.kuo@kinyo.tw" onclick="trackLineConversion()">✉️ Email</a>
                         <button onclick="copyEmail()" class="btn-copy" title="複製信箱">📋</button>
@@ -450,7 +527,7 @@
             <!-- 右側：🔥 本週熱門詢價榜 -->
             <div class="hero-right-col">
                 <div class="hero-hot-title">
-                    <span style="font-size:24px;">🔥</span> 本週企業採購詢價熱門榜
+                    <span style="font-size:24px;">🔥</span> 本週熱門詢價榜 <span style="font-size:12px; color:#666; font-weight:400; margin-left:10px;">(即時更新)</span>
                 </div>
                 <div id="hot-grid" class="hero-hot-grid">
                     <div style="grid-column:1/-1; text-align:center; color:#999; padding:20px;">
@@ -462,24 +539,29 @@
         </div> <!-- End of hero-body -->
     </section>
 
-    <!-- 🆕 預算神器 (置中版) -->
+    <!-- 🆕 預算神器 (視覺升級版) -->
     <section class="dual-section">
         <div class="dual-container">
             <!-- 預算逆推神器 -->
             <div class="dual-col col-budget">
-                <h3 class="section-title">預算逆推神器</h3>
-                <p class="section-desc" style="margin-bottom: 20px;">輸入採購條件，系統自動推薦黃金組合</p>
+                <h3 class="section-title">預算逆推神器 🪄</h3>
+                <p class="section-desc">輸入您的採購條件，AI 系統自動為您篩選最佳 CP 值組合</p>
                 
                 <div class="budget-form">
-                    <div class="input-group">
-                        <label>💰 總採購預算 (元)</label>
-                        <input type="number" id="budgetTotal" placeholder="例如：50000">
-                    </div>
-                    <div class="input-group">
-                        <label>👥 預計數量 (個)</label>
-                        <input type="number" id="budgetQty" placeholder="例如：100">
+                    <div style="display: flex; gap: 20px; width: 100%;" class="budget-inputs">
+                        <div class="input-group">
+                            <label>💰 總採購預算 (元)</label>
+                            <input type="number" id="budgetTotal" placeholder="例如：50000">
+                        </div>
+                        <div class="input-group">
+                            <label>👥 預計數量 (個)</label>
+                            <input type="number" id="budgetQty" placeholder="例如：100">
+                        </div>
                     </div>
                     <button class="btn-calc" onclick="calculateBudget()">開始幫我推薦 ✨</button>
+                    <div style="text-align: center; color: #64748b; font-size: 13px; margin-top: 10px;">
+                        * 顯示結果為市價參考，實際批發價請加 LINE 詢問，驚喜價保證滿意
+                    </div>
                 </div>
             </div>
         </div>
@@ -497,7 +579,7 @@
 
     <!-- 採購流程 -->
     <section class="process-section">
-        <div class="section-title">簡單 4 步，完成採購</div>
+        <div class="section-title" style="color:var(--primary); text-align:center; font-size:28px; font-weight:700;">簡單 4 步，完成採購</div>
         <div class="section-desc">優化繁瑣流程，讓企業採購變得簡單高效</div>
         <div class="process-grid">
             <div class="process-item"><div class="p-icon">1</div><h4>線上諮詢</h4><p>透過 LINE 或系統挑選心儀商品</p></div>
@@ -509,12 +591,12 @@
 
     <!-- 熱門分類 -->
     <section class="cat-section">
-        <div class="section-title">熱門採購品項</div>
+        <div class="section-title" style="color:var(--primary); text-align:center; font-size:28px; font-weight:700;">熱門採購品項</div>
         <div class="cat-grid">
-            <a href="system.html" class="cat-card"><span class="cat-icon">🎧</span><span class="cat-title">數位科技</span><span class="cat-desc">耳機、喇叭、行動電源</span></a>
-            <a href="system.html" class="cat-card"><span class="cat-icon">🏠</span><span class="cat-title">生活家電</span><span class="cat-desc">風扇、廚房家電、清淨機</span></a>
-            <a href="system.html" class="cat-card"><span class="cat-icon">🖱️</span><span class="cat-title">辦公周邊</span><span class="cat-desc">滑鼠、鍵盤、計算機</span></a>
-            <a href="system.html" class="cat-card"><span class="cat-icon">🎁</span><span class="cat-title">季節禮品</span><span class="cat-desc">股東會贈品、尾牙禮品</span></a>
+            <a href="javascript:quickSearch('耳機')" class="cat-card"><span class="cat-icon">🎧</span><span class="cat-title">數位科技</span><span class="cat-desc">耳機、喇叭、行動電源</span></a>
+            <a href="javascript:quickSearch('風扇')" class="cat-card"><span class="cat-icon">🏠</span><span class="cat-title">生活家電</span><span class="cat-desc">風扇、廚房家電、清淨機</span></a>
+            <a href="javascript:quickSearch('滑鼠')" class="cat-card"><span class="cat-icon">🖱️</span><span class="cat-title">辦公周邊</span><span class="cat-desc">滑鼠、鍵盤、計算機</span></a>
+            <a href="javascript:quickSearch('禮品')" class="cat-card"><span class="cat-icon">🎁</span><span class="cat-title">季節禮品</span><span class="cat-desc">股東會贈品、尾牙禮品</span></a>
         </div>
     </section>
 
@@ -732,7 +814,7 @@
                         <span style="font-size:12px; color:#999;">市價</span>
                         <span style="font-size:16px; font-weight:700; color:#333;">$${item.marketPrice}</span>
                     </div>
-                    <div style="margin-top:12px; text-align:center; color:#06c755; font-size:13px; font-weight:bold;">
+                    <div class="pc-login-btn">
                         <span style="font-size:16px; vertical-align:middle;">💬</span> 點擊加 LINE 詢價
                     </div>
                 </div>
@@ -746,7 +828,7 @@
             moreDiv.style.textAlign = "center";
             moreDiv.style.padding = "10px";
             moreDiv.style.color = "#666";
-            moreDiv.innerHTML = `還有 ${products.length - displayLimit} 筆結果，請<a href="system.html" style="color:#0055aa; font-weight:bold;">登入系統</a>查看完整清單`;
+            moreDiv.innerHTML = `還有 ${products.length - displayLimit} 筆結果，請<a href="https://www.kinyo-gift.com/system" target="_blank" style="color:#0055aa; font-weight:bold;">登入系統</a>查看完整清單`;
             grid.appendChild(moreDiv);
         }
     }
@@ -767,6 +849,12 @@
         displayProducts(results);
     };
 
+    // ✨ 快速搜尋 (給 Tag 用)
+    window.quickSearch = function(txt) {
+        document.getElementById('publicSearchInput').value = txt;
+        performPublicSearch();
+    }
+
     window.calculateBudget = async function() {
         const total = parseFloat(document.getElementById('budgetTotal').value);
         const qty = parseFloat(document.getElementById('budgetQty').value);
@@ -777,8 +865,9 @@
         }
 
         const unitBudget = total / qty;
-        const minPrice = unitBudget * 1.0;
-        const maxPrice = unitBudget * 1.8;
+        // 邏輯優化：市價通常會比預算高 1.5~2 倍，這樣批發價才可能落在預算內
+        const minPrice = unitBudget * 1.2; 
+        const maxPrice = unitBudget * 2.5; 
 
         await ensureDataLoaded();
 
@@ -786,7 +875,15 @@
             p.marketPrice >= minPrice && p.marketPrice <= maxPrice
         );
 
-        const titleHtml = `預算推薦 <span style="font-size:16px;font-weight:400;color:#666;">(單價預算約 $${Math.floor(unitBudget)}，為您推薦市價 $${Math.floor(minPrice)}~$${Math.floor(maxPrice)} 的超值商品)</span>`;
+        // 價格排序
+        recommendations.sort((a,b) => b.marketPrice - a.marketPrice);
+
+        const titleHtml = `
+            預算推薦清單 
+            <div style="font-size:14px;font-weight:400;color:#666; margin-top:5px;">
+                單價預算約 <b style="color:#0055aa">$${Math.floor(unitBudget)}</b>，
+                為您推薦市價 <b style="color:#222">$${Math.floor(minPrice)}~$${Math.floor(maxPrice)}</b> 的高 CP 值商品
+            </div>`;
         displayProducts(recommendations, titleHtml);
     };
 
@@ -800,7 +897,6 @@
 <!-- 其他 UI 腳本 -->
 <script>
     function copyEmail() {
-        // 🚀 也追蹤「複製信箱」這個動作
         if (typeof trackLineConversion === 'function') {
             trackLineConversion();
         }
