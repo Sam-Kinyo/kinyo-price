@@ -45,10 +45,18 @@
         const Truck = (p) => <IconBase {...p}><path d="M10 17h4V5H2v12h3"/><path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5v8h1"/><circle cx="6" cy="17" r="2"/><circle cx="18" cy="17" r="2"/></IconBase>;
         const BookOpen = (p) => <IconBase {...p}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></IconBase>;
 
-        const InputField = ({ label, required, ...props }) => (
+        // 更新 InputField：支援 isLoading 狀態 (僅用於一般輸入框)
+        const InputField = ({ label, required, isLoading, ...props }) => (
             <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-gray-700">{label} {required && <span className="text-red-500">*</span>}</label>
-                <input {...props} className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400" />
+                <div className="relative">
+                    <input {...props} className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400" />
+                    {isLoading && (
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <div className="spinner w-5 h-5 border-t-blue-600 border-2"></div>
+                        </div>
+                    )}
+                </div>
             </div>
         );
 
@@ -146,10 +154,13 @@
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [submittedRmaId, setSubmittedRmaId] = useState('');
             const [showHelp, setShowHelp] = useState(false);
-            const [showTracking, setShowTracking] = useState(false); // 新增：控制查詢視窗
+            const [showTracking, setShowTracking] = useState(false); 
+            
+            // 新增：電話查詢狀態
+            const [isSearchingPhone, setIsSearchingPhone] = useState(false);
 
             const [formData, setFormData] = useState({
-                companyName: '', contactName: '', contactPhone: '', contactEmail: '', // 新增 Email
+                companyName: '', contactName: '', contactPhone: '', contactEmail: '', 
                 orderNumber: '', shippingCarrier: '', trackingNumber: '', projectName: '',
                 consumerName: '', consumerPhone: '', consumerAddress: '',
                 defectiveDesc: '', files: [],
@@ -178,6 +189,48 @@
                 if (step === 2) {
                     setStep(1); setSelectedType(null);
                     setFormData(prev => ({ ...prev, files: [], products: [{ id: Date.now(), model: '', quantity: "1", purchaseDate: '', reason: '', serialNumber: '', note: '' }] }));
+                }
+            };
+
+            // 修改：改為點擊按鈕觸發
+            const handlePhoneSearch = async () => {
+                const phone = formData.contactPhone.trim();
+                // 簡單驗證：至少 8 碼才查詢
+                if (!phone || phone.length < 8) {
+                    alert("請輸入完整的電話號碼");
+                    return;
+                }
+
+                setIsSearchingPhone(true);
+                try {
+                    // 注意：後端 GAS 需要處理 'action=query_customer'
+                    const res = await fetch(`${GOOGLE_SCRIPT_URL}?action=query_customer&phone=${encodeURIComponent(phone)}`);
+                    
+                    const contentType = res.headers.get("content-type");
+                    if (contentType && contentType.includes("application/json")) {
+                        const data = await res.json();
+                        if (data.found) {
+                            setFormData(prev => ({
+                                ...prev,
+                                companyName: data.companyName || prev.companyName,
+                                contactName: data.contactName || prev.contactName,
+                                contactEmail: data.contactEmail || prev.contactEmail,
+                                consumerAddress: (selectedType === 'new_defective' || selectedType === 'repair_service') 
+                                                ? (data.address || prev.consumerAddress) 
+                                                : prev.consumerAddress
+                            }));
+                        } else {
+                            alert("查無此電話的歷史紀錄");
+                        }
+                    } else {
+                        // 模擬成功 (若後端還沒好，避免報錯太難看)
+                        console.log("Backend not returning JSON, skipping auto-fill");
+                    }
+                } catch (error) {
+                    console.log("Query failed:", error);
+                    alert("查詢失敗，請稍後再試");
+                } finally {
+                    setIsSearchingPhone(false);
                 }
             };
 
@@ -363,7 +416,36 @@
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                                         <div className="md:col-span-2"><InputField label="經銷商名稱 (公司名稱)" required name="companyName" value={formData.companyName} onChange={handleInputChange} placeholder="請輸入完整抬頭" /></div>
                                                         <InputField label="聯絡人姓名" required name="contactName" value={formData.contactName} onChange={handleInputChange} placeholder="請輸入姓名" />
-                                                        <InputField label="聯絡人電話" required name="contactPhone" value={formData.contactPhone} onChange={handleInputChange} placeholder="分機或手機" />
+                                                        
+                                                        {/* 修改後的電話輸入欄位 + 搜尋按鈕 */}
+                                                        <div className="space-y-1.5">
+                                                            <label className="block text-sm font-semibold text-gray-700">聯絡人電話 <span className="text-red-500">*</span></label>
+                                                            <div className="flex gap-2">
+                                                                <div className="relative flex-grow">
+                                                                    <input 
+                                                                        name="contactPhone"
+                                                                        value={formData.contactPhone}
+                                                                        onChange={handleInputChange}
+                                                                        className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-lg text-gray-800 text-sm focus:ring-2 focus:ring-gray-800 focus:border-transparent outline-none transition-all placeholder:text-gray-400"
+                                                                        placeholder="分機或手機"
+                                                                    />
+                                                                    {isSearchingPhone && (
+                                                                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                                            <div className="spinner w-5 h-5 border-t-blue-600 border-2"></div>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={handlePhoneSearch} 
+                                                                    disabled={isSearchingPhone}
+                                                                    className="px-4 py-2.5 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200 transition-colors whitespace-nowrap flex items-center gap-1"
+                                                                >
+                                                                    <Search size={16}/> 帶入舊資料
+                                                                </button>
+                                                            </div>
+                                                        </div>
+
                                                         <div className="md:col-span-2"><InputField label="聯絡人 Email (進度通知用)" required name="contactEmail" value={formData.contactEmail} onChange={handleInputChange} placeholder="請輸入 Email" type="email" /></div>
                                                     </div>
                                                 </section>
