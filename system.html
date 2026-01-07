@@ -958,20 +958,30 @@ function getInventoryStatus(qty) {
   const val = parseInt(qty, 10);
   if (isNaN(val)) return null;
 
-  // 👇👇👇【新增這一行】優先判斷 0 或 負數 👇👇👇
-  if (val <= 0)    return { label: "❌ 缺貨中",   cls: "st-zero" };
-  // 👆👆👆 結束 👆👆👆
-
-  // 原本的邏輯往下移
-  if (val < 30)    return { label: "庫存 < 30",   cls: "st-crit" };
-  if (val < 100)   return { label: "庫存 < 100",  cls: "st-low" };
-  if (val < 400)   return { label: "庫存 < 400",  cls: "st-warn" };
-  if (val < 800)   return { label: "庫存 < 800",  cls: "st-mid" };
-  if (val <= 1200) return { label: "庫存 < 1200", cls: "st-good" };
+  // 1. 缺貨 (≤ 0) - 灰色
+  if (val <= 0)    return { label: "❌ 缺貨中",    cls: "st-zero" };
   
-  return { label: "庫存 > 1201", cls: "st-high" };
-}
+  // 2. 危險水位 (1-29) - 紅色
+  if (val < 30)    return { label: "庫存 < 30",    cls: "st-crit" };
 
+  // 3. 低水位 (30-99) - 橘紅
+  if (val < 100)   return { label: "庫存 < 100",   cls: "st-low" };
+
+  // 4. 普通水位細分 (100-399) - 橘黃
+  if (val < 200)   return { label: "庫存 < 200",   cls: "st-warn" };
+  if (val < 300)   return { label: "庫存 < 300",   cls: "st-warn" };
+  if (val < 400)   return { label: "庫存 < 400",   cls: "st-warn" };
+
+  // 5. 中水位 (400-699) - 草綠
+  if (val < 700)   return { label: "庫存 < 700",   cls: "st-mid" };
+
+  // 6. 高水位細分 (700-1200) - 綠色
+  if (val < 900)   return { label: "庫存 < 900",   cls: "st-good" };
+  if (val <= 1200) return { label: "庫存 < 1200",  cls: "st-good" };
+  
+  // 7. 爆量 (> 1200) - 深綠
+  return { label: "庫存 > 1200", cls: "st-high" };
+}
 function getInventoryRangeLabel(qty) {
     if (qty === null || qty === undefined || qty === "") return null;
     const val = parseInt(qty, 10);
@@ -986,7 +996,7 @@ function getInventoryRangeLabel(qty) {
 
 /* 🚀 修改版：加入能量條 (Energy Bar) 的庫存顯示 */
 function renderStockByVariant(item) {
-    // 1. 權限檢查：只有 Level 2 以上 or VIP 才能看庫存
+    // 1. 權限檢查
     if (userLevel < 2 && !currentUserVipConfig) return "";
     
     // 2. 資料檢查
@@ -1002,18 +1012,19 @@ function renderStockByVariant(item) {
             const qty = parseInt(v.inventory || 0);
             
             // --- 🔋 能量條計算核心 ---
-            // 設定 1200 為滿格 (100%)，依此計算比例
             let percent = Math.min((qty / 1200) * 100, 100);
-            // 視覺優化：只要有貨 (>0)，至少給 5% 寬度，避免看起來像缺貨
             if (qty > 0 && percent < 5) percent = 5;
 
-            // --- 🎨 顏色判斷 ---
+            // --- 🎨 顏色判斷 (對應新的 10 階區間) ---
             let fillClass = "fill-good";
-            if (qty <= 0) fillClass = "st-zero";        // 0: 灰
-            else if (qty < 30) fillClass = "fill-crit"; // <30: 紅
-            else if (qty < 100) fillClass = "fill-low"; // <100: 橘
-            else if (qty < 400) fillClass = "fill-mid"; // <400: 黃
-            else if (qty >= 1200) fillClass = "fill-high";// >1200: 深綠
+            
+            if (qty <= 0)      fillClass = "st-zero";    // 0
+            else if (qty < 30) fillClass = "fill-crit";  // 1-29 (紅)
+            else if (qty < 100) fillClass = "fill-low";  // 30-99 (橘)
+            else if (qty < 400) fillClass = "fill-mid";  // 100-399 (黃) - 將三個細分區間統合成黃色
+            else if (qty < 700) fillClass = "fill-good"; // 400-699 (綠)
+            else if (qty <= 1200) fillClass = "fill-high";// 700-1200 (深綠)
+            else fillClass = "fill-high";                 // >1200 (深綠)
 
             // --- 🏷️ 標籤顯示邏輯 ---
             let colorLabel = "";
