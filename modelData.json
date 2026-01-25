@@ -1,6 +1,23 @@
 {
   "models": [
     {
+      "mainModel": "BP063",
+      "mainImage": "https://drive.google.com/uc?id=1lE6CNB3oibQ8RSk74OKlK54gBFL4LxYj",
+      "netImages": [
+        "https://drive.google.com/uc?id=1lE6CNB3oibQ8RSk74OKlK54gBFL4LxYj",
+        "https://drive.google.com/uc?id=1BEK5hTZ-QljfpKPfohPidurQ-CjOy1TH",
+        "https://drive.google.com/uc?id=1DIo5c6TdI_F0j7eRz_z0vqf8sipvVpR4",
+        "https://drive.google.com/uc?id=1QXQX6CE5hGAu2We-M_n0O4B0d1T27Dmh",
+        "https://drive.google.com/uc?id=1uPDZN5yg_iAdnKd_4dI3MbP-BB4EmQZq",
+        "https://drive.google.com/uc?id=1fxpVNIX9UAblMAQYRQ35KevEMhqM-qGO",
+        "https://drive.google.com/uc?id=1EiVTNPWLpXgwiaSBwPJs1eE74G6NZFV5",
+        "https://drive.google.com/uc?id=1IXt7kA8Yfr-VvAsjikZgNQ_ezu9upgUM",
+        "https://drive.google.com/uc?id=197Oqiu-kXBYgI54cvMsHp3acILk_YjVQ"
+      ],
+      "folderUrl": "https://drive.google.com/drive/folders/1HhQZZYLQ5KKlizoArHEmeX8WQR0l3rla",
+      "netFolderUrl": "https://drive.google.com/drive/folders/147E8YJVOxLc80wC6P8UDI1a_EWY7lIw8"
+    },
+    {
       "mainModel": "ASHP0145",
       "mainImage": "",
       "netImages": [],
