@@ -755,6 +755,7 @@ th {
 
 <!-- Hidden File Inputs -->
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+   <input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
@@ -769,6 +770,7 @@ th {
   
   <!-- 預設隱藏，Level 4 才顯示 -->
   <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
+   <button id="importInventoryBtn" class="btn-secondary" style="color:#7c3aed; border-color:#7c3aed; background:#f5f3ff; font-weight:bold; display:none;">📦 匯入庫存 (含 ETA)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
@@ -862,6 +864,8 @@ const multiLineBtn    = document.getElementById("multiLineBtn");
 const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
 const importProductBtn   = document.getElementById("importProductBtn");
+   const importInventoryBtn = document.getElementById("importInventoryBtn");
+const inventoryUpload    = document.getElementById("inventoryUpload");
 const productUpload   = document.getElementById("productUpload");
 
 const resultTable     = document.getElementById("resultTable");
@@ -952,7 +956,7 @@ let isDriveLoaded = false;
       HELPER FUNCTIONS
    ==================================================== 🚀 */
 
-/* 🚀 庫存判斷邏輯 (已新增 缺貨 判斷) */
+/* 🚀 修改版：庫存判斷邏輯 (10階層級 + 缺貨) */
 function getInventoryStatus(qty) {
   if (qty === null || qty === undefined || qty === "") return null;
   const val = parseInt(qty, 10);
@@ -982,24 +986,10 @@ function getInventoryStatus(qty) {
   // 7. 爆量 (> 1200) - 深綠
   return { label: "庫存 > 1200", cls: "st-high" };
 }
-function getInventoryRangeLabel(qty) {
-    if (qty === null || qty === undefined || qty === "") return null;
-    const val = parseInt(qty, 10);
-    if (isNaN(val)) return null;
-    if (val > 1000) return "1000個以上";
-    if (val <= 100) return "100個以內";
-    if (val <= 300) return "300個以內";
-    if (val <= 500) return "500個以內";
-    if (val <= 1000) return "1000個以內";
-    return "1000個以上";
-}
 
-/* 🚀 修改版：加入能量條 (Energy Bar) 的庫存顯示 */
+/* 🚀 修改版：庫存能量條 (10階顏色) + ETA 日期顯示 */
 function renderStockByVariant(item) {
-    // 1. 權限檢查
     if (userLevel < 2 && !currentUserVipConfig) return "";
-    
-    // 2. 資料檢查
     if (!item.variants || item.variants.length === 0) return "";
     const activeVariants = item.variants.filter(v => v.inventory !== undefined && v.inventory !== null && v.inventory !== "");
     if (activeVariants.length === 0) return "";
@@ -1010,36 +1000,33 @@ function renderStockByVariant(item) {
         const status = getInventoryStatus(v.inventory);
         if (status) {
             const qty = parseInt(v.inventory || 0);
-            
-            // --- 🔋 能量條計算核心 ---
             let percent = Math.min((qty / 1200) * 100, 100);
             if (qty > 0 && percent < 5) percent = 5;
 
-            // --- 🎨 顏色判斷 (對應新的 10 階區間) ---
+            // 🎨 10階庫存顏色邏輯
             let fillClass = "fill-good";
-            
-            if (qty <= 0)      fillClass = "st-zero";    // 0
-            else if (qty < 30) fillClass = "fill-crit";  // 1-29 (紅)
-            else if (qty < 100) fillClass = "fill-low";  // 30-99 (橘)
-            else if (qty < 400) fillClass = "fill-mid";  // 100-399 (黃) - 將三個細分區間統合成黃色
-            else if (qty < 700) fillClass = "fill-good"; // 400-699 (綠)
-            else if (qty <= 1200) fillClass = "fill-high";// 700-1200 (深綠)
-            else fillClass = "fill-high";                 // >1200 (深綠)
+            if (qty <= 0)      fillClass = "st-zero";
+            else if (qty < 30) fillClass = "fill-crit";
+            else if (qty < 100) fillClass = "fill-low";
+            else if (qty < 400) fillClass = "fill-mid";
+            else if (qty < 700) fillClass = "fill-good";
+            else fillClass = "fill-high";
 
-            // --- 🏷️ 標籤顯示邏輯 ---
             let colorLabel = "";
             if (activeVariants.length > 1 || (v.color && v.color !== "單一款式")) {
                colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}</span>`;
             }
 
-            // VIP 模糊邏輯
             let displayLabel = status.label;
             if (currentUserVipConfig) {
-                if (qty >= 100) displayLabel = "庫存充足";
-                else displayLabel = "庫存緊張";
+                displayLabel = (qty >= 100) ? "庫存充足" : "庫存緊張";
             }
 
-            // --- 🖥️ 組合 HTML ---
+            // 🆕 顯示到貨日：只有庫存 < 100 或缺貨才顯示
+            if (v.nextArrival && qty < 100) {
+                displayLabel += ` <span style="color:#2563eb; margin-left:4px; font-weight:normal;">(📅 ${v.nextArrival})</span>`;
+            }
+
             html += `
             <div style="width:100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1px;">
@@ -1052,7 +1039,6 @@ function renderStockByVariant(item) {
             </div>`;
         }
     });
-
     html += `</div>`;
     return html;
 }
@@ -1400,6 +1386,7 @@ function updatePermissions() {
     // 1. Level 4 Only: 只有 Level 4 可以看到這些高級按鈕
     if (userLevel >= 4) {
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
+       if(importInventoryBtn) importInventoryBtn.style.display = 'inline-block';
         
         // 👇👇👇 [補上這一行] 讓老闆看到匯出大數據按鈕 👇👇👇
         if(exportHistoryBtn) exportHistoryBtn.style.display = 'inline-block';
@@ -1410,6 +1397,7 @@ function updatePermissions() {
 
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
+       if(importInventoryBtn) importInventoryBtn.style.display = 'none';
         
         // 👇👇👇 [補上這一行] 其他人要隱藏 👇👇👇
         if(exportHistoryBtn) exportHistoryBtn.style.display = 'none';
@@ -1597,8 +1585,9 @@ async function preloadProducts() {
       // 不在這裡組 searchKey，因為等一下要合併
       const category = d.category ? String(d.category).trim() : "";
       const netSalesPermission = d.netSalesPermission ? String(d.netSalesPermission).trim() : "";
+       const nextArrival = d.nextArrival || ""; // 🆕 讀取 ETA
       
-      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission });
+      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission, nextArrival });
     });
 
     // 2. Perform Pre-calculation Merge (方案 A)
@@ -1611,10 +1600,11 @@ async function preloadProducts() {
         
         // 建立變體物件
         const variantObj = {
-            model: item.model,
-            color: item.colorList || "單一款式",
-            inventory: item.inventory
-        };
+    model: item.model,
+    color: item.colorList || "單一款式",
+    inventory: item.inventory,
+    nextArrival: item.nextArrival // 🆕 綁定 ETA
+};
 
         if (!mergedMap[main]) {
             // 初始化主物件
@@ -3677,6 +3667,119 @@ if(setHotBtn) {
             setHotBtn.textContent = "🔥 設為首頁熱門 (L4)";
         }
     };
+}
+
+// ============================================
+// 🆕 庫存匯入功能 (Inventory + ETA) - V7.6
+// ============================================
+
+if(importInventoryBtn) {
+    importInventoryBtn.onclick = () => {
+        if(inventoryUpload) {
+            inventoryUpload.value = '';
+            inventoryUpload.click();
+        }
+    };
+}
+
+if(inventoryUpload) {
+    inventoryUpload.onchange = (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        currentImportMode = 'inventory';
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const data = evt.target.result;
+                // ⚠️ 強制保留文字格式，避免日期變成數字
+                const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
+
+                let h = { barcode: -1, inventory: -1, eta: -1 };
+                
+                // 1. 找表頭
+                const headerRow = jsonData[0] || [];
+                headerRow.forEach((cell, idx) => {
+                    const c = String(cell).trim().toLowerCase();
+                    if(c.includes('條碼') || c === 'barcode') h.barcode = idx;
+                    if(c.includes('庫存') || c.includes('現貨') || c === 'inventory') h.inventory = idx;
+                    if(c.includes('到貨') || c.includes('eta') || c.includes('交期')) h.eta = idx;
+                });
+
+                if(h.barcode === -1 || h.inventory === -1) {
+                    alert("❌ 找不到「國際條碼」或「庫存」欄位，請檢查 Excel。");
+                    return;
+                }
+
+                // 2. 抓資料
+                const invMap = new Map();
+                for(let i=1; i<jsonData.length; i++) {
+                    const row = jsonData[i];
+                    const bc = String(row[h.barcode] || "").trim();
+                    if(bc) {
+                        const qty = parseInt(row[h.inventory] || 0, 10);
+                        const etaVal = (h.eta !== -1) ? String(row[h.eta] || "").trim() : "";
+                        invMap.set(bc, { qty: qty, eta: etaVal });
+                    }
+                }
+                pendingInventoryMap = invMap;
+                
+                // 3. 顯示確認窗
+                previewHeader.textContent = `庫存匯入確認 (含 ETA)`;
+                previewContent.innerHTML = `
+                    <div style="padding:20px; text-align:center;">
+                        <h3>📦 已讀取 ${invMap.size} 筆庫存</h3>
+                        ${h.eta !== -1 ? '<b style="color:green">✅ 已偵測到 ETA 欄位</b>' : '<span style="color:gray">⚠️ 未偵測到 ETA 欄位</span>'}
+                        <br><br><button id="doSaveInvBtn" class="btn-primary" onclick="saveInventoryToFirestore(pendingInventoryMap)">確認寫入資料庫</button>
+                    </div>`;
+                previewOverlay.style.display = "flex";
+                
+                // 隱藏原本 footer 的按鈕，避免衝突
+                document.querySelector('.preview-footer').style.display = 'none';
+
+            } catch(e) { console.error(e); alert("讀取失敗"); }
+        };
+        reader.readAsBinaryString(file);
+    };
+}
+
+// 寫入資料庫邏輯
+async function saveInventoryToFirestore(invMap) {
+    const btn = document.getElementById("doSaveInvBtn");
+    if(btn) { btn.disabled = true; btn.textContent = "寫入中..."; }
+    
+    let batch = writeBatch(db);
+    let opCount = 0;
+    const BATCH_LIMIT = 400;
+
+    try {
+        const snap = await getDocsWithRetry(collection(db, "Products"));
+        for(const docSnap of snap.docs) {
+             const p = docSnap.data();
+             const bc = String(p.internationalBarcode || p.barcode || "").trim();
+             if(bc && invMap.has(bc)) {
+                const data = invMap.get(bc);
+                const docRef = doc(db, "Products", docSnap.id);
+                // 同時更新庫存和到貨日
+                batch.update(docRef, { 
+                    inventory: data.qty,
+                    nextArrival: data.eta || "" 
+                });
+                opCount++;
+                if(opCount % BATCH_LIMIT === 0) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                }
+             }
+        }
+        if(opCount > 0) await batch.commit(); // 提交剩下的
+        alert("更新完成！");
+        window.location.reload();
+    } catch(e) {
+        console.error(e); alert("寫入失敗");
+    }
 }
    
 </script>
