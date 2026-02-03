@@ -994,53 +994,57 @@ function getInventoryRangeLabel(qty) {
     return "1000個以上";
 }
 
-activeVariants.forEach(v => {
+/* 🚀 修改版：加入能量條 (Energy Bar) 的庫存顯示 */
+function renderStockByVariant(item) {
+    // 1. 權限檢查
+    if (userLevel < 2 && !currentUserVipConfig) return "";
+    
+    // 2. 資料檢查
+    if (!item.variants || item.variants.length === 0) return "";
+    const activeVariants = item.variants.filter(v => v.inventory !== undefined && v.inventory !== null && v.inventory !== "");
+    if (activeVariants.length === 0) return "";
+
+    let html = `<div style="display:flex; flex-direction:column; gap:6px; margin-top:6px; border-top:1px dashed #eee; padding-top:6px;">`;
+
+    activeVariants.forEach(v => {
         const status = getInventoryStatus(v.inventory);
         if (status) {
             const qty = parseInt(v.inventory || 0);
             
-            // --- 🔋 能量條計算核心 (保持原樣) ---
+            // --- 🔋 能量條計算核心 ---
             let percent = Math.min((qty / 1200) * 100, 100);
             if (qty > 0 && percent < 5) percent = 5;
 
-            // --- 🎨 顏色判斷 (保持原樣) ---
+            // --- 🎨 顏色判斷 (對應新的 10 階區間) ---
             let fillClass = "fill-good";
-            if (qty <= 0)       fillClass = "st-zero";    
-            else if (qty < 30) fillClass = "fill-crit";  
-            else if (qty < 100) fillClass = "fill-low";  
-            else if (qty < 400) fillClass = "fill-mid";  
-            else if (qty < 700) fillClass = "fill-good"; 
-            else if (qty <= 1200) fillClass = "fill-high";
-            else fillClass = "fill-high";                 
+            
+            if (qty <= 0)      fillClass = "st-zero";    // 0
+            else if (qty < 30) fillClass = "fill-crit";  // 1-29 (紅)
+            else if (qty < 100) fillClass = "fill-low";  // 30-99 (橘)
+            else if (qty < 400) fillClass = "fill-mid";  // 100-399 (黃) - 將三個細分區間統合成黃色
+            else if (qty < 700) fillClass = "fill-good"; // 400-699 (綠)
+            else if (qty <= 1200) fillClass = "fill-high";// 700-1200 (深綠)
+            else fillClass = "fill-high";                 // >1200 (深綠)
 
-            // --- 🏷️ 標籤顯示邏輯 (這裡也要保持顏色顯示) ---
+            // --- 🏷️ 標籤顯示邏輯 ---
             let colorLabel = "";
             if (activeVariants.length > 1 || (v.color && v.color !== "單一款式")) {
                colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}</span>`;
             }
 
-            // 👇👇👇【請重點修改這一段】👇👇👇
-            let displayLabel = status.label; // 原本的標籤 (例如：缺貨)
-            let labelStyle = "";             // 用來存樣式
-
-            // 邏輯：如果是缺貨 (qty <= 0) 且 資料庫有 ETA
-            if (qty <= 0 && v.eta) {
-                displayLabel = `❌ 缺貨 (${v.eta} 到)`;
-                labelStyle = "color:#b91c1c; font-weight:bold;"; // 紅色粗體
-            } 
-            else if (currentUserVipConfig) {
-                // VIP 的模糊顯示邏輯
+            // VIP 模糊邏輯
+            let displayLabel = status.label;
+            if (currentUserVipConfig) {
                 if (qty >= 100) displayLabel = "庫存充足";
                 else displayLabel = "庫存緊張";
             }
-            // 👆👆👆【修改結束】👆👆👆
 
-            // --- 🖥️ 組合 HTML (記得把 labelStyle 加進去) ---
+            // --- 🖥️ 組合 HTML ---
             html += `
             <div style="width:100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1px;">
                     ${colorLabel}
-                    <span class="stock-tag ${status.cls}" style="font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center; ${labelStyle}">${displayLabel}</span>
+                    <span class="stock-tag ${status.cls}" style="font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center;">${displayLabel}</span>
                 </div>
                 <div class="stock-bar-container">
                     <div class="stock-bar-fill ${fillClass}" style="width: ${percent}%;"></div>
@@ -1609,8 +1613,7 @@ async function preloadProducts() {
         const variantObj = {
             model: item.model,
             color: item.colorList || "單一款式",
-            inventory: item.inventory,
-            eta: item.eta
+            inventory: item.inventory
         };
 
         if (!mergedMap[main]) {
@@ -3052,7 +3055,6 @@ if(productUpload) {
                     finished: -1,  // 成品倉
                     exclusive: -1,  // 專賣倉
                    status: -1     // 🆕 新增這個：上下架狀態
-                   eta: -1  // 🟢 [新增] 用來存預計到貨日的欄位索引
                 };
                 
                 let vipHeaders = {}; 
@@ -3100,7 +3102,6 @@ if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower
 
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
-                           if (cellLower.includes('預計') || cellLower.includes('到貨') || cellLower === 'eta') h.eta = c;
                         }
                     }
                 }
@@ -3193,21 +3194,6 @@ if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower
         obj.status = 'active';
     }
     // 🆕 [結束]
-
-                   // 👇👇👇【請把這段程式碼貼在這裡】👇👇👇
-    // 🟢 [新增] 讀取 ETA 資料
-    if (h.eta !== -1 && hasVal(row[h.eta])) {
-        obj.eta = String(row[h.eta]).trim();
-    } else {
-        obj.eta = null;
-    }
-    // 👆👆👆【結束】👆👆👆
-
-    obj.model = modelVal;       // <-- 這是原本就有的
-    obj.mainModel = modelVal.split('-')[0]; 
-
-    actions.push({ data: obj, model: modelVal });
-});
 
     obj.model = modelVal;
     obj.mainModel = modelVal.split('-')[0]; 
