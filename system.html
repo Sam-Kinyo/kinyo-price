@@ -1043,18 +1043,20 @@ function renderStockByVariant(item) {
             }
 
             // 再處理 ETA (這會覆蓋原本的文字，讓業務知道何時有貨)
-            // 條件：如果有 ETA 資料，且 (庫存 <= 0 或 庫存 < 30)
-            if (v.eta && (qty <= 0 || qty < 30)) {
+          // 🟢 [修改] 只要有 ETA 資料就顯示 (不論庫存多寡)
+            if (v.eta) {
                 if(qty <= 0) {
+                    // 情境 A：完全沒貨 -> 顯示紅字警告
                     displayLabel = `❌ 缺貨 (${v.eta} 到)`;
-                    labelStyle = "color:#b91c1c; font-weight:bold;"; // 紅色粗體
+                    labelStyle = "color:#b91c1c; font-weight:bold;"; 
                 } else {
-                    // 如果還有少量現貨，也提示下一批到的時間
+                    // 情境 B：還有貨 (不論是少貨還是庫存充足) -> 接在原本文字後面
+                    // 例如：「庫存充足 (3/1 到)」
                     displayLabel = `${displayLabel} (${v.eta} 到)`;
-                    labelStyle = "color:#c2410c; font-weight:bold;"; // 深橘色
+                    // 使用深橘色粗體，提示業務注意這筆補貨資訊
+                    labelStyle = "color:#c2410c; font-weight:bold;"; 
                 }
             }
-            // 🟢 [修改結束]
 
             // --- 🖥️ 組合 HTML ---
             html += `
