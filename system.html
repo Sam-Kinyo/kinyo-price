@@ -755,7 +755,6 @@ th {
 
 <!-- Hidden File Inputs -->
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
-   <input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
@@ -770,7 +769,6 @@ th {
   
   <!-- 預設隱藏，Level 4 才顯示 -->
   <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
-   <button id="importInventoryBtn" class="btn-secondary" style="color:#7c3aed; border-color:#7c3aed; background:#f5f3ff; font-weight:bold; display:none;">📦 匯入庫存 (含 ETA)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
@@ -864,8 +862,6 @@ const multiLineBtn    = document.getElementById("multiLineBtn");
 const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
 const importProductBtn   = document.getElementById("importProductBtn");
-   const importInventoryBtn = document.getElementById("importInventoryBtn");
-const inventoryUpload    = document.getElementById("inventoryUpload");
 const productUpload   = document.getElementById("productUpload");
 
 const resultTable     = document.getElementById("resultTable");
@@ -999,7 +995,6 @@ function getInventoryRangeLabel(qty) {
 }
 
 /* 🚀 修改版：加入能量條 (Energy Bar) 的庫存顯示 */
-/* 🚀 修改版：庫存能量條 (10階顏色) + ETA 日期顯示 (V7.6) */
 function renderStockByVariant(item) {
     // 1. 權限檢查
     if (userLevel < 2 && !currentUserVipConfig) return "";
@@ -1020,12 +1015,13 @@ function renderStockByVariant(item) {
             let percent = Math.min((qty / 1200) * 100, 100);
             if (qty > 0 && percent < 5) percent = 5;
 
-            // --- 🎨 顏色判斷 (10 階對應 5 種顏色) ---
+            // --- 🎨 顏色判斷 (對應新的 10 階區間) ---
             let fillClass = "fill-good";
+            
             if (qty <= 0)      fillClass = "st-zero";    // 0
             else if (qty < 30) fillClass = "fill-crit";  // 1-29 (紅)
             else if (qty < 100) fillClass = "fill-low";  // 30-99 (橘)
-            else if (qty < 400) fillClass = "fill-mid";  // 100-399 (黃)
+            else if (qty < 400) fillClass = "fill-mid";  // 100-399 (黃) - 將三個細分區間統合成黃色
             else if (qty < 700) fillClass = "fill-good"; // 400-699 (綠)
             else if (qty <= 1200) fillClass = "fill-high";// 700-1200 (深綠)
             else fillClass = "fill-high";                 // >1200 (深綠)
@@ -1041,13 +1037,6 @@ function renderStockByVariant(item) {
             if (currentUserVipConfig) {
                 if (qty >= 100) displayLabel = "庫存充足";
                 else displayLabel = "庫存緊張";
-            }
-
-            // 🆕 預計到貨日 (ETA) 邏輯
-            // 只有庫存 < 100 或是 0 的時候才顯示日期，避免版面太亂
-            if (v.nextArrival && qty < 100) {
-                // 這裡的 nextArrival 是從資料庫取出的字串，可能是 "3/20" 或 "2025/3/20"
-                displayLabel += ` <span style="color:#2563eb; margin-left:4px; font-weight:normal;">(📅 ${v.nextArrival})</span>`;
             }
 
             // --- 🖥️ 組合 HTML ---
@@ -1411,7 +1400,6 @@ function updatePermissions() {
     // 1. Level 4 Only: 只有 Level 4 可以看到這些高級按鈕
     if (userLevel >= 4) {
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
-       if(importInventoryBtn) importInventoryBtn.style.display = 'inline-block';
         
         // 👇👇👇 [補上這一行] 讓老闆看到匯出大數據按鈕 👇👇👇
         if(exportHistoryBtn) exportHistoryBtn.style.display = 'inline-block';
@@ -1422,7 +1410,6 @@ function updatePermissions() {
 
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
-       if(importInventoryBtn) importInventoryBtn.style.display = 'none';
         
         // 👇👇👇 [補上這一行] 其他人要隱藏 👇👇👇
         if(exportHistoryBtn) exportHistoryBtn.style.display = 'none';
@@ -1611,7 +1598,7 @@ async function preloadProducts() {
       const category = d.category ? String(d.category).trim() : "";
       const netSalesPermission = d.netSalesPermission ? String(d.netSalesPermission).trim() : "";
       
-      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission, nextArrival });
+      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission });
     });
 
     // 2. Perform Pre-calculation Merge (方案 A)
@@ -1624,11 +1611,10 @@ async function preloadProducts() {
         
         // 建立變體物件
         const variantObj = {
-    model: item.model,
-    color: item.colorList || "單一款式",
-    inventory: item.inventory,
-    nextArrival: item.nextArrival // 🆕 綁定 ETA
-};
+            model: item.model,
+            color: item.colorList || "單一款式",
+            inventory: item.inventory
+        };
 
         if (!mergedMap[main]) {
             // 初始化主物件
@@ -2957,101 +2943,10 @@ if(rawMap.has(excelBc)) {
         importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
     }
 }
-// ============================================
-// 🆕 庫存匯入功能 (Inventory + ETA) - V7.6
-// ============================================
-
-// 1. 綁定按鈕點擊事件
-if(importInventoryBtn) {
-    importInventoryBtn.onclick = () => {
-        if(inventoryUpload) {
-            inventoryUpload.value = ''; // Reset
-            inventoryUpload.click();
-        }
-    };
-}
-
-// 2. 處理檔案選擇與讀取
-if(inventoryUpload) {
-    inventoryUpload.onchange = (e) => {
-        const file = e.target.files[0];
-        if(!file) return;
-        currentImportMode = 'inventory';
-
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                const data = evt.target.result;
-                // ⚠️ 使用 cellDates: false 與 raw: false 來確保 "3/20" 被讀為字串，而不是數字
-                const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
-
-                // 1. 偵測欄位位置
-                let h = { barcode: -1, inventory: -1, eta: -1 }; 
-                
-                // 掃描第一列 (表頭)
-                const headerRow = jsonData[0] || [];
-                headerRow.forEach((cell, idx) => {
-                    const c = String(cell).trim().toLowerCase();
-                    if(c.includes('條碼') || c === 'barcode') h.barcode = idx;
-                    if(c.includes('庫存') || c.includes('現貨') || c === 'inventory') h.inventory = idx;
-                    // 🆕 偵測到貨日
-                    if(c.includes('到貨') || c.includes('eta') || c.includes('交期')) h.eta = idx;
-                });
-
-                if(h.barcode === -1 || h.inventory === -1) {
-                    alert("❌ 找不到「國際條碼」或「庫存」欄位，請檢查 Excel 表頭。");
-                    return;
-                }
-
-                // 2. 建立資料 Map (Barcode -> {qty, eta})
-                const invMap = new Map();
-                
-                // 從第二列開始讀
-                for(let i=1; i<jsonData.length; i++) {
-                    const row = jsonData[i];
-                    const bc = String(row[h.barcode] || "").trim();
-                    
-                    if(bc) {
-                        const qty = parseInt(row[h.inventory] || 0, 10);
-                        const etaVal = (h.eta !== -1) ? String(row[h.eta] || "").trim() : "";
-                        
-                        // 📦 將 數量 與 ETA 打包存入
-                        invMap.set(bc, { qty: qty, eta: etaVal });
-                    }
-                }
-
-                pendingInventoryMap = invMap;
-                
-                // 顯示預覽
-                previewHeader.textContent = `庫存匯入確認 (含 ETA)`;
-                previewContent.innerHTML = `
-                    <div style="padding:20px; text-align:center;">
-                        <h3>📦 已讀取 ${invMap.size} 筆庫存資料</h3>
-                        ${h.eta !== -1 ? '<span style="color:green; font-weight:bold;">✅ 已偵測到「ETA」欄位</span>' : '<span style="color:gray;">(未偵測到到貨日欄位，僅更新數量)</span>'}
-                        <div style="font-size:12px; color:#666; margin-top:8px;">
-                           確認無誤後，請按下方「確認寫入資料庫」
-                        </div>
-                    </div>`;
-                previewOverlay.style.display = "flex";
-
-            } catch(e) {
-                console.error(e);
-                alert("檔案讀取失敗");
-            }
-        };
-        reader.readAsBinaryString(file);
-    };
-}
-
-// 3. 寫入資料庫邏輯 (同時更新 Inventory + ETA)
+// 🚀 V6.4 重寫的庫存保存邏輯：即時抓取原始資料進行精準更新
 async function saveInventoryToFirestore(invMap) {
-    const btn = document.getElementById("confirmImportBtn");
-    if(btn) {
-        btn.disabled = true;
-        btn.textContent = "正在寫入資料庫...";
-    }
+    importInventoryBtn.disabled = true;
+    importInventoryBtn.textContent = "正在抓取原始資料...";
     
     let batch = writeBatch(db);
     let opCount = 0;
@@ -3059,25 +2954,52 @@ async function saveInventoryToFirestore(invMap) {
     const BATCH_LIMIT = 400;
 
     try {
+         // 1. Fetch RAW docs
+         const snap = await getDocsWithRetry(collection(db, "Products"));
+         
+         importInventoryBtn.textContent = "正在寫入資料庫...";
+
+         // 2. Iterate Raw Docs and Match Barcode
+         snap.forEach(docSnap => {
+             const product = docSnap.data();
+             const bc = (product.internationalBarcode || product.barcode || "").trim();
+             
+             if(bc && invMap.has(bc)) {
+                const newQty = invMap.get(bc);
+                const docRef = doc(db, "Products", docSnap.id);
+                batch.update(docRef, { inventory: newQty });
+                
+                opCount++;
+                updatedCount++;
+                
+                // Batch logic inside forEach needs care, usually we fill batch and check size
+             }
+         });
+         
+         // Since batch commit is async, we can't await inside forEach easily.
+         // Re-implementing with for..of loop for safety
+    } catch(e) {
+        console.error(e);
+        alert("讀取原始資料失敗");
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
+        return;
+    }
+
+    // Re-run with clean loop structure
+    try {
         const snap = await getDocsWithRetry(collection(db, "Products"));
+        batch = writeBatch(db); // Reset
+        opCount = 0;
         
-        // 遍歷資料庫中的所有商品
         for(const docSnap of snap.docs) {
              const product = docSnap.data();
-             const bc = String(product.internationalBarcode || product.barcode || "").trim();
+             const bc = (product.internationalBarcode || product.barcode || "").trim();
              
-             // 如果這個商品的條碼，在庫存表(invMap)裡面找得到
              if(bc && invMap.has(bc)) {
-                const data = invMap.get(bc); // 這裡取出來的是 { qty, eta } 物件
+                const newQty = invMap.get(bc);
                 const docRef = doc(db, "Products", docSnap.id);
-                
-                // 準備要更新的欄位
-                let updateData = { inventory: data.qty };
-                
-                // 🆕 如果 Excel 有填 ETA，就一起更新；沒填就更新為空字串 (清除舊日期)
-                updateData.nextArrival = data.eta || ""; 
-
-                batch.update(docRef, updateData);
+                batch.update(docRef, { inventory: newQty });
                 
                 opCount++;
                 updatedCount++;
@@ -3092,17 +3014,15 @@ async function saveInventoryToFirestore(invMap) {
         
         if(opCount > 0) await batch.commit();
 
-        alert(`庫存同步完成！\n共更新了 ${updatedCount} 筆商品。\n(包含庫存數量與預計到貨日)`);
+        alert(`資料庫更新完成！\n以國際條碼為基準，共更新了 ${updatedCount} 筆商品的庫存。\n系統將自動重新整理以顯示最新數據。`);
         window.location.reload();
 
     } catch(e) {
         console.error(e);
-        alert("寫入資料庫失敗，請檢查 Console。");
+        alert("寫入資料庫失敗");
     } finally {
-        if(btn) {
-            btn.disabled = false;
-            btn.textContent = "確認寫入資料庫";
-        }
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
     }
 }
 
