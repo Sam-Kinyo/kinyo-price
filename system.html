@@ -3054,7 +3054,8 @@ if(productUpload) {
                     inventory: -1, // 單一庫存
                     finished: -1,  // 成品倉
                     exclusive: -1,  // 專賣倉
-                   status: -1     // 🆕 新增這個：上下架狀態
+                   status: -1,     // 🆕 新增這個：上下架狀態
+                   eta: -1  // 🟢 [新增] 這是預計到貨日 (Estimated Time of Arrival)
                 };
                 
                 let vipHeaders = {}; 
@@ -3099,6 +3100,8 @@ if(productUpload) {
                         if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
                        // 🆕 新增：偵測 "狀態", "上下架", "status"
 if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower === 'status') h.status = c;
+                       // 🟢 [新增] 偵測到貨日
+if (cellLower.includes('預計') || cellLower.includes('到貨') || cellLower === 'eta') h.eta = c;
 
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
@@ -3195,7 +3198,14 @@ if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower
     }
     // 🆕 [結束]
 
-    obj.model = modelVal;
+// 🟢 [新增] 讀取 ETA 資料
+if (h.eta !== -1 && hasVal(row[h.eta])) {
+    obj.eta = String(row[h.eta]).trim();
+} else {
+    obj.eta = null;
+}
+                   
+                   obj.model = modelVal;
     obj.mainModel = modelVal.split('-')[0]; 
 
     actions.push({ data: obj, model: modelVal });
