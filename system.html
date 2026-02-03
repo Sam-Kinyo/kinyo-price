@@ -1610,11 +1610,12 @@ async function preloadProducts() {
         const main = item.mainModel;
         
         // 建立變體物件
-        const variantObj = {
-            model: item.model,
-            color: item.colorList || "單一款式",
-            inventory: item.inventory
-        };
+       const variantObj = {
+    model: item.model,
+    color: item.colorList || "單一款式",
+    inventory: item.inventory,
+    eta: item.eta  // 🟢 [新增] 把預計到貨日帶入變體資料
+};
 
         if (!mergedMap[main]) {
             // 初始化主物件
