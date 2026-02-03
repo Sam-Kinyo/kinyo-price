@@ -1032,19 +1032,36 @@ function renderStockByVariant(item) {
                colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}</span>`;
             }
 
-            // VIP 模糊邏輯
+           // 🟢 [修改開始] 設定顯示文字與樣式
             let displayLabel = status.label;
+            let labelStyle = ""; 
+
+            // 先處理 VIP (如果有設定)
             if (currentUserVipConfig) {
                 if (qty >= 100) displayLabel = "庫存充足";
                 else displayLabel = "庫存緊張";
             }
+
+            // 再處理 ETA (這會覆蓋原本的文字，讓業務知道何時有貨)
+            // 條件：如果有 ETA 資料，且 (庫存 <= 0 或 庫存 < 30)
+            if (v.eta && (qty <= 0 || qty < 30)) {
+                if(qty <= 0) {
+                    displayLabel = `❌ 缺貨 (${v.eta} 到)`;
+                    labelStyle = "color:#b91c1c; font-weight:bold;"; // 紅色粗體
+                } else {
+                    // 如果還有少量現貨，也提示下一批到的時間
+                    displayLabel = `${displayLabel} (${v.eta} 到)`;
+                    labelStyle = "color:#c2410c; font-weight:bold;"; // 深橘色
+                }
+            }
+            // 🟢 [修改結束]
 
             // --- 🖥️ 組合 HTML ---
             html += `
             <div style="width:100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1px;">
                     ${colorLabel}
-                    <span class="stock-tag ${status.cls}" style="font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center;">${displayLabel}</span>
+                   <span class="stock-tag ${status.cls}" style="font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center; ${labelStyle}">${displayLabel}</span>
                 </div>
                 <div class="stock-bar-container">
                     <div class="stock-bar-fill ${fillClass}" style="width: ${percent}%;"></div>
