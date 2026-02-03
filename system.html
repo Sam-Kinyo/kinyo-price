@@ -3161,7 +3161,7 @@ if (cellLower.includes('預計') || cellLower.includes('到貨') || cellLower ==
                     if (h.finished !== -1 && h.exclusive !== -1) {
                         const finQty = parseInt(row[h.finished] || 0, 10);
                         const excQty = parseInt(row[h.exclusive] || 0, 10);
-                        obj.inventory = finQty + excQty; 
+                        obj.inventory = Math.floor((finQty + excQty) * 0.85); 
                     } else if (h.inventory !== -1 && hasVal(row[h.inventory])) {
                         obj.inventory = parseInt(row[h.inventory], 10);
                     }
