@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（V7.5 串接售後）</title>
+<title>KINYO 查價系統（V7.6 庫存預警升級版）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -159,7 +159,7 @@ label{
 /* 輸入框聚焦光暈特效 (新) */
 input, select {
   width: 100%;
-  padding: 12px 14px;       /* 稍微加大輸入區域 */
+  padding: 12px 14px;        /* 稍微加大輸入區域 */
   border-radius: 8px;
   font-size: 15px;
   box-sizing: border-box;
@@ -171,7 +171,7 @@ input, select {
 /* 當滑鼠點擊輸入框時的效果 */
 input:focus, select:focus {
   outline: none;
-  border-color: #3b82f6;    /* 邊框變藍色 */
+  border-color: #3b82f6;     /* 邊框變藍色 */
   background: #fff;
   /* 關鍵：加入擴散的藍色光暈 */
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15); 
@@ -239,18 +239,18 @@ table{
 }
 /* 表格寬鬆化設定 (新) */
 th, td {
-  padding: 16px 12px;       /* 增加上下高度，讓眼睛更舒服 */
+  padding: 16px 12px;        /* 增加上下高度，讓眼睛更舒服 */
   border-bottom: 1px solid #f1f5f9; /* 改用極淡的線條 */
   font-size: 14px;
-  vertical-align: middle;   /* 關鍵：讓圖片和文字垂直置中 */
+  vertical-align: middle;    /* 關鍵：讓圖片和文字垂直置中 */
 }
 
 th {
-  background: #f8fafc;      /* 淺灰底色 */
-  color: #64748b;           /* 深灰文字 */
+  background: #f8fafc;       /* 淺灰底色 */
+  color: #64748b;            /* 深灰文字 */
   font-weight: 700;
   text-align: left;
-  letter-spacing: 0.5px;    /* 字距稍微拉開 */
+  letter-spacing: 0.5px;     /* 字距稍微拉開 */
 }
 
 .product-img{
@@ -265,20 +265,20 @@ th {
 
 /* 價格標籤 - 藥丸化 */
 .price-tag {
-  padding: 4px 12px;        /* 增加左右寬度，讓它更像藥丸 */
+  padding: 4px 12px;         /* 增加左右寬度，讓它更像藥丸 */
   font-size: 12px;
-  border-radius: 50px;      /* 關鍵：改成 50px 變成正圓弧 */
+  border-radius: 50px;       /* 關鍵：改成 50px 變成正圓弧 */
   display: inline-block;
   margin-right: 6px;
   margin-bottom: 6px;
-  font-weight: 700;         /* 字體加粗 */
+  font-weight: 700;          /* 字體加粗 */
   white-space: nowrap;
-  border: none;             /* 移除邊框，看起來更乾淨 */
+  border: none;              /* 移除邊框，看起來更乾淨 */
   box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* 加一點點陰影 */
   transition: transform 0.2s; /* 微互動：加入動畫 */
 }
 .price-tag:hover {
-  transform: scale(1.05);   /* 滑鼠移過去會稍微放大 */
+  transform: scale(1.05);    /* 滑鼠移過去會稍微放大 */
 }
 .tag50{background:#dbeafe;color:#1e40af;}
 .tag100{background:#e0f2fe;color:#0369a1;}
@@ -290,10 +290,10 @@ th {
 .category-badge {
   display: inline-block;
   font-size: 11px;
-  padding: 3px 10px;        /* 稍微加寬 */
+  padding: 3px 10px;         /* 稍微加寬 */
   background: #f1f5f9;
   color: #64748b;
-  border-radius: 50px;      /* 藥丸形狀 */
+  border-radius: 50px;       /* 藥丸形狀 */
   margin-bottom: 4px;
   border: 1px solid #e2e8f0;
   font-weight: 600;
@@ -302,9 +302,9 @@ th {
 /* 庫存文字標籤 - 藥丸化 */
 .stock-tag {
   display: inline-block;
-  padding: 2px 8px;         /* 加寬 */
-  border-radius: 50px;      /* 藥丸形狀 */
-  font-size: 11px;          /* 字體微縮，更精緻 */
+  padding: 2px 8px;          /* 加寬 */
+  border-radius: 50px;       /* 藥丸形狀 */
+  font-size: 11px;           /* 字體微縮，更精緻 */
   font-weight: 700;
   margin-left: 0; 
   vertical-align: middle;
@@ -382,7 +382,7 @@ th {
   height: 32px; 
   border-radius: 50%; 
   background: #f3f4f6; 
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e5e7eb; 
   color: #6b7280; 
   font-size: 20px; 
   cursor: pointer; 
@@ -609,11 +609,11 @@ th {
    新增：庫存能量條 (Inventory Bar) 樣式
 ========================================= */
 .stock-bar-container {
-  width: 100%;             /* 讓它填滿寬度 */
-  height: 6px;             /* 高度 */
-  background: #e5e7eb;     /* 底色 (淺灰) */
-  border-radius: 3px;      /* 圓角 */
-  margin-top: 4px;         /* 與文字的間距 */
+  width: 100%;              /* 讓它填滿寬度 */
+  height: 6px;              /* 高度 */
+  background: #e5e7eb;      /* 底色 (淺灰) */
+  border-radius: 3px;       /* 圓角 */
+  margin-top: 4px;          /* 與文字的間距 */
   overflow: hidden;
   position: relative;
 }
@@ -636,7 +636,7 @@ th {
 ========================================= */
 .line-share-btn {
   background-color: #06C755 !important; /* LINE 官方綠 */
-  color: white !important;              /* 白字 */
+  color: white !important;               /* 白字 */
   border: 1px solid #06C755 !important; /* 綠框 */
   box-shadow: 0 2px 6px rgba(6, 199, 85, 0.3) !important; /* 綠色光暈陰影 */
   transition: all 0.2s ease;
@@ -647,7 +647,7 @@ th {
   transform: translateY(-2px);          /* 微微上浮 */
   box-shadow: 0 4px 12px rgba(6, 199, 85, 0.4) !important;
 }
-   
+    
 </style>
 </head>
 <body>
@@ -697,7 +697,7 @@ th {
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  V7.5 串接售後 --- 運籌帷幄 專屬報價顧問
+  V7.6 庫存預警升級版 --- 運籌帷幄 專屬報價顧問
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -755,6 +755,8 @@ th {
 
 <!-- Hidden File Inputs -->
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+<!-- 🆕 新增：庫存匯入隱藏按鈕 (V7.6) -->
+<input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
@@ -769,6 +771,8 @@ th {
   
   <!-- 預設隱藏，Level 4 才顯示 -->
   <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
+  <!-- 🆕 新增：庫存匯入按鈕 (V7.6) -->
+  <button id="importInventoryBtn" class="btn-secondary" style="color:#7c3aed; border-color:#7c3aed; background:#f5f3ff; font-weight:bold; display:none;">📦 匯入庫存 (含 ETA)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
@@ -862,7 +866,9 @@ const multiLineBtn    = document.getElementById("multiLineBtn");
 const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
 const importProductBtn   = document.getElementById("importProductBtn");
+const importInventoryBtn = document.getElementById("importInventoryBtn"); // 🆕
 const productUpload   = document.getElementById("productUpload");
+const inventoryUpload = document.getElementById("inventoryUpload");       // 🆕
 
 const resultTable     = document.getElementById("resultTable");
 const resultBody      = document.getElementById("resultBody");
@@ -949,10 +955,10 @@ let netImagesMap = new Map();
 let isDriveLoaded = false;
 
 /* 🚀 ====================================================
-      HELPER FUNCTIONS
+     HELPER FUNCTIONS
    ==================================================== 🚀 */
 
-/* 🚀 庫存判斷邏輯 (已新增 缺貨 判斷) */
+/* 🚀 庫存判斷邏輯 (10階層級 + 缺貨) */
 function getInventoryStatus(qty) {
   if (qty === null || qty === undefined || qty === "") return null;
   const val = parseInt(qty, 10);
@@ -982,19 +988,28 @@ function getInventoryStatus(qty) {
   // 7. 爆量 (> 1200) - 深綠
   return { label: "庫存 > 1200", cls: "st-high" };
 }
-function getInventoryRangeLabel(qty) {
+
+function getInventoryRangeLabel(qty, eta) {
     if (qty === null || qty === undefined || qty === "") return null;
     const val = parseInt(qty, 10);
     if (isNaN(val)) return null;
-    if (val > 1000) return "1000個以上";
-    if (val <= 100) return "100個以內";
-    if (val <= 300) return "300個以內";
-    if (val <= 500) return "500個以內";
-    if (val <= 1000) return "1000個以內";
-    return "1000個以上";
+    
+    let label = "";
+    if (val > 1000) label = "1000個以上";
+    else if (val <= 100) label = "100個以內";
+    else if (val <= 300) label = "300個以內";
+    else if (val <= 500) label = "500個以內";
+    else if (val <= 1000) label = "1000個以內";
+    
+    // 🆕 匯出時如果缺貨，補上 ETA
+    if ((val <= 0 || val < 100) && eta) {
+        label += ` (預計 ${eta} 到貨)`;
+    }
+    
+    return label;
 }
 
-/* 🚀 修改版：加入能量條 (Energy Bar) 的庫存顯示 */
+/* 🚀 修改版：加入能量條 (Energy Bar) + ETA 顯示 */
 function renderStockByVariant(item) {
     // 1. 權限檢查
     if (userLevel < 2 && !currentUserVipConfig) return "";
@@ -1015,13 +1030,12 @@ function renderStockByVariant(item) {
             let percent = Math.min((qty / 1200) * 100, 100);
             if (qty > 0 && percent < 5) percent = 5;
 
-            // --- 🎨 顏色判斷 (對應新的 10 階區間) ---
+            // --- 🎨 顏色判斷 (10 階對應 5 種顏色) ---
             let fillClass = "fill-good";
-            
             if (qty <= 0)      fillClass = "st-zero";    // 0
             else if (qty < 30) fillClass = "fill-crit";  // 1-29 (紅)
             else if (qty < 100) fillClass = "fill-low";  // 30-99 (橘)
-            else if (qty < 400) fillClass = "fill-mid";  // 100-399 (黃) - 將三個細分區間統合成黃色
+            else if (qty < 400) fillClass = "fill-mid";  // 100-399 (黃)
             else if (qty < 700) fillClass = "fill-good"; // 400-699 (綠)
             else if (qty <= 1200) fillClass = "fill-high";// 700-1200 (深綠)
             else fillClass = "fill-high";                 // >1200 (深綠)
@@ -1037,6 +1051,13 @@ function renderStockByVariant(item) {
             if (currentUserVipConfig) {
                 if (qty >= 100) displayLabel = "庫存充足";
                 else displayLabel = "庫存緊張";
+            }
+
+            // 🆕 預計到貨日 (ETA) 邏輯
+            // 只有庫存 < 100 或是 0 的時候才顯示日期，避免版面太亂
+            if (v.nextArrival && qty < 100) {
+                // 這裡的 nextArrival 是從資料庫取出的字串，可能是 "3/20" 或 "2025/3/20"
+                displayLabel += ` <span style="color:#2563eb; margin-left:4px; font-weight:normal;">(📅 ${v.nextArrival})</span>`;
             }
 
             // --- 🖥️ 組合 HTML ---
@@ -1078,15 +1099,16 @@ async function fetchAsDataURL(url) {
     const id = getGoogleDriveId(url);
     if (id) {
        const directLink = `https://drive.google.com/uc?id=${id}`;
-       targetUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(directLink) + "&output=jpg&w=400&q=70";
+       // 降低品質提升下載速度 (原: w=400&q=70 -> 改: w=300&q=50)
+       targetUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(directLink) + "&output=jpg&w=300&q=50";
     } else {
-       targetUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&output=jpg&w=400&q=70";
+       targetUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&output=jpg&w=300&q=50";
     }
   } else {
       if(targetUrl.includes("weserv.nl")) {
-          if(!targetUrl.includes("&w=")) targetUrl += "&w=400&q=70";
+          if(!targetUrl.includes("&w=")) targetUrl += "&w=300&q=50";
       } else {
-          targetUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&output=jpg&w=400&q=70";
+          targetUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&output=jpg&w=300&q=50";
       }
   }
 
@@ -1151,7 +1173,7 @@ async function logQuoteAction(items, sourceMode) {
                 const priceKey = `quote${currentTier}`;
                 let finalPrice = i[priceKey] || i.quote50 || 0;
                 if(currentUserVipConfig) {
-                     finalPrice = i[currentUserVipConfig.column] || 0;
+                      finalPrice = i[currentUserVipConfig.column] || 0;
                 }
                 const p = parseFloat(finalPrice);
                 const q = 1;
@@ -1256,7 +1278,7 @@ async function exportQuoteHistory() {
         btn.textContent = originalText;
     }
 }
-   
+    
 /* 🚀 修改版：記錄打勾關注行為 (寫入到公開數據池 ProductClicks) */
 async function logCheckboxInterest(item) {
     try {
@@ -1284,7 +1306,7 @@ async function logCheckboxInterest(item) {
         console.warn("關注紀錄寫入失敗:", e);
     }
 }
-   
+    
    function showLoading() {
   centerLoadingBox.style.display = "flex";
   centerLoadingBar.querySelector(".fill").style.width = "0%";
@@ -1353,7 +1375,16 @@ function renderQuoteList() {
   quoteList.forEach((q, idx) => {
     const div = document.createElement("div"); div.className = "quote-item";
     const priceDisplay = `$${q.price}`;
-    div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
+    
+    // 🆕 右下角清單顯示 ETA
+    let etaHtml = "";
+    // 嘗試從 productCache 找回 ETA 資訊
+    const fullItem = productCache.find(p => p.model === q.model);
+    if(fullItem && fullItem.nextArrival && (parseInt(fullItem.inventory||0) < 100)) {
+        etaHtml = `<span style="color:#ef4444; font-size:12px; margin-left:4px;">(📅 ${fullItem.nextArrival})</span>`;
+    }
+
+    div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} ${etaHtml} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
     quoteListBody.appendChild(div);
   });
   document.querySelectorAll(".quote-del").forEach(btn => { btn.onclick = (e) => { const i = Number(e.target.getAttribute("data-idx")); quoteList.splice(i, 1); renderQuoteList(); updateQuoteToolbarBtn(); }; });
@@ -1394,26 +1425,23 @@ function updateUserDisplay(status) {
 
 // 🚀 Updates UI permissions based on user level
 function updatePermissions() {
-    // 0. 先抓到這個按鈕
     const exportHistoryBtn = document.getElementById("exportHistoryBtn");
 
-    // 1. Level 4 Only: 只有 Level 4 可以看到這些高級按鈕
+    // 1. Level 4 Only
     if (userLevel >= 4) {
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
+        if(importInventoryBtn) importInventoryBtn.style.display = 'inline-block'; // 🆕 
         
-        // 👇👇👇 [補上這一行] 讓老闆看到匯出大數據按鈕 👇👇👇
         if(exportHistoryBtn) exportHistoryBtn.style.display = 'inline-block';
-        // 👆👆👆
 
         const btn = document.getElementById("setHotBtn");
         if(btn) btn.style.display = 'inline-block'; 
 
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
+        if(importInventoryBtn) importInventoryBtn.style.display = 'none'; // 🆕
         
-        // 👇👇👇 [補上這一行] 其他人要隱藏 👇👇👇
         if(exportHistoryBtn) exportHistoryBtn.style.display = 'none';
-        // 👆👆👆
 
         const btn = document.getElementById("setHotBtn");
         if(btn) btn.style.display = 'none';
@@ -1533,9 +1561,6 @@ function getMainModel(model) {
 
   // 2. 次要處理：直接黏在後面的後綴 (例如 WV-KHP1230PI => WV-KHP1230)
   // 邏輯：字串結尾是 "數字" 接 "1~3個英文字"
-  // Regex 解釋：
-  // (.*[0-9]+)  => 前面隨便，但最後要是數字 (抓到 WV-KHP1230)
-  // ([A-Z]{1,3}) => 後面接著 1~3 個大寫英文 (抓到 PI)
   const match = raw.match(/(.*[0-9]+)([A-Z]{1,3})$/);
   if (match) {
       return match[1]; // 回傳前半段 (WV-KHP1230)
@@ -1597,8 +1622,9 @@ async function preloadProducts() {
       // 不在這裡組 searchKey，因為等一下要合併
       const category = d.category ? String(d.category).trim() : "";
       const netSalesPermission = d.netSalesPermission ? String(d.netSalesPermission).trim() : "";
+      const nextArrival = d.nextArrival || ""; // 🆕 讀取 ETA
       
-      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission });
+      rawList.push({ id, ...d, model, mainModel, colorList, category, netSalesPermission, nextArrival });
     });
 
     // 2. Perform Pre-calculation Merge (方案 A)
@@ -1613,7 +1639,8 @@ async function preloadProducts() {
         const variantObj = {
             model: item.model,
             color: item.colorList || "單一款式",
-            inventory: item.inventory
+            inventory: item.inventory,
+            nextArrival: item.nextArrival // 🆕 綁定 ETA 到變體
         };
 
         if (!mergedMap[main]) {
@@ -2000,1034 +2027,9 @@ function renderResults(list) {
   });
   bindCheckAll();
 }
-   
-/* 🚀 Updated Mobile Detail - 手機版彈窗 (修復大圖遞補) */
-function showDetailMobile(item) {
-  const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
-  const netImages = getDriveNetImages(item.model, item.mainModel) || [];
-  const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
-  const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
-  const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
-
-  // ✅ [新增] 圖片連結轉換小工具
-  const wrapUrl = (u) => {
-      if(!u) return "https://placehold.co/300x300?text=No+Image";
-      if(u.includes("placehold.co")) return u;
-      return "https://images.weserv.nl/?url=" + encodeURIComponent(u) + "&output=jpg&w=400";
-  };
-
-  const driveMainImg = getDriveMainImage(item.model, item.mainModel);
-
-  // 1. 準備救援圖片
-  let rawBackup = null;
-  if (driveMainImg) rawBackup = driveMainImg;
-  else if (netImages.length > 0) rawBackup = netImages[0];
-
-  let backupImg = wrapUrl(rawBackup);
-
-  // 2. 決定預設圖片
-  let img = item.imageUrl;
-  if (!img || !img.startsWith("http")) {
-      img = backupImg;
-  }
-
-  const getPrice = (p) => (item[p] ?? "-");
-  const showMinPrice = userLevel >= 1;
-
-  let quoteHtml = "";
-  if (!currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000, 3000];
-      tiers.forEach(t => {
-          let isVisible = false;
-          if (userLevel >= 1 && t === 50) isVisible = true;
-          if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
-          if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
-          if (userLevel >= 4 && t === 3000) isVisible = true;
-          if (isVisible) {
-              quoteHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee;">
-                  <span style="color:#666;">${t}個</span>
-                  <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
-              </div>`;
-          }
-      });
-  }
-
-  let netThumbHtml = "";
-  if (netImages && netImages.length > 0) {
-      const imgsHtml = netImages.slice(0, 6).map(url => { 
-          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&w=100&h=100&fit=cover";
-          return `<img src="${displayUrl}" loading="lazy" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${url}', '_blank')">`;
-      }).join("");
-      netThumbHtml = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">${imgsHtml}</div>`;
-  }
-   
-  let stockHtml = "";
-  const variantStock = renderStockByVariant(item);
-  if(variantStock) {
-        stockHtml = `<div style="margin-bottom:16px; background:#f9fafb; padding:10px; border-radius:8px; border:1px solid #e5e7eb;">
-          <div style="font-weight:bold; font-size:14px; margin-bottom:6px; color:#374151;">庫存現況</div>
-          ${variantStock}
-        </div>`;
-  }
-
-  let priceBlockHtml = "";
-  if (currentUserVipConfig) {
-      const vipPriceVal = item[currentUserVipConfig.column];
-      let displayPrice = "";
-      let label = "";
-      if (vipPriceVal) {
-          label = `${currentUserVipConfig.name} 專屬價`;
-          displayPrice = `<span style="font-weight:bold; color:#b91c1c; font-size:18px;">$${vipPriceVal}</span>`;
-      } else {
-          label = "專屬報價";
-          displayPrice = `<span style="font-weight:bold; color:#2563eb;">請洽郭庭豪</span>`;
-      }
-      
-      priceBlockHtml = `
-        <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
-            <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-              <span>${label}</span>
-              ${displayPrice}
-            </div>
-            ${!vipPriceVal ? `
-            <div style="border-top:1px solid #eee; padding-top:8px; margin-top:8px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#666; font-size:13px;">
-                  <span>賣場參考</span>
-                  <span>${getPrice('marketPrice')}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; color:#666; font-size:13px;">
-                  <span>末售參考</span>
-                  <span>${getPrice('minPrice')}</span>
-                </div>
-            </div>
-            ` : ''}
-        </div>`;
-  } else {
-      priceBlockHtml = `
-        <div style="background:#f9fafb; padding:12px; border-radius:8px; margin-bottom:16px;">
-            <div style="font-weight:700; margin-bottom:8px;">價格資訊</div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
-              <span>賣場售價</span>
-              <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
-            </div>
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-              <span>末售價格</span>
-              <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
-            </div>
-            ${quoteHtml ? `<div style="background:#fff; padding:8px; border-radius:6px; margin-top:8px; border:1px solid #eee;">${quoteHtml}</div>` : ''}
-        </div>`;
-  }
-
-  const sheetContent = document.getElementById("sheetContent");
-  sheetContent.innerHTML = `
-    <div style="text-align:center; margin-bottom:16px; background:#fafafa; padding:10px; border-radius:8px;">
-      <img src="${img}" style="max-height:250px; max-width:100%; object-fit:contain; border-radius:4px;" 
-           onerror="this.onerror=null;this.src='${backupImg}';">
-    </div>
-    
-    <div style="font-weight:700; font-size:18px; margin-bottom:8px;">${item.name || "-"}</div>
-    
-    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-        ${item.category ? `<span style="background:#f3f4f6; color:#4b5563; padding:4px 8px; border-radius:4px; font-size:12px;">分類：${item.category}</span>` : ""}
-        ${item.netSalesPermission ? `<span style="background:#e0e7ff; color:#3730a3; padding:4px 8px; border-radius:4px; font-size:12px;">權限：${item.netSalesPermission}</span>` : ""}
-    </div>
-
-    ${stockHtml}
-
-    <div style="color:#666; font-size:14px; margin-bottom:16px;">
-       <div>型號：${item.model}</div>
-       <div>主型號：${item.mainModel}</div>
-       <div>顏色：${item.colorList || "-"}</div>
-       <div>箱入數：${item.cartonQty || "-"}</div>
-       <div>國際條碼：${item.barcode || item.internationalBarcode || "-"}</div>
-    </div>
-
-    ${priceBlockHtml}
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
-        ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載大圖</a>` : ''}
-        ${actNetLink ? `<a href="${actNetLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載網路圖</a>` : ''}
-    </div>
-
-    ${netThumbHtml}
-
-    <div style="height:20px;"></div>
-    ${currentUserVipConfig ? '' : `
-    <div style="display:flex; gap:10px;">
-       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
-       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
-    </div>
-    `}
-    <div style="height:30px;"></div>
-  `;
-
-  openSheet();
-}
-
-/* 🚀 Updated Desktop Detail - 電腦版彈窗 (修復大圖遞補) */
-function showDetailDesktop(item) {
-  if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
-
-  const driveMainFolder = getDriveMainFolder(item.model, item.mainModel);
-  const netImages = getDriveNetImages(item.model, item.mainModel) || []; 
-  const netFolderUrl = getDriveNetGallery(item.model, item.mainModel);
-  const actMainLink = driveMainFolder || getDriveMainImage(item.model, item.mainModel);
-  const actNetLink = netFolderUrl || (netImages && netImages.length > 0 ? netImages[0] : "");
-
-  // ✅ [新增] 圖片連結轉換小工具
-  const wrapUrl = (u) => {
-      if(!u) return "https://placehold.co/300x300?text=No+Image";
-      if(u.includes("placehold.co")) return u;
-      return "https://images.weserv.nl/?url=" + encodeURIComponent(u) + "&output=jpg&w=400";
-  };
-
-  const driveMainImg = getDriveMainImage(item.model, item.mainModel);
-  
-  // 1. 準備救援圖片
-  let rawBackup = null;
-  if (driveMainImg) rawBackup = driveMainImg;
-  else if (netImages.length > 0) rawBackup = netImages[0];
-
-  let backupImg = wrapUrl(rawBackup);
-
-  // 2. 決定預設圖片
-  let img = item.imageUrl;
-  if (!img || !img.startsWith("http")) {
-      img = backupImg;
-  }
-
-  let netThumbHtml = "";
-  if (netImages && netImages.length > 0) {
-      const imgsHtml = netImages.slice(0, 6).map(url => { 
-          const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&w=100&h=100&fit=cover";
-          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${url}', '_blank')">`;
-      }).join("");
-      netThumbHtml = `<div class="net-gallery" style="grid-template-columns:repeat(6, 1fr); gap:4px; margin-top:8px;">${imgsHtml}</div>`;
-  }
-
-  const getPrice = (p) => (item[p] ?? "-");
-  const showMinPrice = userLevel >= 1;
-
-  // ... (省略中間 quoteHtml 和 stockHtml 邏輯，保持原樣) ...
-  let quoteHtml = "";
-  if (!currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000, 3000];
-      tiers.forEach(t => {
-          let isVisible = false;
-          if (userLevel >= 1 && t === 50) isVisible = true;
-          if (userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
-          if (userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
-          if (userLevel >= 4 && t === 3000) isVisible = true;
-          if (isVisible) {
-              quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
-                  <span style="color:#666;">${t}個</span>
-                  <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
-              </div>`;
-          }
-      });
-  }
-   
-  let stockHtml = "";
-  const variantStock = renderStockByVariant(item);
-  if(variantStock) {
-        stockHtml = `<div style="margin-bottom:12px; background:#f9fafb; padding:8px; border-radius:6px; border:1px solid #e5e7eb;">
-          <div style="font-size:12px; color:#888; margin-bottom:4px; font-weight:600;">庫存現況</div>
-          ${variantStock}
-        </div>`;
-  }
-
-  let priceBlockHtml = "";
-  if (currentUserVipConfig) {
-      const vipPriceVal = item[currentUserVipConfig.column];
-      let displayPrice = "";
-      let label = "";
-      if (vipPriceVal) {
-          label = `${currentUserVipConfig.name} 專屬價`;
-          displayPrice = `<span style="font-weight:bold; color:#b91c1c;">$${vipPriceVal}</span>`;
-      } else {
-          label = "專屬報價";
-          displayPrice = `<span style="font-weight:bold; color:#2563eb;">請洽郭庭豪</span>`;
-      }
-      
-      priceBlockHtml = `
-        <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
-            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-              <span>${label}</span>
-              ${displayPrice}
-            </div>
-            ${!vipPriceVal ? `
-            <div style="border-top:1px solid #eee; padding-top:8px; margin-top:8px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:#666; font-size:12px;">
-                  <span>賣場參考</span>
-                  <span>${getPrice('marketPrice')}</span>
-                </div>
-                <div style="display:flex; justify-content:space-between; color:#666; font-size:12px;">
-                  <span>末售參考</span>
-                  <span>${getPrice('minPrice')}</span>
-                </div>
-            </div>
-            ` : ''}
-        </div>`;
-  } else {
-      priceBlockHtml = `
-        <div style="background:#fff; border:1px solid #eee; border-radius:8px; padding:12px;">
-         <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <span>賣場售價</span>
-            <span style="font-weight:bold;">${getPrice('marketPrice')}</span>
-         </div>
-         <div style="display:flex; justify-content:space-between; margin-bottom:12px;">
-            <span>末售價格</span>
-            <span style="font-weight:bold; color:#dc2626;">${showMinPrice ? getPrice('minPrice') : '---'}</span>
-         </div>
-         <div style="background:#f0f9ff; padding:8px 12px; border-radius:6px;">
-            <div style="font-size:12px; color:#666; margin-bottom:4px; font-weight:600;">採購報價</div>
-            ${quoteHtml || '<div style="color:#999; font-size:12px;">無權限查看報價</div>'}
-         </div>
-       </div>`;
-  }
-  
-  detailCard.style.display = "block";
-  detailCard.innerHTML = `
-    <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
-    
-    <img src="${img}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px; object-fit:contain; max-height:300px; background:#fafafa;" 
-         onerror="this.onerror=null;this.src='${backupImg}';">
-
-    <div style="margin-bottom:16px;">
-      <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載大圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無大圖</button>`}
-        ${actNetLink ? `<a href="${actNetLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載網路圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無網路圖</button>`}
-      </div>
-      ${netThumbHtml}
-    </div>
-
-    <div style="margin-bottom:16px; background:#f9fafb; padding:12px; border-radius:8px;">
-      <div style="font-weight:700; font-size:16px; margin-bottom:8px; color:#111;">${item.name || "-"}</div>
-      
-      <div style="margin-bottom:8px; font-size:13px; color:#555;">
-        ${item.category ? `<span style="background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-right:6px;">分類: ${item.category}</span>` : ""}
-        ${item.netSalesPermission ? `<span style="background:#dbeafe; padding:2px 6px; border-radius:4px; color:#1e40af;">網路權限: ${item.netSalesPermission}</span>` : ""}
-      </div>
-      
-      ${stockHtml}
-
-      <div style="font-size:14px; line-height:1.8; color:#444;">
-        <div><span style="color:#888;">顏色：</span> ${item.colorList || "-"}</div>
-        <div><span style="color:#888;">箱入數：</span> ${item.cartonQty || "-"}</div>
-        <div><span style="color:#888;">國際條碼：</span> ${item.barcode || item.internationalBarcode || "-"}</div>
-        <div><span style="color:#888;">連結：</span> ${item.productUrl ? `<a href="${item.productUrl}" target="_blank" style="color:#2563eb;text-decoration:underline;">開啟網頁</a>` : "-"}</div>
-      </div>
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <div style="font-weight:700; margin-bottom:8px; border-left:4px solid #2563eb; padding-left:8px;">價格資訊</div>
-      ${priceBlockHtml}
-    </div>
-
-    ${currentUserVipConfig ? '' : `
-    <div style="display:flex; gap:8px; margin-top:16px;">
-      <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
-      <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
-    </div>
-    `}
-  `;
-}
-
-async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
-    const slide = pptx.addSlide();
-    slide.background = { color: "FFFFFF" };
-
-    let rawName = item.name || "未命名商品";
-    let cleanName = rawName.replace(/\*.*$/, '').trim();
-
-    const netImages = getDriveNetImages(item.model, item.mainModel) || [];
-    let imagesToDisplay = [...netImages];
-    const driveMain = getDriveMainImage(item.model, item.mainModel);
-    const rawImg = item.imageUrl;
-    
-    const addUnique = (url) => {
-        if(url && !imagesToDisplay.includes(url) && imagesToDisplay.length < 6) {
-            imagesToDisplay.push(url);
-        }
-    };
-    addUnique(driveMain);
-    if(rawImg && rawImg.startsWith('http')) addUnique(rawImg);
-
-    let quoteLabel = "", quotePriceStr = "";
-    if (customQuoteInfo) {
-        quoteLabel = `專案報價 (${customQuoteInfo.qtyLabel})`;
-        quotePriceStr = `$${customQuoteInfo.price}`;
-    } else {
-        const quoteKey = `quote${tier}`;
-        const p = item[quoteKey] || item.quote50 || "-";
-        quoteLabel = `批量報價 (${tier}pcs)`;
-        quotePriceStr = `$${p}`;
-    }
-    const marketPriceStr = `市價 $${item.marketPrice}`;
-
-    try {
-        const logoUrl = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn"; 
-        const logoB64 = await fetchAsDataURL(logoUrl);
-        if(logoB64) {
-            slide.addImage({ data: logoB64, x: 0.3, y: 0.2, w: 2.2, h: 0.8 }); 
-        }
-    } catch(e) {}
-
-    let nameFontSize = 24; 
-    if (cleanName.length > 15) nameFontSize = 20;
-    if (cleanName.length > 25) nameFontSize = 16;
-    if (cleanName.length > 40) nameFontSize = 14;
-
-    slide.addText(cleanName, {
-        x: 0.3, y: 1.1, w: 6.0, h: 0.7,
-        fontSize: nameFontSize, 
-        bold: true, 
-        color: "1f2937", 
-        fontFace: "微軟正黑體", 
-        valign: "top"
-    });
-
-    slide.addShape(pptx.ShapeType.rect, { 
-        x: 6.5, y: 0.2, w: 3.2, h: 1.5, 
-        fill: { color: "f8fafc" }, 
-        line: { color: "e2e8f0", width: 0.5 },
-        rectRadius: 0.1 
-    });
-
-    slide.addText(quoteLabel, {
-        x: 6.7, y: 0.3, w: 2.8, h: 0.3,
-        fontSize: 12, color: "64748b", align: "right", fontFace: "微軟正黑體"
-    });
-
-    let priceFontSize = 36;
-    if (quotePriceStr.length > 7) priceFontSize = 28;
-
-    slide.addText(quotePriceStr, {
-        x: 6.7, y: 0.55, w: 2.8, h: 0.7,
-        fontSize: priceFontSize, 
-        color: "dc2626", 
-        bold: true, 
-        align: "right", 
-        fontFace: "Arial"
-    });
-
-    slide.addText(marketPriceStr, {
-        x: 6.7, y: 1.25, w: 2.8, h: 0.3,
-        fontSize: 11, color: "94a3b8", align: "right", fontFace: "微軟正黑體"
-    });
-
-    const startY = 1.9; 
-    const pageW = 10.0; 
-    const marginX = 0.25; 
-    const gap = 0.1; 
-    
-    const cellW = (pageW - (marginX * 2) - (gap * 2)) / 3; 
-    const cellH = 2.55; 
-
-    for (let i = 0; i < 6; i++) {
-        const r = Math.floor(i / 3);
-        const c = i % 3;
-        
-        const x = marginX + c * (cellW + gap);
-        const y = startY + r * (cellH + gap);
-
-        slide.addShape(pptx.ShapeType.rect, { 
-            x: x, y: y, w: cellW, h: cellH, 
-            fill: { color: "ffffff" }, 
-            line: { color: "e5e7eb", width: 0.5 } 
-        });
-
-        if (i < imagesToDisplay.length) {
-            const url = imagesToDisplay[i];
-            try {
-                const b64 = await fetchAsDataURL(url);
-                if(b64) {
-                    slide.addImage({ 
-                        data: b64, 
-                        x: x + 0.05, y: y + 0.05, 
-                        w: cellW - 0.1, h: cellH - 0.1, 
-                        sizing: { type: "contain", w: cellW - 0.1, h: cellH - 0.1 } 
-                    });
-                }
-            } catch(e) {
-                slide.addText("Image Error", { x:x, y:y+1, w:cellW, fontSize:10, align:"center", color:"ccc" });
-            }
-        } else {
-             slide.addText("KINYO", {
-                x: x, y: y + (cellH/2) - 0.2, w: cellW, h: 0.4,
-                fontSize: 14, color: "f3f4f6", align: "center", fontFace: "Arial", bold: true
-            });
-        }
-    }
-
-    const dateStr = new Date().toISOString().split('T')[0];
-    slide.addText(`KINYO | 型號：${item.mainModel} | 報價日期：${dateStr}`, {
-        x: 0.3, y: 7.1, w: 9.0, h: 0.3,
-        fontSize: 9, color: "cbd5e1", fontFace: "微軟正黑體"
-    });
-}
-
-async function exportSelectedPPT(source = 'checked') {
-  if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
-  
-  let selectedItems = [];
-  let tier = qtySelect.value || "50";
-  let isFromQuoteList = false;
-
-  if (source === 'quote') {
-      if (quoteList.length === 0) { alert("報價單是空的"); return; }
-      selectedItems = quoteList.map(q => {
-          let fullItem = currentResultList.find(p => p.model === q.model) || productCache.find(p => p.model === q.model);
-          if (!fullItem) {
-               fullItem = { ...q, imageUrl: '', netImages: [] }; 
-          }
-          return { 
-              ...fullItem, 
-              customQuoteInfo: { price: q.price, qtyLabel: q.qtyLabel } 
-          };
-      });
-      isFromQuoteList = true;
-  } else {
-      const checks = Array.from(document.querySelectorAll(".row-check:checked"));
-      if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
-      
-      selectedItems = checks.map(cb => {
-          const model = cb.dataset.model;
-          let item = currentResultList.find(p => p.model === model);
-          if(!item) item = currentResultList.find(p => p.mainModel === model);
-          if(!item) item = currentResultList.find(p => Array.isArray(p.models) && p.models.includes(model));
-          return item;
-      }).filter(Boolean);
-  }
-
-  if (selectedItems.length === 0) { alert("找不到商品資料，無法生成 PPT。"); return; }
-
-   // 🚀 V7.3 新增：觸發背景記錄
-  logQuoteAction(selectedItems, source);
-
-  const btn = source === 'quote' ? pptFromQuoteBtn : pptToolbarBtn;
-  const originalText = btn.textContent;
-  btn.disabled = true; 
-
-  try {
-    const CHUNK_SIZE = 20; 
-    const batches = [];
-    for (let i = 0; i < selectedItems.length; i += CHUNK_SIZE) {
-        batches.push(selectedItems.slice(i, i + CHUNK_SIZE));
-    }
-
-    const salesName = "郭庭豪";
-    const salesPhone = "0976-966333";
-
-    for (let i = 0; i < batches.length; i++) {
-        btn.textContent = `生成中 (${i + 1}/${batches.length})...`;
-
-        const pptx = new PptxGenJS();
-        pptx.layout = "LAYOUT_4x3"; 
-        pptx.author = "KINYO Price System";
-        pptx.company = "KINYO";
-        pptx.title = `KINYO Quote`;
-
-        const currentBatch = batches[i];
-        
-        await Promise.all(currentBatch.map(async (item) => {
-            await buildProductSlide(pptx, item, tier, item.customQuoteInfo);
-        }));
-        
-        let filename = `KINYO-商品推薦報價-@${salesName}-@${salesPhone}`;
-        if (batches.length > 1) {
-            filename += `_Part${i + 1}`;
-        }
-        filename += ".pptx";
-
-        await pptx.writeFile({ fileName: filename });
-    }
-
-  } catch (e) {
-    console.error(e);
-    alert("PPT 生成失敗，請查看 Console。");
-  } finally {
-    btn.disabled = false;
-    btn.textContent = originalText;
-  }
-}
-
-// 👇👇👇 [修改] 匯出 Excel：團購主表頭改顯示「VIP 名稱」而非代號 👇👇👇
-function exportSelectedExcel() {
-  const checked = document.querySelectorAll(".row-check:checked");
-  if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
-  const selectedModels = Array.from(checked).map(c => c.getAttribute("data-model"));
-  
-  let rows = [];
-
-  // ==========================================
-  //  情境 A：團購主 (Group Buy User)
-  // ==========================================
-  if (isGroupBuyUser) {
-      // 1. 決定資料欄位 Key (例如 "VIP_C")，用來抓數據
-      const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
-      
-      // 2. 決定顯示名稱 (例如 "好市多" 或 "小美團購")
-      // 如果資料庫有設定 vipName 就用名字，沒設定就用代號
-      const displayName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : costCol;
-
-      // 3. 設定表頭
-      const header = [
-          "商品型號", 
-          "分類", 
-          "商品名稱", 
-          "箱入數", 
-          "團購價", 
-          `${displayName} 進價`, // ✨ 修改這裡：顯示中文名稱
-          "賣場價", 
-          "庫存量", 
-          "商品連結"
-      ];
-      rows.push(header);
-
-      // 4. 填入資料
-      selectedModels.forEach(m => {
-          const item = currentResultList.find(p => p.model === m);
-          if (!item) return;
-
-          // 準備數據
-          const gbPrice = item.groupBuyPrice ? `$${item.groupBuyPrice}` : "未開放";
-          const myCost = item[costCol] ? `$${item[costCol]}` : "-"; // 數據還是抓 VIP_C
-          const market = item.marketPrice ? `$${item.marketPrice}` : "-";
-          const stock = getInventoryRangeLabel(item.inventory) || "-";
-
-          // 按照順序推入
-          rows.push([
-              item.model,           
-              item.category || "",  
-              item.name,            
-              item.cartonQty || "", 
-              gbPrice,              
-              myCost,               
-              market,               
-              stock,                
-              item.productUrl || "" 
-          ]);
-      });
-
-  } 
-  // ==========================================
-  //  情境 B：一般 / VIP 客戶 (維持原本邏輯)
-  // ==========================================
-  else {
-      // 1. 基礎欄位
-      const baseHeader = ["商品型號","主型號","分類","商品名稱","顏色列表","網路權限","箱入數","商品連結","商品大圖","網路圖"];
-      
-      // 2. 價格欄位
-      const qty = qtySelect.value;
-      const priceHeader = qty ? [`${qty}個報價`, "末售參考", "賣場售價", "庫存狀態"] : ["末售參考", "賣場售價", "庫存狀態"];
-      
-      rows.push([...baseHeader, ...priceHeader]);
-
-      selectedModels.forEach(m => {
-          const item = currentResultList.find(p => p.model === m);
-          if (!item) return;
-          
-          const driveMain = getDriveMainImage(item.model, item.mainModel);
-          const driveNetList = getDriveNetImages(item.model, item.mainModel);
-          const stock = getInventoryRangeLabel(item.inventory) || "-";
-          const showMinPrice = userLevel >= 1;
-
-          // 基礎資料
-          const baseRow = [
-              item.model, item.mainModel, item.category || "", item.name, item.colorList || "", 
-              item.netSalesPermission || "", item.cartonQty || "", item.productUrl || "", 
-              driveMain || "", driveNetList.join(" | ")
-          ];
-
-          // 價格資料
-          let priceRow = [];
-          
-          let displayMin = showMinPrice ? (item.minPrice ?? "-") : "---";
-          if (currentUserVipConfig && item[currentUserVipConfig.column]) {
-               displayMin = "-"; 
-          }
-
-          if (qty) {
-              const ck = `quote${qty}`;
-              let canSeeQuote = false;
-              if (userLevel >= 1 && qty == 50) canSeeQuote = true;
-              if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
-              if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
-              if (userLevel >= 4 && qty == 3000) canSeeQuote = true;
-
-              const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
-              priceRow = [cost, displayMin, item.marketPrice ?? "-", stock];
-          } else {
-              priceRow = [displayMin, item.marketPrice ?? "-", stock];
-          }
-          rows.push([...baseRow, ...priceRow]);
-      });
-  }
-
-  // 產生檔案
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "報價單");
-  
-  const fileTag = isGroupBuyUser ? "團購專用" : (qtySelect.value ? qtySelect.value+'個' : '搜尋結果');
-  XLSX.writeFile(wb, `KINYO_商品報價_${fileTag}_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-// 👆👆👆 [結束] 👆👆👆
-
-// ✅ 這是新的，請貼上這一段
-function downloadQuoteExcel() {
-  if (quoteList.length === 0) { alert("報價單是空的"); return; }
-
-  let rows = [];
-
-  // ------------------------------------------------
-  // 情境 A：團購主 (Group Buy User)
-  // ------------------------------------------------
-  if (isGroupBuyUser) {
-      // 1. 決定 VIP 欄位名稱 (例如：好市多)
-      const costCol = (currentUserVipConfig && currentUserVipConfig.column) ? currentUserVipConfig.column : 'VIP_C';
-      const displayName = (currentUserVipConfig && currentUserVipConfig.name) ? currentUserVipConfig.name : costCol;
-
-      // 2. 設定表頭 (比照搜尋匯出的格式 + 報價單特有欄位)
-      const header = [
-          "商品型號", 
-          "分類", 
-          "商品名稱", 
-          "箱入數", 
-          "團購價", 
-          `${displayName} 進價`, 
-          "賣場價", 
-          "庫存量", 
-          "商品連結",
-          "採購規格", // [新增]
-          "報價單價", // [新增]
-          "訂購數量", // [新增]
-          "小計"     // [新增]
-      ];
-      rows.push(header);
-
-      // 3. 填入資料
-      quoteList.forEach(q => {
-          // 嘗試從快取找回完整商品資料 (因為報價單原本只存了簡易資料)
-          let item = productCache.find(p => p.model === q.model);
-          if (!item) item = q; // 防呆：萬一找不到就用原本的
-
-          // 準備數據
-          const gbPrice = item.groupBuyPrice ? `$${item.groupBuyPrice}` : "未開放";
-          const myCost = item[costCol] ? `$${item[costCol]}` : "-";
-          const market = item.marketPrice ? `$${item.marketPrice}` : "-";
-          const stock = getInventoryRangeLabel(item.inventory) || "-";
-          
-          // 計算小計
-          const subtotal = (Number(q.price) || 0) * (Number(q.count) || 1);
-
-          rows.push([
-              q.model,             
-              item.category || "",  
-              q.name,              
-              item.cartonQty || "", 
-              gbPrice,              
-              myCost,                
-              market,                
-              stock,                
-              item.productUrl || "", 
-              q.qtyLabel,           // 採購規格 (e.g. 50個)
-              q.price,              // 報價單價
-              q.count,              // 訂購數量
-              subtotal              // 小計
-          ]);
-      });
-
-  } 
-  // ------------------------------------------------
-  // 情境 B：一般 / VIP 客戶
-  // ------------------------------------------------
-  else {
-      // 1. 基礎欄位 (比照 exportSelectedExcel)
-      const baseHeader = ["商品型號","主型號","分類","商品名稱","顏色列表","網路權限","箱入數","商品連結","商品大圖","網路圖"];
-      
-      // 2. 報價資訊欄位
-      const quoteHeader = ["採購規格", "報價單價", "訂購數量", "小計", "末售參考", "賣場售價", "庫存狀態"];
-      
-      rows.push([...baseHeader, ...quoteHeader]);
-
-      quoteList.forEach(q => {
-          // 嘗試從快取找回完整商品資料
-          let item = productCache.find(p => p.model === q.model);
-          if (!item) item = q;
-
-          const driveMain = getDriveMainImage(item.model, item.mainModel);
-          const driveNetList = getDriveNetImages(item.model, item.mainModel);
-          const stock = getInventoryRangeLabel(item.inventory) || "-";
-          const showMinPrice = userLevel >= 1;
-          
-          // 計算小計
-          const subtotal = (Number(q.price) || 0) * (Number(q.count) || 1);
-
-          // 基礎資料
-          const baseRow = [
-              q.model, item.mainModel || "", item.category || "", q.name, item.colorList || "", 
-              item.netSalesPermission || "", item.cartonQty || "", item.productUrl || "", 
-              driveMain || "", (driveNetList || []).join(" | ")
-          ];
-
-          // 價格資料 (VIP 不顯示末售)
-          let displayMin = showMinPrice ? (item.minPrice ?? "-") : "---";
-          if (currentUserVipConfig && item[currentUserVipConfig.column]) {
-               displayMin = "-"; 
-          }
-
-          const priceRow = [
-              q.qtyLabel,           // 採購規格
-              q.price,              // 單價
-              q.count,              // 數量
-              subtotal,             // 小計
-              displayMin,           // 末售參考
-              item.marketPrice ?? "-", // 賣場售價
-              stock                 // 庫存狀態
-          ];
-          
-          rows.push([...baseRow, ...priceRow]);
-      });
-  }
-
-  // 產生並下載檔案
-  const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb, ws, "報價單");
-  XLSX.writeFile(wb, `KINYO_報價單匯出_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-/* =======================================================
-   Event Listeners (Bind within Module)
-======================================================= */
-searchForm.onsubmit = (e)=>{ e.preventDefault(); searchProducts(); };
-exportBtn.onclick = exportSelectedExcel;
-logoutBtn.onclick = () => {
-    if(confirm("確定要登出嗎？")) {
-        signOut(auth).then(() => {
-            window.location.href = "index.html"; // ✅ 改成這一行 (跳轉回首頁)
-        }).catch((error) => {
-            console.error("登出錯誤:", error);
-            alert("登出發生錯誤，請重新整理網頁");
-        });
-    }
-};
-
-// Open File Dialog
-
-if(importProductBtn) {
-    importProductBtn.onclick = () => {
-        productUpload.value = ''; // Reset
-        productUpload.click();
-    }
-}
-
-   // 綁定大數據匯出按鈕 (Level 4 專用)
-const exportHistoryBtn = document.getElementById("exportHistoryBtn");
-if(exportHistoryBtn) {
-    exportHistoryBtn.onclick = exportQuoteHistory;
-}
-
-// Cancel Import
-if(cancelImportBtn) {
-    cancelImportBtn.onclick = () => {
-        previewOverlay.style.display = "none";
-        pendingInventoryMap.clear();
-        pendingProductData = [];
-        inventoryUpload.value = ''; 
-        productUpload.value = '';
-    };
-}
-
-// Confirm Import
-if(confirmImportBtn) {
-    confirmImportBtn.onclick = () => {
-        if(currentImportMode === 'inventory') {
-            if(pendingInventoryMap.size === 0) return;
-            previewOverlay.style.display = "none";
-            saveInventoryToFirestore(pendingInventoryMap);
-        } else if(currentImportMode === 'product') {
-            if(pendingProductData.length === 0) return;
-            previewOverlay.style.display = "none";
-            saveProductDataToFirestore(pendingProductData);
-        }
-    };
-}
-
-// 🚀 V6.4 重寫的保存邏輯：即時抓取原始資料進行精準寫入
-async function saveProductDataToFirestore(actions) {
-    importProductBtn.disabled = true;
-    importProductBtn.textContent = "正在抓取原始資料...";
-
-    let batch = writeBatch(db);
-    let opCount = 0;
-    const BATCH_LIMIT = 400; 
-    let successCount = 0;
-
-    try {
-        // 1. Fetch RAW docs to build Map<Barcode, ID>
-        const snap = await getDocsWithRetry(collection(db, "Products"));
-        const rawMap = new Map(); // Barcode -> DocID
-
-        snap.forEach(docSnap => {
-            const d = docSnap.data();
-            // 這裡也加強防呆：確保資料庫原本的條碼也轉成字串
-            const bc = String(d.internationalBarcode || d.barcode || "").trim();
-            if(bc) rawMap.set(bc, docSnap.id);
-        });
-
-        importProductBtn.textContent = "正在寫入資料庫...";
-
-        // 2. Process Actions using Barcode Mapping
-        for(const item of actions) {
-            // item.data contains the new data from Excel
-            // Key logic: item.data.internationalBarcode
-            
-            // 👇👇👇【修正重點在這裡】加上 String() 包起來 👇👇👇
-            const excelBc = String(item.data.internationalBarcode || "").trim();
-            // 👆👆👆【修正結束】👆👆👆
-
-            if(!excelBc) {
-                console.warn("Skipping item without barcode:", item.model);
-                continue; 
-            }
-
-            // 確保要寫入資料庫的 barcode 也是乾淨的字串
-            // 確保要寫入資料庫的 barcode 也是乾淨的字串
-item.data.internationalBarcode = excelBc;
-
-// 🆕 決定狀態：如果 Excel 有讀到就用讀到的，沒有就預設 active
-const finalStatus = item.data.status || 'active';
-
-if(rawMap.has(excelBc)) {
-    // Update existing doc (更新舊商品)
-    const docId = rawMap.get(excelBc);
-    const docRef = doc(db, "Products", docId);
-
-    // ⚠️ 修改重點：這裡使用 finalStatus，不再強制 'active'
-    batch.update(docRef, { ...item.data, status: finalStatus });
-
-} else {
-    // Create new doc (建立新商品)
-    const newDocRef = doc(collection(db, "Products"));
-
-    // ⚠️ 修改重點：這裡也使用 finalStatus
-    batch.set(newDocRef, { ...item.data, status: finalStatus, inventory: 0 });
-}
-            
-            opCount++;
-            successCount++;
-
-            if(opCount >= BATCH_LIMIT) {
-                await batch.commit();
-                batch = writeBatch(db);
-                opCount = 0;
-            }
-        }
-
-        if(opCount > 0) {
-            await batch.commit();
-        }
-
-        alert(`產品總表同步完成！\n以國際條碼為基準，共處理了 ${successCount} 筆資料。\n系統將自動重新整理。`);
-        window.location.reload();
-
-    } catch(e) {
-        console.error(e);
-        alert("寫入資料庫時發生錯誤，請檢查 Console。");
-    } finally {
-        importProductBtn.disabled = false;
-        importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
-    }
-}
-// 🚀 V6.4 重寫的庫存保存邏輯：即時抓取原始資料進行精準更新
-async function saveInventoryToFirestore(invMap) {
-    importInventoryBtn.disabled = true;
-    importInventoryBtn.textContent = "正在抓取原始資料...";
-    
-    let batch = writeBatch(db);
-    let opCount = 0;
-    let updatedCount = 0;
-    const BATCH_LIMIT = 400;
-
-    try {
-         // 1. Fetch RAW docs
-         const snap = await getDocsWithRetry(collection(db, "Products"));
-         
-         importInventoryBtn.textContent = "正在寫入資料庫...";
-
-         // 2. Iterate Raw Docs and Match Barcode
-         snap.forEach(docSnap => {
-             const product = docSnap.data();
-             const bc = (product.internationalBarcode || product.barcode || "").trim();
-             
-             if(bc && invMap.has(bc)) {
-                const newQty = invMap.get(bc);
-                const docRef = doc(db, "Products", docSnap.id);
-                batch.update(docRef, { inventory: newQty });
-                
-                opCount++;
-                updatedCount++;
-                
-                // Batch logic inside forEach needs care, usually we fill batch and check size
-             }
-         });
-         
-         // Since batch commit is async, we can't await inside forEach easily.
-         // Re-implementing with for..of loop for safety
-    } catch(e) {
-        console.error(e);
-        alert("讀取原始資料失敗");
-        importInventoryBtn.disabled = false;
-        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
-        return;
-    }
-
-    // Re-run with clean loop structure
-    try {
-        const snap = await getDocsWithRetry(collection(db, "Products"));
-        batch = writeBatch(db); // Reset
-        opCount = 0;
-        
-        for(const docSnap of snap.docs) {
-             const product = docSnap.data();
-             const bc = (product.internationalBarcode || product.barcode || "").trim();
-             
-             if(bc && invMap.has(bc)) {
-                const newQty = invMap.get(bc);
-                const docRef = doc(db, "Products", docSnap.id);
-                batch.update(docRef, { inventory: newQty });
-                
-                opCount++;
-                updatedCount++;
-                
-                if(opCount >= BATCH_LIMIT) {
-                    await batch.commit();
-                    batch = writeBatch(db);
-                    opCount = 0;
-                }
-             }
-        }
-        
-        if(opCount > 0) await batch.commit();
-
-        alert(`資料庫更新完成！\n以國際條碼為基準，共更新了 ${updatedCount} 筆商品的庫存。\n系統將自動重新整理以顯示最新數據。`);
-        window.location.reload();
-
-    } catch(e) {
-        console.error(e);
-        alert("寫入資料庫失敗");
-    } finally {
-        importInventoryBtn.disabled = false;
-        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
-    }
-}
 
 // ----------------------------------------------------
-// PRODUCT IMPORT LOGIC (移除 A 級品偵測版)
+// PRODUCT IMPORT LOGIC (移除 A 級品偵測版) - RESTORED
 // ----------------------------------------------------
 if(productUpload) {
     productUpload.onchange = (e) => {
@@ -3054,7 +2056,7 @@ if(productUpload) {
                     inventory: -1, // 單一庫存
                     finished: -1,  // 成品倉
                     exclusive: -1,  // 專賣倉
-                   status: -1     // 🆕 新增這個：上下架狀態
+                    status: -1      // 🆕 新增這個：上下架狀態
                 };
                 
                 let vipHeaders = {}; 
@@ -3097,8 +2099,8 @@ if(productUpload) {
                         if (cellLower.includes('成品倉') || cellLower === '成品') h.finished = c;
                         if (cellLower.includes('專賣倉') || cellLower === '專賣') h.exclusive = c;
                         if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
-                       // 🆕 新增：偵測 "狀態", "上下架", "status"
-if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower === 'status') h.status = c;
+                        // 🆕 新增：偵測 "狀態", "上下架", "status"
+                        if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower === 'status') h.status = c;
 
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
@@ -3181,25 +2183,25 @@ if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower
                     }
 
                     // 🆕 [開始] 新增：解析上下架狀態
-    if (h.status !== -1 && hasVal(row[h.status])) {
-        const rawStatus = String(row[h.status]).trim().toLowerCase();
-        // 如果 Excel 填入 下架, 停售, N, 0, False，系統就標記為 inactive
-        if (['下架', '停售', 'inactive', 'off', 'n', 'false', '0'].includes(rawStatus)) {
-            obj.status = 'inactive';
-        } else {
-            obj.status = 'active';
-        }
-    } else {
-        // 沒填寫預設為上架
-        obj.status = 'active';
-    }
-    // 🆕 [結束]
+                    if (h.status !== -1 && hasVal(row[h.status])) {
+                        const rawStatus = String(row[h.status]).trim().toLowerCase();
+                        // 如果 Excel 填入 下架, 停售, N, 0, False，系統就標記為 inactive
+                        if (['下架', '停售', 'inactive', 'off', 'n', 'false', '0'].includes(rawStatus)) {
+                            obj.status = 'inactive';
+                        } else {
+                            obj.status = 'active';
+                        }
+                    } else {
+                        // 沒填寫預設為上架
+                        obj.status = 'active';
+                    }
+                    // 🆕 [結束]
 
-    obj.model = modelVal;
-    obj.mainModel = modelVal.split('-')[0]; 
+                    obj.model = modelVal;
+                    obj.mainModel = modelVal.split('-')[0]; 
 
-    actions.push({ data: obj, model: modelVal });
-});
+                    actions.push({ data: obj, model: modelVal });
+                });
 
                 previewHeader.textContent = "全能匯入確認 (雙倉加總 + 廠價公式)";
                 previewContent.innerHTML = `
@@ -3229,456 +2231,237 @@ if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower
     };
 }
 
-if(pptToolbarBtn) {
-  pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
-}
-if(pptFromQuoteBtn) {
-  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote');
-}
-if(downloadQuoteExcelBtn) {
-  downloadQuoteExcelBtn.onclick = downloadQuoteExcel;
-}
-if(copyQuoteBtn) {
-  copyQuoteBtn.onclick = () => {
-    if (quoteList.length === 0) return alert("報價單是空的");
-    let text = "KINYO 報價單\n--------------------\n";
-    quoteList.forEach((q,i)=>{
-      const priceDisplay = `$${q.price}`;
-      const link = q.productUrl ? `   🔗 連結：${q.productUrl}\n` : "";
-      text += `${i+1}. 【${q.model}】${q.name}\n   ${q.qtyLabel}：${priceDisplay} x ${q.count}\n${link}`;
-    });
-    text += "--------------------\n";
-    navigator.clipboard.writeText(text)
-      .then(() => alert("報價單已複製"))
-      .catch(() => alert("複製失敗"));
-  };
+// ----------------------------------------------------
+// 🆕 新增：INVENTORY IMPORT LOGIC (庫存+ETA 獨立匯入)
+// ----------------------------------------------------
+if(importInventoryBtn) {
+    importInventoryBtn.onclick = () => {
+        if(inventoryUpload) {
+            inventoryUpload.value = ''; // Reset
+            inventoryUpload.click();
+        }
+    };
 }
 
-if(clearBtn) {
-  clearBtn.onclick = () => {
-    keywordInput.value = "";
-    qtySelect.value = "";
-    minPriceInput.value = "";
-    maxPriceInput.value = "";
-    stockFilter.value = "";
-    categorySelect.value = ""; 
+if(inventoryUpload) {
+    inventoryUpload.onchange = (e) => {
+        const file = e.target.files[0];
+        if(!file) return;
+        currentImportMode = 'inventory';
 
-    resultBody.innerHTML = "";
-    resultTable.style.display = "none";
-    exportBtn.disabled = true;
-    if(pptToolbarBtn) pptToolbarBtn.disabled = true;
-    if(multiLineBtn) multiLineBtn.disabled = true;
-    if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = true; 
-    checkAllBox.checked = false;
-    detailCard.style.display = "none";
-  };
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const data = evt.target.result;
+                // ⚠️ 使用 cellDates: false 與 raw: false 來確保 "3/20" 被讀為字串，而不是數字
+                const workbook = XLSX.read(data, { type: 'binary', cellDates: false });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1, raw: false });
+
+                // 1. 偵測欄位位置
+                let h = { barcode: -1, inventory: -1, eta: -1 }; 
+                
+                // 掃描第一列 (表頭)
+                const headerRow = jsonData[0] || [];
+                headerRow.forEach((cell, idx) => {
+                    const c = String(cell).trim().toLowerCase();
+                    if(c.includes('條碼') || c === 'barcode') h.barcode = idx;
+                    if(c.includes('庫存') || c.includes('現貨') || c === 'inventory') h.inventory = idx;
+                    // 🆕 偵測到貨日
+                    if(c.includes('到貨') || c.includes('eta') || c.includes('交期')) h.eta = idx;
+                });
+
+                if(h.barcode === -1 || h.inventory === -1) {
+                    alert("❌ 找不到「國際條碼」或「庫存」欄位，請檢查 Excel 表頭。");
+                    return;
+                }
+
+                // 2. 建立資料 Map (Barcode -> {qty, eta})
+                const invMap = new Map();
+                
+                // 從第二列開始讀
+                for(let i=1; i<jsonData.length; i++) {
+                    const row = jsonData[i];
+                    const bc = String(row[h.barcode] || "").trim();
+                    
+                    if(bc) {
+                        const qty = parseInt(row[h.inventory] || 0, 10);
+                        const etaVal = (h.eta !== -1) ? String(row[h.eta] || "").trim() : "";
+                        
+                        // 📦 將 數量 與 ETA 打包存入
+                        invMap.set(bc, { qty: qty, eta: etaVal });
+                    }
+                }
+
+                pendingInventoryMap = invMap;
+                
+                // 顯示預覽
+                previewHeader.textContent = `庫存匯入確認 (含 ETA)`;
+                previewContent.innerHTML = `
+                    <div style="padding:20px; text-align:center;">
+                        <h3>📦 已讀取 ${invMap.size} 筆庫存資料</h3>
+                        ${h.eta !== -1 ? '<span style="color:green; font-weight:bold;">✅ 已偵測到「ETA」欄位</span>' : '<span style="color:gray;">(未偵測到到貨日欄位，僅更新數量)</span>'}
+                        <div style="font-size:12px; color:#666; margin-top:8px;">
+                           確認無誤後，請按下方「確認寫入資料庫」
+                        </div>
+                    </div>`;
+                previewOverlay.style.display = "flex";
+
+            } catch(e) {
+                console.error(e);
+                alert("檔案讀取失敗");
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
 }
 
-if(clearQuoteBtn) {
-  clearQuoteBtn.onclick = () => {
-    if(quoteList.length === 0) {
-        alert("報價單已經是空的");
-        return;
-    }
-    if(confirm("確定要清空報價單嗎？這將無法復原。")) {
-        quoteList = [];
-        renderQuoteList();
-        updateQuoteToolbarBtn();
-    }
-  };
-}
+// 🚀 V6.4 重寫的保存邏輯：即時抓取原始資料進行精準寫入 (RESTORED)
+async function saveProductDataToFirestore(actions) {
+    importProductBtn.disabled = true;
+    importProductBtn.textContent = "正在抓取原始資料...";
 
-// Login Button Click Logic
-if(doLoginBtn) {
-  doLoginBtn.onclick = async () => {
-    let email = loginEmail.value.trim();
-    const password = loginPassword.value.trim();
-    
-    if (email && !email.includes('@')) {
-        email += '@kinyo.com';
-    }
-
-    if(!email || !password) {
-      loginError.textContent = "請輸入帳號和密碼";
-      loginError.style.display = "block";
-      return;
-    }
-
-    loginError.style.display = "none";
-    doLoginBtn.disabled = true;
-    doLoginBtn.textContent = "登入中...";
+    let batch = writeBatch(db);
+    let opCount = 0;
+    const BATCH_LIMIT = 400; 
+    let successCount = 0;
 
     try {
-      // Set persistence first
-      await setPersistence(auth, browserLocalPersistence);
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      // Handle the iframe specific error gracefully
-      if (error.message && error.message.includes("message channel closed")) {
-          console.warn("Ignored non-fatal auth error:", error);
-          // Don't leave button stuck
-          doLoginBtn.disabled = false;
-          doLoginBtn.textContent = "登入 (請重試)";
-          return;
-      }
-      
-      console.error(error);
-      loginError.textContent = "登入失敗：請檢查帳號密碼";
-      loginError.style.display = "block";
-      doLoginBtn.disabled = false;
-      doLoginBtn.textContent = "登入";
-    }
-  };
-}
+        // 1. Fetch RAW docs to build Map<Barcode, ID>
+        const snap = await getDocsWithRetry(collection(db, "Products"));
+        const rawMap = new Map(); // Barcode -> DocID
 
-/* =======================================================
-   Firebase Auth：登入後流程
-======================================================= */
-onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    if(loginOverlay) loginOverlay.style.display = "flex";
-    return;
-  }
-  
-  if(loginOverlay) loginOverlay.style.display = "none";
-
-  currentUserEmail = user.email || "";
-  userLevel = 0; 
-  currentUserVipConfig = null;
-   isGroupBuyUser = false;
-
-  try {
-      const userDoc = await getDoc(doc(db, "Users", currentUserEmail.toLowerCase()));
-      if (userDoc.exists()) {
-          const userData = userDoc.data();
-          userLevel = userData.level ?? 0;
-         if (userData.groupBuy === true) {
-              isGroupBuyUser = true;
-          }
-          
-          // 🚀 Check for VIP Config
-          if (userData.vipColumn) {
-              currentUserVipConfig = {
-                  column: userData.vipColumn, // e.g. 'VIP_A'
-                  name: userData.vipName || 'VIP客戶'
-              };
-          }
-      } else {
-          userLevel = 0;
-      }
-  } catch (e) {
-      console.error("Auth Error:", e);
-      userLevel = 0;
-  }
-
-  if (currentUserEmail.toLowerCase() === 'show@kinyo.com') userLevel = 0;
-
-  updateUserDisplay('normal');
-  logoutBtn.style.display = "inline-block";
-
-  setupQtySelectByLevel();
-  
-  // 🚀 Trigger permissions update after level is loaded
-  updatePermissions();
-
-  await preloadDriveModelData();
-  await preloadProducts();
-});
-
-/* =======================================================
-   Quote Button Listeners inside Module
-======================================================= */
-document.addEventListener("click", (e) => {
-  if (e.target.classList.contains("add-quote-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
-
-    const qty = qtySelect.value || "50";
-    const ck  = `quote${qty}`;
-    const cost = item[ck] ?? item.quote50 ?? 0;
-
-    const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === `${qty}個`);
-    
-    if (existingIndex > -1) {
-        quoteList[existingIndex].count += 1;
-        alert(`已更新報價單：${item.name} (數量: ${quoteList[existingIndex].count})`);
-    } else {
-        quoteList.push({
-          model: item.model,
-          name: item.name,
-          price: cost,
-          qtyLabel: `${qty}個`,
-          count: 1,
-          productUrl: item.productUrl || ""
+        snap.forEach(docSnap => {
+            const d = docSnap.data();
+            // 這裡也加強防呆：確保資料庫原本的條碼也轉成字串
+            const bc = String(d.internationalBarcode || d.barcode || "").trim();
+            if(bc) rawMap.set(bc, docSnap.id);
         });
-        alert(`已加入報價單（${qty}個：$${cost}）`);
-    }
 
-    updateQuoteToolbarBtn();
-    return;
-  }
+        importProductBtn.textContent = "正在寫入資料庫...";
 
-  if (e.target.classList.contains("line-share-btn")) {
-    const model = e.target.getAttribute("data-model");
-    const item  = currentResultList.find(p => p.model === model);
-    if (!item) return;
+        // 2. Process Actions using Barcode Mapping
+        for(const item of actions) {
+            // item.data contains the new data from Excel
+            // Key logic: item.data.internationalBarcode
+            
+            // 👇👇👇【修正重點在這裡】加上 String() 包起來 👇👇👇
+            const excelBc = String(item.data.internationalBarcode || "").trim();
+            // 👆👆👆【修正結束】👆👆👆
 
-    const showMinPrice = userLevel >= 1;
-    const getPrice = (p) => (item[p] ?? "-");
+            if(!excelBc) {
+                console.warn("Skipping item without barcode:", item.model);
+                continue; 
+            }
 
-    let costText = "";
-    const currentQty = qtySelect.value; 
+            // 確保要寫入資料庫的 barcode 也是乾淨的字串
+            item.data.internationalBarcode = excelBc;
 
-    if (currentQty) {
-        const k = `quote${currentQty}`;
-        let canSee = false;
-        
-        if (userLevel >= 1 && currentQty == 50) canSee = true;
-        if (userLevel >= 2 && (currentQty == 100 || currentQty == 300)) canSee = true;
-        if (userLevel >= 3 && (currentQty == 500 || currentQty == 1000)) canSee = true;
-        
-        if(canSee) {
-              costText += `${currentQty}個：${getPrice(k)}\n`;
-        } else {
-              costText += `${currentQty}個：(無權限)\n`;
-        }
-    } else {
-        if (userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
-        if (userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-        if (userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
-    }
+            // 🆕 決定狀態：如果 Excel 有讀到就用讀到的，沒有就預設 active
+            const finalStatus = item.data.status || 'active';
 
-    const text = `【${item.model}】${item.name}
-賣場售價：${getPrice('marketPrice')}
-末售價格：${showMinPrice ? getPrice('minPrice') : '---'}
---------------------
-採購價格：
-${costText}
-商品連結：${item.productUrl || "無"}`;
+            if(rawMap.has(excelBc)) {
+                // Update existing doc (更新舊商品)
+                const docId = rawMap.get(excelBc);
+                const docRef = doc(db, "Products", docId);
 
-    navigator.clipboard.writeText(text)
-      .then(() => alert("已複製到剪貼簿"))
-      .catch(() => alert("複製失敗"));
-  }
+                // ⚠️ 修改重點：這裡使用 finalStatus，不再強制 'active'
+                batch.update(docRef, { ...item.data, status: finalStatus });
 
-  const card = document.getElementById("detailCard");
-  if (card && card.style.display !== "none") {
-    if (!card.contains(e.target) && !e.target.closest("tr")) {
-      card.style.display = "none";
-    }
-  }
-
-  if(card && !card.hasAttribute("data-listeners-added")){
-      card.setAttribute("data-listeners-added", "true");
-      card.addEventListener("mouseenter", () => {
-        if (window.hideDetailTimer) clearTimeout(window.hideDetailTimer);
-      });
-      card.addEventListener("mouseleave", () => {
-        // 🚀 Changed from 200 to 1000
-        window.hideDetailTimer = setTimeout(() => {
-          card.style.display = "none";
-        }, 1000);
-      });
-  }
-});
-
-if (batchAddQuoteBtn) {
-    batchAddQuoteBtn.onclick = () => {
-        const checked = document.querySelectorAll(".row-check:checked");
-        if (checked.length === 0) {
-            alert("請先勾選要加入候選清單的商品");
-            return;
-        }
-
-        const qty = qtySelect.value || "50";
-        let addedCount = 0;
-
-        Array.from(checked).forEach(c => {
-            const model = c.getAttribute("data-model");
-            const item = currentResultList.find(p => p.model === model);
-            if (!item) return;
-
-            const ck = `quote${qty}`;
-            const cost = item[ck] ?? item.quote50 ?? 0;
-            const qtyLabel = `${qty}個`;
-
-            const existingIndex = quoteList.findIndex(q => q.model === item.model && q.qtyLabel === qtyLabel);
-
-            if (existingIndex > -1) {
-                quoteList[existingIndex].count += 1;
             } else {
-                quoteList.push({
-                    model: item.model,
-                    name: item.name,
-                    price: cost,
-                    qtyLabel: qtyLabel,
-                    count: 1,
-                    productUrl: item.productUrl || ""
-                });
+                // Create new doc (建立新商品)
+                const newDocRef = doc(collection(db, "Products"));
+
+                // ⚠️ 修改重點：這裡也使用 finalStatus
+                batch.set(newDocRef, { ...item.data, status: finalStatus, inventory: 0 });
             }
-            addedCount++;
-        });
+            
+            opCount++;
+            successCount++;
 
-        updateQuoteToolbarBtn();
-        alert(`已成功將 ${addedCount} 項商品加入候選清單！`);
-    };
-}
-
-if (multiLineBtn) {
-    multiLineBtn.onclick = () => {
-        const checked = document.querySelectorAll(".row-check:checked");
-        if (checked.length === 0) {
-            alert("請先勾選要分享的商品");
-            return;
+            if(opCount >= BATCH_LIMIT) {
+                await batch.commit();
+                batch = writeBatch(db);
+                opCount = 0;
+            }
         }
 
-        const qty = qtySelect.value || "50";
-        let text = `KINYO 多品項報價（起訂量：${qty}個）\n--------------------\n`;
+        if(opCount > 0) {
+            await batch.commit();
+        }
 
-        Array.from(checked).forEach((c, i) => {
-            const model = c.getAttribute("data-model");
-            const item = currentResultList.find(p => p.model === model);
-            if (!item) return;
+        alert(`產品總表同步完成！\n以國際條碼為基準，共處理了 ${successCount} 筆資料。\n系統將自動重新整理。`);
+        window.location.reload();
 
-            const ck = `quote${qty}`;
-            
-            let canSeeQuote = false;
-            if (userLevel >= 1 && qty == 50) canSeeQuote = true;
-            if (userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
-            if (userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
-           if (userLevel >= 4 && qty == 3000) canSeeQuote = true;
-
-            const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
-            const market = item.marketPrice ?? "-";
-            const link = item.productUrl || "無連結";
-
-            text += `${i + 1}. 【${item.model}】${item.name}\n`;
-            text += `   💰 ${qty}個報價：$${cost}\n`;
-            text += `   🛒 賣場售價：$${market}\n`;
-            text += `   🔗 商品連結：${link}\n\n`;
-        });
-
-        text += "--------------------\n";
-        text += "以上報價僅供參考，實際以最終確認為主。";
-
-        navigator.clipboard.writeText(text)
-            .then(() => alert(`已複製 ${checked.length} 項商品的報價資訊！請直接在 LINE 貼上。`))
-            .catch(() => alert("複製失敗，請手動複製。"));
-    };
-}
-
-if(sortSelect) {
-  sortSelect.onchange = () => {
-    if (currentResultList.length > 0) {
-      // 1. 重新從目前的結果中拆分
-      // (注意：這裡不能用 r，要用 currentResultList)
-      const activeItems = currentResultList.filter(p => (parseInt(p.inventory || 0, 10) > 0));
-      const zeroItems   = currentResultList.filter(p => (parseInt(p.inventory || 0, 10) <= 0));
-
-      let sortedActive = [];
-      let sortedZero = [];
-
-      // 2. 重新排序
-      if (!sortSelect.value) {
-          sortedActive = shuffleArray(activeItems);
-          sortedZero = shuffleArray(zeroItems);
-      } else {
-          // 因為 applySorting 會修改原陣列，建議用解構複製 [...array]
-          sortedActive = applySorting([...activeItems]);
-          sortedZero = applySorting([...zeroItems]);
-      }
-
-      // 3. 重新合併並渲染
-      const finalSortedList = [...sortedActive, ...sortedZero];
-      renderResults(finalSortedList);
-      
-      // 更新全域變數，確保下次操作一致
-      currentResultList = finalSortedList;
+    } catch(e) {
+        console.error(e);
+        alert("寫入資料庫時發生錯誤，請檢查 Console。");
+    } finally {
+        importProductBtn.disabled = false;
+        importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
     }
-  };
 }
 
-if(sheetCloseBtn) sheetCloseBtn.onclick = closeSheet;
-if(quoteCloseBtn) quoteCloseBtn.onclick = closeQuoteSheet;
+// 🚀 V7.6 修改版：同時更新庫存與到貨日 (Inventory + ETA)
+async function saveInventoryToFirestore(invMap) {
+    const btn = document.getElementById("confirmImportBtn");
+    if(btn) {
+        btn.disabled = true;
+        btn.textContent = "正在寫入資料庫...";
+    }
+    
+    let batch = writeBatch(db);
+    let opCount = 0;
+    let updatedCount = 0;
+    const BATCH_LIMIT = 400;
 
-if(sheetBackdrop) {
-  sheetBackdrop.onclick = () => {
-    if (!mobileSheet.classList.contains("hidden")) closeSheet();
-    if (!quoteSheet.classList.contains("hidden")) closeQuoteSheet();
-  };
-}
-
-window.addEventListener('scroll', updateToolbarScrollState);
-
-if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
-
-// ==========================================
-// 🚀 Level 4 專屬功能：一鍵設定首頁熱門榜
-// ==========================================
-const setHotBtn = document.getElementById("setHotBtn");
-if(setHotBtn) {
-    setHotBtn.onclick = async () => {
-        // 再次確認權限 (雙重保險)
-        if (userLevel < 4) { alert("權限不足"); return; }
-
-        const checked = document.querySelectorAll(".row-check:checked");
+    try {
+        const snap = await getDocsWithRetry(collection(db, "Products"));
         
-        if (checked.length === 0) { alert("請先勾選商品！"); return; }
-        if (checked.length > 6) { alert(`首頁版面限制 6 個商品，您目前勾選了 ${checked.length} 個。`); return; }
-
-        if(!confirm(`確定要將這 ${checked.length} 個商品設為首頁「本週熱門」嗎？\n(這將覆蓋舊的名單，並立即生效)`)) return;
-
-        setHotBtn.disabled = true;
-        setHotBtn.textContent = "設定中...";
-
-        try {
-            // 動態引入 Firebase 寫入工具
-            const { doc, setDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-
-            let newHotList = [];
-            let rank = 1;
-
-            // 遍歷勾選的項目
-            for(const checkbox of checked) {
-                const model = checkbox.getAttribute("data-model");
-                // 優先找 currentResultList (搜尋結果)，找不到找 cache
-                const item = currentResultList.find(p => p.model === model) || productCache.find(p => p.model === model);
+        // 遍歷資料庫中的所有商品
+        for(const docSnap of snap.docs) {
+             const product = docSnap.data();
+             const bc = String(product.internationalBarcode || product.barcode || "").trim();
+             
+             // 如果這個商品的條碼，在庫存表(invMap)裡面找得到
+             if(bc && invMap.has(bc)) {
+                const data = invMap.get(bc); // 這裡取出來的是 { qty, eta } 物件
+                const docRef = doc(db, "Products", docSnap.id);
                 
-                if(item) {
-                    newHotList.push({
-                        model: item.model,
-                        // 自動產生假詢價次數：第1名約180次，第6名約50次，加一點隨機感
-                        count: Math.floor(180 - ((rank-1) * 25) + Math.random() * 15) 
-                    });
-                    rank++;
+                // 準備要更新的欄位
+                let updateData = { inventory: data.qty };
+                
+                // 🆕 如果 Excel 有填 ETA，就一起更新；沒填就更新為空字串 (清除舊日期)
+                updateData.nextArrival = data.eta || ""; 
+
+                batch.update(docRef, updateData);
+                
+                opCount++;
+                updatedCount++;
+                
+                if(opCount >= BATCH_LIMIT) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    opCount = 0;
                 }
-            }
-
-            // 寫入 SiteConfig (homeHotList)
-            await setDoc(doc(db, "SiteConfig", "homeHotList"), {
-                updatedAt: new Date(),
-                items: newHotList,
-                editor: currentUserEmail
-            });
-
-            alert(`✅ 設定成功！首頁熱門榜已更新。\n共 ${newHotList.length} 筆商品。`);
-            
-            // 清除勾選狀態
-            checkAllBox.checked = false;
-            checked.forEach(c => c.checked = false);
-            updateMultiLineBtnState();
-
-        } catch(e) {
-            console.error("設定失敗:", e);
-            alert("設定失敗：請檢查 Firebase Rules 是否允許 SiteConfig 寫入。");
-        } finally {
-            setHotBtn.disabled = false;
-            setHotBtn.textContent = "🔥 設為首頁熱門 (L4)";
+             }
         }
-    };
+        
+        if(opCount > 0) await batch.commit();
+
+        alert(`庫存同步完成！\n共更新了 ${updatedCount} 筆商品。\n(包含庫存數量與預計到貨日)`);
+        window.location.reload();
+
+    } catch(e) {
+        console.error(e);
+        alert("寫入資料庫失敗，請檢查 Console。");
+    } finally {
+        if(btn) {
+            btn.disabled = false;
+            btn.textContent = "確認寫入資料庫";
+        }
+    }
 }
-   
 </script>
 </body>
 </html>
