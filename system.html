@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（V7.6 新增到貨時間）</title>
+<title>KINYO 查價系統（V7.5 串接售後）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -697,7 +697,7 @@ th {
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  V7.6 新增到貨時間 --- 運籌帷幄 專屬報價顧問
+  V7.5 串接售後 --- 運籌帷幄 專屬報價顧問
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -755,7 +755,6 @@ th {
 
 <!-- Hidden File Inputs -->
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
-   <input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
@@ -770,7 +769,6 @@ th {
   
   <!-- 預設隱藏，Level 4 才顯示 -->
   <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
-   <button id="importInventoryBtn" class="btn-secondary" style="color:#059669; border-color:#059669; background:#ecfdf5; font-weight:bold; display:none;">📥 匯入庫存/廠價 (自動算報價)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
@@ -1034,30 +1032,11 @@ function renderStockByVariant(item) {
                colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}</span>`;
             }
 
-           // 🟢 [修改開始] 設定顯示文字與樣式
+            // VIP 模糊邏輯
             let displayLabel = status.label;
-            let labelStyle = ""; 
-
-            // 先處理 VIP (如果有設定)
             if (currentUserVipConfig) {
                 if (qty >= 100) displayLabel = "庫存充足";
                 else displayLabel = "庫存緊張";
-            }
-
-            // 再處理 ETA (這會覆蓋原本的文字，讓業務知道何時有貨)
-          // 🟢 [修改] 只要有 ETA 資料就顯示 (不論庫存多寡)
-            if (v.eta) {
-                if(qty <= 0) {
-                    // 情境 A：完全沒貨 -> 顯示紅字警告
-                    displayLabel = `❌ 缺貨 (${v.eta} 到)`;
-                    labelStyle = "color:#b91c1c; font-weight:bold;"; 
-                } else {
-                    // 情境 B：還有貨 (不論是少貨還是庫存充足) -> 接在原本文字後面
-                    // 例如：「庫存充足 (3/1 到)」
-                    displayLabel = `${displayLabel} (${v.eta} 到)`;
-                    // 使用深橘色粗體，提示業務注意這筆補貨資訊
-                    labelStyle = "color:#c2410c; font-weight:bold;"; 
-                }
             }
 
             // --- 🖥️ 組合 HTML ---
@@ -1065,7 +1044,7 @@ function renderStockByVariant(item) {
             <div style="width:100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1px;">
                     ${colorLabel}
-                  <span class="stock-tag ${status.cls}" style="margin-left: auto; font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center; ${labelStyle}">${displayLabel}</span>
+                    <span class="stock-tag ${status.cls}" style="font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center;">${displayLabel}</span>
                 </div>
                 <div class="stock-bar-container">
                     <div class="stock-bar-fill ${fillClass}" style="width: ${percent}%;"></div>
@@ -1631,12 +1610,11 @@ async function preloadProducts() {
         const main = item.mainModel;
         
         // 建立變體物件
-       const variantObj = {
-    model: item.model,
-    color: item.colorList || "單一款式",
-    inventory: item.inventory,
-    eta: item.eta  // 🟢 [新增] 把預計到貨日帶入變體資料
-};
+        const variantObj = {
+            model: item.model,
+            color: item.colorList || "單一款式",
+            inventory: item.inventory
+        };
 
         if (!mergedMap[main]) {
             // 初始化主物件
@@ -2965,6 +2943,88 @@ if(rawMap.has(excelBc)) {
         importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
     }
 }
+// 🚀 V6.4 重寫的庫存保存邏輯：即時抓取原始資料進行精準更新
+async function saveInventoryToFirestore(invMap) {
+    importInventoryBtn.disabled = true;
+    importInventoryBtn.textContent = "正在抓取原始資料...";
+    
+    let batch = writeBatch(db);
+    let opCount = 0;
+    let updatedCount = 0;
+    const BATCH_LIMIT = 400;
+
+    try {
+         // 1. Fetch RAW docs
+         const snap = await getDocsWithRetry(collection(db, "Products"));
+         
+         importInventoryBtn.textContent = "正在寫入資料庫...";
+
+         // 2. Iterate Raw Docs and Match Barcode
+         snap.forEach(docSnap => {
+             const product = docSnap.data();
+             const bc = (product.internationalBarcode || product.barcode || "").trim();
+             
+             if(bc && invMap.has(bc)) {
+                const newQty = invMap.get(bc);
+                const docRef = doc(db, "Products", docSnap.id);
+                batch.update(docRef, { inventory: newQty });
+                
+                opCount++;
+                updatedCount++;
+                
+                // Batch logic inside forEach needs care, usually we fill batch and check size
+             }
+         });
+         
+         // Since batch commit is async, we can't await inside forEach easily.
+         // Re-implementing with for..of loop for safety
+    } catch(e) {
+        console.error(e);
+        alert("讀取原始資料失敗");
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
+        return;
+    }
+
+    // Re-run with clean loop structure
+    try {
+        const snap = await getDocsWithRetry(collection(db, "Products"));
+        batch = writeBatch(db); // Reset
+        opCount = 0;
+        
+        for(const docSnap of snap.docs) {
+             const product = docSnap.data();
+             const bc = (product.internationalBarcode || product.barcode || "").trim();
+             
+             if(bc && invMap.has(bc)) {
+                const newQty = invMap.get(bc);
+                const docRef = doc(db, "Products", docSnap.id);
+                batch.update(docRef, { inventory: newQty });
+                
+                opCount++;
+                updatedCount++;
+                
+                if(opCount >= BATCH_LIMIT) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    opCount = 0;
+                }
+             }
+        }
+        
+        if(opCount > 0) await batch.commit();
+
+        alert(`資料庫更新完成！\n以國際條碼為基準，共更新了 ${updatedCount} 筆商品的庫存。\n系統將自動重新整理以顯示最新數據。`);
+        window.location.reload();
+
+    } catch(e) {
+        console.error(e);
+        alert("寫入資料庫失敗");
+    } finally {
+        importInventoryBtn.disabled = false;
+        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
+    }
+}
 
 // ----------------------------------------------------
 // PRODUCT IMPORT LOGIC (移除 A 級品偵測版)
@@ -2994,8 +3054,7 @@ if(productUpload) {
                     inventory: -1, // 單一庫存
                     finished: -1,  // 成品倉
                     exclusive: -1,  // 專賣倉
-                   status: -1,     // 🆕 新增這個：上下架狀態
-                   eta: -1  // 🟢 [新增] 這是預計到貨日 (Estimated Time of Arrival)
+                   status: -1     // 🆕 新增這個：上下架狀態
                 };
                 
                 let vipHeaders = {}; 
@@ -3013,50 +3072,12 @@ if(productUpload) {
                         if(cellLower.includes('末售') || cellLower.includes('底價')) h.min = c;
                         if(cellLower.includes('團購')) h.groupBuy = c; 
                         
-                     // ============================================================
-                        // 🚀 (修正開始) 嚴格版欄位偵測：修復 300/3000 混淆與庫存誤判
-                        // ============================================================
-
-                        // 1. 定義嚴格數字檢查函式
-                        // 功能：確保 target (如 '300') 是獨立存在的，不會抓到 '3000' 或 '1300'
-                        const checkNum = (str, target) => {
-                            // Regex 邏輯：目標數字的前後，必須是「非數字」或是「字串邊界」
-                            const regex = new RegExp(`(^|[^0-9])${target}([^0-9]|$)`);
-                            return regex.test(str);
-                        };
-
-                        // 2. 定義安全欄位檢查 (關鍵！)
-                        // 功能：如果標題包含 '庫'、'倉'、'stock'，絕對不能當作報價欄位
-                        // 這能解決 FG65 報價變成庫存量 1798 的問題
-                        const isSafeColumn = !cellLower.includes('庫') && 
-                                             !cellLower.includes('倉') && 
-                                             !cellLower.includes('stock') && 
-                                             !cellLower.includes('保險');
-
-                        // 3. 執行嚴格判斷
-                        // 條件：(是獨立數字) AND (不是庫存欄位) AND (包含'報價'或純數字)
-                        
-                        // 50個
-                        if (checkNum(cellLower, '50') && isSafeColumn && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
-                        
-                        // 100個
-                        if (checkNum(cellLower, '100') && isSafeColumn && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
-                        
-                        // 300個 (這裡最重要，嚴格排除庫存干擾)
-                        if (checkNum(cellLower, '300') && isSafeColumn && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
-                        
-                        // 500個
-                        if (checkNum(cellLower, '500') && isSafeColumn && (cellLower.includes('報價') || cellLower === '500')) h.q500 = c;
-                        
-                        // 1000個
-                        if (checkNum(cellLower, '1000') && isSafeColumn && (cellLower.includes('報價') || cellLower === '1000')) h.q1000 = c;
-                        
-                        // 3000個
-                        if (checkNum(cellLower, '3000') && isSafeColumn && (cellLower.includes('報價') || cellLower === '3000')) h.q3000 = c;
-
-                        // ============================================================
-                        // 🚀 (修正結束)
-                        // ============================================================
+                        if (cellLower.includes('50') && !cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
+                        if (cellLower.includes('100') && !cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
+                        if (cellLower.includes('300') && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
+                        if (cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '500')) h.q500 = c;
+                        if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '1000')) h.q1000 = c;
+                        if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower === '3000')) h.q3000 = c;
                         
                         // ✅ 已移除 grade 偵測
                         if (cellLower.includes('控價') || cellLower === 'controlled') h.controlled = c;
@@ -3078,8 +3099,6 @@ if(productUpload) {
                         if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
                        // 🆕 新增：偵測 "狀態", "上下架", "status"
 if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower === 'status') h.status = c;
-                       // 🟢 [新增] 偵測到貨日
-if (cellLower.includes('預計') || cellLower.includes('到貨') || cellLower === 'eta') h.eta = c;
 
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
@@ -3119,7 +3138,7 @@ if (cellLower.includes('預計') || cellLower.includes('到貨') || cellLower ==
                     if (h.finished !== -1 && h.exclusive !== -1) {
                         const finQty = parseInt(row[h.finished] || 0, 10);
                         const excQty = parseInt(row[h.exclusive] || 0, 10);
-                        obj.inventory = Math.floor((finQty + excQty) * 0.85); 
+                        obj.inventory = finQty + excQty; 
                     } else if (h.inventory !== -1 && hasVal(row[h.inventory])) {
                         obj.inventory = parseInt(row[h.inventory], 10);
                     }
@@ -3176,25 +3195,7 @@ if (cellLower.includes('預計') || cellLower.includes('到貨') || cellLower ==
     }
     // 🆕 [結束]
 
-// 🟢 [修改] 讀取 ETA 資料 (加入 Excel 日期自動轉換功能)
-                    if (h.eta !== -1 && hasVal(row[h.eta])) {
-                        let val = row[h.eta];
-                        
-                        // 偵測：如果是數字且大於 40000 (代表是 Excel 的日期格式)
-                        if (typeof val === 'number' && val > 40000) {
-                             // 數學公式：將 Excel 代碼轉換為人類日期
-                             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-                             const y = date.getFullYear();
-                             const m = String(date.getMonth() + 1).padStart(2, '0'); // 自動補 0
-                             const d = String(date.getDate()).padStart(2, '0');      // 自動補 0
-                             obj.eta = `${y}/${m}/${d}`;
-                        } else {
-                             // 如果本來就是文字 (例如 "12/25")，直接用
-                             obj.eta = String(val).trim();
-                        }
-                    }
-                   
-                   obj.model = modelVal;
+    obj.model = modelVal;
     obj.mainModel = modelVal.split('-')[0]; 
 
     actions.push({ data: obj, model: modelVal });
@@ -3677,217 +3678,6 @@ if(setHotBtn) {
         }
     };
 }
-
-// =========================================================================
-// 🚀 全自動庫存/廠價匯入系統 (V11.0 科學記號救援版)
-// 功能：解決 Excel 條碼變成 4.71E+12 的問題，自動改用「型號」對應，確保 100% 更新成功
-// =========================================================================
-
-// 1. 取得 HTML 元件
-const importInventoryBtn_Rescue = document.getElementById("importInventoryBtn");
-const inventoryUpload_Rescue = document.getElementById("inventoryUpload");
-
-// 2. 綁定按鈕點擊事件
-if (importInventoryBtn_Rescue && inventoryUpload_Rescue) {
-    importInventoryBtn_Rescue.onclick = () => {
-        inventoryUpload_Rescue.value = ''; // 清空
-        inventoryUpload_Rescue.click();
-    };
-
-    // 3. 檔案選擇後的處理邏輯
-    inventoryUpload_Rescue.onchange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        importInventoryBtn_Rescue.textContent = "🚑 啟動救援分析模式...";
-        importInventoryBtn_Rescue.disabled = true;
-
-        const reader = new FileReader();
-        
-        reader.onload = (evt) => {
-            try {
-                // 解析 Excel
-                const data = evt.target.result;
-                const workbook = XLSX.read(data, { type: 'binary' });
-                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
-
-                // A. 偵測欄位位置 (必須同時偵測條碼與型號)
-                let h = { barcode: -1, model: -1, cost: -1, fin: -1, exc: -1, eta: -1 };
-                const headerRow = jsonData[0] || [];
-                
-                headerRow.forEach((cell, idx) => {
-                    const c = String(cell).trim().toLowerCase();
-                    if (c.includes('條碼') || c === 'barcode') h.barcode = idx;
-                    if (c.includes('型號') || c === 'model') h.model = idx; // 👈 關鍵救援欄位
-                    if (c === '廠價' || c === 'cost' || c.includes('成本')) h.cost = idx;
-                    if (c.includes('成品')) h.fin = idx;
-                    if (c.includes('專賣')) h.exc = idx;
-                    if (c.includes('eta') || c.includes('到貨')) h.eta = idx;
-                });
-
-                // 防呆
-                if (h.barcode === -1 && h.model === -1) {
-                    throw new Error("❌ 失敗：找不到「國際條碼」或「型號」欄位，無法進行比對！");
-                }
-
-                // B. 整理資料 (建立兩套索引)
-                const mapByBarcode = new Map();
-                const mapByModel = new Map();
-                let validCount = 0;
-
-                for (let i = 1; i < jsonData.length; i++) {
-                    const row = jsonData[i];
-                    
-                    // 取得 Key
-                    const bc = h.barcode !== -1 ? String(row[h.barcode] || "").trim() : "";
-                    const md = h.model !== -1 ? String(row[h.model] || "").trim().toUpperCase() : ""; // 型號轉大寫
-
-                    if (!bc && !md) continue;
-
-                    let obj = {};
-
-                    // 1. 總庫存
-                    if (h.fin !== -1 || h.exc !== -1) {
-                        const finQty = parseInt(row[h.fin] || 0, 10);
-                        const excQty = parseInt(row[h.exc] || 0, 10);
-                        obj.inventory = finQty + excQty; 
-                    }
-
-                    // 2. 廠價 (Cost)
-                    if (h.cost !== -1 && row[h.cost]) {
-                        obj.cost = parseFloat(row[h.cost]);
-                    }
-
-                    // 3. ETA
-                    if (h.eta !== -1 && row[h.eta]) {
-                        let val = row[h.eta];
-                        if (typeof val === 'number' && val > 40000) {
-                            const date = new Date(Math.round((val - 25569) * 86400 * 1000));
-                            const y = date.getFullYear();
-                            const m = String(date.getMonth() + 1).padStart(2, '0');
-                            const d = String(date.getDate()).padStart(2, '0');
-                            obj.eta = `${y}/${m}/${d}`;
-                        } else {
-                            obj.eta = String(val).trim();
-                        }
-                    }
-
-                    if (Object.keys(obj).length > 0) {
-                        if (bc) mapByBarcode.set(bc, obj);
-                        if (md) mapByModel.set(md, obj);
-                        validCount++;
-                    }
-                }
-
-                if (validCount === 0) throw new Error("沒有讀取到有效資料");
-
-                // C. 確認並開始寫入
-                if (confirm(`📊 分析完成！共讀取 ${validCount} 筆資料。\n\n⚠️ 偵測到 Excel 條碼可能含有科學記號 (4.71E+12)。\n系統將自動啟動「雙重比對」：優先對條碼，失敗則對型號。\n\n確定要修復報價與庫存嗎？`)) {
-                    saveInventoryToFirestore_Rescue(mapByBarcode, mapByModel);
-                } else {
-                    resetBtn_Rescue();
-                }
-
-            } catch (e) {
-                console.error(e);
-                alert(e.message);
-                resetBtn_Rescue();
-            }
-        };
-        reader.readAsBinaryString(file);
-    };
-}
-
-function resetBtn_Rescue() {
-    importInventoryBtn_Rescue.textContent = "📥 匯入庫存/廠價 (自動算報價)";
-    importInventoryBtn_Rescue.disabled = false;
-    inventoryUpload_Rescue.value = '';
-}
-
-// 4. 資料庫寫入函式 (救援版)
-async function saveInventoryToFirestore_Rescue(mapByBarcode, mapByModel) {
-    importInventoryBtn_Rescue.textContent = "☁️ 正在修復數據...";
-    
-    const { writeBatch, doc, collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
-    
-    let batch = writeBatch(db);
-    let opCount = 0;
-    let successCount = 0;
-    const BATCH_LIMIT = 400;
-
-    try {
-        const snap = await getDocs(collection(db, "Products"));
-        
-        for (const docSnap of snap.docs) {
-            const product = docSnap.data();
-            
-            // 資料庫裡的 Key
-            const dbBc = String(product.internationalBarcode || product.barcode || "").trim();
-            const dbModel = String(product.mainModel || product.model || "").trim().toUpperCase();
-
-            let newData = null;
-            let matchType = "";
-
-            // 🔥 雙重比對邏輯 🔥
-            // 1. 先試條碼 (如果 Excel 條碼是好的，這個會中)
-            if (dbBc && mapByBarcode.has(dbBc)) {
-                newData = mapByBarcode.get(dbBc);
-                matchType = "barcode";
-            } 
-            // 2. 條碼沒中 (例如 Excel 變成 4.71E+12)，改試型號 (這個一定會中！)
-            else if (dbModel && mapByModel.has(dbModel)) {
-                newData = mapByModel.get(dbModel);
-                matchType = "model";
-            }
-
-            if (newData) {
-                const docRef = doc(db, "Products", docSnap.id);
-                let fieldsToUpdate = {};
-
-                if (newData.inventory !== undefined) fieldsToUpdate.inventory = newData.inventory;
-                if (newData.eta !== undefined) fieldsToUpdate.eta = newData.eta;
-
-                // 💰 廠價自動算報價公式
-                if (newData.cost !== undefined && newData.cost > 0) {
-                    const cost = newData.cost;
-                    fieldsToUpdate.cost = cost; 
-
-                    fieldsToUpdate.quote50 = Math.ceil((cost / 0.76) * 1.05);
-                    fieldsToUpdate.quote100 = Math.ceil((cost / 0.79) * 1.05);
-                    fieldsToUpdate.quote300 = Math.ceil((cost / 0.82) * 1.05);   // ✅ 300個報價會在這裡被修復
-                    fieldsToUpdate.quote500 = Math.ceil((cost / 0.845) * 1.05);
-                    fieldsToUpdate.quote1000 = Math.ceil((cost / 0.865) * 1.05);
-                    fieldsToUpdate.quote3000 = Math.ceil((cost / 0.89) * 1.05);
-                }
-
-                if (Object.keys(fieldsToUpdate).length > 0) {
-                    batch.update(docRef, fieldsToUpdate);
-                    opCount++;
-                    successCount++;
-                }
-
-                if (opCount >= BATCH_LIMIT) {
-                    await batch.commit();
-                    batch = writeBatch(db);
-                    opCount = 0;
-                }
-            }
-        }
-
-        if (opCount > 0) await batch.commit();
-
-        alert(`✅ 修復完成！\n共更新了 ${successCount} 筆商品。\n(其中透過型號救援成功的比例很高)\n請檢查 300個 的報價是否已恢復正常。`);
-        window.location.reload(); 
-
-    } catch (e) {
-        console.error(e);
-        alert("寫入失敗，請檢查 Console");
-    } finally {
-        resetBtn_Rescue();
-    }
-}
-
    
 </script>
 </body>
