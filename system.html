@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
-<title>KINYO 查價系統（V7.5 串接售後）</title>
+<title>KINYO 查價系統（V7.6 新增到貨時間）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
@@ -697,7 +697,7 @@ th {
 
 <h1>KINYO 查價系統</h1>
 <div class="subtitle">
-  V7.5 串接售後 --- 運籌帷幄 專屬報價顧問
+  V7.6 新增到貨時間 --- 運籌帷幄 專屬報價顧問
   <br>
   Designed & Engineered by 郭庭豪 (0976-966-333)
 </div>
@@ -1032,11 +1032,30 @@ function renderStockByVariant(item) {
                colorLabel = `<span style="color:#666; margin-right:4px; font-size:12px;">${v.color}</span>`;
             }
 
-            // VIP 模糊邏輯
+           // 🟢 [修改開始] 設定顯示文字與樣式
             let displayLabel = status.label;
+            let labelStyle = ""; 
+
+            // 先處理 VIP (如果有設定)
             if (currentUserVipConfig) {
                 if (qty >= 100) displayLabel = "庫存充足";
                 else displayLabel = "庫存緊張";
+            }
+
+            // 再處理 ETA (這會覆蓋原本的文字，讓業務知道何時有貨)
+          // 🟢 [修改] 只要有 ETA 資料就顯示 (不論庫存多寡)
+            if (v.eta) {
+                if(qty <= 0) {
+                    // 情境 A：完全沒貨 -> 顯示紅字警告
+                    displayLabel = `❌ 缺貨 (${v.eta} 到)`;
+                    labelStyle = "color:#b91c1c; font-weight:bold;"; 
+                } else {
+                    // 情境 B：還有貨 (不論是少貨還是庫存充足) -> 接在原本文字後面
+                    // 例如：「庫存充足 (3/1 到)」
+                    displayLabel = `${displayLabel} (${v.eta} 到)`;
+                    // 使用深橘色粗體，提示業務注意這筆補貨資訊
+                    labelStyle = "color:#c2410c; font-weight:bold;"; 
+                }
             }
 
             // --- 🖥️ 組合 HTML ---
@@ -1044,7 +1063,7 @@ function renderStockByVariant(item) {
             <div style="width:100%;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1px;">
                     ${colorLabel}
-                    <span class="stock-tag ${status.cls}" style="font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center;">${displayLabel}</span>
+                  <span class="stock-tag ${status.cls}" style="margin-left: auto; font-size:11px; padding:1px 6px; transform:scale(0.9); transform-origin:right center; ${labelStyle}">${displayLabel}</span>
                 </div>
                 <div class="stock-bar-container">
                     <div class="stock-bar-fill ${fillClass}" style="width: ${percent}%;"></div>
@@ -1610,11 +1629,12 @@ async function preloadProducts() {
         const main = item.mainModel;
         
         // 建立變體物件
-        const variantObj = {
-            model: item.model,
-            color: item.colorList || "單一款式",
-            inventory: item.inventory
-        };
+       const variantObj = {
+    model: item.model,
+    color: item.colorList || "單一款式",
+    inventory: item.inventory,
+    eta: item.eta  // 🟢 [新增] 把預計到貨日帶入變體資料
+};
 
         if (!mergedMap[main]) {
             // 初始化主物件
@@ -3054,7 +3074,8 @@ if(productUpload) {
                     inventory: -1, // 單一庫存
                     finished: -1,  // 成品倉
                     exclusive: -1,  // 專賣倉
-                   status: -1     // 🆕 新增這個：上下架狀態
+                   status: -1,     // 🆕 新增這個：上下架狀態
+                   eta: -1  // 🟢 [新增] 這是預計到貨日 (Estimated Time of Arrival)
                 };
                 
                 let vipHeaders = {}; 
@@ -3099,6 +3120,8 @@ if(productUpload) {
                         if (cellLower === '庫存' || cellLower === '現貨' || cellLower === 'inventory') h.inventory = c;
                        // 🆕 新增：偵測 "狀態", "上下架", "status"
 if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower === 'status') h.status = c;
+                       // 🟢 [新增] 偵測到貨日
+if (cellLower.includes('預計') || cellLower.includes('到貨') || cellLower === 'eta') h.eta = c;
 
                         if (cell.toUpperCase().startsWith('VIP')) {
                             vipHeaders[cell] = c;
@@ -3138,7 +3161,7 @@ if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower
                     if (h.finished !== -1 && h.exclusive !== -1) {
                         const finQty = parseInt(row[h.finished] || 0, 10);
                         const excQty = parseInt(row[h.exclusive] || 0, 10);
-                        obj.inventory = finQty + excQty; 
+                        obj.inventory = Math.floor((finQty + excQty) * 0.85); 
                     } else if (h.inventory !== -1 && hasVal(row[h.inventory])) {
                         obj.inventory = parseInt(row[h.inventory], 10);
                     }
@@ -3195,7 +3218,25 @@ if (cellLower.includes('狀態') || cellLower.includes('上下架') || cellLower
     }
     // 🆕 [結束]
 
-    obj.model = modelVal;
+// 🟢 [修改] 讀取 ETA 資料 (加入 Excel 日期自動轉換功能)
+                    if (h.eta !== -1 && hasVal(row[h.eta])) {
+                        let val = row[h.eta];
+                        
+                        // 偵測：如果是數字且大於 40000 (代表是 Excel 的日期格式)
+                        if (typeof val === 'number' && val > 40000) {
+                             // 數學公式：將 Excel 代碼轉換為人類日期
+                             const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+                             const y = date.getFullYear();
+                             const m = String(date.getMonth() + 1).padStart(2, '0'); // 自動補 0
+                             const d = String(date.getDate()).padStart(2, '0');      // 自動補 0
+                             obj.eta = `${y}/${m}/${d}`;
+                        } else {
+                             // 如果本來就是文字 (例如 "12/25")，直接用
+                             obj.eta = String(val).trim();
+                        }
+                    }
+                   
+                   obj.model = modelVal;
     obj.mainModel = modelVal.split('-')[0]; 
 
     actions.push({ data: obj, model: modelVal });
