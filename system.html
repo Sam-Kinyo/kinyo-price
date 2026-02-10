@@ -3093,11 +3093,50 @@ if(productUpload) {
                         if(cellLower.includes('末售') || cellLower.includes('底價')) h.min = c;
                         if(cellLower.includes('團購')) h.groupBuy = c; 
                         
-                        if (cellLower.includes('50') && !cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
-                        if (cellLower.includes('100') && !cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
-                        if (cellLower.includes('300') && !cellLower.includes('3000') && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
-                        if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '1000')) h.q1000 = c;
-                        if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower === '3000')) h.q3000 = c;
+                     // ============================================================
+                        // 🚀 (修正開始) 嚴格版欄位偵測：修復 300/3000 混淆與庫存誤判
+                        // ============================================================
+
+                        // 1. 定義嚴格數字檢查函式
+                        // 功能：確保 target (如 '300') 是獨立存在的，不會抓到 '3000' 或 '1300'
+                        const checkNum = (str, target) => {
+                            // Regex 邏輯：目標數字的前後，必須是「非數字」或是「字串邊界」
+                            const regex = new RegExp(`(^|[^0-9])${target}([^0-9]|$)`);
+                            return regex.test(str);
+                        };
+
+                        // 2. 定義安全欄位檢查 (關鍵！)
+                        // 功能：如果標題包含 '庫'、'倉'、'stock'，絕對不能當作報價欄位
+                        // 這能解決 FG65 報價變成庫存量 1798 的問題
+                        const isSafeColumn = !cellLower.includes('庫') && 
+                                             !cellLower.includes('倉') && 
+                                             !cellLower.includes('stock') && 
+                                             !cellLower.includes('保險');
+
+                        // 3. 執行嚴格判斷
+                        // 條件：(是獨立數字) AND (不是庫存欄位) AND (包含'報價'或純數字)
+                        
+                        // 50個
+                        if (checkNum(cellLower, '50') && isSafeColumn && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
+                        
+                        // 100個
+                        if (checkNum(cellLower, '100') && isSafeColumn && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
+                        
+                        // 300個 (這裡最重要，嚴格排除庫存干擾)
+                        if (checkNum(cellLower, '300') && isSafeColumn && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
+                        
+                        // 500個
+                        if (checkNum(cellLower, '500') && isSafeColumn && (cellLower.includes('報價') || cellLower === '500')) h.q500 = c;
+                        
+                        // 1000個
+                        if (checkNum(cellLower, '1000') && isSafeColumn && (cellLower.includes('報價') || cellLower === '1000')) h.q1000 = c;
+                        
+                        // 3000個
+                        if (checkNum(cellLower, '3000') && isSafeColumn && (cellLower.includes('報價') || cellLower === '3000')) h.q3000 = c;
+
+                        // ============================================================
+                        // 🚀 (修正結束)
+                        // ============================================================
                         
                         // ✅ 已移除 grade 偵測
                         if (cellLower.includes('控價') || cellLower === 'controlled') h.controlled = c;
