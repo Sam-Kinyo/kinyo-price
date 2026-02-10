@@ -755,6 +755,7 @@ th {
 
 <!-- Hidden File Inputs -->
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+   <input type="file" id="inventoryUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
   <select id="sortSelect" class="btn-secondary">
@@ -769,6 +770,7 @@ th {
   
   <!-- 預設隱藏，Level 4 才顯示 -->
   <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
+   <button id="importInventoryBtn" class="btn-secondary" style="color:#059669; border-color:#059669; background:#ecfdf5; font-weight:bold; display:none;">📥 匯入庫存/廠價 (自動算報價)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
@@ -2963,88 +2965,6 @@ if(rawMap.has(excelBc)) {
         importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
     }
 }
-// 🚀 V6.4 重寫的庫存保存邏輯：即時抓取原始資料進行精準更新
-async function saveInventoryToFirestore(invMap) {
-    importInventoryBtn.disabled = true;
-    importInventoryBtn.textContent = "正在抓取原始資料...";
-    
-    let batch = writeBatch(db);
-    let opCount = 0;
-    let updatedCount = 0;
-    const BATCH_LIMIT = 400;
-
-    try {
-         // 1. Fetch RAW docs
-         const snap = await getDocsWithRetry(collection(db, "Products"));
-         
-         importInventoryBtn.textContent = "正在寫入資料庫...";
-
-         // 2. Iterate Raw Docs and Match Barcode
-         snap.forEach(docSnap => {
-             const product = docSnap.data();
-             const bc = (product.internationalBarcode || product.barcode || "").trim();
-             
-             if(bc && invMap.has(bc)) {
-                const newQty = invMap.get(bc);
-                const docRef = doc(db, "Products", docSnap.id);
-                batch.update(docRef, { inventory: newQty });
-                
-                opCount++;
-                updatedCount++;
-                
-                // Batch logic inside forEach needs care, usually we fill batch and check size
-             }
-         });
-         
-         // Since batch commit is async, we can't await inside forEach easily.
-         // Re-implementing with for..of loop for safety
-    } catch(e) {
-        console.error(e);
-        alert("讀取原始資料失敗");
-        importInventoryBtn.disabled = false;
-        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
-        return;
-    }
-
-    // Re-run with clean loop structure
-    try {
-        const snap = await getDocsWithRetry(collection(db, "Products"));
-        batch = writeBatch(db); // Reset
-        opCount = 0;
-        
-        for(const docSnap of snap.docs) {
-             const product = docSnap.data();
-             const bc = (product.internationalBarcode || product.barcode || "").trim();
-             
-             if(bc && invMap.has(bc)) {
-                const newQty = invMap.get(bc);
-                const docRef = doc(db, "Products", docSnap.id);
-                batch.update(docRef, { inventory: newQty });
-                
-                opCount++;
-                updatedCount++;
-                
-                if(opCount >= BATCH_LIMIT) {
-                    await batch.commit();
-                    batch = writeBatch(db);
-                    opCount = 0;
-                }
-             }
-        }
-        
-        if(opCount > 0) await batch.commit();
-
-        alert(`資料庫更新完成！\n以國際條碼為基準，共更新了 ${updatedCount} 筆商品的庫存。\n系統將自動重新整理以顯示最新數據。`);
-        window.location.reload();
-
-    } catch(e) {
-        console.error(e);
-        alert("寫入資料庫失敗");
-    } finally {
-        importInventoryBtn.disabled = false;
-        importInventoryBtn.textContent = "📥 匯入庫存表 (條碼比對)";
-    }
-}
 
 // ----------------------------------------------------
 // PRODUCT IMPORT LOGIC (移除 A 級品偵測版)
@@ -3757,6 +3677,194 @@ if(setHotBtn) {
         }
     };
 }
+
+// =========================================================================
+// 🚀 全自動庫存/廠價匯入系統 (V8.0 懶人包)
+// 功能：讀取庫存表 -> 加總庫存 -> 依廠價自動算報價 -> 更新ETA -> 寫入資料庫
+// =========================================================================
+
+// 1. 取得 HTML 元件
+const importInventoryBtn_New = document.getElementById("importInventoryBtn");
+const inventoryUpload_New = document.getElementById("inventoryUpload");
+
+// 2. 綁定按鈕點擊事件
+if (importInventoryBtn_New && inventoryUpload_New) {
+    importInventoryBtn_New.onclick = () => {
+        inventoryUpload_New.value = ''; // 清空，讓同一檔案可以重複上傳
+        inventoryUpload_New.click();
+    };
+
+    // 3. 檔案選擇後的處理邏輯
+    inventoryUpload_New.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // 變更按鈕狀態
+        importInventoryBtn_New.textContent = "🔍 分析檔案中...";
+        importInventoryBtn_New.disabled = true;
+
+        const reader = new FileReader();
+        
+        reader.onload = (evt) => {
+            try {
+                // 解析 Excel
+                const data = evt.target.result;
+                const workbook = XLSX.read(data, { type: 'binary' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                // A. 偵測欄位位置 (自動找：條碼、廠價、成品、專賣、ETA)
+                let h = { barcode: -1, cost: -1, fin: -1, exc: -1, eta: -1 };
+                const headerRow = jsonData[0] || [];
+                
+                headerRow.forEach((cell, idx) => {
+                    const c = String(cell).trim().toLowerCase();
+                    if (c.includes('條碼') || c === 'barcode') h.barcode = idx;
+                    if (c === '廠價' || c === 'cost' || c.includes('成本')) h.cost = idx;
+                    if (c.includes('成品')) h.fin = idx;
+                    if (c.includes('專賣')) h.exc = idx;
+                    if (c.includes('eta') || c.includes('到貨')) h.eta = idx;
+                });
+
+                if (h.barcode === -1) throw new Error("❌ 錯誤：找不到「國際條碼」欄位！請檢查 Excel 表頭。");
+
+                // B. 整理資料
+                const updateMap = new Map();
+                let validCount = 0;
+
+                for (let i = 1; i < jsonData.length; i++) {
+                    const row = jsonData[i];
+                    const bc = String(row[h.barcode] || "").trim();
+                    if (!bc) continue;
+
+                    let obj = {};
+
+                    // 邏輯 1：計算總庫存 (成品 + 專賣)
+                    if (h.fin !== -1 || h.exc !== -1) {
+                        const finQty = parseInt(row[h.fin] || 0, 10);
+                        const excQty = parseInt(row[h.exc] || 0, 10);
+                        obj.inventory = finQty + excQty; 
+                    }
+
+                    // 邏輯 2：抓取廠價
+                    if (h.cost !== -1 && row[h.cost]) {
+                        obj.cost = parseFloat(row[h.cost]);
+                    }
+
+                    // 邏輯 3：處理 ETA 日期
+                    if (h.eta !== -1 && row[h.eta]) {
+                        let val = row[h.eta];
+                        if (typeof val === 'number' && val > 40000) {
+                            const date = new Date(Math.round((val - 25569) * 86400 * 1000));
+                            const y = date.getFullYear();
+                            const m = String(date.getMonth() + 1).padStart(2, '0');
+                            const d = String(date.getDate()).padStart(2, '0');
+                            obj.eta = `${y}/${m}/${d}`;
+                        } else {
+                            obj.eta = String(val).trim();
+                        }
+                    }
+
+                    if (Object.keys(obj).length > 0) {
+                        updateMap.set(bc, obj);
+                        validCount++;
+                    }
+                }
+
+                if (validCount === 0) throw new Error("沒有讀取到有效資料");
+
+                // C. 確認並開始寫入
+                if (confirm(`📊 分析完成！共 ${validCount} 筆資料。\n\n系統將執行：\n1. 更新總庫存 (成品+專賣)\n2. 更新廠價 -> 並自動重算 50~3000 個報價\n3. 更新到貨日 (ETA)\n\n確定要開始寫入資料庫嗎？`)) {
+                    saveInventoryToFirestore_New(updateMap);
+                } else {
+                    resetBtn_New();
+                }
+
+            } catch (e) {
+                console.error(e);
+                alert(e.message);
+                resetBtn_New();
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+}
+
+function resetBtn_New() {
+    importInventoryBtn_New.textContent = "📥 匯入庫存/廠價 (自動算報價)";
+    importInventoryBtn_New.disabled = false;
+    inventoryUpload_New.value = '';
+}
+
+// 4. 資料庫寫入函式 (核心魔法：自動報價公式)
+async function saveInventoryToFirestore_New(updateMap) {
+    importInventoryBtn_New.textContent = "☁️ 正在雲端運算中...";
+    
+    // 重新引入 Firebase 工具，確保一定能用
+    const { writeBatch, doc, collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
+    
+    let batch = writeBatch(db);
+    let opCount = 0;
+    let successCount = 0;
+    const BATCH_LIMIT = 400;
+
+    try {
+        const snap = await getDocs(collection(db, "Products"));
+        
+        for (const docSnap of snap.docs) {
+            const product = docSnap.data();
+            const bc = String(product.internationalBarcode || product.barcode || "").trim();
+
+            if (bc && updateMap.has(bc)) {
+                const newData = updateMap.get(bc);
+                const docRef = doc(db, "Products", docSnap.id);
+                
+                let fieldsToUpdate = {};
+
+                if (newData.inventory !== undefined) fieldsToUpdate.inventory = newData.inventory;
+                if (newData.eta !== undefined) fieldsToUpdate.eta = newData.eta;
+
+                // 🔥 自動算報價公式 🔥
+                if (newData.cost !== undefined && newData.cost > 0) {
+                    const cost = newData.cost;
+                    fieldsToUpdate.cost = cost; 
+
+                    // 這裡就是您指定的公式，只要廠價一變，這邊全部自動重算
+                    fieldsToUpdate.quote50 = Math.ceil((cost / 0.76) * 1.05);
+                    fieldsToUpdate.quote100 = Math.ceil((cost / 0.79) * 1.05);
+                    fieldsToUpdate.quote300 = Math.ceil((cost / 0.82) * 1.05);   // 300個
+                    fieldsToUpdate.quote500 = Math.ceil((cost / 0.845) * 1.05);
+                    fieldsToUpdate.quote1000 = Math.ceil((cost / 0.865) * 1.05);
+                    fieldsToUpdate.quote3000 = Math.ceil((cost / 0.89) * 1.05);
+                }
+
+                if (Object.keys(fieldsToUpdate).length > 0) {
+                    batch.update(docRef, fieldsToUpdate);
+                    opCount++;
+                    successCount++;
+                }
+
+                if (opCount >= BATCH_LIMIT) {
+                    await batch.commit();
+                    batch = writeBatch(db);
+                    opCount = 0;
+                }
+            }
+        }
+
+        if (opCount > 0) await batch.commit();
+
+        alert(`✅ 大功告成！\n共同步了 ${successCount} 筆商品。\n庫存已更新、300個報價也已自動修正！`);
+        window.location.reload(); 
+
+    } catch (e) {
+        console.error(e);
+        alert("寫入失敗，請檢查 Console 錯誤訊息");
+    } finally {
+        resetBtn_New();
+    }
+}
+
    
 </script>
 </body>
