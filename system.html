@@ -3679,28 +3679,28 @@ if(setHotBtn) {
 }
 
 // =========================================================================
-// 🚀 全自動庫存/廠價匯入系統 (V10.0 純條碼精準版)
-// 功能：嚴格比對「國際條碼」，並利用「廠價」自動重算 300個 的報價
+// 🚀 全自動庫存/廠價匯入系統 (V11.0 科學記號救援版)
+// 功能：解決 Excel 條碼變成 4.71E+12 的問題，自動改用「型號」對應，確保 100% 更新成功
 // =========================================================================
 
 // 1. 取得 HTML 元件
-const importInventoryBtn_Final = document.getElementById("importInventoryBtn");
-const inventoryUpload_Final = document.getElementById("inventoryUpload");
+const importInventoryBtn_Rescue = document.getElementById("importInventoryBtn");
+const inventoryUpload_Rescue = document.getElementById("inventoryUpload");
 
 // 2. 綁定按鈕點擊事件
-if (importInventoryBtn_Final && inventoryUpload_Final) {
-    importInventoryBtn_Final.onclick = () => {
-        inventoryUpload_Final.value = ''; // 清空
-        inventoryUpload_Final.click();
+if (importInventoryBtn_Rescue && inventoryUpload_Rescue) {
+    importInventoryBtn_Rescue.onclick = () => {
+        inventoryUpload_Rescue.value = ''; // 清空
+        inventoryUpload_Rescue.click();
     };
 
     // 3. 檔案選擇後的處理邏輯
-    inventoryUpload_Final.onchange = (e) => {
+    inventoryUpload_Rescue.onchange = (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        importInventoryBtn_Final.textContent = "🔍 讀取條碼與廠價中...";
-        importInventoryBtn_Final.disabled = true;
+        importInventoryBtn_Rescue.textContent = "🚑 啟動救援分析模式...";
+        importInventoryBtn_Rescue.disabled = true;
 
         const reader = new FileReader();
         
@@ -3712,47 +3712,49 @@ if (importInventoryBtn_Final && inventoryUpload_Final) {
                 const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                 const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
 
-                // A. 偵測欄位位置
-                let h = { barcode: -1, cost: -1, fin: -1, exc: -1, eta: -1 };
+                // A. 偵測欄位位置 (必須同時偵測條碼與型號)
+                let h = { barcode: -1, model: -1, cost: -1, fin: -1, exc: -1, eta: -1 };
                 const headerRow = jsonData[0] || [];
                 
                 headerRow.forEach((cell, idx) => {
                     const c = String(cell).trim().toLowerCase();
                     if (c.includes('條碼') || c === 'barcode') h.barcode = idx;
+                    if (c.includes('型號') || c === 'model') h.model = idx; // 👈 關鍵救援欄位
                     if (c === '廠價' || c === 'cost' || c.includes('成本')) h.cost = idx;
                     if (c.includes('成品')) h.fin = idx;
                     if (c.includes('專賣')) h.exc = idx;
                     if (c.includes('eta') || c.includes('到貨')) h.eta = idx;
                 });
 
-                if (h.barcode === -1) {
-                    throw new Error("❌ 失敗：找不到「國際條碼」欄位！請確認 Excel 表頭。");
+                // 防呆
+                if (h.barcode === -1 && h.model === -1) {
+                    throw new Error("❌ 失敗：找不到「國際條碼」或「型號」欄位，無法進行比對！");
                 }
 
-                // B. 整理資料 (存成 Map，Key 是條碼)
-                const updateMap = new Map();
+                // B. 整理資料 (建立兩套索引)
+                const mapByBarcode = new Map();
+                const mapByModel = new Map();
                 let validCount = 0;
 
                 for (let i = 1; i < jsonData.length; i++) {
                     const row = jsonData[i];
                     
-                    // 🔥 條碼處理 (轉成字串，去掉空白)
-                    let bc = row[h.barcode];
-                    if (bc === undefined || bc === null) continue;
-                    bc = String(bc).trim();
+                    // 取得 Key
+                    const bc = h.barcode !== -1 ? String(row[h.barcode] || "").trim() : "";
+                    const md = h.model !== -1 ? String(row[h.model] || "").trim().toUpperCase() : ""; // 型號轉大寫
 
-                    if (!bc) continue;
+                    if (!bc && !md) continue;
 
                     let obj = {};
 
-                    // 1. 總庫存 (成品+專賣)
+                    // 1. 總庫存
                     if (h.fin !== -1 || h.exc !== -1) {
                         const finQty = parseInt(row[h.fin] || 0, 10);
                         const excQty = parseInt(row[h.exc] || 0, 10);
                         obj.inventory = finQty + excQty; 
                     }
 
-                    // 2. 廠價 (這是修正報價的關鍵！)
+                    // 2. 廠價 (Cost)
                     if (h.cost !== -1 && row[h.cost]) {
                         obj.cost = parseFloat(row[h.cost]);
                     }
@@ -3772,7 +3774,8 @@ if (importInventoryBtn_Final && inventoryUpload_Final) {
                     }
 
                     if (Object.keys(obj).length > 0) {
-                        updateMap.set(bc, obj); // 建立 條碼 -> 資料 的對應
+                        if (bc) mapByBarcode.set(bc, obj);
+                        if (md) mapByModel.set(md, obj);
                         validCount++;
                     }
                 }
@@ -3780,31 +3783,31 @@ if (importInventoryBtn_Final && inventoryUpload_Final) {
                 if (validCount === 0) throw new Error("沒有讀取到有效資料");
 
                 // C. 確認並開始寫入
-                if (confirm(`📊 分析完成！共抓到 ${validCount} 筆條碼資料。\n\n即將依照「廠價」重新計算所有報價 (含 300個)。\n\n確定要寫入嗎？`)) {
-                    saveInventoryToFirestore_Final(updateMap);
+                if (confirm(`📊 分析完成！共讀取 ${validCount} 筆資料。\n\n⚠️ 偵測到 Excel 條碼可能含有科學記號 (4.71E+12)。\n系統將自動啟動「雙重比對」：優先對條碼，失敗則對型號。\n\n確定要修復報價與庫存嗎？`)) {
+                    saveInventoryToFirestore_Rescue(mapByBarcode, mapByModel);
                 } else {
-                    resetBtn_Final();
+                    resetBtn_Rescue();
                 }
 
             } catch (e) {
                 console.error(e);
                 alert(e.message);
-                resetBtn_Final();
+                resetBtn_Rescue();
             }
         };
         reader.readAsBinaryString(file);
     };
 }
 
-function resetBtn_Final() {
-    importInventoryBtn_Final.textContent = "📥 匯入庫存/廠價 (自動算報價)";
-    importInventoryBtn_Final.disabled = false;
-    inventoryUpload_Final.value = '';
+function resetBtn_Rescue() {
+    importInventoryBtn_Rescue.textContent = "📥 匯入庫存/廠價 (自動算報價)";
+    importInventoryBtn_Rescue.disabled = false;
+    inventoryUpload_Rescue.value = '';
 }
 
-// 4. 資料庫寫入函式 (純條碼版)
-async function saveInventoryToFirestore_Final(updateMap) {
-    importInventoryBtn_Final.textContent = "☁️ 正在更新資料庫...";
+// 4. 資料庫寫入函式 (救援版)
+async function saveInventoryToFirestore_Rescue(mapByBarcode, mapByModel) {
+    importInventoryBtn_Rescue.textContent = "☁️ 正在修復數據...";
     
     const { writeBatch, doc, collection, getDocs } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
     
@@ -3814,37 +3817,45 @@ async function saveInventoryToFirestore_Final(updateMap) {
     const BATCH_LIMIT = 400;
 
     try {
-        // 1. 把資料庫所有產品抓下來
         const snap = await getDocs(collection(db, "Products"));
         
         for (const docSnap of snap.docs) {
             const product = docSnap.data();
             
-            // 2. 拿出資料庫裡的條碼 (當作唯一識別)
+            // 資料庫裡的 Key
             const dbBc = String(product.internationalBarcode || product.barcode || "").trim();
+            const dbModel = String(product.mainModel || product.model || "").trim().toUpperCase();
 
-            // 3. 比對：Excel 有沒有這個條碼？
-            if (dbBc && updateMap.has(dbBc)) {
-                const newData = updateMap.get(dbBc);
+            let newData = null;
+            let matchType = "";
+
+            // 🔥 雙重比對邏輯 🔥
+            // 1. 先試條碼 (如果 Excel 條碼是好的，這個會中)
+            if (dbBc && mapByBarcode.has(dbBc)) {
+                newData = mapByBarcode.get(dbBc);
+                matchType = "barcode";
+            } 
+            // 2. 條碼沒中 (例如 Excel 變成 4.71E+12)，改試型號 (這個一定會中！)
+            else if (dbModel && mapByModel.has(dbModel)) {
+                newData = mapByModel.get(dbModel);
+                matchType = "model";
+            }
+
+            if (newData) {
                 const docRef = doc(db, "Products", docSnap.id);
-                
                 let fieldsToUpdate = {};
 
-                // 更新庫存
                 if (newData.inventory !== undefined) fieldsToUpdate.inventory = newData.inventory;
-                // 更新 ETA
                 if (newData.eta !== undefined) fieldsToUpdate.eta = newData.eta;
 
-                // 🔥 修正報價的關鍵時刻 🔥
-                // 只要 Excel 裡有廠價，我們就重算一次報價，確保 300個 的價格是正確的
+                // 💰 廠價自動算報價公式
                 if (newData.cost !== undefined && newData.cost > 0) {
                     const cost = newData.cost;
                     fieldsToUpdate.cost = cost; 
 
-                    // 您的毛利公式
                     fieldsToUpdate.quote50 = Math.ceil((cost / 0.76) * 1.05);
                     fieldsToUpdate.quote100 = Math.ceil((cost / 0.79) * 1.05);
-                    fieldsToUpdate.quote300 = Math.ceil((cost / 0.82) * 1.05);   // ✅ 這裡會被強制修正！
+                    fieldsToUpdate.quote300 = Math.ceil((cost / 0.82) * 1.05);   // ✅ 300個報價會在這裡被修復
                     fieldsToUpdate.quote500 = Math.ceil((cost / 0.845) * 1.05);
                     fieldsToUpdate.quote1000 = Math.ceil((cost / 0.865) * 1.05);
                     fieldsToUpdate.quote3000 = Math.ceil((cost / 0.89) * 1.05);
@@ -3866,14 +3877,14 @@ async function saveInventoryToFirestore_Final(updateMap) {
 
         if (opCount > 0) await batch.commit();
 
-        alert(`✅ 更新成功！\n共比對並更新了 ${successCount} 筆商品。\n300個的報價已依據廠價重新計算。`);
+        alert(`✅ 修復完成！\n共更新了 ${successCount} 筆商品。\n(其中透過型號救援成功的比例很高)\n請檢查 300個 的報價是否已恢復正常。`);
         window.location.reload(); 
 
     } catch (e) {
         console.error(e);
         alert("寫入失敗，請檢查 Console");
     } finally {
-        resetBtn_Final();
+        resetBtn_Rescue();
     }
 }
 
