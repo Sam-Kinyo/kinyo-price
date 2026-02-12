@@ -1,6 +1,13 @@
 {
   "models": [
     {
+      "mainModel": "雄獅",
+      "mainImage": "",
+      "netImages": [],
+      "folderUrl": "https://drive.google.com/drive/folders/1Sml3leghSjb09FY0Tw_4xv7RhK7Y7t1Y",
+      "netFolderUrl": ""
+    },
+    {
       "mainModel": "KPB2511",
       "mainImage": "https://drive.google.com/uc?id=1YYoNYAYcAJZ1yJ_snGjO-8VDh9CSmWY0",
       "netImages": [
@@ -40,8 +47,24 @@
     },
     {
       "mainModel": "DCF3141",
-      "mainImage": "",
-      "netImages": [],
+      "mainImage": "https://drive.google.com/uc?id=17IoIMBf0SM9gfCwh_Zx9ZmtbKwSlE4da",
+      "netImages": [
+        "https://drive.google.com/uc?id=17IoIMBf0SM9gfCwh_Zx9ZmtbKwSlE4da",
+        "https://drive.google.com/uc?id=1GrrcUO7Qj4AlN2984TCeTNRDkxB6lgE8",
+        "https://drive.google.com/uc?id=1SvGMLpLxN2XZZicVWVf7vKPr1CCzle9D",
+        "https://drive.google.com/uc?id=1hynh9uru3dnNCrmuOJzEI4l_uDBoDDyj",
+        "https://drive.google.com/uc?id=18oqb96NhMtvVZvKA4iKSkn35X4lOnihT",
+        "https://drive.google.com/uc?id=1FjOknOiia_BwD8JQLHopQJpa98hynK22",
+        "https://drive.google.com/uc?id=1xxgQhGmzlOq2CPGK_MesRLFyh417SPkO",
+        "https://drive.google.com/uc?id=1SRSv_lQZDZ7OSo7spanvviJCortcuRMF",
+        "https://drive.google.com/uc?id=1Xj53I5XfSMVmbmC2li9d-ouOsfX8T8TH",
+        "https://drive.google.com/uc?id=1fdiivw0SlFoOjZtNz7QBIIeihBFLOFfC",
+        "https://drive.google.com/uc?id=12Th71DMkeqt_yfGs3esNtsZG6Jro0Xon",
+        "https://drive.google.com/uc?id=1P4g2XCiKNl1VkAw-yO1fXiXVFH61omN5",
+        "https://drive.google.com/uc?id=1eN4gwc3gJNEv3xBlNPeqGgf4h1cOG4b2",
+        "https://drive.google.com/uc?id=12ARIn80InjRi7JXchPrjJ4lBVkkmD1L-",
+        "https://drive.google.com/uc?id=1djWBZ2_aLDET-J3xRGU0HL5Ib2h8m9Uo"
+      ],
       "folderUrl": "https://drive.google.com/drive/folders/1dGfOH269WqYyTI4Nuq0QIf65BZOmAY17",
       "netFolderUrl": "https://drive.google.com/drive/folders/12_hf2DkzTFaypaVjQ7w2iTaK-6VkU0vl"
     },
