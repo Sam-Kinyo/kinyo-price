@@ -3092,13 +3092,12 @@ if(productUpload) {
                         if(cellLower.includes('賣場') || cellLower.includes('建議售價')) h.market = c;
                         if(cellLower.includes('末售') || cellLower.includes('底價')) h.min = c;
                         if(cellLower.includes('團購')) h.groupBuy = c; 
-                        
-                        if (cellLower.includes('50') && !cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '50')) h.q50 = c;
-                        if (cellLower.includes('100') && !cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '100')) h.q100 = c;
-                        if (cellLower.includes('300') && (cellLower.includes('報價') || cellLower === '300')) h.q300 = c;
-                        if (cellLower.includes('500') && (cellLower.includes('報價') || cellLower === '500')) h.q500 = c;
-                        if (cellLower.includes('1000') && (cellLower.includes('報價') || cellLower === '1000')) h.q1000 = c;
-                        if (cellLower.includes('3000') && (cellLower.includes('報價') || cellLower === '3000')) h.q3000 = c;
+                        if (cellLower.includes('50') && !cellLower.includes('500') && cellLower.includes('報價')) h.q50 = c;
+if (cellLower.includes('100') && !cellLower.includes('1000') && cellLower.includes('報價')) h.q100 = c;
+if (cellLower.includes('300') && !cellLower.includes('3000') && cellLower.includes('報價')) h.q300 = c;
+if (cellLower.includes('500') && cellLower.includes('報價')) h.q500 = c;
+if (cellLower.includes('1000') && cellLower.includes('報價')) h.q1000 = c;
+if (cellLower.includes('3000') && cellLower.includes('報價')) h.q3000 = c;
                         
                         // ✅ 已移除 grade 偵測
                         if (cellLower.includes('控價') || cellLower === 'controlled') h.controlled = c;
