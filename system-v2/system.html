@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>KINYO 查價系統（V7.6 新增到貨時間）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<!-- PptxGenJS for PPT export & XLSX for Excel -->
+<script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<!-- 拆分後的 CSS -->
+<link rel="stylesheet" href="css/system.css" />
+</head>
+<body>
+
+<!-- Login Overlay -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h2>KINYO 查價系統</h2>
+    <p style="color:#666;margin-bottom:20px;">請輸入帳號密碼登入</p>
+    <input type="email" id="loginEmail" class="login-input" placeholder="電子信箱">
+    <input type="password" id="loginPassword" class="login-input" placeholder="密碼">
+    <button id="doLoginBtn" class="login-btn">登入</button>
+    <div id="loginError" class="login-error"></div>
+  </div>
+</div>
+
+<!-- Preview Overlay -->
+<div id="previewOverlay">
+    <div class="preview-card">
+        <div class="preview-header" id="previewHeader">
+            匯入預覽檢查
+        </div>
+        <div class="preview-body" id="previewContent">
+            <!-- Table will be injected here -->
+        </div>
+        <div class="preview-footer">
+            <button id="cancelImportBtn" class="btn-secondary">取消</button>
+            <button id="confirmImportBtn" class="btn-primary">確認寫入資料庫</button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading -->
+<div id="centerLoadingBox">
+  <div id="centerLoadingCard">
+    <div class="loading-title">商品載入中...</div>
+    <div id="centerLoadingBar" class="loading-bar">
+      <div class="fill"></div>
+    </div>
+  </div>
+</div>
+
+<div class="top-bar">
+  <span id="userInfo" class="user-badge">未登入</span>
+  <button id="logoutBtn" class="logout-btn" style="display:none;">登出</button>
+</div>
+
+<h1>KINYO 查價系統</h1>
+<div class="subtitle">
+  V7.6 新增到貨時間 --- 運籌帷幄 專屬報價顧問
+  <br>
+  Designed &amp; Engineered by 郭庭豪 (0976-966-333)
+</div>
+
+<form id="searchForm" class="search-box">
+  <div class="search-row">
+    <label>關鍵字搜尋（分類 / 型號 / 名稱）</label>
+    <div class="combo-search">
+        <select id="categorySelect">
+            <option value="">全部分類</option>
+        </select>
+       <input id="keyword" placeholder="支援多組搜尋 (例如: kh9660, kh195 用空白或逗號隔開)" autocomplete="off" />
+    </div>
+  </div>
+
+  <div class="search-row">
+  <label>起訂量 / 控價 / 庫存篩選</label>
+  <div style="display:flex; gap:10px; align-items: stretch;">
+    
+    <select id="qtySelect" style="flex:5; min-width: 0;">
+      </select>
+
+    <div style="flex:2; min-width: 0; display:flex; align-items:center; justify-content:center; gap:4px; background:#eff6ff; padding:0 4px; border-radius:8px; border:1px solid #bfdbfe;">
+      <input type="checkbox" id="controlledFilter" style="width:16px; height:16px; cursor:pointer;">
+      <label for="controlledFilter" style="margin:0; color:#1e40af; font-weight:bold; cursor:pointer; font-size:13px; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+        🛡️ 控價
+      </label>
+    </div>
+
+    <select id="stockFilter" style="flex:3; min-width: 0; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
+      <option value="">📦 不限庫存</option>
+      <option value="ZERO" style="color:#dc2626; font-weight:bold;">❌ 缺貨 (0)</option>
+      <option value="1">📦 現貨 &gt; 0</option>
+      <option value="50">📦 現貨 &gt; 50</option>
+      <option value="100">📦 現貨 &gt; 100</option>
+      <option value="300">📦 現貨 &gt; 300</option>
+      <option value="500">📦 現貨 &gt; 500</option>
+      <option value="1000">📦 現貨 &gt; 1000</option>
+    </select>
+
+  </div>
+</div>
+
+  <div class="search-row">
+    <label>預算區間（起訂量已選時才生效；可只填一邊）</label>
+    <div style="display:flex; gap:10px;">
+      <input id="minPrice" type="number" placeholder="最低 (可空)">
+      <input id="maxPrice" type="number" placeholder="最高 (可空)">
+    </div>
+  </div>
+
+  <button id="searchBtn" type="submit" class="btn-primary">查詢</button>
+  <button id="clearBtn" type="button" class="btn-secondary" style="margin-top:20px;width:100%;">清除搜尋條件</button>
+</form>
+
+<!-- Hidden File Inputs -->
+<input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+
+<div class="toolbar">
+  <select id="sortSelect" class="btn-secondary">
+    <option value="">不排序 (隨機)</option>
+    <option value="minPriceAsc">末售：低 → 高</option>
+    <option value="minPriceDesc">末售：高 → 低</option>
+    <option value="marketAsc">賣場：低 → 高</option>
+    <option value="marketDesc">賣場：高 → 低</option>
+    <option value="alphaAsc">主型號：A → Z</option>
+    <option value="alphaDesc">主型號：Z → A</option>
+  </select>
+  
+  <!-- 預設隱藏，Level 4 才顯示 -->
+  <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
+
+  <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
+  <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
+ <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
+<button id="setHotBtn" class="btn-secondary" style="display:none; color:#b91c1c; border-color:#b91c1c; font-weight:bold;">🔥 設為首頁熱門 (L4)</button>
+  <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
+  <button id="pptToolbarBtn" class="btn-secondary" disabled>生成 PPT（1–20）</button>
+
+  <!-- 📊 大數據匯出按鈕 (只有 Level 4 會顯示) -->
+  <button id="exportHistoryBtn" class="btn-secondary" style="display:none; color:#b91c1c; border-color:#b91c1c; font-weight:bold;">📊 匯出報價大數據</button>
+</div>
+<div id="toolbarSpacer"></div>
+
+<table id="resultTable" style="display:none;">
+  <thead>
+    <tr>
+      <th style="width:32px;"><input type="checkbox" id="checkAll" /></th>
+      <th style="width:130px; text-align:center;">型號 / 圖片</th>
+      <th>商品資訊</th>
+      <th style="width:110px; text-align:right;">價格 (末/賣)</th>
+    </tr>
+  </thead>
+  <tbody id="resultBody"></tbody>
+</table>
+
+<div id="detailCard"></div>
+
+<div id="sheetBackdrop" class="sheet-backdrop hidden"></div>
+<div id="mobileDetailSheet" class="sheet hidden">
+  <div class="sheet-header">
+    <span>商品資訊</span>
+    <button id="sheetCloseBtn" class="sheet-close">×</button>
+  </div>
+  <div class="sheet-content" id="sheetContent"></div>
+</div>
+
+<div id="quoteSheet" class="sheet hidden">
+  <div class="sheet-header">
+    <span>報價單預覽</span>
+    <button id="quoteCloseBtn" class="quote-close">×</button>
+  </div>
+
+  <div class="sheet-content" style="display:flex;flex-direction:column;">
+    <div id="quoteListBody" style="flex:1;overflow-y:auto;"></div>
+
+    <div style="border-top:1px solid #eee; padding-top:12px; margin-top:10px;">
+      <button id="pptFromQuoteBtn" class="btn-primary" style="width:100%;">生成 PPT (依報價單內容)</button>
+      <button id="copyQuoteBtn" class="btn-secondary" style="width:100%;margin-top:8px;">複製整張報價單 (LINE)</button>
+      <button id="downloadQuoteExcelBtn" class="btn-secondary" style="width:100%;margin-top:8px;">下載 Excel 報價單</button>
+      <button id="clearQuoteBtn" class="btn-secondary" style="width:100%;margin-top:8px;color:#ef4444;border-color:#ef4444;">清空報價單</button>
+    </div>
+  </div>
+</div>
+
+<!-- 拆分後的 JS 模組 (單一入口) -->
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
