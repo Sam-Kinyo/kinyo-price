@@ -1,0 +1,9 @@
+# KINYO B2B 查價系統 — 依賴套件 (版本鎖定)
+# Deploy target: GCP Cloud Run (Python 3.11+)
+
+fastapi==0.135.1
+uvicorn[standard]==0.34.0
+line-bot-sdk==3.22.0
+firebase-admin==6.6.0
+python-dotenv==1.0.1
+rapidfuzz==3.10.1
