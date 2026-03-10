@@ -31,6 +31,7 @@ const quoteCloseBtn   = document.getElementById("quoteCloseBtn");
 const sheetBackdrop   = document.getElementById("sheetBackdrop");
 const quoteToolbarBtn = document.getElementById("quoteToolbarBtn");
 const pptFromQuoteBtn = document.getElementById("pptFromQuoteBtn");
+const pptModeSelect = document.getElementById("pptModeSelect");
 const copyQuoteBtn    = document.getElementById("copyQuoteBtn");
 const clearQuoteBtn   = document.getElementById("clearQuoteBtn");
 const downloadQuoteExcelBtn = document.getElementById("downloadQuoteExcelBtn");
@@ -141,10 +142,10 @@ if(confirmImportBtn) {
 
 // PPT 生成
 if(pptToolbarBtn) {
-  pptToolbarBtn.onclick = () => exportSelectedPPT('checked');
+  pptToolbarBtn.onclick = () => exportSelectedPPT('checked', (pptModeSelect && pptModeSelect.value) ? pptModeSelect.value : 'compat');
 }
 if(pptFromQuoteBtn) {
-  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote');
+  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote', (pptModeSelect && pptModeSelect.value) ? pptModeSelect.value : 'compat');
 }
 
 // 報價單 Excel 下載

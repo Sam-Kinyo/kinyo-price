@@ -8,8 +8,80 @@ import { fetchAsDataURL, getInventoryRangeLabel, calcQuotePrice, canViewTier } f
 import { getDriveMainImage, getDriveNetImages } from './data.js';
 import { logQuoteAction } from './quote.js';
 
+const PPT_EXPORT_MODES = {
+    compat: {
+        id: "compat",
+        label: "相容優先",
+        compression: false,
+        perSlideConcurrency: 2
+    },
+    fast: {
+        id: "fast",
+        label: "速度優先",
+        compression: true,
+        perSlideConcurrency: 4
+    }
+};
+
+const PPT_LOGO_URL = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn";
+
+function getPptExportMode(modeId = "compat") {
+    return PPT_EXPORT_MODES[modeId] || PPT_EXPORT_MODES.compat;
+}
+
+async function getDataUrlWithCache(url, cacheMap, metrics) {
+    if (!url || typeof url !== "string" || !url.startsWith("http")) return null;
+
+    if (cacheMap.has(url)) {
+        metrics.cacheHits += 1;
+        return cacheMap.get(url);
+    }
+
+    metrics.cacheMiss += 1;
+    const t0 = performance.now();
+    const dataUrl = await fetchAsDataURL(url);
+    metrics.fetchMs += (performance.now() - t0);
+    cacheMap.set(url, dataUrl || null);
+    return dataUrl || null;
+}
+
+async function mapWithConcurrency(items, limit, mapper) {
+    const safeLimit = Math.max(1, Math.floor(limit || 1));
+    const results = new Array(items.length);
+    let cursor = 0;
+
+    async function worker() {
+        while (true) {
+            const idx = cursor;
+            cursor += 1;
+            if (idx >= items.length) break;
+            results[idx] = await mapper(items[idx], idx);
+        }
+    }
+
+    const workers = [];
+    for (let i = 0; i < Math.min(safeLimit, items.length); i++) {
+        workers.push(worker());
+    }
+    await Promise.all(workers);
+    return results;
+}
+
+function printPptPerfSummary(ctx) {
+    const totalMs = Math.round(ctx.totalMs);
+    const buildMs = Math.round(ctx.buildMs);
+    const writeMs = Math.round(ctx.writeMs);
+    const fetchMs = Math.round(ctx.metrics.fetchMs);
+    console.info(
+        `[PPT] mode=${ctx.mode.label}, items=${ctx.itemCount}, build=${buildMs}ms, write=${writeMs}ms, total=${totalMs}ms, fetch=${fetchMs}ms, cacheHit=${ctx.metrics.cacheHits}, cacheMiss=${ctx.metrics.cacheMiss}`
+    );
+
+    // 方便固定用同一組情境做前後比對
+    console.info("[PPT] 建議驗證流程：同網路環境各測 5 / 10 / 20 筆，分別比較 compat 與 fast 模式。");
+}
+
 /* PPT 單頁建構 */
-async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
+async function buildProductSlide(pptx, item, tier, customQuoteInfo, context) {
     const slide = pptx.addSlide();
     slide.background = { color: "FFFFFF" };
 
@@ -41,12 +113,11 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     const marketPriceStr = `市價 $${item.marketPrice}`;
 
     try {
-        const logoUrl = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn"; 
-        const logoB64 = await fetchAsDataURL(logoUrl);
-        if(logoB64) {
-            slide.addImage({ data: logoB64, x: 0.3, y: 0.2, w: 2.2, h: 0.8 }); 
+        const logoB64 = await getDataUrlWithCache(PPT_LOGO_URL, context.imageCache, context.metrics);
+        if (logoB64) {
+            slide.addImage({ data: logoB64, x: 0.3, y: 0.2, w: 2.2, h: 0.8 });
         }
-    } catch(e) {}
+    } catch (e) {}
 
     let nameFontSize = 24; 
     if (cleanName.length > 15) nameFontSize = 20;
@@ -90,37 +161,54 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
     const cellW = (pageW - (marginX * 2) - (gap * 2)) / 3; 
     const cellH = 2.55; 
 
+    const slots = [];
     for (let i = 0; i < 6; i++) {
         const r = Math.floor(i / 3);
         const c = i % 3;
         
         const x = marginX + c * (cellW + gap);
         const y = startY + r * (cellH + gap);
+        const url = i < imagesToDisplay.length ? imagesToDisplay[i] : null;
+
+        slots.push({ x, y, w: cellW, h: cellH, url });
 
         slide.addShape(pptx.ShapeType.rect, { 
             x: x, y: y, w: cellW, h: cellH, 
             fill: { color: "ffffff" }, 
             line: { color: "e5e7eb", width: 0.5 } 
         });
+    }
 
-        if (i < imagesToDisplay.length) {
-            const url = imagesToDisplay[i];
+    const imageDataList = await mapWithConcurrency(
+        slots,
+        context.mode.perSlideConcurrency,
+        async (slot) => {
+            if (!slot.url) return null;
             try {
-                const b64 = await fetchAsDataURL(url);
-                if(b64) {
-                    // 舊版 Office 相容優先：避免使用進階 sizing 參數
-                    slide.addImage({
-                        data: b64,
-                        x: x + 0.05, y: y + 0.05,
-                        w: cellW - 0.1, h: cellH - 0.1
-                    });
-                }
-            } catch(e) {
-                slide.addText("Image Error", { x:x, y:y+1, w:cellW, fontSize:10, align:"center", color:"ccc" });
+                return await getDataUrlWithCache(slot.url, context.imageCache, context.metrics);
+            } catch (e) {
+                return null;
+            }
+        }
+    );
+
+    for (let i = 0; i < slots.length; i++) {
+        const slot = slots[i];
+        const b64 = imageDataList[i];
+        if (slot.url) {
+            if (b64) {
+                // 舊版 Office 相容優先：避免使用進階 sizing 參數
+                slide.addImage({
+                    data: b64,
+                    x: slot.x + 0.05, y: slot.y + 0.05,
+                    w: slot.w - 0.1, h: slot.h - 0.1
+                });
+            } else {
+                slide.addText("Image Error", { x: slot.x, y: slot.y + 1, w: slot.w, fontSize: 10, align: "center", color: "ccc" });
             }
         } else {
-             slide.addText("KINYO", {
-                x: x, y: y + (cellH/2) - 0.2, w: cellW, h: 0.4,
+            slide.addText("KINYO", {
+                x: slot.x, y: slot.y + (slot.h / 2) - 0.2, w: slot.w, h: 0.4,
                 fontSize: 14, color: "f3f4f6", align: "center", fontFace: "Arial", bold: true
             });
         }
@@ -134,14 +222,13 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
 }
 
 /* PPT 批次生成 */
-export async function exportSelectedPPT(source = 'checked') {
+export async function exportSelectedPPT(source = 'checked', modeId = 'compat') {
   if (typeof PptxGenJS === "undefined") { alert("PPT 模組未載入"); return; }
+  const mode = getPptExportMode(modeId);
   
   let selectedItems = [];
   const qtySelect = document.getElementById("qtySelect");
   let tier = qtySelect.value || "50";
-  let isFromQuoteList = false;
-
   if (source === 'quote') {
       if (state.quoteList.length === 0) { alert("報價單是空的"); return; }
       selectedItems = state.quoteList.map(q => {
@@ -151,7 +238,6 @@ export async function exportSelectedPPT(source = 'checked') {
           }
           return { ...fullItem, customQuoteInfo: { price: q.price, qtyLabel: q.qtyLabel } };
       });
-      isFromQuoteList = true;
   } else {
       const checks = Array.from(document.querySelectorAll(".row-check:checked"));
       if (checks.length < 1) { alert("請至少勾選 1 個商品才能生成 PPT。"); return; }
@@ -176,6 +262,14 @@ export async function exportSelectedPPT(source = 'checked') {
   btn.disabled = true; 
 
   try {
+    const exportStartAt = performance.now();
+    const imageCache = new Map();
+    const metrics = {
+        fetchMs: 0,
+        cacheHits: 0,
+        cacheMiss: 0
+    };
+
     const CHUNK_SIZE = 20; 
     const batches = [];
     for (let i = 0; i < selectedItems.length; i += CHUNK_SIZE) {
@@ -195,11 +289,17 @@ export async function exportSelectedPPT(source = 'checked') {
         pptx.title = `KINYO Quote`;
 
         const currentBatch = batches[i];
+        const buildStartAt = performance.now();
         
         // 舊版 PowerPoint 相容優先：改為逐頁序列建立，避免平行寫入造成檔案結構不穩
         for (const item of currentBatch) {
-            await buildProductSlide(pptx, item, tier, item.customQuoteInfo);
+            await buildProductSlide(pptx, item, tier, item.customQuoteInfo, {
+                imageCache,
+                metrics,
+                mode
+            });
         }
+        const buildMs = performance.now() - buildStartAt;
         
         let filename = `KINYO-商品推薦報價-@${salesName}-@${salesPhone}`;
         if (batches.length > 1) {
@@ -207,8 +307,22 @@ export async function exportSelectedPPT(source = 'checked') {
         }
         filename += ".pptx";
 
-        await pptx.writeFile({ fileName: filename, compression: false });
+        const writeStartAt = performance.now();
+        await pptx.writeFile({ fileName: filename, compression: mode.compression });
+        const writeMs = performance.now() - writeStartAt;
+
+        printPptPerfSummary({
+            mode,
+            itemCount: currentBatch.length,
+            buildMs,
+            writeMs,
+            totalMs: buildMs + writeMs,
+            metrics
+        });
     }
+
+    const totalMs = performance.now() - exportStartAt;
+    console.info(`[PPT] 全批次完成，總耗時 ${Math.round(totalMs)}ms，模式=${mode.label}。`);
 
   } catch (e) {
     console.error(e);
