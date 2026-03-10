@@ -111,6 +111,8 @@ if (levelSwitchSelect) {
 window.addEventListener("level-state-changed", () => {
   syncLevelSwitchVisibility();
   if (levelSwitchSelect) levelSwitchSelect.value = "original";
+  // 確保等級變更後起訂量選單一定和最新權限同步
+  setupQtySelectByLevel();
 });
 
 // 預覽取消 / 確認
