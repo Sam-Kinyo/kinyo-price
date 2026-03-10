@@ -2,7 +2,7 @@
    渲染模組 (Render)
 ======================================================= */
 import { state } from './state.js';
-import { renderStockByVariant, openSheet, wrapImageUrl } from './helpers.js';
+import { renderStockByVariant, openSheet, wrapImageUrl, calcQuotePrice } from './helpers.js';
 import { getDriveMainImage, getDriveMainFolder, getDriveNetGallery, getDriveNetImages } from './data.js';
 import { logCheckboxInterest } from './quote.js';
 
@@ -94,7 +94,10 @@ export function renderResults(list) {
       
     const tr = document.createElement("tr");
     let priceHtml = ""; 
-    const getPrice = (p) => (item[p] ?? "-");
+    const getQuoteByTier = (tier) => {
+      const v = calcQuotePrice(item.cost, tier, state.userLevel);
+      return v !== null ? v : "-";
+    };
 
     // 價格邏輯
     if (state.isGroupBuyUser) {
@@ -121,17 +124,16 @@ export function renderResults(list) {
             priceHtml = `<span style="font-weight:bold; color:#2563eb; font-size:14px;">請洽郭庭豪</span>`;
         }
     } else {
-        if (state.userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getPrice('quote50')}</span>`;
+        if (state.userLevel >= 1) priceHtml += `<span class="price-tag tag50">50個：${getQuoteByTier(50)}</span>`;
+        if (state.userLevel >= 1) {
+            priceHtml += `<span class="price-tag tag100">100個：${getQuoteByTier(100)}</span>`;
+        }
         if (state.userLevel >= 2) {
-            priceHtml += `<span class="price-tag tag100">100個：${getPrice('quote100')}</span>`;
-            priceHtml += `<span class="price-tag tag300">300個：${getPrice('quote300')}</span>`;
+            priceHtml += `<span class="price-tag tag300">300個：${getQuoteByTier(300)}</span>`;
         }
         if (state.userLevel >= 3) {
-            priceHtml += `<span class="price-tag tag500">500個：${getPrice('quote500')}</span>`;
-            priceHtml += `<span class="price-tag tag1000">1000個：${getPrice('quote1000')}</span>`;
-        }
-        if (state.userLevel >= 4) {
-            priceHtml += `<span class="price-tag" style="background:#f3e8ff;color:#6b21a8;">3000個：${getPrice('quote3000')}</span>`;
+            priceHtml += `<span class="price-tag tag500">500個：${getQuoteByTier(500)}</span>`;
+            priceHtml += `<span class="price-tag tag1000">1000個：${getQuoteByTier(1000)}</span>`;
         }
     }
 
@@ -259,21 +261,24 @@ export function showDetailMobile(item) {
   }
 
   const getPrice = (p) => (item[p] ?? "-");
+  const getQuoteByTier = (tier) => {
+      const v = calcQuotePrice(item.cost, tier, state.userLevel);
+      return v !== null ? v : "-";
+  };
   const showMinPrice = state.userLevel >= 1;
 
   let quoteHtml = "";
   if (!state.currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000, 3000];
+      const tiers = [50, 100, 300, 500, 1000];
       tiers.forEach(t => {
           let isVisible = false;
-          if (state.userLevel >= 1 && t === 50) isVisible = true;
-          if (state.userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
+          if (state.userLevel >= 1 && (t === 50 || t === 100)) isVisible = true;
+          if (state.userLevel >= 2 && t === 300) isVisible = true;
           if (state.userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
-          if (state.userLevel >= 4 && t === 3000) isVisible = true;
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee;">
                   <span style="color:#666;">${t}個</span>
-                  <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
+                  <span style="font-weight:bold; color:#2563eb;">${getQuoteByTier(t)}</span>
               </div>`;
           }
       });
@@ -425,21 +430,24 @@ export function showDetailDesktop(item) {
   }
 
   const getPrice = (p) => (item[p] ?? "-");
+  const getQuoteByTier = (tier) => {
+      const v = calcQuotePrice(item.cost, tier, state.userLevel);
+      return v !== null ? v : "-";
+  };
   const showMinPrice = state.userLevel >= 1;
 
   let quoteHtml = "";
   if (!state.currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000, 3000];
+      const tiers = [50, 100, 300, 500, 1000];
       tiers.forEach(t => {
           let isVisible = false;
-          if (state.userLevel >= 1 && t === 50) isVisible = true;
-          if (state.userLevel >= 2 && (t === 100 || t === 300)) isVisible = true;
+          if (state.userLevel >= 1 && (t === 50 || t === 100)) isVisible = true;
+          if (state.userLevel >= 2 && t === 300) isVisible = true;
           if (state.userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
-          if (state.userLevel >= 4 && t === 3000) isVisible = true;
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
                   <span style="color:#666;">${t}個</span>
-                  <span style="font-weight:bold; color:#2563eb;">${getPrice('quote' + t)}</span>
+                  <span style="font-weight:bold; color:#2563eb;">${getQuoteByTier(t)}</span>
               </div>`;
           }
       });

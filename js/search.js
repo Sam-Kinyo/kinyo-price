@@ -2,7 +2,7 @@
    搜尋與排序模組 (Search & Sort)
 ======================================================= */
 import { state } from './state.js';
-import { showLoading, hideLoading, shuffleArray } from './helpers.js';
+import { showLoading, hideLoading, shuffleArray, calcQuotePrice } from './helpers.js';
 import { renderResults } from './render.js';
 
 /* 起訂量下拉選單設定 */
@@ -18,9 +18,9 @@ export function setupQtySelectByLevel() {
   };
   
   if (state.userLevel >= 1) add("50", "50 個");
-  if (state.userLevel >= 2) { add("100", "100 個"); add("300", "300 個"); }
+  if (state.userLevel >= 1) add("100", "100 個");
+  if (state.userLevel >= 2) add("300", "300 個");
   if (state.userLevel >= 3) { add("500", "500 個"); add("1000", "1000 個"); }
-  if (state.userLevel >= 4) { add("3000", "3000 個 (工廠專案)"); }
 }
 
 /* 排序 */
@@ -148,8 +148,8 @@ export function searchProducts() {
       r = r.filter(p => {
         let price = 0;
         if (qty) {
-            const k = `quote${qty}`;
-            price = Number(p[k]) || 0;
+            const livePrice = calcQuotePrice(p.cost, Number(qty), state.userLevel);
+            price = Number(livePrice) || 0;
         } else {
             price = Number(p.marketPrice) || 0;
         }

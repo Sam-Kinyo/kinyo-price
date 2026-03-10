@@ -3,6 +3,40 @@
 ======================================================= */
 import { state } from './state.js';
 
+/* 即時報價計算（全站唯一模式） */
+const QUOTE_DIVISORS = {
+  3: { 50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858 },
+  2: { 50: 0.74, 100: 0.77, 300: 0.80 },
+  1: { 50: 0.73, 100: 0.76 },
+};
+
+export function getEffectiveLevel(level) {
+  return level >= 3 ? 3 : Math.max(Number(level) || 0, 0);
+}
+
+export function getVisibleTiers(level) {
+  const effectiveLevel = getEffectiveLevel(level);
+  if (effectiveLevel >= 3) return [50, 100, 300, 500, 1000];
+  if (effectiveLevel === 2) return [50, 100, 300];
+  if (effectiveLevel === 1) return [50, 100];
+  return [];
+}
+
+export function canViewTier(level, qty) {
+  return getVisibleTiers(level).includes(Number(qty));
+}
+
+export function calcQuotePrice(cost, qty, level) {
+  const c = Number(cost);
+  if (!Number.isFinite(c) || c <= 0) return null;
+  const q = Number(qty);
+  const tierMap = QUOTE_DIVISORS[getEffectiveLevel(level)];
+  if (!tierMap) return null;
+  const divisor = tierMap[q];
+  if (!divisor) return null;
+  return Math.ceil((c / divisor) * 1.05);
+}
+
 /* 庫存判斷邏輯 */
 export function getInventoryStatus(qty) {
   if (qty === null || qty === undefined || qty === "") return null;

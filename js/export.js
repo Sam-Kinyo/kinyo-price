@@ -4,7 +4,7 @@
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { db } from './firebase-init.js';
 import { state } from './state.js';
-import { fetchAsDataURL, getInventoryRangeLabel } from './helpers.js';
+import { fetchAsDataURL, getInventoryRangeLabel, calcQuotePrice, canViewTier } from './helpers.js';
 import { getDriveMainImage, getDriveNetImages } from './data.js';
 import { logQuoteAction } from './quote.js';
 
@@ -34,10 +34,9 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
         quoteLabel = `專案報價 (${customQuoteInfo.qtyLabel})`;
         quotePriceStr = `$${customQuoteInfo.price}`;
     } else {
-        const quoteKey = `quote${tier}`;
-        const p = item[quoteKey] || item.quote50 || "-";
+        const p = calcQuotePrice(item.cost, Number(tier), state.userLevel);
         quoteLabel = `批量報價 (${tier}pcs)`;
-        quotePriceStr = `$${p}`;
+        quotePriceStr = `$${p ?? "-"}`;
     }
     const marketPriceStr = `市價 $${item.marketPrice}`;
 
@@ -284,14 +283,9 @@ export function exportSelectedExcel() {
           }
 
           if (qty) {
-              const ck = `quote${qty}`;
-              let canSeeQuote = false;
-              if (state.userLevel >= 1 && qty == 50) canSeeQuote = true;
-              if (state.userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
-              if (state.userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
-              if (state.userLevel >= 4 && qty == 3000) canSeeQuote = true;
-
-              const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
+              const canSeeQuote = canViewTier(state.userLevel, Number(qty));
+              const livePrice = calcQuotePrice(item.cost, Number(qty), state.userLevel);
+              const cost = canSeeQuote ? (livePrice ?? "-") : "---";
               priceRow = [cost, displayMin, item.marketPrice ?? "-", stock];
           } else {
               priceRow = [displayMin, item.marketPrice ?? "-", stock];

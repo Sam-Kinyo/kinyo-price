@@ -10,6 +10,7 @@ LINE Bot 查價系統核心邏輯模組。
 """
 
 import re
+import math
 import logging
 from typing import Any
 
@@ -241,40 +242,37 @@ def calculate_tier_price(
             matched_price = vip_price
             tier_name = f"VIP 專屬價 ({vip_column})"
 
-    # 3-2. Level 4 (業務)：取 cost
-    if matched_price is None and level >= 4:
+    # 3-2. 非 VIP 使用「成本即時計算」規則（無條件進位）
+    # 規則：
+    # - Level 3: 50/100/300/500/1000 => /0.75 /0.78 /0.81 /0.835 /0.858
+    # - Level 2: 50/100/300         => /0.74 /0.77 /0.80
+    # - Level 1: 50/100             => /0.73 /0.76
+    # - Level 4 視同 Level 3 計算
+    if matched_price is None:
         cost = safe_float(product.get("cost"))
-        if cost is not None and cost > 0:
-            matched_price = cost
-            tier_name = "業務進價"
+        effective_level = 3 if level >= 3 else max(level, 0)
+        divisor_map: dict[int, dict[int, float]] = {
+            3: {50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858},
+            2: {50: 0.74, 100: 0.77, 300: 0.80},
+            1: {50: 0.73, 100: 0.76},
+        }
+        tier_order_map: dict[int, list[int]] = {
+            3: [1000, 500, 300, 100, 50],
+            2: [300, 100, 50],
+            1: [100, 50],
+        }
 
-    # 3-3. Level >= 3, qty >= 1000
-    if matched_price is None and level >= 3 and qty >= 1000:
-        val = safe_float(product.get("quote1000"))
-        if val is not None:
-            matched_price = val
-            tier_name = "1000 個報價"
+        if cost is not None and cost > 0 and effective_level in divisor_map:
+            target_tier: int | None = None
+            for tier in tier_order_map[effective_level]:
+                if qty >= tier:
+                    target_tier = tier
+                    break
 
-    # 3-4. Level >= 3, qty >= 500
-    if matched_price is None and level >= 3 and qty >= 500:
-        val = safe_float(product.get("quote500"))
-        if val is not None:
-            matched_price = val
-            tier_name = "500 個報價"
-
-    # 3-5. Level >= 2, qty >= 100
-    if matched_price is None and level >= 2 and qty >= 100:
-        val = safe_float(product.get("quote100"))
-        if val is not None:
-            matched_price = val
-            tier_name = "100 個報價"
-
-    # 3-6. Level >= 1, qty >= 50
-    if matched_price is None and level >= 1 and qty >= 50:
-        val = safe_float(product.get("quote50"))
-        if val is not None:
-            matched_price = val
-            tier_name = "50 個報價"
+            if target_tier is not None:
+                divisor = divisor_map[effective_level][target_tier]
+                matched_price = math.ceil((cost / divisor) * 1.05)
+                tier_name = f"{target_tier} 個即時計算報價"
 
     # 3-7. 預設：建議售價 (SRP)
     if matched_price is None:
@@ -302,7 +300,11 @@ def calculate_tier_price(
         return (0, "無報價")
 
     # ─── Step 5：稅金計算 ───
-    final_price: int = round(matched_price * 1.05)
+    # 即時計算已含稅且已進位；其他 fallback 價格維持含稅四捨五入
+    if "即時計算報價" in tier_name:
+        final_price = int(matched_price)
+    else:
+        final_price = round(matched_price * 1.05)
 
     logger.info(
         f"💰 Price for user={email}, level={level}, qty={qty}: "

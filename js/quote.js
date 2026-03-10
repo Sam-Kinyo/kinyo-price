@@ -4,7 +4,7 @@
 import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { db } from './firebase-init.js';
 import { state } from './state.js';
-import { getInventoryRangeLabel } from './helpers.js';
+import { getInventoryRangeLabel, calcQuotePrice } from './helpers.js';
 import { getDriveMainImage, getDriveNetImages } from './data.js';
 
 /* 報價單渲染 */
@@ -145,8 +145,7 @@ export async function logQuoteAction(items, sourceMode) {
         } else {
             const currentTier = document.getElementById("qtySelect").value || "50"; 
             items.forEach(i => {
-                const priceKey = `quote${currentTier}`;
-                let finalPrice = i[priceKey] || i.quote50 || 0;
+                let finalPrice = calcQuotePrice(i.cost, Number(currentTier), state.userLevel) || 0;
                 if(state.currentUserVipConfig) {
                      finalPrice = i[state.currentUserVipConfig.column] || 0;
                 }

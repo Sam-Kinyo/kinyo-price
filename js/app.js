@@ -5,7 +5,7 @@
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { db } from './firebase-init.js';
 import { state } from './state.js';
-import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray } from './helpers.js';
+import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js';
 import { searchProducts, applySorting } from './search.js';
 import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js';
 import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js';
@@ -210,8 +210,8 @@ document.addEventListener("click", (e) => {
 
     const qtySelect = document.getElementById("qtySelect");
     const qty = qtySelect.value || "50";
-    const ck  = `quote${qty}`;
-    const cost = item[ck] ?? item.quote50 ?? 0;
+    const livePrice = calcQuotePrice(item.cost, Number(qty), state.userLevel);
+    const cost = livePrice ?? 0;
 
     const existingIndex = state.quoteList.findIndex(q => q.model === item.model && q.qtyLabel === `${qty}個`);
     
@@ -248,21 +248,21 @@ document.addEventListener("click", (e) => {
     const currentQty = qtySelect.value; 
 
     if (currentQty) {
-        const k = `quote${currentQty}`;
-        let canSee = false;
-        if (state.userLevel >= 1 && currentQty == 50) canSee = true;
-        if (state.userLevel >= 2 && (currentQty == 100 || currentQty == 300)) canSee = true;
-        if (state.userLevel >= 3 && (currentQty == 500 || currentQty == 1000)) canSee = true;
-        
+        const canSee = canViewTier(state.userLevel, Number(currentQty));
         if(canSee) {
-              costText += `${currentQty}個：${getPrice(k)}\n`;
+              const live = calcQuotePrice(item.cost, Number(currentQty), state.userLevel);
+              costText += `${currentQty}個：${live ?? "-"}\n`;
         } else {
               costText += `${currentQty}個：(無權限)\n`;
         }
     } else {
-        if (state.userLevel >= 1) costText += `50個：${getPrice('quote50')}\n`;
-        if (state.userLevel >= 2) costText += `100個：${getPrice('quote100')}\n300個：${getPrice('quote300')}\n`;
-        if (state.userLevel >= 3) costText += `500個：${getPrice('quote500')}\n1000個：${getPrice('quote1000')}\n`;
+        if (state.userLevel >= 1) costText += `50個：${calcQuotePrice(item.cost, 50, state.userLevel) ?? "-"}\n`;
+        if (state.userLevel >= 1) costText += `100個：${calcQuotePrice(item.cost, 100, state.userLevel) ?? "-"}\n`;
+        if (state.userLevel >= 2) costText += `300個：${calcQuotePrice(item.cost, 300, state.userLevel) ?? "-"}\n`;
+        if (state.userLevel >= 3) {
+          costText += `500個：${calcQuotePrice(item.cost, 500, state.userLevel) ?? "-"}\n`;
+          costText += `1000個：${calcQuotePrice(item.cost, 1000, state.userLevel) ?? "-"}\n`;
+        }
     }
 
     const text = `【${item.model}】${item.name}
@@ -317,8 +317,8 @@ if (batchAddQuoteBtn) {
             const item = state.currentResultList.find(p => p.model === model);
             if (!item) return;
 
-            const ck = `quote${qty}`;
-            const cost = item[ck] ?? item.quote50 ?? 0;
+            const livePrice = calcQuotePrice(item.cost, Number(qty), state.userLevel);
+            const cost = livePrice ?? 0;
             const qtyLabel = `${qty}個`;
 
             const existingIndex = state.quoteList.findIndex(q => q.model === item.model && q.qtyLabel === qtyLabel);
@@ -361,15 +361,9 @@ if (multiLineBtn) {
             const item = state.currentResultList.find(p => p.model === model);
             if (!item) return;
 
-            const ck = `quote${qty}`;
-            
-            let canSeeQuote = false;
-            if (state.userLevel >= 1 && qty == 50) canSeeQuote = true;
-            if (state.userLevel >= 2 && (qty == 100 || qty == 300)) canSeeQuote = true;
-            if (state.userLevel >= 3 && (qty == 500 || qty == 1000)) canSeeQuote = true;
-            if (state.userLevel >= 4 && qty == 3000) canSeeQuote = true;
-
-            const cost = canSeeQuote ? (item[ck] ?? item.quote50 ?? "-") : "---";
+            const canSeeQuote = canViewTier(state.userLevel, Number(qty));
+            const livePrice = calcQuotePrice(item.cost, Number(qty), state.userLevel);
+            const cost = canSeeQuote ? (livePrice ?? "-") : "---";
             const market = item.marketPrice ?? "-";
             const link = item.productUrl || "無連結";
 

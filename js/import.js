@@ -121,32 +121,6 @@ export function setupProductUpload() {
 
           if (tempCost > 0) {
             obj.cost = tempCost;
-            obj.price_76  = Math.round((tempCost / 0.76)  * 1.05);
-            obj.price_79  = Math.round((tempCost / 0.79)  * 1.05);
-            obj.price_82  = Math.round((tempCost / 0.82)  * 1.05);
-            obj.price_845 = Math.round((tempCost / 0.845) * 1.05);
-            obj.price_865 = Math.round((tempCost / 0.865) * 1.05);
-            obj.price_89  = Math.round((tempCost / 0.89)  * 1.05);
-
-            if (!hasVal(row[h.q50]))   obj.quote50   = Math.ceil((tempCost / 0.76) * 1.05);
-            else obj.quote50 = row[h.q50]; 
-            if (!hasVal(row[h.q100]))  obj.quote100  = Math.ceil((tempCost / 0.79) * 1.05);
-            else obj.quote100 = row[h.q100];
-            if (!hasVal(row[h.q300]))  obj.quote300  = Math.ceil((tempCost / 0.82) * 1.05);
-            else obj.quote300 = row[h.q300];
-            if (!hasVal(row[h.q500]))  obj.quote500  = Math.ceil((tempCost / 0.845) * 1.05);
-            else obj.quote500 = row[h.q500];
-            if (!hasVal(row[h.q1000])) obj.quote1000 = Math.ceil((tempCost / 0.865) * 1.05);
-            else obj.quote1000 = row[h.q1000];
-            if (!hasVal(row[h.q3000])) obj.quote3000 = Math.ceil((tempCost / 0.89) * 1.05);
-            else obj.quote3000 = row[h.q3000];
-          } else {
-            if(hasVal(row[h.q50])) obj.quote50 = row[h.q50];
-            if(hasVal(row[h.q100])) obj.quote100 = row[h.q100];
-            if(hasVal(row[h.q300])) obj.quote300 = row[h.q300];
-            if(hasVal(row[h.q500])) obj.quote500 = row[h.q500];
-            if(hasVal(row[h.q1000])) obj.quote1000 = row[h.q1000];
-            if(hasVal(row[h.q3000])) obj.quote3000 = row[h.q3000];
           }
 
           if(h.controlled !== -1 && hasVal(row[h.controlled]) && String(row[h.controlled]).toLowerCase() === 'v') obj.isControlled = true;

@@ -7,7 +7,7 @@ ProductCache 快取類別與 Firestore 全量讀取邏輯。
   - 伺服器啟動時透過 lifespan 呼叫 load_all_products() 一次。
   - 後續可透過 POST /api/refresh 手動觸發重新載入。
   - 快取以 dict[str, dict] 儲存，key = 國際條碼 (internationalBarcode)。
-  - 價格欄位已在前端匯入時預先算好 (price_76, price_79 等)，此處僅讀取。
+  - 價格以查詢當下依 cost 即時計算，此處僅負責快取資料讀取。
 """
 
 import logging
