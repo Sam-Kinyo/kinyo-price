@@ -188,6 +188,15 @@ export async function preloadProducts() {
             if(item.inventory && parseInt(item.inventory) > parseInt(mergedMap[main].inventory||0)) {
                 mergedMap[main].inventory = item.inventory;
             }
+
+            // 補齊價格欄位：若先前 variant 沒有這些欄位，用後續 variant 的值填入
+            const priceFields = ['cost', 'minPrice', 'marketPrice', 'groupBuyPrice',
+                                 'quote50', 'quote100', 'quote300', 'quote500', 'quote1000'];
+            priceFields.forEach(f => {
+                if (!mergedMap[main][f] && item[f]) {
+                    mergedMap[main][f] = item[f];
+                }
+            });
         }
     });
 
