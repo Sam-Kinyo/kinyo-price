@@ -312,6 +312,9 @@ document.addEventListener("click", (e) => {
           costText += `500個：${calcQuotePrice(item.cost, 500, state.userLevel) ?? "-"}\n`;
           costText += `1000個：${calcQuotePrice(item.cost, 1000, state.userLevel) ?? "-"}\n`;
         }
+        if (state.userLevel >= 4) {
+          costText += `3000個：${calcQuotePrice(item.cost, 3000, state.userLevel) ?? "-"}\n`;
+        }
     }
 
     const text = `【${item.model}】${item.name}

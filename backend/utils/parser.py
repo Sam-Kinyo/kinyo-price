@@ -24,7 +24,7 @@ _UNIT_PATTERN = r"(?:台|個|pcs|PCS|支|把|組|件|入|盒|箱|包|片|顆|瓶
 # 無資訊贅字 (Stop Words) — 萃取完數量與預算後清除
 _STOP_WORDS: list[str] = [
     "的商品", "商品", "推薦", "報價", "幫我找", "幫我查",
-    "有沒有", "請問", "預算", "元", "塊", "的",
+    "有沒有", "請問", "預算", "元", "塊", "的", "查一下",
 ]
 
 
@@ -82,14 +82,14 @@ def parse_user_query(user_message: str) -> tuple[int, int | None, str]:
         text = text.replace(qty_match.group(0), "")
 
     # ─── Step 2：萃取預算 ───
-    # 模式 A (前綴型)：「預算低於500」「低於 500 元」「不超過1000」
+    # 模式 A (前綴型)：「預算低於500」「低於 500 元」「不超過1000」「最多500」
     budget_a = re.search(
-        r"(?:預算)?(?:低於|小於|不超過)\s*(\d+)\s*(?:元|塊)?",
+        r"(?:預算)?(?:低於|小於|不超過|最多|不要超過)\s*(\d+)\s*(?:元|塊)?",
         text,
     )
     # 模式 B (後綴型)：「500元以內」「500 以下」「1000塊以內」
     budget_b = re.search(
-        r"(\d+)\s*(?:元|塊)?\s*(?:以內|以下)",
+        r"(\d+)\s*(?:元|塊)?\s*(?:以內|以下|內)",
         text,
     )
 
@@ -100,11 +100,24 @@ def parse_user_query(user_message: str) -> tuple[int, int | None, str]:
         max_price = int(budget_b.group(1))
         text = text.replace(budget_b.group(0), "")
 
-    # ─── Step 3：移除贅字 (Stop Words) ───
+    # ─── Step 3：尾數字數量（無量詞） ───
+    # 例：CL-528 100、行動電源 300
+    # 若 Step1 沒抓到 qty，且尾碼為數字，視為數量。
+    if qty == 1:
+        tail_qty = re.search(r"^(.*?)[\s,，]+(\d{1,6})$", text)
+        if tail_qty:
+            prefix = tail_qty.group(1).strip()
+            candidate_qty = int(tail_qty.group(2))
+            # 防止把純數字查詢誤判成 qty
+            if prefix and not re.fullmatch(r"\d+", prefix):
+                qty = candidate_qty
+                text = prefix
+
+    # ─── Step 4：移除贅字 (Stop Words) ───
     for word in _STOP_WORDS:
         text = text.replace(word, "")
 
-    # ─── Step 4：清理關鍵字 ───
+    # ─── Step 5：清理關鍵字 ───
     keyword: str = re.sub(r"\s+", " ", text).strip()
 
     # 防呆：數量邊界

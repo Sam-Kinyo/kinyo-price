@@ -5,17 +5,22 @@ import { state } from './state.js';
 
 /* 即時報價計算（全站唯一模式） */
 const QUOTE_DIVISORS = {
+  4: { 50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858, 3000: 0.89 },
   3: { 50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858 },
   2: { 50: 0.74, 100: 0.77, 300: 0.80 },
   1: { 50: 0.73, 100: 0.76 },
 };
 
 export function getEffectiveLevel(level) {
-  return level >= 3 ? 3 : Math.max(Number(level) || 0, 0);
+  const lv = Math.max(Number(level) || 0, 0);
+  if (lv >= 4) return 4;
+  if (lv >= 3) return 3;
+  return lv;
 }
 
 export function getVisibleTiers(level) {
   const effectiveLevel = getEffectiveLevel(level);
+  if (effectiveLevel >= 4) return [50, 100, 300, 500, 1000, 3000];
   if (effectiveLevel >= 3) return [50, 100, 300, 500, 1000];
   if (effectiveLevel === 2) return [50, 100, 300];
   if (effectiveLevel === 1) return [50, 100];

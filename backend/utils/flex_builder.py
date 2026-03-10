@@ -26,6 +26,7 @@ def build_pricing_card(
     qty: int,
     final_price: int,
     tier_name: str,
+    market_price: int | None = None,
 ) -> dict[str, Any]:
     """
     建構 LINE Flex Message Bubble JSON。
@@ -53,7 +54,10 @@ def build_pricing_card(
     product_url: str = product.get("productUrl", "") or _DEFAULT_WEBSITE_URL
 
     # 價格千分位格式
-    price_display: str = f"${final_price:,}"
+    level_price_display: str = f"${final_price:,}"
+    market_price_display: str = (
+        f"${int(market_price):,}" if market_price is not None and market_price > 0 else "-"
+    )
 
     # ─── Bubble JSON 結構 ───
     bubble: dict[str, Any] = {
@@ -156,16 +160,23 @@ def build_pricing_card(
                     "contents": [
                         {
                             "type": "text",
-                            "text": "含稅報價",
+                            "text": "您的等級價",
                             "size": "xs",
                             "color": "#aaaaaa",
                         },
                         {
                             "type": "text",
-                            "text": price_display,
+                            "text": level_price_display,
                             "size": "xxl",
                             "weight": "bold",
                             "color": "#dc2626",
+                        },
+                        {
+                            "type": "text",
+                            "text": f"賣場價：{market_price_display}",
+                            "size": "sm",
+                            "color": "#6b7280",
+                            "margin": "sm",
                         },
                     ],
                 },

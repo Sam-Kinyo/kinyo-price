@@ -21,6 +21,7 @@ export function setupQtySelectByLevel() {
   if (state.userLevel >= 1) add("100", "100 個");
   if (state.userLevel >= 2) add("300", "300 個");
   if (state.userLevel >= 3) { add("500", "500 個"); add("1000", "1000 個"); }
+  if (state.userLevel >= 4) add("3000", "3000 個 (工廠專案)");
 }
 
 /* 排序 */

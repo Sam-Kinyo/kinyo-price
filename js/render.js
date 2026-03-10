@@ -135,6 +135,9 @@ export function renderResults(list) {
             priceHtml += `<span class="price-tag tag500">500個：${getQuoteByTier(500)}</span>`;
             priceHtml += `<span class="price-tag tag1000">1000個：${getQuoteByTier(1000)}</span>`;
         }
+        if (state.userLevel >= 4) {
+            priceHtml += `<span class="price-tag" style="background:#f3e8ff;color:#6b21a8;">3000個：${getQuoteByTier(3000)}</span>`;
+        }
     }
 
     const showMinPrice = state.userLevel >= 1;
@@ -269,12 +272,13 @@ export function showDetailMobile(item) {
 
   let quoteHtml = "";
   if (!state.currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000];
+      const tiers = [50, 100, 300, 500, 1000, 3000];
       tiers.forEach(t => {
           let isVisible = false;
           if (state.userLevel >= 1 && (t === 50 || t === 100)) isVisible = true;
           if (state.userLevel >= 2 && t === 300) isVisible = true;
           if (state.userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
+          if (state.userLevel >= 4 && t === 3000) isVisible = true;
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px dashed #eee;">
                   <span style="color:#666;">${t}個</span>
@@ -438,12 +442,13 @@ export function showDetailDesktop(item) {
 
   let quoteHtml = "";
   if (!state.currentUserVipConfig) {
-      const tiers = [50, 100, 300, 500, 1000];
+      const tiers = [50, 100, 300, 500, 1000, 3000];
       tiers.forEach(t => {
           let isVisible = false;
           if (state.userLevel >= 1 && (t === 50 || t === 100)) isVisible = true;
           if (state.userLevel >= 2 && t === 300) isVisible = true;
           if (state.userLevel >= 3 && (t === 500 || t === 1000)) isVisible = true;
+          if (state.userLevel >= 4 && t === 3000) isVisible = true;
           if (isVisible) {
               quoteHtml += `<div style="display:flex; justify-content:space-between; padding:2px 0; border-bottom:1px dashed #eee;">
                   <span style="color:#666;">${t}個</span>

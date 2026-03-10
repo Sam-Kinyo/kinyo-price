@@ -63,11 +63,54 @@ def parse_query(raw_text: str) -> tuple[str, int]:
 _MAX_RESULTS: int = 10
 
 
+def get_user_pricing_profile(user_id: str) -> dict[str, Any]:
+    """
+    以 LINE user_id 取得定價權限檔案。
+
+    Returns:
+        dict: {
+            "user_id": str,
+            "email": str,
+            "level": int,
+            "vip_column": str | None,
+        }
+
+    Raises:
+        PermissionError: 未綁定 LineUsers / 無 email / Users 不存在。
+    """
+    line_user_ref = db.collection("LineUsers").document(user_id)
+    line_user_doc = line_user_ref.get()
+    if not line_user_doc.exists:
+        raise PermissionError("LINE 帳號尚未綁定企業帳號")
+
+    line_user_data: dict[str, Any] = line_user_doc.to_dict() or {}
+    email: str = str(line_user_data.get("email", "")).strip().lower()
+    if not email:
+        raise PermissionError("LINE 綁定資料缺少 email")
+
+    user_ref = db.collection("Users").document(email)
+    user_doc = user_ref.get()
+    if not user_doc.exists:
+        raise PermissionError("企業帳號不存在或尚未開通權限")
+
+    user_data: dict[str, Any] = user_doc.to_dict() or {}
+    level: int = int(user_data.get("level", 0))
+    vip_column: str | None = user_data.get("vipColumn")
+
+    return {
+        "user_id": user_id,
+        "email": email,
+        "level": level,
+        "vip_column": vip_column,
+    }
+
+
 def search_products(
     query: str,
     user_id: str | None = None,
     qty: int = 1,
     max_price: int | None = None,
+    user_profile: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     """
     搜尋所有包含關鍵字的商品，可選預算過濾，最多回傳 10 筆。
@@ -153,7 +196,12 @@ def search_products(
         filtered: list[dict[str, Any]] = []
         for product in matched:
             try:
-                price, _ = calculate_tier_price(user_id, product, qty)
+                price, _ = calculate_tier_price(
+                    user_id=user_id,
+                    product=product,
+                    qty=qty,
+                    user_profile=user_profile,
+                )
                 if price <= max_price:
                     filtered.append(product)
             except PermissionError:
@@ -166,6 +214,32 @@ def search_products(
         )
         matched = filtered
 
+    # 排序策略：精準型號優先、其次名稱/主型號命中；有預算時優先接近預算
+    def _rank_key(p: dict[str, Any]) -> tuple[int, int, int]:
+        model = str(p.get("model", "")).upper()
+        main_model = str(p.get("mainModel", "")).upper()
+        name = str(p.get("name", "")).upper()
+        inventory = int(p.get("inventory", 0) or 0)
+
+        exact = 0 if query_upper == model else 1
+        contains = 0 if query_upper in model else (1 if query_upper in main_model else 2)
+        budget_distance = 999999999
+        if max_price is not None and user_id:
+            try:
+                price, _ = calculate_tier_price(
+                    user_id=user_id,
+                    product=p,
+                    qty=qty,
+                    user_profile=user_profile,
+                )
+                budget_distance = abs(max_price - price)
+            except Exception:
+                budget_distance = 999999999
+
+        # 小者優先：exact -> contains -> 預算距離；庫存以負值讓高庫存靠前
+        return (exact, contains, budget_distance - min(inventory, 5000))
+
+    matched.sort(key=_rank_key)
     return matched[:_MAX_RESULTS]
 
 
@@ -176,6 +250,7 @@ def calculate_tier_price(
     user_id: str,
     product: dict[str, Any],
     qty: int,
+    user_profile: dict[str, Any] | None = None,
 ) -> tuple[int, str]:
     """
     根據使用者權限與查詢數量，計算最終含稅報價。
@@ -206,30 +281,10 @@ def calculate_tier_price(
         except ValueError:
             return None
 
-    # ─── Step 1：從 LineUsers 取得 email ───
-    line_user_ref = db.collection("LineUsers").document(user_id)
-    line_user_doc = line_user_ref.get()
-
-    if not line_user_doc.exists:
-        raise PermissionError(f"LineUser not found: {user_id}")
-
-    line_user_data: dict[str, Any] = line_user_doc.to_dict() or {}
-    email: str = line_user_data.get("email", "").strip().lower()
-
-    if not email:
-        raise PermissionError(f"LineUser has no email: {user_id}")
-
-    # ─── Step 2：從 Users 取得權限資料 ───
-    user_ref = db.collection("Users").document(email)
-    user_doc = user_ref.get()
-
-    level: int = 0
-    vip_column: str | None = None
-
-    if user_doc.exists:
-        user_data: dict[str, Any] = user_doc.to_dict() or {}
-        level = int(user_data.get("level", 0))
-        vip_column = user_data.get("vipColumn")
+    profile = user_profile or get_user_pricing_profile(user_id)
+    email: str = str(profile.get("email", "")).lower()
+    level: int = int(profile.get("level", 0))
+    vip_column: str | None = profile.get("vip_column")
 
     # ─── Step 3：階梯價格匹配 (依序向下判斷) ───
     matched_price: float | None = None
@@ -244,19 +299,26 @@ def calculate_tier_price(
 
     # 3-2. 非 VIP 使用「成本即時計算」規則（無條件進位）
     # 規則：
-    # - Level 3: 50/100/300/500/1000 => /0.75 /0.78 /0.81 /0.835 /0.858
+    # - Level 4: 50/100/300/500/1000/3000 => /0.75 /0.78 /0.81 /0.835 /0.858 /0.89
+    # - Level 3: 50/100/300/500/1000      => /0.75 /0.78 /0.81 /0.835 /0.858
     # - Level 2: 50/100/300         => /0.74 /0.77 /0.80
     # - Level 1: 50/100             => /0.73 /0.76
-    # - Level 4 視同 Level 3 計算
     if matched_price is None:
         cost = safe_float(product.get("cost"))
-        effective_level = 3 if level >= 3 else max(level, 0)
+        if level >= 4:
+            effective_level = 4
+        elif level >= 3:
+            effective_level = 3
+        else:
+            effective_level = max(level, 0)
         divisor_map: dict[int, dict[int, float]] = {
+            4: {50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858, 3000: 0.89},
             3: {50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858},
             2: {50: 0.74, 100: 0.77, 300: 0.80},
             1: {50: 0.73, 100: 0.76},
         }
         tier_order_map: dict[int, list[int]] = {
+            4: [3000, 1000, 500, 300, 100, 50],
             3: [1000, 500, 300, 100, 50],
             2: [300, 100, 50],
             1: [100, 50],
