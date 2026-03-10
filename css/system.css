@@ -310,7 +310,7 @@ th {
 .st-good { background: #dcfce7; color: #166534; border-color: #86efac; }
 /* 6. 大於 1200 (深綠 - 極多) */
 .st-high { background: #ccfbf1; color: #0f766e; border-color: #5eead4; }
-.st-zero { background: #374151; color: #ffffff; border-color: #1f2937; }
+.st-zero { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
 
 
 /* =========================================

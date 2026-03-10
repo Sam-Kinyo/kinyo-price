@@ -6,12 +6,12 @@ import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase
 import { db } from './firebase-init.js';
 import { state } from './state.js';
 import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js';
-import { searchProducts, applySorting } from './search.js';
+import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js';
 import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js';
 import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js';
 import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js';
 import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore } from './import.js';
-import { setupLoginButton, setupLogoutButton, setupAuthListener } from './auth.js';
+import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions } from './auth.js';
 
 /* =======================================================
    DOM References
@@ -38,6 +38,46 @@ const downloadQuoteExcelBtn = document.getElementById("downloadQuoteExcelBtn");
 const previewOverlay  = document.getElementById("previewOverlay");
 const cancelImportBtn = document.getElementById("cancelImportBtn");
 const confirmImportBtn = document.getElementById("confirmImportBtn");
+const levelSwitchWrap = document.getElementById("levelSwitchWrap");
+const levelSwitchSelect = document.getElementById("levelSwitchSelect");
+
+function syncLevelSwitchVisibility() {
+  if (!levelSwitchWrap || !levelSwitchSelect) return;
+  const canSwitch = state.originalUserLevel >= 4;
+  levelSwitchWrap.style.display = canSwitch ? "flex" : "none";
+  if (!canSwitch) {
+    levelSwitchSelect.value = "original";
+  }
+}
+
+function applyTemporaryLevelSwitch() {
+  if (!levelSwitchSelect) return;
+  if (state.originalUserLevel < 4) return;
+
+  const selected = levelSwitchSelect.value;
+  if (selected === "original") {
+    state.userLevel = state.originalUserLevel;
+  } else {
+    state.userLevel = Number(selected) || state.originalUserLevel;
+  }
+
+  const qtySelect = document.getElementById("qtySelect");
+  const prevQty = qtySelect ? qtySelect.value : "";
+  setupQtySelectByLevel();
+  if (qtySelect) {
+    if (prevQty && canViewTier(state.userLevel, Number(prevQty))) {
+      qtySelect.value = prevQty;
+    } else {
+      qtySelect.value = "";
+    }
+  }
+
+  updatePermissions();
+  updateUserDisplay("normal");
+  if (state.currentResultList.length > 0) {
+    renderResults(state.currentResultList);
+  }
+}
 
 /* =======================================================
    Event Bindings
@@ -63,6 +103,15 @@ const exportHistoryBtn = document.getElementById("exportHistoryBtn");
 if(exportHistoryBtn) {
     exportHistoryBtn.onclick = exportQuoteHistory;
 }
+
+if (levelSwitchSelect) {
+  levelSwitchSelect.onchange = applyTemporaryLevelSwitch;
+}
+
+window.addEventListener("level-state-changed", () => {
+  syncLevelSwitchVisibility();
+  if (levelSwitchSelect) levelSwitchSelect.value = "original";
+});
 
 // 預覽取消 / 確認
 if(cancelImportBtn) {

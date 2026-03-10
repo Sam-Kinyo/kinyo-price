@@ -105,7 +105,10 @@ export function setupAuthListener() {
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (!user) {
+      state.originalUserLevel = 0;
+      state.userLevel = 0;
       if(loginOverlay) loginOverlay.style.display = "flex";
+      window.dispatchEvent(new CustomEvent("level-state-changed"));
       return;
     }
     
@@ -113,6 +116,7 @@ export function setupAuthListener() {
 
     state.currentUserEmail = user.email || "";
     state.userLevel = 0; 
+    state.originalUserLevel = 0;
     state.currentUserVipConfig = null;
     state.isGroupBuyUser = false;
 
@@ -120,7 +124,8 @@ export function setupAuthListener() {
         const userDoc = await getDoc(doc(db, "Users", state.currentUserEmail.toLowerCase()));
         if (userDoc.exists()) {
             const userData = userDoc.data();
-            state.userLevel = userData.level ?? 0;
+            state.originalUserLevel = userData.level ?? 0;
+            state.userLevel = state.originalUserLevel;
             if (userData.groupBuy === true) {
                 state.isGroupBuyUser = true;
             }
@@ -132,20 +137,26 @@ export function setupAuthListener() {
                 };
             }
         } else {
+            state.originalUserLevel = 0;
             state.userLevel = 0;
         }
     } catch (e) {
         console.error("Auth Error:", e);
+        state.originalUserLevel = 0;
         state.userLevel = 0;
     }
 
-    if (state.currentUserEmail.toLowerCase() === 'show@kinyo.com') state.userLevel = 0;
+    if (state.currentUserEmail.toLowerCase() === 'show@kinyo.com') {
+      state.originalUserLevel = 0;
+      state.userLevel = 0;
+    }
 
     updateUserDisplay('normal');
     logoutBtn.style.display = "inline-block";
 
     setupQtySelectByLevel();
     updatePermissions();
+    window.dispatchEvent(new CustomEvent("level-state-changed"));
 
     await preloadDriveModelData();
     await preloadProducts();

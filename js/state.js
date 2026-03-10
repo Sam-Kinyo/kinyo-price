@@ -6,7 +6,10 @@
 export const state = {
   productCache: [],
   currentResultList: [],
+  // 當前生效等級（可被 Level4 臨時切換覆蓋）
   userLevel: 0,
+  // 登入後從 Firestore 讀到的真實等級（刷新後恢復）
+  originalUserLevel: 0,
   currentUserEmail: "",
   currentUserVipConfig: null,  // { column: 'VIP_A', name: '好市多' }
   isGroupBuyUser: false,

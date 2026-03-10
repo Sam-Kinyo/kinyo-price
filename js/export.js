@@ -58,11 +58,10 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
         fontSize: nameFontSize, bold: true, color: "1f2937", fontFace: "微軟正黑體", valign: "top"
     });
 
-    slide.addShape(pptx.ShapeType.rect, { 
-        x: 6.5, y: 0.2, w: 3.2, h: 1.5, 
-        fill: { color: "f8fafc" }, 
-        line: { color: "e2e8f0", width: 0.5 },
-        rectRadius: 0.1 
+    slide.addShape(pptx.ShapeType.rect, {
+        x: 6.5, y: 0.2, w: 3.2, h: 1.5,
+        fill: { color: "f8fafc" },
+        line: { color: "e2e8f0", width: 0.5 }
     });
 
     slide.addText(quoteLabel, {
@@ -109,11 +108,11 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo) {
             try {
                 const b64 = await fetchAsDataURL(url);
                 if(b64) {
-                    slide.addImage({ 
-                        data: b64, 
-                        x: x + 0.05, y: y + 0.05, 
-                        w: cellW - 0.1, h: cellH - 0.1, 
-                        sizing: { type: "contain", w: cellW - 0.1, h: cellH - 0.1 } 
+                    // 舊版 Office 相容優先：避免使用進階 sizing 參數
+                    slide.addImage({
+                        data: b64,
+                        x: x + 0.05, y: y + 0.05,
+                        w: cellW - 0.1, h: cellH - 0.1
                     });
                 }
             } catch(e) {
@@ -197,9 +196,10 @@ export async function exportSelectedPPT(source = 'checked') {
 
         const currentBatch = batches[i];
         
-        await Promise.all(currentBatch.map(async (item) => {
+        // 舊版 PowerPoint 相容優先：改為逐頁序列建立，避免平行寫入造成檔案結構不穩
+        for (const item of currentBatch) {
             await buildProductSlide(pptx, item, tier, item.customQuoteInfo);
-        }));
+        }
         
         let filename = `KINYO-商品推薦報價-@${salesName}-@${salesPhone}`;
         if (batches.length > 1) {
@@ -207,7 +207,7 @@ export async function exportSelectedPPT(source = 'checked') {
         }
         filename += ".pptx";
 
-        await pptx.writeFile({ fileName: filename });
+        await pptx.writeFile({ fileName: filename, compression: false });
     }
 
   } catch (e) {

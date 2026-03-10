@@ -109,10 +109,10 @@ export function renderStockByVariant(item) {
             if (v.eta) {
                 if(qty <= 0) {
                     displayLabel = `❌ 缺貨 (${v.eta} 到)`;
-                    labelStyle = "color:#b91c1c; font-weight:bold;"; 
+                    labelStyle = "color:#991b1b; background:#fee2e2; border-color:#fca5a5; font-weight:bold;";
                 } else {
                     displayLabel = `${displayLabel} (${v.eta} 到)`;
-                    labelStyle = "color:#c2410c; font-weight:bold;"; 
+                    labelStyle = "color:#9a3412; background:#ffedd5; border-color:#fdba74; font-weight:bold;";
                 }
             }
 
