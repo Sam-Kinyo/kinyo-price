@@ -1,0 +1,16 @@
+# 敏感金鑰 - 絕對不能上傳到 GitHub
+backend/serviceAccountKey.json
+
+# Python cache
+backend/__pycache__/
+backend/**/__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+.env
+
+# OS
+.DS_Store
+Thumbs.db
