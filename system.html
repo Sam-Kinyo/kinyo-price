@@ -112,19 +112,25 @@
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
-  <div id="levelSwitchWrap" style="display:none; align-items:center; gap:6px;">
-    <select id="levelSwitchSelect" class="btn-secondary" style="min-width: 170px;">
+  <!-- L4-only: Level Switch -->
+  <div id="levelSwitchWrap" style="display:none; align-items:center;">
+    <select id="levelSwitchSelect" class="toolbar-btn-pill">
       <option value="original">原始等級</option>
       <option value="3">Level 3</option>
       <option value="2">Level 2</option>
       <option value="1">Level 1</option>
     </select>
   </div>
-  
-  <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
-  
+
+  <!-- Always visible main action buttons -->
+  <button id="multiLineBtn" class="toolbar-btn-pill" disabled>📱 多選 LINE</button>
+  <button id="exportBtn" class="toolbar-btn-pill" disabled>📊 匯出 Excel</button>
+  <button id="pptToolbarBtn" class="toolbar-btn-pill" disabled>📑 生成 PPT</button>
+  <button id="batchAddQuoteBtn" class="toolbar-btn-pill" disabled>➕ 候選清單</button>
+
+  <!-- More Options Floating Dropdown -->
   <div class="more-options-wrapper">
-    <button id="moreOptionsBtn" class="btn-secondary">更多選項 ▾</button>
+    <button id="moreOptionsBtn" class="toolbar-btn-pill toolbar-btn-more">更多選項 ▾</button>
     <div id="hiddenToolbarItems" class="options-dropdown">
       <div class="options-dropdown-section">
         <div class="options-dropdown-label">排序方式</div>
@@ -139,29 +145,27 @@
         </select>
       </div>
       <div class="options-dropdown-section">
-        <div class="options-dropdown-label">功能按鈕</div>
-        <div class="options-dropdown-btns">
-          <button id="batchAddQuoteBtn" class="dropdown-action-btn" disabled>➕ 候選清單</button>
-          <button id="exportBtn" class="dropdown-action-btn" disabled>📊 匯出 Excel</button>
-          <button id="quoteToolbarBtn" class="dropdown-action-btn" style="display:none;">📋 報價單</button>
-          <button id="pptToolbarBtn" class="dropdown-action-btn" disabled>📑 生成 PPT</button>
-          <button id="importProductBtn" class="dropdown-action-btn" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品</button>
-          <button id="toggleAdvancedL4Btn" class="dropdown-action-btn" style="display:none; color:#16a34a; border-color:#16a34a;">⚙️ 進階 L4</button>
-        </div>
-        <div id="advancedL4Group" style="display:none; margin-top: 8px; gap:8px; flex-wrap: wrap;">
-          <button id="setHotBtn" class="dropdown-action-btn" style="color:#b91c1c; border-color:#b91c1c; display:none;">🔥 首頁熱門</button>
-          <button id="exportHistoryBtn" class="dropdown-action-btn" style="color:#b91c1c; border-color:#b91c1c; display:none;">📊 大數據</button>
-        </div>
-      </div>
-      <div class="options-dropdown-section">
         <div class="options-dropdown-label">PPT 模式</div>
         <select id="pptModeSelect">
           <option value="compat">PPT 模式：相容</option>
           <option value="fast" selected>PPT 模式：速度</option>
         </select>
       </div>
+      <div class="options-dropdown-section">
+        <div class="options-dropdown-label">其他</div>
+        <div class="options-dropdown-btns">
+          <button id="quoteToolbarBtn" class="dropdown-action-btn" style="display:none;">📋 報價單</button>
+          <button id="importProductBtn" class="dropdown-action-btn" style="display:none; color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold;">📥 匯入產品</button>
+          <button id="toggleAdvancedL4Btn" class="dropdown-action-btn" style="display:none; color:#16a34a; border-color:#16a34a;">⚙️ 進階 L4</button>
+        </div>
+        <div id="advancedL4Group" style="display:none; margin-top:8px; gap:8px; flex-wrap:wrap;">
+          <button id="setHotBtn" class="dropdown-action-btn" style="display:none; color:#b91c1c; border-color:#b91c1c;">🔥 首頁熱門</button>
+          <button id="exportHistoryBtn" class="dropdown-action-btn" style="display:none; color:#b91c1c; border-color:#b91c1c;">📊 報價大數據</button>
+        </div>
+      </div>
     </div>
   </div>
+
 
 
 <div id="toolbarSpacer"></div>

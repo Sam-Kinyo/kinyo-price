@@ -77,11 +77,45 @@ h1{margin:0 0 4px;}
 ========================================= */
 .toolbar{
   display:flex;
-  gap:10px;
+  gap:8px;
   align-items:center;
   margin:10px 0 6px;
   flex-wrap: wrap;
-  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.toolbar-btn-pill {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  font-size: 14px;
+  white-space: nowrap;
+  font-weight: 500;
+  color: #374151;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.toolbar-btn-pill:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+.toolbar-btn-pill:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+  border-color: #f1f5f9;
+  background: #fafafa;
+}
+.toolbar-btn-pill select {
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  cursor: pointer;
+  outline: none;
+}
+.toolbar-btn-more {
+  color: #6b7280;
 }
 .toolbar select{ flex:1; min-width: 120px; }
 
