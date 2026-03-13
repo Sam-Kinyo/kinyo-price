@@ -34,6 +34,11 @@ REFRESH_TOKEN: str = os.getenv("REFRESH_TOKEN", "")
 PORT: int = int(os.getenv("PORT", "8080"))
 
 # ═══════════════════════════════════════════
+# 3.5. AI Agent (Gemini)
+# ═══════════════════════════════════════════
+GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
+# ═══════════════════════════════════════════
 # 4. Firebase Admin SDK 初始化
 # ═══════════════════════════════════════════
 

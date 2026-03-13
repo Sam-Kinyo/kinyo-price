@@ -31,7 +31,7 @@ from services.pricing_service import (
     calculate_tier_price,
     get_user_pricing_profile,
 )
-from utils.parser import parse_user_query
+from utils.gemini_agent import parse_with_gemini
 from utils.flex_builder import build_pricing_card, build_carousel
 
 logger = logging.getLogger(__name__)
@@ -147,9 +147,21 @@ def handle_text_message(event: MessageEvent) -> None:
                 )
             return
 
-        # ─── Step 1：NLP 複合條件解析 ───
-        qty, max_price, keyword = parse_user_query(user_text)
+        # ─── Step 1：AI 語意解析 (Gemini) ───
+        ai_result = parse_with_gemini(user_text)
+        is_chat: bool = ai_result.get("is_chat", False)
+        keyword: str = ai_result.get("keyword", "")
+        qty: int = ai_result.get("qty", 1)
+        max_price: int | None = ai_result.get("max_price")
+        chat_reply: str = ai_result.get("chat_reply", "")
+
         user_profile = get_user_pricing_profile(user_id)
+
+        # 若 AI 判斷這是在一般聊天/客服詢問
+        if is_chat and chat_reply:
+            logger.info(f"🤖 Chat mode triggered: {user_text} -> {chat_reply}")
+            _reply_text(reply_token, chat_reply)
+            return
 
         logger.info(
             f"🔎 Parsed → qty={qty}, max_price={max_price}, keyword='{keyword}', "
