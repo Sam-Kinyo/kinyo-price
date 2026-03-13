@@ -12,6 +12,7 @@ import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './qu
 import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js';
 import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore } from './import.js';
 import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions } from './auth.js';
+import { applySystemBranding } from './company-config.js';
 
 /* =======================================================
    DOM References
@@ -84,6 +85,8 @@ function applyTemporaryLevelSwitch() {
    Event Bindings
 ======================================================= */
 
+applySystemBranding();
+
 // 搜尋表單
 searchForm.onsubmit = (e) => { e.preventDefault(); searchProducts(); };
 
@@ -142,10 +145,10 @@ if(confirmImportBtn) {
 
 // PPT 生成
 if(pptToolbarBtn) {
-  pptToolbarBtn.onclick = () => exportSelectedPPT('checked', (pptModeSelect && pptModeSelect.value) ? pptModeSelect.value : 'compat');
+  pptToolbarBtn.onclick = () => exportSelectedPPT('checked', (pptModeSelect && pptModeSelect.value) ? pptModeSelect.value : 'fast');
 }
 if(pptFromQuoteBtn) {
-  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote', (pptModeSelect && pptModeSelect.value) ? pptModeSelect.value : 'compat');
+  pptFromQuoteBtn.onclick = () => exportSelectedPPT('quote', (pptModeSelect && pptModeSelect.value) ? pptModeSelect.value : 'fast');
 }
 
 // 報價單 Excel 下載

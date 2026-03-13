@@ -7,23 +7,26 @@ import { state } from './state.js';
 import { fetchAsDataURL, getInventoryRangeLabel, calcQuotePrice, canViewTier } from './helpers.js';
 import { getDriveMainImage, getDriveNetImages } from './data.js';
 import { logQuoteAction } from './quote.js';
+import { activeCompany } from './company-config.js';
 
 const PPT_EXPORT_MODES = {
     compat: {
         id: "compat",
         label: "相容優先",
         compression: false,
-        perSlideConcurrency: 2
+        perSlideConcurrency: 3,
+        prefetchConcurrency: 4
     },
     fast: {
         id: "fast",
         label: "速度優先",
         compression: true,
-        perSlideConcurrency: 4
+        perSlideConcurrency: 6,
+        prefetchConcurrency: 10
     }
 };
 
-const PPT_LOGO_URL = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn";
+const PPT_LOGO_URL = activeCompany.ppt.logoUrl;
 
 function getPptExportMode(modeId = "compat") {
     return PPT_EXPORT_MODES[modeId] || PPT_EXPORT_MODES.compat;
@@ -72,12 +75,52 @@ function printPptPerfSummary(ctx) {
     const buildMs = Math.round(ctx.buildMs);
     const writeMs = Math.round(ctx.writeMs);
     const fetchMs = Math.round(ctx.metrics.fetchMs);
+    const prefetchMs = Math.round(ctx.metrics.prefetchMs || 0);
     console.info(
-        `[PPT] mode=${ctx.mode.label}, items=${ctx.itemCount}, build=${buildMs}ms, write=${writeMs}ms, total=${totalMs}ms, fetch=${fetchMs}ms, cacheHit=${ctx.metrics.cacheHits}, cacheMiss=${ctx.metrics.cacheMiss}`
+        `[PPT] mode=${ctx.mode.label}, items=${ctx.itemCount}, build=${buildMs}ms, write=${writeMs}ms, total=${totalMs}ms, prefetch=${prefetchMs}ms, fetch=${fetchMs}ms, cacheHit=${ctx.metrics.cacheHits}, cacheMiss=${ctx.metrics.cacheMiss}`
     );
 
     // 方便固定用同一組情境做前後比對
     console.info("[PPT] 建議驗證流程：同網路環境各測 5 / 10 / 20 筆，分別比較 compat 與 fast 模式。");
+}
+
+function collectItemImageUrls(item) {
+    const netImages = getDriveNetImages(item.model, item.mainModel) || [];
+    const imagesToDisplay = [...netImages];
+    const driveMain = getDriveMainImage(item.model, item.mainModel);
+    const rawImg = item.imageUrl;
+
+    const addUnique = (url) => {
+        if (url && !imagesToDisplay.includes(url) && imagesToDisplay.length < 6) {
+            imagesToDisplay.push(url);
+        }
+    };
+    addUnique(driveMain);
+    if (rawImg && rawImg.startsWith("http")) addUnique(rawImg);
+    return imagesToDisplay.slice(0, 6);
+}
+
+async function prefetchBatchImageCache(batchItems, context) {
+    const urlSet = new Set();
+    if (PPT_LOGO_URL) urlSet.add(PPT_LOGO_URL);
+
+    batchItems.forEach((item) => {
+        collectItemImageUrls(item).forEach((url) => {
+            if (url && String(url).startsWith("http")) urlSet.add(url);
+        });
+    });
+
+    const urls = Array.from(urlSet);
+    if (urls.length === 0) return;
+
+    const t0 = performance.now();
+    await mapWithConcurrency(urls, context.mode.prefetchConcurrency, async (url) => {
+        try {
+            await getDataUrlWithCache(url, context.imageCache, context.metrics);
+        } catch (e) {}
+        return null;
+    });
+    context.metrics.prefetchMs += (performance.now() - t0);
 }
 
 /* PPT 單頁建構 */
@@ -88,18 +131,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo, context) {
     let rawName = item.name || "未命名商品";
     let cleanName = rawName.replace(/\*.*$/, '').trim();
 
-    const netImages = getDriveNetImages(item.model, item.mainModel) || [];
-    let imagesToDisplay = [...netImages];
-    const driveMain = getDriveMainImage(item.model, item.mainModel);
-    const rawImg = item.imageUrl;
-    
-    const addUnique = (url) => {
-        if(url && !imagesToDisplay.includes(url) && imagesToDisplay.length < 6) {
-            imagesToDisplay.push(url);
-        }
-    };
-    addUnique(driveMain);
-    if(rawImg && rawImg.startsWith('http')) addUnique(rawImg);
+    const imagesToDisplay = collectItemImageUrls(item);
 
     let quoteLabel = "", quotePriceStr = "";
     if (customQuoteInfo) {
@@ -207,7 +239,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo, context) {
                 slide.addText("Image Error", { x: slot.x, y: slot.y + 1, w: slot.w, fontSize: 10, align: "center", color: "ccc" });
             }
         } else {
-            slide.addText("KINYO", {
+            slide.addText(activeCompany.companyNameZh, {
                 x: slot.x, y: slot.y + (slot.h / 2) - 0.2, w: slot.w, h: 0.4,
                 fontSize: 14, color: "f3f4f6", align: "center", fontFace: "Arial", bold: true
             });
@@ -215,7 +247,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo, context) {
     }
 
     const dateStr = new Date().toISOString().split('T')[0];
-    slide.addText(`KINYO | 型號：${item.mainModel} | 報價日期：${dateStr}`, {
+    slide.addText(`${activeCompany.companyNameZh} | 型號：${item.mainModel} | 報價日期：${dateStr}`, {
         x: 0.3, y: 7.1, w: 9.0, h: 0.3,
         fontSize: 9, color: "cbd5e1", fontFace: "微軟正黑體"
     });
@@ -266,6 +298,7 @@ export async function exportSelectedPPT(source = 'checked', modeId = 'compat') {
     const imageCache = new Map();
     const metrics = {
         fetchMs: 0,
+        prefetchMs: 0,
         cacheHits: 0,
         cacheMiss: 0
     };
@@ -276,8 +309,8 @@ export async function exportSelectedPPT(source = 'checked', modeId = 'compat') {
         batches.push(selectedItems.slice(i, i + CHUNK_SIZE));
     }
 
-    const salesName = "郭庭豪";
-    const salesPhone = "0976-966333";
+    const salesName = activeCompany.ppt.salesName || activeCompany.companyNameZh;
+    const salesPhone = activeCompany.ppt.salesPhone || "";
 
     for (let i = 0; i < batches.length; i++) {
         btn.textContent = `生成中 (${i + 1}/${batches.length})...`;
@@ -290,6 +323,8 @@ export async function exportSelectedPPT(source = 'checked', modeId = 'compat') {
 
         const currentBatch = batches[i];
         const buildStartAt = performance.now();
+
+        await prefetchBatchImageCache(currentBatch, { imageCache, metrics, mode });
         
         // 舊版 PowerPoint 相容優先：改為逐頁序列建立，避免平行寫入造成檔案結構不穩
         for (const item of currentBatch) {
@@ -301,7 +336,8 @@ export async function exportSelectedPPT(source = 'checked', modeId = 'compat') {
         }
         const buildMs = performance.now() - buildStartAt;
         
-        let filename = `KINYO-商品推薦報價-@${salesName}-@${salesPhone}`;
+        let filename = `${activeCompany.ppt.filePrefix || "商品推薦報價"}-@${salesName}`;
+        if (salesPhone) filename += `-@${salesPhone}`;
         if (batches.length > 1) {
             filename += `_Part${i + 1}`;
         }

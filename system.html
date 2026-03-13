@@ -17,7 +17,7 @@
 <!-- Login Overlay -->
 <div id="loginOverlay">
   <div class="login-card">
-    <h2>KINYO 查價系統</h2>
+    <h2 id="loginSystemTitle">KINYO 查價系統</h2>
     <p style="color:#666;margin-bottom:20px;">請輸入帳號密碼登入</p>
     <input type="email" id="loginEmail" class="login-input" placeholder="電子信箱">
     <input type="password" id="loginPassword" class="login-input" placeholder="密碼">
@@ -57,8 +57,8 @@
   <button id="logoutBtn" class="logout-btn" style="display:none;">登出</button>
 </div>
 
-<h1>KINYO 查價系統</h1>
-<div class="subtitle">
+<h1 id="pageSystemTitle">KINYO 查價系統</h1>
+<div id="pageSubtitle" class="subtitle">
   V7.6 新增到貨時間 --- 運籌帷幄 專屬報價顧問
   <br>
   Designed &amp; Engineered by 郭庭豪 (0976-966-333)
@@ -149,8 +149,8 @@
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
   <button id="pptToolbarBtn" class="btn-secondary" disabled>生成 PPT（1–20）</button>
   <select id="pptModeSelect" class="btn-secondary" style="min-width: 130px;">
-    <option value="compat" selected>PPT 模式：相容</option>
-    <option value="fast">PPT 模式：速度</option>
+    <option value="compat">PPT 模式：相容</option>
+    <option value="fast" selected>PPT 模式：速度</option>
   </select>
 
   <!-- 📊 大數據匯出按鈕 (只有 Level 4 會顯示) -->
