@@ -503,22 +503,103 @@ th {
   #detailCard{display:none!important;}
 }
 
-/* Global Hidden Toolbar Layout */
-.toolbar-group {
-  display: none;
-  width: 100%;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: center;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed #cbd5e1;
+/* =========================================
+   More Options Floating Dropdown
+========================================= */
+.more-options-wrapper {
+  position: relative;
+  display: inline-block;
 }
-.toolbar-group.show-options {
+
+#moreOptionsBtn {
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+.options-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 3000;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.16);
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  min-width: 280px;
+  flex-direction: column;
+  gap: 14px;
+  animation: fadeInDown 0.18s ease;
+}
+
+.options-dropdown.open {
   display: flex;
 }
-#moreOptionsBtn {
-  display: inline-block;
+
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.options-dropdown-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.options-dropdown-section select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #f9fafb;
+  color: #374151;
+  cursor: pointer;
+}
+
+.options-dropdown-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.options-dropdown-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dropdown-action-btn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  font-size: 13px;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+  color: #374151;
+}
+.dropdown-action-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+.dropdown-action-btn:disabled {
+  color: #d1d5db;
+  cursor: not-allowed;
+  border-color: #f3f4f6;
+  background: #fafafa;
+}
+
+/* Close dropdown when clicking outside */
+.options-dropdown-divider {
+  height: 1px;
+  background: #f1f5f9;
+  margin: 2px 0;
 }
 
 /* 9. 手機版適配 (Card View) - 4欄結構專用版 */

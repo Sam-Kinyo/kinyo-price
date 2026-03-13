@@ -123,36 +123,44 @@
   
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
   
-  <button id="moreOptionsBtn" class="btn-secondary" style="color: #4b5563;">更多選項 ▾</button>
-  
-  <div id="hiddenToolbarItems" class="toolbar-group">
-    <select id="sortSelect" class="btn-secondary">
-      <option value="">不排序 (隨機)</option>
-      <option value="minPriceAsc">末售：低 → 高</option>
-      <option value="minPriceDesc">末售：高 → 低</option>
-      <option value="marketAsc">賣場：低 → 高</option>
-      <option value="marketDesc">賣場：高 → 低</option>
-      <option value="alphaAsc">主型號：A → Z</option>
-      <option value="alphaDesc">主型號：Z → A</option>
-    </select>
-
-    <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
-
-    <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
-    <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
-    
-    <button id="toggleAdvancedL4Btn" class="btn-secondary" style="display:none; color:#16a34a; border-color:#16a34a; font-weight:bold;">⚙️ 進階功能 (L4)</button>
-    <div id="advancedL4Group" style="display:none; align-items:center; gap:8px;">
-      <button id="setHotBtn" class="btn-secondary" style="color:#b91c1c; border-color:#b91c1c; font-weight:bold; display:none;">🔥 設為首頁熱門 (L4)</button>
-      <button id="exportHistoryBtn" class="btn-secondary" style="color:#b91c1c; border-color:#b91c1c; font-weight:bold; display:none;">📊 匯出報價大數據(L4)</button>
+  <div class="more-options-wrapper">
+    <button id="moreOptionsBtn" class="btn-secondary">更多選項 ▾</button>
+    <div id="hiddenToolbarItems" class="options-dropdown">
+      <div class="options-dropdown-section">
+        <div class="options-dropdown-label">排序方式</div>
+        <select id="sortSelect">
+          <option value="">不排序 (隨機)</option>
+          <option value="minPriceAsc">末售：低 → 高</option>
+          <option value="minPriceDesc">末售：高 → 低</option>
+          <option value="marketAsc">賣場：低 → 高</option>
+          <option value="marketDesc">賣場：高 → 低</option>
+          <option value="alphaAsc">主型號：A → Z</option>
+          <option value="alphaDesc">主型號：Z → A</option>
+        </select>
+      </div>
+      <div class="options-dropdown-section">
+        <div class="options-dropdown-label">功能按鈕</div>
+        <div class="options-dropdown-btns">
+          <button id="batchAddQuoteBtn" class="dropdown-action-btn" disabled>➕ 候選清單</button>
+          <button id="exportBtn" class="dropdown-action-btn" disabled>📊 匯出 Excel</button>
+          <button id="quoteToolbarBtn" class="dropdown-action-btn" style="display:none;">📋 報價單</button>
+          <button id="pptToolbarBtn" class="dropdown-action-btn" disabled>📑 生成 PPT</button>
+          <button id="importProductBtn" class="dropdown-action-btn" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品</button>
+          <button id="toggleAdvancedL4Btn" class="dropdown-action-btn" style="display:none; color:#16a34a; border-color:#16a34a;">⚙️ 進階 L4</button>
+        </div>
+        <div id="advancedL4Group" style="display:none; margin-top: 8px; gap:8px; flex-wrap: wrap;">
+          <button id="setHotBtn" class="dropdown-action-btn" style="color:#b91c1c; border-color:#b91c1c; display:none;">🔥 首頁熱門</button>
+          <button id="exportHistoryBtn" class="dropdown-action-btn" style="color:#b91c1c; border-color:#b91c1c; display:none;">📊 大數據</button>
+        </div>
+      </div>
+      <div class="options-dropdown-section">
+        <div class="options-dropdown-label">PPT 模式</div>
+        <select id="pptModeSelect">
+          <option value="compat">PPT 模式：相容</option>
+          <option value="fast" selected>PPT 模式：速度</option>
+        </select>
+      </div>
     </div>
-
-    <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
-    <button id="pptToolbarBtn" class="btn-secondary" disabled>生成 PPT（1–20）</button>
-    <select id="pptModeSelect" class="btn-secondary" style="min-width: 130px;">
-      <option value="compat">PPT 模式：相容</option>
-      <option value="fast" selected>PPT 模式：速度</option>
-    </select>
   </div>
 
 

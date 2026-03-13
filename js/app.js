@@ -109,19 +109,27 @@ if (levelSwitchSelect) {
   levelSwitchSelect.onchange = applyTemporaryLevelSwitch;
 }
 
-// Global Toolbar Toggle
+// Global Toolbar Toggle (Floating Dropdown)
 const moreOptionsBtn = document.getElementById("moreOptionsBtn");
 const hiddenToolbarItems = document.getElementById("hiddenToolbarItems");
 if (moreOptionsBtn && hiddenToolbarItems) {
-    moreOptionsBtn.onclick = () => {
-        hiddenToolbarItems.classList.toggle("show-options");
-        if (hiddenToolbarItems.classList.contains("show-options")) {
-            moreOptionsBtn.textContent = "收起選項 ▴";
+    moreOptionsBtn.onclick = (e) => {
+        e.stopPropagation();
+        hiddenToolbarItems.classList.toggle("open");
+        if (hiddenToolbarItems.classList.contains("open")) {
+            moreOptionsBtn.textContent = "更多選項 ▴";
         } else {
             moreOptionsBtn.textContent = "更多選項 ▾";
         }
-        updateToolbarScrollState(); 
+        updateToolbarScrollState();
     };
+    // Close when clicking outside
+    document.addEventListener("click", (e) => {
+        if (!moreOptionsBtn.contains(e.target) && !hiddenToolbarItems.contains(e.target)) {
+            hiddenToolbarItems.classList.remove("open");
+            moreOptionsBtn.textContent = "更多選項 ▾";
+        }
+    });
 }
 
 window.addEventListener("level-state-changed", () => {
