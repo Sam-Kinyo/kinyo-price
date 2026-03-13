@@ -36,11 +36,17 @@ export function updateToolbarScrollState() {
     if(spacer) spacer.style.display = 'none';
     return;
   }
+  // 計算觸發點（只算 searchForm 的底部位置，不包含 toolbar 本身，所以是穩定的）
   const triggerPoint = searchForm.offsetTop + searchForm.offsetHeight;
+  
   if (window.scrollY > triggerPoint) {
     if (!toolbar.classList.contains('fixed-active')) {
+      // 在 fixed 之前，先將 spacer 設為 toolbar 當前高度，防止畫面跳動
+      if(spacer) {
+          spacer.style.height = toolbar.offsetHeight + 'px';
+          spacer.style.display = 'block';
+      }
       toolbar.classList.add('fixed-active');
-      if(spacer) spacer.style.display = 'block';
     }
   } else {
     if (toolbar.classList.contains('fixed-active')) {
