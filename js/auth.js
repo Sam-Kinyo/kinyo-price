@@ -77,6 +77,11 @@ export function setupLoginButton() {
       doLoginBtn.textContent = "登入";
     }
   };
+
+  // 支援 Enter 鍵直接登入
+  const handleEnter = (e) => { if (e.key === 'Enter') doLoginBtn.click(); };
+  if (loginEmail) loginEmail.addEventListener('keydown', handleEnter);
+  if (loginPassword) loginPassword.addEventListener('keydown', handleEnter);
 }
 
 /* 登出按鈕 */
