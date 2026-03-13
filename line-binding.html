@@ -150,7 +150,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
@@ -165,6 +165,7 @@
 
         const LIFF_ID = "2009444751-vlA8ef2c";
         let userLineId = "";
+        let userProfileName = "";
 
         // 初始化 LIFF
         async function initLiff() {
@@ -176,10 +177,11 @@
                 }
                 const profile = await liff.getProfile();
                 userLineId = profile.userId;
+                userProfileName = profile.displayName || "未知用戶"; // 修正：安全提取暱稱
                 document.getElementById('loading').style.display = 'none';
             } catch (err) {
                 console.error('LIFF 初始化失敗', err);
-                showStatus('LIFF 載入失敗，請稍後再試', 'error');
+                showStatus('LIFF 載入失敗，請確認在 LINE 內部開啟', 'error');
             }
         }
 
@@ -187,6 +189,14 @@
             const statusDiv = document.getElementById('status');
             statusDiv.textContent = msg;
             statusDiv.className = type;
+        }
+
+        function closeLiffSafe() {
+            if (liff.isInClient()) {
+                liff.closeWindow();
+            } else {
+                showStatus('綁定完成。若視窗未自動關閉，請手動關閉此頁面。', 'success');
+            }
         }
 
         document.getElementById('bindBtn').addEventListener('click', async () => {
@@ -200,28 +210,39 @@
 
             try {
                 document.getElementById('loading').style.display = 'flex';
+                
                 // 1. 驗證 Firebase Auth
                 const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
+                
+                // 2. 檢查是否已經綁定 (避免重複覆蓋)
+                const docRef = doc(db, "LineUsers", userLineId);
+                const docSnap = await getDoc(docRef);
 
-                // 2. 寫入 LineUsers 集合，進行 ID 關聯
-                await setDoc(doc(db, "LineUsers", userLineId), {
+                if (docSnap.exists()) {
+                    showStatus('此 LINE 帳號已經綁定過，無需重複操作！', 'success');
+                    setTimeout(closeLiffSafe, 2500);
+                    return;
+                }
+
+                // 3. 寫入 LineUsers 集合，進行 ID 關聯
+                await setDoc(docRef, {
                     email: email.toLowerCase(),
                     linkedAt: new Date().toISOString(),
-                    lineName: liff.getDecodedIDToken().name || ""
+                    lineName: userProfileName
                 });
 
                 showStatus('綁定成功！即將關閉視窗...', 'success');
-                
-                // 3. 延遲一下並關閉 LIFF
-                setTimeout(() => {
-                    liff.closeWindow();
-                }, 2000);
+                setTimeout(closeLiffSafe, 2000);
 
             } catch (err) {
                 console.error('綁定失敗', err);
-                let errMsg = "帳號或密碼錯誤，請重新嘗試";
-                if (err.code === "auth/user-not-found") errMsg = "找不到此帳號";
+                let errMsg = "發生未知的系統錯誤";
+                // 修正：Firebase 新版錯誤碼對應
+                if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.code === "auth/wrong-password") {
+                    errMsg = "帳號或密碼錯誤，請重新嘗試";
+                } else if (err.code === "permission-denied") {
+                    errMsg = "資料庫寫入權限不足 (Security Rules 被阻擋)";
+                }
                 showStatus('失敗：' + errMsg, 'error');
             } finally {
                 document.getElementById('loading').style.display = 'none';
