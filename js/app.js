@@ -12,7 +12,6 @@ import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './qu
 import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js';
 import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore } from './import.js';
 import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions } from './auth.js';
-import { applySystemBranding } from './company-config.js';
 
 /* =======================================================
    DOM References
@@ -84,8 +83,6 @@ function applyTemporaryLevelSwitch() {
 /* =======================================================
    Event Bindings
 ======================================================= */
-
-applySystemBranding();
 
 // 搜尋表單
 searchForm.onsubmit = (e) => { e.preventDefault(); searchProducts(); };

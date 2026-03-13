@@ -5,7 +5,6 @@ import { collection, getDocs, doc, getDoc } from "https://www.gstatic.com/fireba
 import { db } from './firebase-init.js';
 import { state, CACHE_TTL } from './state.js';
 import { normalizeKey, getMainModel, showLoading, hideLoading } from './helpers.js';
-import { activeCompanyKey } from './company-config.js';
 
 /* Firestore 重試邏輯 */
 export async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
@@ -23,7 +22,7 @@ export async function getDocsWithRetry(queryRef, retries = 3, delay = 1000) {
 /* Cache 管理 */
 export function getCacheKey() {
   const mail = (state.currentUserEmail || "guest").toLowerCase();
-  return `${activeCompanyKey.toUpperCase()}_SAFE_CACHE_V580_${mail}`;
+  return `KINYO_SAFE_CACHE_V580_${mail}`;
 }
 
 export function loadCache() {

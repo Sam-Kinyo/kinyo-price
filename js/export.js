@@ -7,7 +7,6 @@ import { state } from './state.js';
 import { fetchAsDataURL, getInventoryRangeLabel, calcQuotePrice, canViewTier } from './helpers.js';
 import { getDriveMainImage, getDriveNetImages } from './data.js';
 import { logQuoteAction } from './quote.js';
-import { activeCompany } from './company-config.js';
 
 const PPT_EXPORT_MODES = {
     compat: {
@@ -26,7 +25,7 @@ const PPT_EXPORT_MODES = {
     }
 };
 
-const PPT_LOGO_URL = activeCompany.ppt.logoUrl;
+const PPT_LOGO_URL = "https://drive.google.com/uc?id=1JxoU3A5qAYsE39pc2z7IMVwVS8-uTOIn";
 
 function getPptExportMode(modeId = "compat") {
     return PPT_EXPORT_MODES[modeId] || PPT_EXPORT_MODES.compat;
@@ -239,7 +238,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo, context) {
                 slide.addText("Image Error", { x: slot.x, y: slot.y + 1, w: slot.w, fontSize: 10, align: "center", color: "ccc" });
             }
         } else {
-            slide.addText(activeCompany.companyNameZh, {
+            slide.addText("KINYO", {
                 x: slot.x, y: slot.y + (slot.h / 2) - 0.2, w: slot.w, h: 0.4,
                 fontSize: 14, color: "f3f4f6", align: "center", fontFace: "Arial", bold: true
             });
@@ -247,7 +246,7 @@ async function buildProductSlide(pptx, item, tier, customQuoteInfo, context) {
     }
 
     const dateStr = new Date().toISOString().split('T')[0];
-    slide.addText(`${activeCompany.companyNameZh} | 型號：${item.mainModel} | 報價日期：${dateStr}`, {
+    slide.addText(`KINYO | 型號：${item.mainModel} | 報價日期：${dateStr}`, {
         x: 0.3, y: 7.1, w: 9.0, h: 0.3,
         fontSize: 9, color: "cbd5e1", fontFace: "微軟正黑體"
     });
@@ -309,8 +308,8 @@ export async function exportSelectedPPT(source = 'checked', modeId = 'compat') {
         batches.push(selectedItems.slice(i, i + CHUNK_SIZE));
     }
 
-    const salesName = activeCompany.ppt.salesName || activeCompany.companyNameZh;
-    const salesPhone = activeCompany.ppt.salesPhone || "";
+    const salesName = "郭庭豪";
+    const salesPhone = "0976-966333";
 
     for (let i = 0; i < batches.length; i++) {
         btn.textContent = `生成中 (${i + 1}/${batches.length})...`;
@@ -336,8 +335,7 @@ export async function exportSelectedPPT(source = 'checked', modeId = 'compat') {
         }
         const buildMs = performance.now() - buildStartAt;
         
-        let filename = `${activeCompany.ppt.filePrefix || "商品推薦報價"}-@${salesName}`;
-        if (salesPhone) filename += `-@${salesPhone}`;
+        let filename = `KINYO-商品推薦報價-@${salesName}-@${salesPhone}`;
         if (batches.length > 1) {
             filename += `_Part${i + 1}`;
         }
