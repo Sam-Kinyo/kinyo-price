@@ -109,6 +109,21 @@ if (levelSwitchSelect) {
   levelSwitchSelect.onchange = applyTemporaryLevelSwitch;
 }
 
+// Mobile Toolbar Toggle
+const mobileMoreOptionsBtn = document.getElementById("mobileMoreOptionsBtn");
+const mobileHiddenToolbarItems = document.getElementById("mobileHiddenToolbarItems");
+if (mobileMoreOptionsBtn && mobileHiddenToolbarItems) {
+    mobileMoreOptionsBtn.onclick = () => {
+        mobileHiddenToolbarItems.classList.toggle("show-mobile");
+        if (mobileHiddenToolbarItems.classList.contains("show-mobile")) {
+            mobileMoreOptionsBtn.textContent = "收起選項 ▴";
+        } else {
+            mobileMoreOptionsBtn.textContent = "更多選項 ▾";
+        }
+        updateToolbarScrollState(); 
+    };
+}
+
 window.addEventListener("level-state-changed", () => {
   syncLevelSwitchVisibility();
   if (levelSwitchSelect) levelSwitchSelect.value = "original";
