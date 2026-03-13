@@ -248,7 +248,30 @@ if(sheetBackdrop) {
 if(quoteToolbarBtn) quoteToolbarBtn.onclick = openQuoteSheet;
 
 // Scroll 事件
-window.addEventListener('scroll', updateToolbarScrollState);
+window.addEventListener('scroll', () => {
+    updateToolbarScrollState();
+    
+    // Scroll To Top Button Logic
+    const scrollToTopBtn = document.getElementById("scrollToTopBtn");
+    if (scrollToTopBtn) {
+        if (window.scrollY > 500) {
+            scrollToTopBtn.classList.add("show");
+        } else {
+            scrollToTopBtn.classList.remove("show");
+        }
+    }
+});
+
+// Scroll To Top 點擊事件
+const scrollToTopBtn = document.getElementById("scrollToTopBtn");
+if (scrollToTopBtn) {
+    scrollToTopBtn.onclick = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth"
+        });
+    };
+}
 
 /* =======================================================
    全域 Click 代理 (Quote / LINE / Detail Card)
