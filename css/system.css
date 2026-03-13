@@ -501,33 +501,26 @@ th {
 ========================================= */
 @media (max-width:900px){
   #detailCard{display:none!important;}
-
-  /* Toolbar Mobile Layout */
-  .toolbar-group {
-    display: none;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed #cbd5e1;
-  }
-  .toolbar-group.show-mobile {
-    display: flex;
-  }
-  #mobileMoreOptionsBtn {
-    display: inline-block !important;
-  }
 }
 
-/* Base styles for toolbar group on desktop */
+/* Global Hidden Toolbar Layout */
 .toolbar-group {
-  display: flex;
+  display: none;
+  width: 100%;
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-  flex: 1;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #cbd5e1;
 }
+.toolbar-group.show-options {
+  display: flex;
+}
+#moreOptionsBtn {
+  display: inline-block;
+}
+
 /* 9. 手機版適配 (Card View) - 4欄結構專用版 */
 @media (max-width: 600px) {
   body { padding: 16px; background: #f8fafc; }

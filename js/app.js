@@ -109,16 +109,16 @@ if (levelSwitchSelect) {
   levelSwitchSelect.onchange = applyTemporaryLevelSwitch;
 }
 
-// Mobile Toolbar Toggle
-const mobileMoreOptionsBtn = document.getElementById("mobileMoreOptionsBtn");
-const mobileHiddenToolbarItems = document.getElementById("mobileHiddenToolbarItems");
-if (mobileMoreOptionsBtn && mobileHiddenToolbarItems) {
-    mobileMoreOptionsBtn.onclick = () => {
-        mobileHiddenToolbarItems.classList.toggle("show-mobile");
-        if (mobileHiddenToolbarItems.classList.contains("show-mobile")) {
-            mobileMoreOptionsBtn.textContent = "收起選項 ▴";
+// Global Toolbar Toggle
+const moreOptionsBtn = document.getElementById("moreOptionsBtn");
+const hiddenToolbarItems = document.getElementById("hiddenToolbarItems");
+if (moreOptionsBtn && hiddenToolbarItems) {
+    moreOptionsBtn.onclick = () => {
+        hiddenToolbarItems.classList.toggle("show-options");
+        if (hiddenToolbarItems.classList.contains("show-options")) {
+            moreOptionsBtn.textContent = "收起選項 ▴";
         } else {
-            mobileMoreOptionsBtn.textContent = "更多選項 ▾";
+            moreOptionsBtn.textContent = "更多選項 ▾";
         }
         updateToolbarScrollState(); 
     };
