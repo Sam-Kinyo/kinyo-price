@@ -193,7 +193,15 @@
 
         function closeLiffSafe() {
             if (liff.isInClient()) {
-                liff.closeWindow();
+                liff.sendMessages([{
+                    type: 'text',
+                    text: '✅ 我已完成綁定！'
+                }]).then(() => {
+                    liff.closeWindow();
+                }).catch((err) => {
+                    console.error('送出訊息失敗', err);
+                    liff.closeWindow();
+                });
             } else {
                 showStatus('綁定完成。若視窗未自動關閉，請手動關閉此頁面。', 'success');
             }
