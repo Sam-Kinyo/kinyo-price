@@ -83,6 +83,11 @@ h1{margin:0 0 4px;}
   flex-wrap: wrap;
   width: 100%;
   box-sizing: border-box;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 10px 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .toolbar-btn-pill {
