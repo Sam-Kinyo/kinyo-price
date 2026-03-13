@@ -86,8 +86,7 @@ export function searchProducts() {
   const cat = categorySelect.value; 
   const stockReq = stockFilter.value; 
   
-  const controlledCheck = document.getElementById("controlledFilter");
-  const isControlledOnly = controlledCheck && controlledCheck.checked;
+
   
   const hasQty = !!qty;
   const hasBudget = !!minPraw || !!maxPraw;
@@ -99,7 +98,7 @@ export function searchProducts() {
     return;
   }
   
-  if (!hasKey && !hasQty && !hasBudget && !hasCat && !hasStockReq && !isControlledOnly) {
+  if (!hasKey && !hasQty && !hasBudget && !hasCat && !hasStockReq) {
     alert("請輸入搜尋條件（關鍵字、分類、起訂量、預算、庫存或勾選篩選）");
     return;
   }
@@ -112,10 +111,6 @@ export function searchProducts() {
 
   setTimeout(() => {
     let r = state.productCache;
-
-    if (isControlledOnly) {
-        r = r.filter(p => p.isControlled === true);
-    }
 
     if (hasCat) {
         r = r.filter(p => p.category === cat);

@@ -87,11 +87,7 @@ export function renderResults(list) {
         img = backupImg;
     }
     
-    let controlledHtml = "";
-    if (item.isControlled) {
-        controlledHtml = `<span style="background:#eff6ff; color:#1e40af; border:1px solid #bfdbfe; padding:2px 6px; border-radius:50px;; font-size:12px; font-weight:bold; margin-right:4px;">🛡️ 控價品</span>`;
-    }
-      
+
     const tr = document.createElement("tr");
     let priceHtml = ""; 
     const getQuoteByTier = (tier) => {
@@ -176,7 +172,7 @@ export function renderResults(list) {
       </td>
 
       <td>
-        ${controlledHtml} ${catBadge} 
+        ${catBadge} 
         <div style="font-weight:700; margin-bottom:4px; font-size:15px; line-height:1.4;">${item.name || "-"}</div>
         <div style="font-size:13px; color:#64748b; margin-bottom:6px;">
            ${item.colorList ? `顏色：${item.colorList}` : ''}

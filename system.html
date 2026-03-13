@@ -76,20 +76,13 @@
   </div>
 
   <div class="search-row">
-  <label>起訂量 / 控價 / 庫存篩選</label>
+  <label>起訂量 / 庫存篩選</label>
   <div style="display:flex; gap:10px; align-items: stretch;">
     
-    <select id="qtySelect" style="flex:5; min-width: 0;">
+    <select id="qtySelect" style="flex:1; min-width: 0;">
       </select>
 
-    <div style="flex:2; min-width: 0; display:flex; align-items:center; justify-content:center; gap:4px; background:#eff6ff; padding:0 4px; border-radius:8px; border:1px solid #bfdbfe;">
-      <input type="checkbox" id="controlledFilter" style="width:16px; height:16px; cursor:pointer;">
-      <label for="controlledFilter" style="margin:0; color:#1e40af; font-weight:bold; cursor:pointer; font-size:13px; user-select:none; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-        🛡️ 控價
-      </label>
-    </div>
-
-    <select id="stockFilter" style="flex:3; min-width: 0; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
+    <select id="stockFilter" style="flex:1; min-width: 0; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
       <option value="">📦 不限庫存</option>
       <option value="ZERO" style="color:#dc2626; font-weight:bold;">❌ 缺貨 (0)</option>
       <option value="1">📦 現貨 &gt; 0</option>
