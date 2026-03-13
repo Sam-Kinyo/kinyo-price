@@ -129,16 +129,20 @@
       <option value="2">Level 2</option>
       <option value="1">Level 1</option>
     </select>
-    <span id="levelSwitchHint" style="font-size:12px; color:#6b7280; white-space:nowrap;">僅本頁模擬，重新整理恢復</span>
   </div>
   
-  <!-- 預設隱藏，Level 4 才顯示 -->
   <button id="importProductBtn" class="btn-secondary" style="color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold; display:none;">📥 匯入產品總表 (同步上下架)</button>
 
   <button id="batchAddQuoteBtn" class="btn-secondary" disabled>加入候選清單</button>
   <button id="multiLineBtn" class="btn-secondary" disabled>多選 LINE 分享</button>
  <button id="exportBtn" class="btn-secondary" disabled>匯出 Excel</button>
-<button id="setHotBtn" class="btn-secondary" style="display:none; color:#b91c1c; border-color:#b91c1c; font-weight:bold;">🔥 設為首頁熱門 (L4)</button>
+  
+  <button id="toggleAdvancedL4Btn" class="btn-secondary" style="display:none; color:#16a34a; border-color:#16a34a; font-weight:bold;">⚙️ 進階功能 (L4)</button>
+  <div id="advancedL4Group" style="display:none; align-items:center; gap:8px;">
+    <button id="setHotBtn" class="btn-secondary" style="color:#b91c1c; border-color:#b91c1c; font-weight:bold; display:none;">🔥 設為首頁熱門 (L4)</button>
+    <button id="exportHistoryBtn" class="btn-secondary" style="color:#b91c1c; border-color:#b91c1c; font-weight:bold; display:none;">📊 匯出報價大數據(L4)</button>
+  </div>
+
   <button id="quoteToolbarBtn" class="quote-toolbar-btn">報價單</button>
   <button id="pptToolbarBtn" class="btn-secondary" disabled>生成 PPT（1–20）</button>
   <select id="pptModeSelect" class="btn-secondary" style="min-width: 130px;">
@@ -146,9 +150,7 @@
     <option value="fast" selected>PPT 模式：速度</option>
   </select>
 
-  <!-- 📊 大數據匯出按鈕 (只有 Level 4 會顯示) -->
-  <button id="exportHistoryBtn" class="btn-secondary" style="display:none; color:#b91c1c; border-color:#b91c1c; font-weight:bold;">📊 匯出報價大數據</button>
-</div>
+
 <div id="toolbarSpacer"></div>
 
 <table id="resultTable" style="display:none;">

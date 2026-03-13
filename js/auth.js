@@ -12,19 +12,17 @@ import { preloadDriveModelData, preloadProducts } from './data.js';
 /* 權限更新 */
 export function updatePermissions() {
     const importProductBtn = document.getElementById("importProductBtn");
-    const exportHistoryBtn = document.getElementById("exportHistoryBtn");
+    const toggleBtn = document.getElementById("toggleAdvancedL4Btn");
+    const advancedGroup = document.getElementById("advancedL4Group");
     const stockFilter = document.getElementById("stockFilter");
 
     if (state.userLevel >= 4) {
         if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
-        if(exportHistoryBtn) exportHistoryBtn.style.display = 'inline-block';
-        const btn = document.getElementById("setHotBtn");
-        if(btn) btn.style.display = 'inline-block'; 
+        if(toggleBtn) toggleBtn.style.display = 'inline-block'; 
     } else {
         if(importProductBtn) importProductBtn.style.display = 'none'; 
-        if(exportHistoryBtn) exportHistoryBtn.style.display = 'none';
-        const btn = document.getElementById("setHotBtn");
-        if(btn) btn.style.display = 'none';
+        if(toggleBtn) toggleBtn.style.display = 'none';
+        if(advancedGroup) advancedGroup.style.display = 'none';
     }
 
     if (state.userLevel >= 2 || state.currentUserVipConfig) {
@@ -153,6 +151,23 @@ export function setupAuthListener() {
 
     updateUserDisplay('normal');
     logoutBtn.style.display = "inline-block";
+
+    // Bind Advanced Button Toggle Logic
+    const toggleBtn = document.getElementById("toggleAdvancedL4Btn");
+    if (toggleBtn) {
+        toggleBtn.onclick = () => {
+             const group = document.getElementById("advancedL4Group");
+             const setHotBtn = document.getElementById("setHotBtn");
+             const exportHistoryBtn = document.getElementById("exportHistoryBtn");
+             if (group.style.display === "none") {
+                 group.style.display = "flex";
+                 if (setHotBtn) setHotBtn.style.display = "inline-block";
+                 if (exportHistoryBtn) exportHistoryBtn.style.display = "inline-block";
+             } else {
+                 group.style.display = "none";
+             }
+        };
+    }
 
     setupQtySelectByLevel();
     updatePermissions();
