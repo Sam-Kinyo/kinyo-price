@@ -2,7 +2,7 @@
    認證模組 (Auth)
 ======================================================= */
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { onAuthStateChanged, signOut, signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+import { onAuthStateChanged, signOut, signInWithEmailAndPassword, signInWithCustomToken, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import { db, auth } from './firebase-init.js';
 import { state } from './state.js';
 import { setupQtySelectByLevel } from './search.js';
@@ -182,6 +182,7 @@ export function setupAuthListener() {
     await preloadProducts();
 
     // --- 擴充：解析 URL 參數，進行自動填入與搜尋觸發 ---
+    // (由於這段寫在 onAuthStateChanged 內，會確保在 auth_token 驗證完畢並重新觸發 Listener 後才執行，保障了權限已經載入完成)
     const urlParams = new URLSearchParams(window.location.search);
     const minParam = urlParams.get('min');
     const maxParam = urlParams.get('max');
@@ -204,7 +205,47 @@ export function setupAuthListener() {
         searchProducts();
         
         // 抹除 URL 參數，避免重整時重複觸發
+        // 注意：如果你需要保留 auth_token 測試，可以把這行註解掉，但為了正式營運安全，建議清除。
         window.history.replaceState({}, document.title, window.location.pathname);
     }
   });
+}
+
+/* =======================================================
+   SSO 外部登入攔截 (在腳本載入時優先執行)
+======================================================= */
+export function interceptSSOLogin() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('auth_token');
+    
+    if (token && token !== 'TOKEN_GENERATION_FAILED') {
+        console.log("偵測到 SSO Token，準備執行登入...");
+        // 預防性顯示 Loading
+        const loginOverlay = document.getElementById("loginOverlay");
+        if(loginOverlay) {
+            loginOverlay.style.display = "flex";
+            const errSpan = document.getElementById("loginError");
+            if(errSpan) {
+                 errSpan.style.display = "block";
+                 errSpan.style.color = "#3b82f6";
+                 errSpan.textContent = "⚙️ 正在驗證外部登入憑證...";
+            }
+        }
+        
+        signInWithCustomToken(auth, token)
+            .then(() => {
+                console.log("SSO 登入成功");
+            })
+            .catch(err => {
+                console.error("SSO 登入失敗", err);
+                if(loginOverlay) {
+                    const errSpan = document.getElementById("loginError");
+                    if(errSpan) {
+                         errSpan.style.display = "block";
+                         errSpan.style.color = "#ef4444";
+                         errSpan.textContent = "登入憑證無效或已過期，請重新索取連結";
+                    }
+                }
+            });
+    }
 }

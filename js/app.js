@@ -11,7 +11,7 @@ import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from
 import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js';
 import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js';
 import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore } from './import.js';
-import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions } from './auth.js';
+import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js';
 
 /* =======================================================
    DOM References
@@ -542,6 +542,7 @@ if(setHotBtn) {
 /* =======================================================
    初始化
 ======================================================= */
+interceptSSOLogin(); // 優先攔截 SSO Token，若成功驗證就會自動登入，然後才綁定後續 Listener
 setupLoginButton();
 setupLogoutButton();
 setupAuthListener();
