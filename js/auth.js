@@ -193,11 +193,14 @@ export function setupAuthListener() {
         if (minParam) document.getElementById("minPrice").value = minParam;
         if (maxParam) document.getElementById("maxPrice").value = maxParam;
         
-        // 為了確保 setupQtySelectByLevel() 生成的 options 已經確實存在並被瀏覽器繪製，使用 setTimeout 稍作延遲
-        setTimeout(() => {
-            if (qtyParam) {
-                const qtySelect = document.getElementById("qtySelect");
-                if (qtySelect) {
+        // 為了確保 setupQtySelectByLevel() 生成的 options 已經確實存在並被瀏覽器繪製，改用 setInterval 輪詢
+        const checkReadyInterval = setInterval(() => {
+            const qtySelect = document.getElementById("qtySelect");
+            // 由於動態生成的選項至少包含一個「不使用起訂量」，所以長度大於 1 代表權限資料已載入完成
+            if (qtySelect && qtySelect.options.length > 1) {
+                clearInterval(checkReadyInterval); // 條件達成，停止輪詢
+                
+                if (qtyParam) {
                     const targetQty = parseInt(qtyParam, 10);
                     let bestMatchValue = "";
                     
@@ -216,15 +219,15 @@ export function setupAuthListener() {
                         qtySelect.dispatchEvent(new Event('change', { bubbles: true }));
                     }
                 }
+                
+                // 觸發搜尋
+                searchProducts();
+                
+                // 抹除 URL 參數，避免重整時重複觸發
+                // 注意：如果你需要保留 auth_token 測試，可以把這行註解掉，但為了正式營運安全，建議清除。
+                window.history.replaceState({}, document.title, window.location.pathname);
             }
-            
-            // 觸發搜尋
-            searchProducts();
-            
-            // 抹除 URL 參數，避免重整時重複觸發
-            // 注意：如果你需要保留 auth_token 測試，可以把這行註解掉，但為了正式營運安全，建議清除。
-            window.history.replaceState({}, document.title, window.location.pathname);
-        }, 300); // 延遲 300 毫秒確保下拉選單初始化完成
+        }, 100); // 每 100 毫秒檢查一次
     }
   });
 }
