@@ -265,7 +265,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
             // 防禦性讀取庫存
             products = products.map(p => {
-                p.currentStock = Number(p.stock || p.QTY || p.quantity || p.Inventory || 0);
+                p.currentStock = Number(p.inventory || 0);
                 return p;
             });
 
