@@ -437,6 +437,17 @@ ${evalQty}個：${finalPrice}
 
             // 雙軌輸出：文字摘要清單 (Text Summary)
             if (products.length > 0 && (intentParams.min_budget !== null || intentParams.max_budget !== null)) {
+                try {
+                    const targetEmail = userEmail; 
+                    if (!targetEmail) throw new Error("找不到使用者的 Email 變數");
+                    
+                    const userRecord = await admin.auth().getUserByEmail(targetEmail);
+                    customToken = await admin.auth().createCustomToken(userRecord.uid);
+                    console.log("Token 生成成功:", customToken.substring(0, 15) + "...");
+                } catch (error) {
+                    console.error('SSO Token 生成失敗:', error.message);
+                }
+
                 const maxB = intentParams.max_budget !== null ? intentParams.max_budget : '無上限';
                 const minB = intentParams.min_budget !== null ? intentParams.min_budget : 0;
                 
