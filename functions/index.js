@@ -24,10 +24,7 @@ function normalizeKeyword(str) {
 }
 
 // --- Helper Functions ---
-function cleanModel(str) {
-    if (!str) return '';
-    return String(str).replace(/[-\s]/g, '').toUpperCase();
-}
+const normalize = (s) => String(s).replace(/[-\s]/g, '').toUpperCase().trim();
 
 function getImageUrl(modelName) {
   // 預設佔位圖片 (若查無圖片時顯示)
@@ -35,10 +32,10 @@ function getImageUrl(modelName) {
   if (!modelName) return fallbackUrl;
 
   // 1. 型號正規化 (去除連字號與空白，全轉大寫)
-  const targetModel = cleanModel(modelName);
+  const targetModel = normalize(modelName);
 
   // 2. 尋找匹配的商品
-  const foundItem = modelData.models.find(m => m.mainModel && cleanModel(m.mainModel) === targetModel);
+  const foundItem = modelData.models.find(m => m.mainModel && normalize(m.mainModel) === targetModel);
   if (!foundItem || !foundItem.mainImage) return fallbackUrl;
 
   // 3. 提取 Google Drive File ID
@@ -226,13 +223,13 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     const evalQty = quoteQty > 0 ? quoteQty : 50;
                     
                     try {
-                        const target = cleanModel(quoteModel);
-                        const productSnap = await db.collection('Products').where('is_active', '==', true).get();
-                        const productsArr = productSnap.docs.map(doc => doc.data());
-                        const p = productsArr.find(prod => cleanModel(prod.model) === target);
+                        const targetModel = normalize(quoteModel);
+                        const productSnap = await db.collection('Products').get();
+                        const allProducts = productSnap.docs.map(doc => doc.data());
+                        const p = allProducts.find(prod => normalize(prod.model) === targetModel);
 
                         if (!p) {
-                            console.warn(`[Debug] 搜尋目標: ${target}, 資料庫型號範例: ${productsArr.length > 0 ? productsArr[0].model : '無'}`);
+                            console.warn(`[Debug] 搜尋目標: ${targetModel}, 資料庫型號範例: ${allProducts.length > 0 ? allProducts[0].model : '無'}`);
                             await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '查無商品資料，無法報價。' }] });
                             continue;
                         }
