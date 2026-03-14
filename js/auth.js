@@ -194,10 +194,24 @@ export function setupAuthListener() {
         if (maxParam) document.getElementById("maxPrice").value = maxParam;
         if (qtyParam) {
             const qtySelect = document.getElementById("qtySelect");
-            // 確保該 option 存在 (權限足夠)
-            const optionExists = Array.from(qtySelect.options).some(opt => opt.value === String(qtyParam));
-            if (optionExists) {
-                qtySelect.value = qtyParam;
+            if (qtySelect) {
+                const targetQty = parseInt(qtyParam, 10);
+                let bestMatchValue = "";
+                
+                // 遍歷下拉選單的所有選項，找出「小於等於」目標數量的最大級距 (例如 700 應該配對到 500)
+                Array.from(qtySelect.options).forEach(option => {
+                    const optionValue = parseInt(option.value, 10);
+                    // 假設選項值是數字 (50, 100, 300, 500...)
+                    if (!isNaN(optionValue) && optionValue <= targetQty) {
+                        bestMatchValue = option.value;
+                    }
+                });
+
+                if (bestMatchValue) {
+                    qtySelect.value = bestMatchValue;
+                    // 強制觸發 change 事件，確保網頁框架捕捉到狀態改變
+                    qtySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                }
             }
         }
         
