@@ -193,7 +193,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 絕對限制：
 1. 你「不可以」直接回答使用者的問題。
 2. 你「不可以」幫使用者計算價格。
-3. 你「必須」回傳嚴格的 JSON 格式。
+3. 若使用者沒有給出具體的商品名稱（例如只說「東西」、「產品」、「推薦」或單純給預算），請將 keyword 參數設定為空字串 ""。
+4. 你「必須」回傳嚴格的 JSON 格式。
 使用者輸入内容：「${userText}」`;
 
                 const response = await ai.models.generateContent({
@@ -230,17 +231,19 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             console.log(`[過濾前] 總計取得有效商品數: ${products.length}`);
 
             // 過濾 keyword
-            if (intentParams.keyword) {
+            if (intentParams.keyword !== null && intentParams.keyword !== undefined) {
                 const rawKw = intentParams.keyword;
                 const kw = normalizeKeyword(rawKw).toLowerCase();
-                if (rawKw !== kw) {
-                    console.log(`[正規化] 關鍵字轉換: "${rawKw}" -> "${kw}"`);
+                const searchKw = kw || ""; // 確保轉為空字串
+
+                if (rawKw !== kw && searchKw !== "") {
+                    console.log(`[正規化] 關鍵字轉換: "${rawKw}" -> "${searchKw}"`);
                 }
                 
                 products = products.filter(p => {
                     const pName = normalizeKeyword(p.name || "").toLowerCase();
                     const pModel = normalizeKeyword(p.model || "").toLowerCase();
-                    return pName.includes(kw) || pModel.includes(kw);
+                    return searchKw === "" || pName.includes(searchKw) || pModel.includes(searchKw);
                 });
             }
 
