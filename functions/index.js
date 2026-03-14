@@ -448,9 +448,10 @@ ${evalQty}個：${finalPrice}
                 const minB = intentParams.min_budget !== null ? intentParams.min_budget : 0;
                 
                 const textList = products.slice(0, 15);
-                summaryText = `🔍 預算區間 $${minB} - $${maxB}\n共找到 ${products.length} 筆符合預算且庫存充足之商品：\n`;
+                summaryText = `🔍 預算區間 $${minB} - $${maxB}\n`;
+                summaryText += `共找到 ${products.length} 筆符合之商品 (依庫存排序)：\n\n`;
                 
-                textList.forEach((p, idx) => {
+                textList.forEach((p, index) => {
                     const cost = parseInt(p.cost) || 0;
                     const evalQty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : 50; 
                     let divisor = 0.73;
@@ -468,14 +469,16 @@ ${evalQty}個：${finalPrice}
                     }
                     const finalPrice = Math.ceil((cost / divisor) * 1.05);
 
-                    summaryText += `${idx + 1}. [${p.model}] ${p.name || '未命名'} - $${finalPrice} (庫存: ${p.currentStock})\n`;
+                    summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}\n   💰$${finalPrice} (庫存: ${p.currentStock})\n`;
                 });
 
-                if (customToken) {
-                    // 假設前端網址為 https://<YOUR_PROJECT>.web.app/system.html
-                    // 請視需求替換網域
-                    const ssoUrl = `https://kinyo-price.web.app/system.html?token=${customToken}&action=autoLogin`;
-                    summaryText += `\n>> [點我進入挑選看板](${ssoUrl}) <<`;
+                // 若有產出 Token 且商品總數超過轉盤限制，附上專屬看版連結
+                if (customToken && products.length > 9) {
+                    const ssoMin = intentParams.min_budget !== null ? intentParams.min_budget : 0;
+                    const ssoMax = intentParams.max_budget !== null ? intentParams.max_budget : '';
+                    const ssoQty = intentParams.target_qty || 0;
+                    const ssoUrl = `https://kinyo-gift.com/system?auth_token=${customToken}&min=${ssoMin}&max=${ssoMax}&qty=${ssoQty}&level=${level}`;
+                    summaryText += `\n>> [點我進入挑選看板] <<\n${ssoUrl}`;
                 }
             }
 
