@@ -166,6 +166,15 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 // ---------------------------------------------------------
                 console.log(`[Gemini] 開始解析輸入文字: "${userText}"`);
 
+                try {
+                    await lineClient.showLoadingAnimation({
+                        chatId: lineUid,
+                        loadingSeconds: 10
+                    });
+                } catch (loadErr) {
+                    console.error(`⚠️ [Line SDK 警告] showLoadingAnimation failed:`, loadErr);
+                }
+
                 const prompt = `你是一個專業的商品查詢意圖萃取機器人。
 主要任務：分析使用者的對話，並將其中的「關鍵字(商品名/型號)」、「數量」、「預算」、「庫存限制」萃取出來。
 絕對限制：
