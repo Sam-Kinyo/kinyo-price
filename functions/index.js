@@ -2,7 +2,7 @@ const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const { setGlobalDispatcher, ProxyAgent } = require('undici');
 const { line, messagingApi } = require('@line/bot-sdk');
-const { GoogleGenAI } = require('@google/genai');
+const { GoogleGenAI, Type, Schema } = require('@google/genai');
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -46,36 +46,36 @@ const getConfig = () => ({
     geminiApiKey: process.env.GEMINI_API_KEY
 });
 
-// 定義 Gemini Function Calling 結構限制
-const parseIntentTool = {
-    functionDeclarations: [
-        {
-            name: "parse_user_intent",
-            description: "解析使用者的商品搜尋與報價查詢意圖",
-            parameters: {
-                type: "OBJECT",
-                properties: {
-                    keyword: {
-                        type: "STRING",
-                        description: "使用者想要搜尋的商品型號或名稱 (例如：KPB-2990, 吹風機)。若無則為空。"
-                    },
-                    target_qty: {
-                        type: "INTEGER",
-                        description: "使用者預計購買的數量。純數字，無則為空。"
-                    },
-                    target_budget: {
-                        type: "INTEGER",
-                        description: "使用者指定的預算上限，純數字，無則為空。"
-                    },
-                    min_stock: {
-                        type: "INTEGER",
-                        description: "使用者要求的最低安全庫存量限制，純數字，無則為空。"
-                    }
-                },
-                required: []
-            }
+// 定義 Gemini JSON Schema 結構
+const intentSchema = {
+    type: Type.OBJECT,
+    properties: {
+        keyword: {
+            type: Type.STRING,
+            description: "使用者想要搜尋的商品型號或名稱 (例如：KPB-2990, 吹風機)。必填寫。"
+        },
+        target_qty: {
+            type: Type.INTEGER,
+            description: "使用者預計購買的數量。純數字，無則為 null",
+            nullable: true
+        },
+        min_budget: {
+            type: Type.INTEGER,
+            description: "使用者指定的預算下限或最低預算，純數字，無則為 null",
+            nullable: true
+        },
+        max_budget: {
+            type: Type.INTEGER,
+            description: "使用者指定的預算上限或最高預算，純數字，無則為 null",
+            nullable: true
+        },
+        min_stock: {
+            type: Type.INTEGER,
+            description: "使用者要求的最低安全庫存量限制，純數字，無則為 null",
+            nullable: true
         }
-    ]
+    },
+    required: ["keyword"]
 };
 
 exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req, res) => {
@@ -168,13 +168,14 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             let intentParams = {
                 keyword: simulatedKeyword || null,
                 target_qty: null,
-                target_budget: null,
+                min_budget: null,
+                max_budget: null,
                 min_stock: null
             };
 
             if (event.type === 'message') {
                 // ---------------------------------------------------------
-                // 模組 2：呼叫 Gemini 解析意圖 (Function Calling)
+                // 模組 2：呼叫 Gemini 解析意圖 (JSON Schema)
                 // ---------------------------------------------------------
                 console.log(`[Gemini] 開始解析輸入文字: "${userText}"`);
 
@@ -188,31 +189,30 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 }
 
                 const prompt = `你是一個專業的商品查詢意圖萃取機器人。
-主要任務：分析使用者的對話，並將其中的「關鍵字(商品名/型號)」、「數量」、「預算」、「庫存限制」萃取出來。
+主要任務：分析使用者的對話，並將其中的「關鍵字(商品名/型號)」、「數量」、「預算上限/下限」、「庫存限制」萃取出來。
 絕對限制：
 1. 你「不可以」直接回答使用者的問題。
 2. 你「不可以」幫使用者計算價格。
-3. 你「必須」使用提供的 Function/Tool 來回傳 JSON 格式的結果。如果找不到對應參數就留空。
+3. 你「必須」回傳嚴格的 JSON 格式。
 使用者輸入内容：「${userText}」`;
 
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash',
                     contents: prompt,
                     config: {
-                        tools: [parseIntentTool]
+                        responseMimeType: "application/json",
+                        responseSchema: intentSchema
                     }
                 });
 
-                const parts = response.candidates?.[0]?.content?.parts || [];
-                const functionCallPart = parts.find(p => p.functionCall);
-
-                if (functionCallPart && functionCallPart.functionCall) {
-                    const call = functionCallPart.functionCall;
-                    if (call.name === 'parse_user_intent') {
-                        intentParams = { ...intentParams, ...call.args };
+                try {
+                    const jsonText = response.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (jsonText) {
+                        const parsed = JSON.parse(jsonText);
+                        intentParams = { ...intentParams, ...parsed };
                     }
-                } else {
-                    console.log(`[Gemini Warn] 模型未呼叫 Function。`);
+                } catch (jsonErr) {
+                    console.error(`[Gemini Warn] JSON 解析失敗:`, jsonErr);
                 }
 
                 console.log(`🧠 [Gemini 解析結果]`, JSON.stringify(intentParams, null, 2));
@@ -255,14 +255,62 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 products = products.filter(p => parseInt(p.stock || 0) >= parseInt(intentParams.min_stock));
             }
 
-            // 過濾 target_budget
-            if (intentParams.target_budget !== undefined && intentParams.target_budget !== null) {
-                const budget = parseInt(intentParams.target_budget);
+            // 過濾預算 (Loose Budget Filter)
+            if (intentParams.min_budget !== null || intentParams.max_budget !== null) {
+                const maxB = intentParams.max_budget !== null ? parseInt(intentParams.max_budget) : Infinity;
+                const minB = intentParams.min_budget !== null ? parseInt(intentParams.min_budget) : 0;
+                
                 products = products.filter(p => {
                     const cost = parseInt(p.cost) || 0;
                     if (cost === 0) return false;
-                    const lowestPossiblePrice = calculatePrice(cost, 0.89); 
-                    return lowestPossiblePrice <= budget * 1.2; 
+
+                    const qty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : null;
+                    
+                    if (qty !== null) {
+                        // 情境 A: 有指定數量
+                        let exactDivisor = 0;
+                        if (level === 4) {
+                            if (qty >= 3000) exactDivisor = 0.89;
+                            else if (qty >= 1000) exactDivisor = 0.858;
+                            else if (qty >= 500) exactDivisor = 0.835;
+                            else if (qty >= 300) exactDivisor = 0.80;
+                            else if (qty >= 100) exactDivisor = 0.76;
+                            else exactDivisor = 0.73;
+                        } else if (level === 3) {
+                            if (qty >= 1000) exactDivisor = 0.858;
+                            else if (qty >= 500) exactDivisor = 0.835;
+                            else if (qty >= 300) exactDivisor = 0.80;
+                            else if (qty >= 100) exactDivisor = 0.76;
+                            else exactDivisor = 0.73;
+                        } else if (level === 2) {
+                            if (qty >= 300) exactDivisor = 0.80;
+                            else if (qty >= 100) exactDivisor = 0.76;
+                            else exactDivisor = 0.73;
+                        } else {
+                            if (qty >= 100) exactDivisor = 0.76;
+                            else exactDivisor = 0.73;
+                        }
+                        const exactPrice = calculatePrice(cost, exactDivisor);
+                        return exactPrice >= minB && exactPrice <= maxB;
+                    } else {
+                        // 情境 B: 無指定數量，寬鬆比對
+                        let highestPrice = 0; // 最貴的情況 (量最少)
+                        let lowestPrice = 0;  // 最便宜的情況 (量最多)
+                        
+                        // 統一最低起訂量為 50 個做為最高售價標準 (0.73)
+                        highestPrice = calculatePrice(cost, 0.73);
+                        
+                        // 依據 level 決定可用到的最極端低價 (最低售價標準)
+                        if (level === 4) lowestPrice = calculatePrice(cost, 0.89);
+                        else if (level === 3) lowestPrice = calculatePrice(cost, 0.858);
+                        else if (level === 2) lowestPrice = calculatePrice(cost, 0.80);
+                        else lowestPrice = calculatePrice(cost, 0.76); // level 1 最優是 100 個
+
+                        // 只要最便宜的情況低於最高預算，且最貴的情況高於最低預算，就放行
+                        if (maxB !== Infinity && lowestPrice > maxB) return false;
+                        if (minB !== 0 && highestPrice < minB) return false;
+                        return true;
+                    }
                 });
             }
 
