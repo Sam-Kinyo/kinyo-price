@@ -134,6 +134,9 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     shouldSkipSearch = true;
                     simulatedLevel = parseInt(params.get('value'), 10);
                     userText = "設定權限等級";
+                } else if (params.get('action') === 'get_text_quote') {
+                    shouldSkipSearch = true;
+                    userText = "產生單一文字報價";
                 } else {
                     continue;
                 }
@@ -213,6 +216,55 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             }
                         }]
                     });
+                } else if (params.get('action') === 'get_text_quote') {
+                    const quoteModel = decodeURIComponent(params.get('model'));
+                    const quoteQty = parseInt(params.get('qty'), 10) || 0;
+                    const evalQty = quoteQty > 0 ? quoteQty : 50;
+                    
+                    try {
+                        const productSnap = await db.collection('Products').where('model', '==', quoteModel).limit(1).get();
+                        if (productSnap.empty) {
+                            await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '查無商品資料，無法報價。' }] });
+                            continue;
+                        }
+                        
+                        const p = productSnap.docs[0].data();
+                        const cost = parseInt(p.cost) || 0;
+                        
+                        // 計算特定數量的單價
+                        let divisor = 0.73;
+                        if (level === 1) {
+                            divisor = evalQty >= 100 ? 0.76 : 0.73;
+                        } else if (level === 2) {
+                            if (evalQty >= 300) divisor = 0.80;
+                            else if (evalQty >= 100) divisor = 0.76;
+                            else divisor = 0.73;
+                        } else if (level >= 3) {
+                            if (evalQty >= 1000) divisor = 0.858;
+                            else if (evalQty >= 300) divisor = 0.80;
+                            else if (evalQty >= 100) divisor = 0.76;
+                            else divisor = 0.73;
+                        }
+                        
+                        const finalPrice = Math.ceil((cost / divisor) * 1.05);
+                        
+                        const textMsg = `📦 【KINYO 產品報價單】\n----------------------\n🔹 品名：${p.name || '未命名'}\n🔹 型號：${p.model || '無'}\n🔹 條碼：${p.internationalBarcode || '無'}\n\n✅ 報價內容：\n   - 數量：${evalQty} 個 ${quoteQty === 0 ? '(起訂量)' : ''}\n   - 單價：$${finalPrice} (含稅)\n   - 總計：$${finalPrice * evalQty} (含稅)\n\n🔗 商品資訊：${p.productUrl || '無'}\n----------------------\n✨ 以上報價均已包含營業稅。\n💡 提醒：因市場行情波動，本資訊僅供當下決策參考，最終交易條件請以正式採購單(PO)為準。`;
+
+                        let replyMsgOpt = { type: 'text', text: textMsg };
+                        if (realLevel === 4) {
+                            replyMsgOpt.quickReply = {
+                                items: [{ type: 'action', action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } }]
+                            };
+                        }
+
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [replyMsgOpt]
+                        });
+                        console.log(`✅ [文字報價] 已傳送單一數量報價給 ${userEmail} (型號: ${quoteModel}, 數量: ${evalQty})`);
+                    } catch (err) {
+                        console.error("文字報價發生錯誤", err);
+                    }
                 }
                 continue;
             }
@@ -563,6 +615,25 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             }
                         ]
                     }
+                };
+
+                // 加入產生文字報價的 Footer 按鈕
+                bubble.footer = {
+                    type: "box",
+                    layout: "vertical",
+                    spacing: "sm",
+                    contents: [
+                        {
+                            type: "button",
+                            style: "primary",
+                            height: "sm",
+                            action: {
+                                type: "postback",
+                                label: "產生文字報價",
+                                data: `action=get_text_quote&model=${encodeURIComponent(p.model || '')}&qty=${intentParams.target_qty || 0}`
+                            }
+                        }
+                    ]
                 };
 
                 return bubble;
