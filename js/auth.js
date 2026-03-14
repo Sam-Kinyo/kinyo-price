@@ -192,35 +192,39 @@ export function setupAuthListener() {
     if (hasAutoSearch) {
         if (minParam) document.getElementById("minPrice").value = minParam;
         if (maxParam) document.getElementById("maxPrice").value = maxParam;
-        if (qtyParam) {
-            const qtySelect = document.getElementById("qtySelect");
-            if (qtySelect) {
-                const targetQty = parseInt(qtyParam, 10);
-                let bestMatchValue = "";
-                
-                // 遍歷下拉選單的所有選項，找出「小於等於」目標數量的最大級距 (例如 700 應該配對到 500)
-                Array.from(qtySelect.options).forEach(option => {
-                    const optionValue = parseInt(option.value, 10);
-                    // 假設選項值是數字 (50, 100, 300, 500...)
-                    if (!isNaN(optionValue) && optionValue <= targetQty) {
-                        bestMatchValue = option.value;
-                    }
-                });
+        
+        // 為了確保 setupQtySelectByLevel() 生成的 options 已經確實存在並被瀏覽器繪製，使用 setTimeout 稍作延遲
+        setTimeout(() => {
+            if (qtyParam) {
+                const qtySelect = document.getElementById("qtySelect");
+                if (qtySelect) {
+                    const targetQty = parseInt(qtyParam, 10);
+                    let bestMatchValue = "";
+                    
+                    // 遍歷下拉選單的所有選項，找出「小於等於」目標數量的最大級距 (例如 700 應該配對到 500)
+                    Array.from(qtySelect.options).forEach(option => {
+                        const optionValue = parseInt(option.value, 10);
+                        // 假設選項值是數字 (50, 100, 300, 500...)
+                        if (!isNaN(optionValue) && optionValue <= targetQty) {
+                            bestMatchValue = option.value;
+                        }
+                    });
 
-                if (bestMatchValue) {
-                    qtySelect.value = bestMatchValue;
-                    // 強制觸發 change 事件，確保網頁框架捕捉到狀態改變
-                    qtySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    if (bestMatchValue) {
+                        qtySelect.value = bestMatchValue;
+                        // 強制觸發 change 事件，確保網頁框架捕捉到狀態改變
+                        qtySelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 }
             }
-        }
-        
-        // 觸發搜尋
-        searchProducts();
-        
-        // 抹除 URL 參數，避免重整時重複觸發
-        // 注意：如果你需要保留 auth_token 測試，可以把這行註解掉，但為了正式營運安全，建議清除。
-        window.history.replaceState({}, document.title, window.location.pathname);
+            
+            // 觸發搜尋
+            searchProducts();
+            
+            // 抹除 URL 參數，避免重整時重複觸發
+            // 注意：如果你需要保留 auth_token 測試，可以把這行註解掉，但為了正式營運安全，建議清除。
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }, 300); // 延遲 300 毫秒確保下拉選單初始化完成
     }
   });
 }
