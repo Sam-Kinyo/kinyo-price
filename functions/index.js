@@ -404,12 +404,7 @@ ${evalQty}個：${finalPrice}
                     const cost = parseInt(p.cost) || 0;
                     if (cost === 0) return false;
 
-                    // 1. 庫存防線
-                    if (qty !== null && p.currentStock < qty) {
-                        return false; 
-                    }
-
-                    // 2. 計算對應單價 (finalPrice)
+                    // 計算對應單價 (finalPrice)
                     let evalQty = qty !== null ? qty : 50; 
                     let divisor = 0.73;
                     if (level === 1) {
@@ -426,8 +421,9 @@ ${evalQty}個：${finalPrice}
                     }
                     
                     const finalPrice = Math.ceil((cost / divisor) * 1.05);
+                    p.finalPrice = finalPrice; // 存入物件供後續渲染
 
-                    // 3. 嚴格預算防線
+                    // 嚴格預算防線
                     return finalPrice >= minB && finalPrice <= maxB;
                 });
             }
@@ -460,27 +456,10 @@ ${evalQty}個：${finalPrice}
 
                 // 3. 執行迴圈組裝字串
                 textList.forEach((p, index) => {
-                    const cost = parseInt(p.cost) || 0;
-                    const evalQty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : 50; 
-                    let divisor = 0.73;
-                    if (level === 1) {
-                        divisor = evalQty >= 100 ? 0.76 : 0.73;
-                    } else if (level === 2) {
-                        if (evalQty >= 300) divisor = 0.80;
-                        else if (evalQty >= 100) divisor = 0.76;
-                        else divisor = 0.73;
-                    } else if (level >= 3) {
-                        if (evalQty >= 1000) divisor = 0.858;
-                        else if (evalQty >= 300) divisor = 0.80;
-                        else if (evalQty >= 100) divisor = 0.76;
-                        else divisor = 0.73;
-                    }
-                    const finalPrice = Math.ceil((cost / divisor) * 1.05);
-
                     // 判斷庫存狀態，若小於等於 0 則強制加上標籤
                     const stockTag = p.currentStock <= 0 ? " ⚠️[缺貨]" : "";
 
-                    summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}${stockTag}\n   💰$${finalPrice} (庫存: ${p.currentStock})\n`;
+                    summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}${stockTag}\n   💰$${p.finalPrice || 0} (庫存: ${p.currentStock})\n`;
                 });
                 
                 // 註解：我們將純文字合併在 Flex Message Array 後端發送 `messages.push({ type: 'text', text: summaryText.trim() });` 
