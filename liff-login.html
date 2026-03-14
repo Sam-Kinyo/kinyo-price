@@ -290,10 +290,10 @@
             bindBtn.textContent = "立即綁定";
             
             // Firebase 錯誤代碼處理
-            let errMsg = "未知的系統錯誤，請聯絡管理員確認。";
+            let errMsg = `系統錯誤 (${error.code || '未知'})：${error.message || error}`;
             if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
                 errMsg = "⚠️ 帳號或密碼錯誤，請重新確認！";
-            } else if (error.code.includes('network')) {
+            } else if (error.code && error.code.includes('network')) {
                 errMsg = "⚠️ 網路連線錯誤，請檢查您的網路狀態。";
             }
             
