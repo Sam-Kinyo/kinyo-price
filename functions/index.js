@@ -126,6 +126,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             let simulatedLevel = null;
             let simulatedKeyword = null;
             let summaryText = ""; // 用於暫停文字摘要，延後到最後與卡片一起發送
+            let customToken = ''; // 提升作用域供底部 QuickReply 存取
 
             let shouldSkipSearch = false; // 用於標記是否純切換指令，跳過後面的商品搜尋
 
@@ -436,21 +437,6 @@ ${evalQty}個：${finalPrice}
 
             // 雙軌輸出：文字摘要清單 (Text Summary)
             if (products.length > 0 && (intentParams.min_budget !== null || intentParams.max_budget !== null)) {
-                let customToken = '';
-                try {
-                    const userRecord = await admin.auth().getUserByEmail(userEmail); 
-                    customToken = await admin.auth().createCustomToken(userRecord.uid);
-                } catch (error) {
-                    console.error('SSO Token 生成失敗:', error);
-                }
-
-                const maxB = intentParams.max_budget !== null ? intentParams.max_budget : '無上限';
-                const minB = intentParams.min_budget !== null ? intentParams.min_budget : 0;
-                
-                const textList = products.slice(0, 15);
-                summaryText = `🔍 預算區間 $${minB} - $${maxB}\n`;
-                summaryText += `共找到 ${products.length} 筆符合之商品 (依庫存排序)：\n\n`;
-                
                 textList.forEach((p, index) => {
                     const cost = parseInt(p.cost) || 0;
                     const evalQty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : 50; 
@@ -471,15 +457,6 @@ ${evalQty}個：${finalPrice}
 
                     summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}\n   💰$${finalPrice} (庫存: ${p.currentStock})\n`;
                 });
-
-                // 若有產出 Token 且商品總數超過轉盤限制，附上專屬看版連結
-                if (customToken && products.length > 9) {
-                    const ssoMin = intentParams.min_budget !== null ? intentParams.min_budget : 0;
-                    const ssoMax = intentParams.max_budget !== null ? intentParams.max_budget : '';
-                    const ssoQty = intentParams.target_qty || 0;
-                    const ssoUrl = `https://kinyo-gift.com/system?auth_token=${customToken}&min=${ssoMin}&max=${ssoMax}&qty=${ssoQty}&level=${level}`;
-                    summaryText += `\n>> [點我進入挑選看板] <<\n${ssoUrl}`;
-                }
             }
 
             // --- 擴充：處理「圖庫索取」意圖分流 ---
@@ -746,13 +723,38 @@ ${evalQty}個：${finalPrice}
                 }
             };
 
-            // 全局 Quick Reply 掛載 (僅限 真實 Level 4 使用者)
+            // 準備 Quick Reply 基礎結構 (空陣列)
+            const quickReplyItems = [];
+
+            // 全局切換視角掛載 (僅限 真實 Level 4 使用者)
             if (realLevel === 4) {
-                flexMessageObj.quickReply = {
-                    items: [
-                        { type: 'action', action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } }
-                    ]
-                };
+                quickReplyItems.push({ 
+                    type: 'action', 
+                    action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } 
+                });
+            }
+
+            // --- 擴展：若商品總數大於 9 筆，且生成 Token 成功，加入進入大看板的專屬按鈕 ---
+            if (products.length > 9 && customToken) {
+                const ssoMin = intentParams.min_budget !== null ? intentParams.min_budget : 0;
+                const ssoMax = intentParams.max_budget !== null ? intentParams.max_budget : '';
+                const ssoQty = intentParams.target_qty || 0;
+                const ssoUrl = `https://kinyo-gift.com/system?auth_token=${customToken}&min=${ssoMin}&max=${ssoMax}&qty=${ssoQty}&level=${level}`;
+                
+                // 安插在陣列開頭，讓使用者最先看到
+                quickReplyItems.unshift({
+                    type: "action",
+                    action: {
+                        type: "uri",
+                        label: "✨ 進入大看板挑選",
+                        uri: ssoUrl
+                    }
+                });
+            }
+
+            // 若最終有需要掛載的 Quick Reply，塞進 Flex Message 根目錄
+            if (quickReplyItems.length > 0) {
+                flexMessageObj.quickReply = { items: quickReplyItems };
             }
 
             const messages = [];
