@@ -24,17 +24,21 @@ function normalizeKeyword(str) {
 }
 
 // --- Helper Functions ---
+function cleanModel(str) {
+    if (!str) return '';
+    return String(str).replace(/[-\s]/g, '').toUpperCase();
+}
+
 function getImageUrl(modelName) {
   // 預設佔位圖片 (若查無圖片時顯示)
   const fallbackUrl = "https://images.weserv.nl/?url=raw.githubusercontent.com/firebase/firebase-ios-sdk/master/Firebase/Messaging/Logo/fcm_logo.png&w=400"; 
   if (!modelName) return fallbackUrl;
 
-  // 1. 型號正規化 (去除連字號與空白，全轉小寫)
-  const normalize = (str) => String(str).replace(/[-\s]/g, '').toLowerCase();
-  const targetModel = normalize(modelName);
+  // 1. 型號正規化 (去除連字號與空白，全轉大寫)
+  const targetModel = cleanModel(modelName);
 
   // 2. 尋找匹配的商品
-  const foundItem = modelData.models.find(m => m.mainModel && normalize(m.mainModel) === targetModel);
+  const foundItem = modelData.models.find(m => m.mainModel && cleanModel(m.mainModel) === targetModel);
   if (!foundItem || !foundItem.mainImage) return fallbackUrl;
 
   // 3. 提取 Google Drive File ID
@@ -222,13 +226,17 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     const evalQty = quoteQty > 0 ? quoteQty : 50;
                     
                     try {
-                        const productSnap = await db.collection('Products').where('model', '==', quoteModel).limit(1).get();
-                        if (productSnap.empty) {
+                        const target = cleanModel(quoteModel);
+                        const productSnap = await db.collection('Products').where('is_active', '==', true).get();
+                        const productsArr = productSnap.docs.map(doc => doc.data());
+                        const p = productsArr.find(prod => cleanModel(prod.model) === target);
+
+                        if (!p) {
+                            console.warn(`[Debug] 搜尋目標: ${target}, 資料庫型號範例: ${productsArr.length > 0 ? productsArr[0].model : '無'}`);
                             await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '查無商品資料，無法報價。' }] });
                             continue;
                         }
                         
-                        const p = productSnap.docs[0].data();
                         const cost = parseInt(p.cost) || 0;
                         
                         // 計算特定數量的單價
