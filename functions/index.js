@@ -748,12 +748,15 @@ ${evalQty}個：${finalPrice}
                 });
             }
 
-            // --- 擴展：若商品總數大於 9 筆，且生成 Token 成功，加入進入大看板的專屬按鈕 ---
-            if (products.length > 9 && customToken) {
+            // --- 擴展：若商品總數大於 9 筆，加入進入大看板的專屬按鈕 ---
+            if (products.length > 9) {
                 const ssoMin = intentParams.min_budget !== null ? intentParams.min_budget : 0;
                 const ssoMax = intentParams.max_budget !== null ? intentParams.max_budget : '';
                 const ssoQty = intentParams.target_qty || 0;
-                const ssoUrl = `https://kinyo-gift.com/system?auth_token=${customToken}&min=${ssoMin}&max=${ssoMax}&qty=${ssoQty}&level=${level}`;
+                
+                // 如果 customToken 是空的，就在網址塞入 ERROR 讓我們知道它失敗了
+                const safeToken = customToken || 'TOKEN_GENERATION_FAILED';
+                const ssoUrl = `https://kinyo-gift.com/system?auth_token=${safeToken}&min=${ssoMin}&max=${ssoMax}&qty=${ssoQty}&level=${level}`;
                 
                 // 安插在陣列開頭，讓使用者最先看到
                 quickReplyItems.unshift({
