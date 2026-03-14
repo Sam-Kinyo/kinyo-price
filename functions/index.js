@@ -437,6 +437,17 @@ ${evalQty}個：${finalPrice}
 
             // 雙軌輸出：文字摘要清單 (Text Summary)
             if (products.length > 0 && (intentParams.min_budget !== null || intentParams.max_budget !== null)) {
+                const maxB = intentParams.max_budget !== null ? intentParams.max_budget : '無上限';
+                const minB = intentParams.min_budget !== null ? intentParams.min_budget : 0;
+                
+                // 1. 初始化摘要字串
+                summaryText = `🔍 預算區間 $${minB} - $${maxB}\n`;
+                summaryText += `共找到 ${products.length} 筆符合之商品 (依庫存排序)：\n\n`;
+
+                // 2. 宣告 textList 變數 (截取前 15 筆)
+                const textList = products.slice(0, 15);
+
+                // 3. 執行迴圈組裝字串
                 textList.forEach((p, index) => {
                     const cost = parseInt(p.cost) || 0;
                     const evalQty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : 50; 
@@ -457,6 +468,9 @@ ${evalQty}個：${finalPrice}
 
                     summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}\n   💰$${finalPrice} (庫存: ${p.currentStock})\n`;
                 });
+                
+                // 註解：我們將純文字合併在 Flex Message Array 後端發送 `messages.push({ type: 'text', text: summaryText.trim() });` 
+                // 若在這裡直接送出 client.replyMessage()，replyToken 將會遭到消耗，導致稍後的卡片傳遞失敗 (LINE SDK: Invalid replyToken)
             }
 
             // --- 擴充：處理「圖庫索取」意圖分流 ---
