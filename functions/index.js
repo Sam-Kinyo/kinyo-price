@@ -479,6 +479,14 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             },
                             {
                                 type: "text",
+                                text: `條碼: ${p.internationalBarcode || '無'}`,
+                                size: "sm",
+                                color: "#aaaaaa",
+                                flex: 0,
+                                wrap: true
+                            },
+                            {
+                                type: "text",
                                 text: stockText,
                                 size: "sm",
                                 color: "#aaaaaa",
