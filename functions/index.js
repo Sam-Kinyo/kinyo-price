@@ -441,7 +441,12 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 }
 
                 const imgUrl = getImageUrl(p.model);
-                const targetUrl = p.productUrl || "https://www.kinyo.tw/";
+                
+                // 嚴格校驗 URL 格式，若不合法則強迫使用預設
+                let targetUrl = "https://www.kinyo.tw/";
+                if (p.productUrl && typeof p.productUrl === 'string' && p.productUrl.startsWith('http')) {
+                    targetUrl = p.productUrl;
+                }
                 
                 const bubble = {
                     type: "bubble",
@@ -525,6 +530,11 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     }
                 });
             }
+
+            // --- 日誌強化：紀錄發送前的完整 Payload ---
+            console.log("=== Final Flex Message Payload ===");
+            console.log(JSON.stringify(messages, null, 2));
+            console.log("==================================");
 
             try {
                 await lineClient.replyMessage({
