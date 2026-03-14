@@ -253,8 +253,14 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         
                         const finalPrice = Math.ceil((cost / divisor) * 1.05);
                         
-                        const textMsg = `📦 【KINYO 產品報價單】\n----------------------\n🔹 品名：${p.name || '未命名'}\n🔹 型號：${p.model || '無'}\n🔹 條碼：${p.internationalBarcode || '無'}\n\n✅ 報價內容：\n   - 數量：${evalQty} 個 ${quoteQty === 0 ? '(起訂量)' : ''}\n   - 單價：$${finalPrice} (含稅)\n   - 總計：$${finalPrice * evalQty} (含稅)\n\n🔗 商品資訊：${p.productUrl || '無'}\n----------------------\n✨ 以上報價均已包含營業稅。\n💡 提醒：因市場行情波動，本資訊僅供當下決策參考，最終交易條件請以正式採購單(PO)為準。`;
+                        const textMsg = `【${p.model}】${p.name || '未命名'}
+賣場售價：${p.marketPrice || '未提供'}
+末售價格：${p.minPrice || '未提供'}
+--------------------
+採購價格：
+${evalQty}個：${finalPrice}
 
+商品連結：${p.productUrl || '無'}`;
                         let replyMsgOpt = { type: 'text', text: textMsg };
                         if (realLevel === 4) {
                             replyMsgOpt.quickReply = {
