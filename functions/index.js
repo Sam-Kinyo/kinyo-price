@@ -84,9 +84,13 @@ const intentSchema = {
             type: Type.INTEGER,
             description: "使用者要求的最低安全庫存量限制，純數字，無則為 null",
             nullable: true
+        },
+        request_image_links: {
+            type: Type.BOOLEAN,
+            description: "若使用者輸入中包含「大圖」、「網路圖」、「照片」、「圖片」、「素材」等強烈索取圖庫連結的語氣，請設為 true，否則為 false。"
         }
     },
-    required: ["keyword"]
+    required: ["keyword", "request_image_links"]
 };
 
 exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req, res) => {
@@ -121,6 +125,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             const replyToken = event.replyToken;
             let simulatedLevel = null;
             let simulatedKeyword = null;
+            let summaryText = ""; // 用於暫停文字摘要，延後到最後與卡片一起發送
 
             let shouldSkipSearch = false; // 用於標記是否純切換指令，跳過後面的商品搜尋
 
@@ -388,63 +393,110 @@ ${evalQty}個：${finalPrice}
                 products = products.filter(p => p.currentStock >= parseInt(intentParams.min_stock));
             }
 
-            // 過濾預算 (Loose Budget Filter)
-            if (intentParams.min_budget !== null || intentParams.max_budget !== null) {
+            // --- 嚴格預算與庫存過濾 ---
+            if (intentParams.min_budget !== null || intentParams.max_budget !== null || intentParams.target_qty !== null) {
                 const maxB = intentParams.max_budget !== null ? parseInt(intentParams.max_budget) : Infinity;
                 const minB = intentParams.min_budget !== null ? parseInt(intentParams.min_budget) : 0;
+                const qty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : null;
                 
                 products = products.filter(p => {
                     const cost = parseInt(p.cost) || 0;
                     if (cost === 0) return false;
 
-                    const qty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : null;
-                    
-                    if (qty !== null) {
-                        // 情境 A: 有指定數量
-                        let exactDivisor = 0;
-                        if (level === 4) {
-                            if (qty >= 3000) exactDivisor = 0.89;
-                            else if (qty >= 1000) exactDivisor = 0.858;
-                            else if (qty >= 500) exactDivisor = 0.835;
-                            else if (qty >= 300) exactDivisor = 0.80;
-                            else if (qty >= 100) exactDivisor = 0.76;
-                            else exactDivisor = 0.73;
-                        } else if (level === 3) {
-                            if (qty >= 1000) exactDivisor = 0.858;
-                            else if (qty >= 500) exactDivisor = 0.835;
-                            else if (qty >= 300) exactDivisor = 0.80;
-                            else if (qty >= 100) exactDivisor = 0.76;
-                            else exactDivisor = 0.73;
-                        } else if (level === 2) {
-                            if (qty >= 300) exactDivisor = 0.80;
-                            else if (qty >= 100) exactDivisor = 0.76;
-                            else exactDivisor = 0.73;
-                        } else {
-                            if (qty >= 100) exactDivisor = 0.76;
-                            else exactDivisor = 0.73;
-                        }
-                        const exactPrice = calculatePrice(cost, exactDivisor);
-                        return exactPrice >= minB && exactPrice <= maxB;
-                    } else {
-                        // 情境 B: 無指定數量，寬鬆比對
-                        let highestPrice = 0; // 最貴的情況 (量最少)
-                        let lowestPrice = 0;  // 最便宜的情況 (量最多)
-                        
-                        // 統一最低起訂量為 50 個做為最高售價標準 (0.73)
-                        highestPrice = calculatePrice(cost, 0.73);
-                        
-                        // 依據 level 決定可用到的最極端低價 (最低售價標準)
-                        if (level === 4) lowestPrice = calculatePrice(cost, 0.89);
-                        else if (level === 3) lowestPrice = calculatePrice(cost, 0.858);
-                        else if (level === 2) lowestPrice = calculatePrice(cost, 0.80);
-                        else lowestPrice = calculatePrice(cost, 0.76); // level 1 最優是 100 個
-
-                        // 只要最便宜的情況低於最高預算，且最貴的情況高於最低預算，就放行
-                        if (maxB !== Infinity && lowestPrice > maxB) return false;
-                        if (minB !== 0 && highestPrice < minB) return false;
-                        return true;
+                    // 1. 庫存防線
+                    if (qty !== null && p.currentStock < qty) {
+                        return false; 
                     }
+
+                    // 2. 計算對應單價 (finalPrice)
+                    let evalQty = qty !== null ? qty : 50; 
+                    let divisor = 0.73;
+                    if (level === 1) {
+                        divisor = evalQty >= 100 ? 0.76 : 0.73;
+                    } else if (level === 2) {
+                        if (evalQty >= 300) divisor = 0.80;
+                        else if (evalQty >= 100) divisor = 0.76;
+                        else divisor = 0.73;
+                    } else if (level >= 3) {
+                        if (evalQty >= 1000) divisor = 0.858;
+                        else if (evalQty >= 300) divisor = 0.80;
+                        else if (evalQty >= 100) divisor = 0.76;
+                        else divisor = 0.73;
+                    }
+                    
+                    const finalPrice = Math.ceil((cost / divisor) * 1.05);
+
+                    // 3. 嚴格預算防線
+                    return finalPrice >= minB && finalPrice <= maxB;
                 });
+            }
+
+            // 權重排序: 庫存由高至低
+            products.sort((a, b) => b.currentStock - a.currentStock);
+
+            // 雙軌輸出：文字摘要清單 (Text Summary)
+            if (products.length > 0 && (intentParams.min_budget !== null || intentParams.max_budget !== null)) {
+                let customToken = '';
+                try {
+                    const userRecord = await admin.auth().getUserByEmail(userEmail); 
+                    customToken = await admin.auth().createCustomToken(userRecord.uid);
+                } catch (error) {
+                    console.error('SSO Token 生成失敗:', error);
+                }
+
+                const maxB = intentParams.max_budget !== null ? intentParams.max_budget : '無上限';
+                const minB = intentParams.min_budget !== null ? intentParams.min_budget : 0;
+                
+                const textList = products.slice(0, 15);
+                summaryText = `🔍 預算區間 $${minB} - $${maxB}\n共找到 ${products.length} 筆符合預算且庫存充足之商品：\n`;
+                
+                textList.forEach((p, idx) => {
+                    const cost = parseInt(p.cost) || 0;
+                    const evalQty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : 50; 
+                    let divisor = 0.73;
+                    if (level === 1) {
+                        divisor = evalQty >= 100 ? 0.76 : 0.73;
+                    } else if (level === 2) {
+                        if (evalQty >= 300) divisor = 0.80;
+                        else if (evalQty >= 100) divisor = 0.76;
+                        else divisor = 0.73;
+                    } else if (level >= 3) {
+                        if (evalQty >= 1000) divisor = 0.858;
+                        else if (evalQty >= 300) divisor = 0.80;
+                        else if (evalQty >= 100) divisor = 0.76;
+                        else divisor = 0.73;
+                    }
+                    const finalPrice = Math.ceil((cost / divisor) * 1.05);
+
+                    summaryText += `${idx + 1}. [${p.model}] ${p.name || '未命名'} - $${finalPrice} (庫存: ${p.currentStock})\n`;
+                });
+
+                if (customToken) {
+                    // 假設前端網址為 https://<YOUR_PROJECT>.web.app/system.html
+                    // 請視需求替換網域
+                    const ssoUrl = `https://kinyo-price.web.app/system.html?token=${customToken}&action=autoLogin`;
+                    summaryText += `\n>> [點我進入挑選看板](${ssoUrl}) <<`;
+                }
+            }
+
+            // --- 擴充：處理「圖庫索取」意圖分流 ---
+            if (intentParams.request_image_links && products.length > 0) {
+                const product = products[0]; // 取精準度最高的第一筆
+                const targetModelNorm = normalize(product.model);
+                
+                // 查找 modelData.json 內的連結
+                const imageInfo = modelData.models.find(m => normalize(m.mainModel) === targetModelNorm);
+                const folderUrl = imageInfo && imageInfo.folderUrl ? imageInfo.folderUrl : '未提供';
+                const netFolderUrl = imageInfo && imageInfo.netFolderUrl ? imageInfo.netFolderUrl : '未提供';
+
+                const imageReplyText = `【${product.model}】圖庫連結\n📁 商品大圖：${folderUrl}\n📁 網路素材：${netFolderUrl}`;
+
+                await lineClient.replyMessage({
+                    replyToken: replyToken,
+                    messages: [{ type: 'text', text: imageReplyText }]
+                });
+                console.log(`✅ [圖庫索取] 已傳送圖庫連結給 ${userEmail} (型號: ${product.model})`);
+                continue; // 中斷後續的 Flex Message 報價流程
             }
 
             // Base Model 聚合邏輯 (SPU Grouping)
@@ -700,7 +752,12 @@ ${evalQty}個：${finalPrice}
                 };
             }
 
-            const messages = [flexMessageObj];
+            const messages = [];
+            // 若有文字摘要，先推送在陣列最前端
+            if (summaryText !== "") {
+                messages.push({ type: 'text', text: summaryText.trim() });
+            }
+            messages.push(flexMessageObj);
 
             // --- 日誌強化：紀錄發送前的完整 Payload ---
             console.log("=== Final Flex Message Payload ===");
