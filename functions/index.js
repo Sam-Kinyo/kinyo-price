@@ -206,6 +206,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 .map(doc => ({ id: doc.id, ...doc.data() }))
                 .filter(p => !p.status || p.status === 'active'); // 相容可能沒有 status 的舊資料
 
+            console.log(`[過濾前] 總計取得有效商品數: ${products.length}`);
+
             // 過濾 keyword
             if (intentParams.keyword) {
                 const kw = intentParams.keyword.toLowerCase();
@@ -233,12 +235,22 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
             // 最多取 10 筆符合 Carousel
             products = products.slice(0, 10);
+            
+            console.log(`[過濾後] 符合條件並送到 Carousel 的商品數: ${products.length}`);
 
             if (products.length === 0) {
-                await lineClient.replyMessage({
-                    replyToken: replyToken,
-                    messages: [{ type: 'text', text: '抱歉，依照您的條件找不到對應的商品。' }]
-                });
+                console.log(`[結果] 找不到對應的商品，準備回覆 Not Found 訊息。`);
+                try {
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{ type: 'text', text: '抱歉，依照您的條件找不到對應的商品。' }]
+                    });
+                } catch (err) {
+                    console.error(`❌ [Line SDK 錯誤] NotFound replyMessage failed:`, err);
+                    if (err.originalError && err.originalError.response && err.originalError.response.data) {
+                        console.error(`❌ [Line API 詳細錯誤]`, JSON.stringify(err.originalError.response.data, null, 2));
+                    }
+                }
                 continue;
             }
 
@@ -370,15 +382,29 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 });
             }
 
-            await lineClient.replyMessage({
-                replyToken: replyToken,
-                messages: messages
-            });
+            try {
+                await lineClient.replyMessage({
+                    replyToken: replyToken,
+                    messages: messages
+                });
+                console.log(`✅ [回覆成功] 已發送 ${products.length} 筆商品與 1 個查價 Carousel.`);
+            } catch (err) {
+                console.error(`❌ [Line SDK 錯誤] replyMessage failed:`, err);
+                if (err.originalError && err.originalError.response && err.originalError.response.data) {
+                    console.error(`❌ [Line API 詳細錯誤]`, JSON.stringify(err.originalError.response.data, null, 2));
+                }
+                if (err.response && err.response.data) {
+                    console.error(`❌ [Line API 詳細錯誤 (Axios)]`, JSON.stringify(err.response.data, null, 2));
+                }
+            }
         }
 
         res.status(200).send('OK');
     } catch (e) {
-        console.error('Webhook 執行發生錯誤:', e);
+        console.error('Webhook 執行發生整體錯誤:', e);
+        if (e.originalError && e.originalError.response && e.originalError.response.data) {
+            console.error(`❌ [Line API 詳細錯誤 (Top Level)]`, JSON.stringify(e.originalError.response.data, null, 2));
+        }
         res.status(500).send('Internal Server Error');
     }
 });
