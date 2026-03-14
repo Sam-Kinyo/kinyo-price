@@ -226,7 +226,16 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const targetModel = normalize(quoteModel);
                         const productSnap = await db.collection('Products').get();
                         const allProducts = productSnap.docs.map(doc => doc.data());
-                        const p = allProducts.find(prod => normalize(prod.model) === targetModel);
+                        
+                        // 尋找資料庫中「型號」或「品名」包含該主型號的任一商品
+                        const p = allProducts.find(prod => {
+                            if (!prod) return false;
+                            const dbModelNorm = prod.model ? normalize(prod.model) : "";
+                            const dbNameNorm = prod.name ? normalize(prod.name) : "";
+                            
+                            // 只要正規化後的型號或品名「包含」目標字串，立刻命中
+                            return dbModelNorm.includes(targetModel) || dbNameNorm.includes(targetModel);
+                        });
 
                         if (!p) {
                             console.warn(`[Debug] 搜尋目標: ${targetModel}, 資料庫型號範例: ${allProducts.length > 0 ? allProducts[0].model : '無'}`);
