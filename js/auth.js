@@ -6,7 +6,7 @@ import { onAuthStateChanged, signOut, signInWithEmailAndPassword, setPersistence
 import { db, auth } from './firebase-init.js';
 import { state } from './state.js';
 import { setupQtySelectByLevel } from './search.js';
-import { updateUserDisplay } from './search.js';
+import { updateUserDisplay, searchProducts } from './search.js';
 import { preloadDriveModelData, preloadProducts } from './data.js';
 
 /* 權限更新 */
@@ -180,5 +180,31 @@ export function setupAuthListener() {
 
     await preloadDriveModelData();
     await preloadProducts();
+
+    // --- 擴充：解析 URL 參數，進行自動填入與搜尋觸發 ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const minParam = urlParams.get('min');
+    const maxParam = urlParams.get('max');
+    const qtyParam = urlParams.get('qty');
+    const hasAutoSearch = minParam !== null || maxParam !== null || qtyParam !== null;
+
+    if (hasAutoSearch) {
+        if (minParam) document.getElementById("minPrice").value = minParam;
+        if (maxParam) document.getElementById("maxPrice").value = maxParam;
+        if (qtyParam) {
+            const qtySelect = document.getElementById("qtySelect");
+            // 確保該 option 存在 (權限足夠)
+            const optionExists = Array.from(qtySelect.options).some(opt => opt.value === String(qtyParam));
+            if (optionExists) {
+                qtySelect.value = qtyParam;
+            }
+        }
+        
+        // 觸發搜尋
+        searchProducts();
+        
+        // 抹除 URL 參數，避免重整時重複觸發
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
   });
 }
