@@ -11,6 +11,18 @@ const db = admin.firestore();
 // 根據 Firebase Functions v3+ 官方規範，.env 檔案的變數會在中介層自動掛載進 process.env
 const modelData = require('./modelData.json');
 
+// --- 全域同義詞字典檔 ---
+const synonymDict = { "藍芽": "藍牙", "捕蚊拍": "電蚊拍", "台": "臺" };
+
+function normalizeKeyword(str) {
+    if (!str) return str;
+    let normalized = String(str);
+    for (const [key, value] of Object.entries(synonymDict)) {
+        normalized = normalized.split(key).join(value);
+    }
+    return normalized;
+}
+
 // --- Helper Functions ---
 function getImageUrl(model) {
     if (!model) return 'https://via.placeholder.com/400?text=No+Image';
@@ -219,11 +231,23 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
             // 過濾 keyword
             if (intentParams.keyword) {
-                const kw = intentParams.keyword.toLowerCase();
-                products = products.filter(p => 
-                    (p.name && p.name.toLowerCase().includes(kw)) || 
-                    (p.model && p.model.toLowerCase().includes(kw))
-                );
+                const rawKw = intentParams.keyword;
+                const kw = normalizeKeyword(rawKw).toLowerCase();
+                if (rawKw !== kw) {
+                    console.log(`[正規化] 關鍵字轉換: "${rawKw}" -> "${kw}"`);
+                }
+                
+                products = products.filter(p => {
+                    const pName = normalizeKeyword(p.name || "").toLowerCase();
+                    const pModel = normalizeKeyword(p.model || "").toLowerCase();
+                    return pName.includes(kw) || pModel.includes(kw);
+                });
+            }
+
+            // 未命中觀測機制 (Log Missing Keywords)
+            if (products.length === 0 && intentParams.keyword) {
+                console.warn(`[Miss] 找不到符合關鍵字的商品: "${intentParams.keyword}"`);
+                // 這裡未來可以實作寫入 Firestore 統計表
             }
 
             // 過濾 min_stock
