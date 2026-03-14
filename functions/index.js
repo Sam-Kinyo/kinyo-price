@@ -477,7 +477,10 @@ ${evalQty}個：${finalPrice}
                     }
                     const finalPrice = Math.ceil((cost / divisor) * 1.05);
 
-                    summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}\n   💰$${finalPrice} (庫存: ${p.currentStock})\n`;
+                    // 判斷庫存狀態，若小於等於 0 則強制加上標籤
+                    const stockTag = p.currentStock <= 0 ? " ⚠️[缺貨]" : "";
+
+                    summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}${stockTag}\n   💰$${finalPrice} (庫存: ${p.currentStock})\n`;
                 });
                 
                 // 註解：我們將純文字合併在 Flex Message Array 後端發送 `messages.push({ type: 'text', text: summaryText.trim() });` 
