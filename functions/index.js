@@ -127,7 +127,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 const params = new URLSearchParams(event.postback.data);
                 if (params.get('action') === 'simulate') {
                     simulatedLevel = parseInt(params.get('level'), 10);
-                    simulatedKeyword = params.get('keyword');
+                    simulatedKeyword = params.get('model'); // 使用 model 作為查詢關鍵字
                     userText = "模擬查詢"; // 用於日誌
                 } else {
                     continue;
@@ -443,7 +443,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 const imgUrl = getImageUrl(p.model);
                 const targetUrl = p.productUrl || "https://www.kinyo.tw/";
                 
-                return {
+                const bubble = {
                     type: "bubble",
                     hero: {
                         type: "image",
