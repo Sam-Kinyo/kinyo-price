@@ -441,6 +441,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 }
 
                 const imgUrl = getImageUrl(p.model);
+                const targetUrl = p.productUrl || "https://www.kinyo.tw/";
                 
                 return {
                     type: "bubble",
@@ -450,7 +451,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         size: "full",
                         aspectRatio: "1:1",
                         aspectMode: "cover",
-                        action: { type: "uri", uri: imgUrl }
+                        action: { type: "uri", uri: targetUrl }
                     },
                     body: {
                         type: "box",
