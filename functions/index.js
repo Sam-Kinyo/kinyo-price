@@ -263,9 +263,15 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 // 這裡未來可以實作寫入 Firestore 統計表
             }
 
+            // 防禦性讀取庫存
+            products = products.map(p => {
+                p.currentStock = Number(p.stock || p.QTY || p.quantity || p.Inventory || 0);
+                return p;
+            });
+
             // 過濾 min_stock
             if (intentParams.min_stock !== undefined && intentParams.min_stock !== null) {
-                products = products.filter(p => parseInt(p.stock || 0) >= parseInt(intentParams.min_stock));
+                products = products.filter(p => p.currentStock >= parseInt(intentParams.min_stock));
             }
 
             // 過濾預算 (Loose Budget Filter)
@@ -327,8 +333,34 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 });
             }
 
-            // 最多取 10 筆符合 Carousel
-            products = products.slice(0, 10);
+            // Base Model 聚合邏輯 (SPU Grouping)
+            const groupedProducts = Object.values(products.reduce((acc, current) => {
+                // 分離主型號與尾綴
+                const match = current.model.match(/^([a-zA-Z0-9-]+?\d+)([a-zA-Z]*)$/);
+                const baseModel = match ? match[1].toUpperCase() : current.model.toUpperCase();
+                const suffix = match && match[2] ? match[2].toUpperCase() : '標準';
+
+                if (!acc[baseModel]) {
+                    // 初始化主型號物件，以第一筆遇到的商品資料為基準
+                    acc[baseModel] = { ...current };
+                    acc[baseModel].model = baseModel; // 顯示用的型號去尾綴
+                    acc[baseModel].skus = []; 
+                    acc[baseModel].totalStock = 0;
+                }
+
+                // 將這筆 SPU 存入陣列
+                acc[baseModel].skus.push({
+                    suffix: suffix,
+                    stock: current.currentStock,
+                    originalModel: current.model
+                });
+                acc[baseModel].totalStock += current.currentStock;
+                
+                return acc;
+            }, {}));
+
+            // 最多取 10 個 Base Model 送到 Carousel
+            products = groupedProducts.slice(0, 10);
             
             console.log(`[過濾後] 符合條件並送到 Carousel 的商品數: ${products.length}`);
 
@@ -397,7 +429,17 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     priceScale.push(text3000);
                 }
 
-                const stockText = (level >= 3) ? `庫存: ${p.stock || 0}` : (parseInt(p.stock) > 0 ? '庫存: 充足' : '庫存: 缺貨');
+                // 庫存字串組合
+                let stockText = '';
+                if (level >= 3) {
+                    // 顯示詳細庫存
+                    const stockDetails = p.skus.map(sku => `${sku.suffix} ${sku.stock}`).join(' | ');
+                    stockText = `庫存: ${stockDetails}`;
+                } else {
+                    // 只顯示是否缺貨
+                    stockText = p.totalStock > 0 ? '庫存: 充足' : '庫存: 缺貨';
+                }
+
                 const imgUrl = getImageUrl(p.model);
                 
                 return {
@@ -423,7 +465,14 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             },
                             {
                                 type: "text",
-                                text: `型號: ${p.model || '無'} | ${stockText}`,
+                                text: `型號: ${p.model || '無'}`,
+                                size: "sm",
+                                color: "#aaaaaa",
+                                wrap: true
+                            },
+                            {
+                                type: "text",
+                                text: stockText,
                                 size: "sm",
                                 color: "#aaaaaa",
                                 wrap: true
