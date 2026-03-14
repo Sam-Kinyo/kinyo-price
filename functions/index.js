@@ -24,17 +24,27 @@ function normalizeKeyword(str) {
 }
 
 // --- Helper Functions ---
-function getImageUrl(model) {
-    if (!model) return 'https://via.placeholder.com/400?text=No+Image';
-    const cleanModel = model.trim().toUpperCase();
-    const found = modelData.models.find(m => m.mainModel && m.mainModel.toUpperCase() === cleanModel);
-    if (found && found.mainImage) {
-        const fileIdMatch = found.mainImage.match(/id=([a-zA-Z0-9_-]+)/) || found.mainImage.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        if (fileIdMatch && fileIdMatch[1]) {
-            return `https://images.weserv.nl/?url=drive.google.com/uc?export=view&id=${fileIdMatch[1]}&w=400`;
-        }
-    }
-    return 'https://via.placeholder.com/400?text=No+Image';
+function getImageUrl(modelName) {
+  // 預設佔位圖片 (若查無圖片時顯示)
+  const fallbackUrl = "https://images.weserv.nl/?url=raw.githubusercontent.com/firebase/firebase-ios-sdk/master/Firebase/Messaging/Logo/fcm_logo.png&w=400"; 
+  if (!modelName) return fallbackUrl;
+
+  // 1. 型號正規化 (去除連字號與空白，全轉小寫)
+  const normalize = (str) => String(str).replace(/[-\s]/g, '').toLowerCase();
+  const targetModel = normalize(modelName);
+
+  // 2. 尋找匹配的商品
+  const foundItem = modelData.models.find(m => m.mainModel && normalize(m.mainModel) === targetModel);
+  if (!foundItem || !foundItem.mainImage) return fallbackUrl;
+
+  // 3. 提取 Google Drive File ID
+  const match = foundItem.mainImage.match(/id=([a-zA-Z0-9_-]+)/);
+  if (match && match[1]) {
+    // 4. 轉換為 LINE 100% 相容的 Thumbnail API
+    return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w600`;
+  }
+
+  return fallbackUrl;
 }
 
 function calculatePrice(cost, divisor) {
