@@ -121,14 +121,19 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             let simulatedLevel = null;
             let simulatedKeyword = null;
 
+            let shouldSkipSearch = false; // 用於標記是否純切換指令，跳過後面的商品搜尋
+
             if (event.type === 'message' && event.message.type === 'text') {
                 userText = event.message.text.trim();
             } else if (event.type === 'postback') {
                 const params = new URLSearchParams(event.postback.data);
-                if (params.get('action') === 'simulate') {
-                    simulatedLevel = parseInt(params.get('level'), 10);
-                    simulatedKeyword = params.get('model'); // 使用 model 作為查詢關鍵字
-                    userText = "模擬查詢"; // 用於日誌
+                if (params.get('action') === 'show_level_menu') {
+                    shouldSkipSearch = true;
+                    userText = "切換選單顯示";
+                } else if (params.get('action') === 'set_level') {
+                    shouldSkipSearch = true;
+                    simulatedLevel = parseInt(params.get('value'), 10);
+                    userText = "設定權限等級";
                 } else {
                     continue;
                 }
@@ -156,11 +161,12 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             const userDoc = snapshot.docs[0];
             const userData = userDoc.data();
             const userEmail = userDoc.id;
-            let level = parseInt(userData.level) || 0;
+            let realLevel = parseInt(userData.level) || 0; // 真實權限
+            let level = parseInt(userData.currentViewLevel) || realLevel; // 套用最高設定，若無則為真實權限
             const isVip = !!userData.vipColumn;
             
-            if (level < 1 && !isVip) {
-                console.log(`[權限阻擋] 帳號 ${userEmail} 權限不足 (Level: ${level}, VIP: ${isVip})`);
+            if (realLevel < 1 && !isVip) {
+                console.log(`[權限阻擋] 帳號 ${userEmail} 權限不足 (Level: ${realLevel}, VIP: ${isVip})`);
                 await lineClient.replyMessage({
                     replyToken: replyToken,
                     messages: [{ type: 'text', text: '權限不足，請聯絡管理員開通查詢權限。' }]
@@ -168,11 +174,47 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 continue;
             }
 
-            console.log(`✅ [權限通過] 用戶: ${userEmail} | 真實等級: ${level} | VIP: ${isVip}`);
+            console.log(`✅ [權限通過] 用戶: ${userEmail} | 真實等級: ${realLevel} | 目前檢視等級: ${level} | VIP: ${isVip}`);
 
-            if (simulatedLevel && level === 4) {
-                level = simulatedLevel;
-                console.log(`[模擬模式] 將顯示層級切換為: Level ${level}`);
+            // 處理全局快速切換指令 (跳過 Gemini 與搜尋)
+            if (shouldSkipSearch) {
+                if (realLevel !== 4) {
+                    await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '您無權限執行此指令。' }] });
+                    continue;
+                }
+                
+                const params = new URLSearchParams(event.postback.data);
+                if (params.get('action') === 'show_level_menu') {
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{
+                            type: 'text',
+                            text: '請選擇要切換的報價視角：',
+                            quickReply: {
+                                items: [
+                                    { type: 'action', action: { type: 'postback', label: 'Level 1', data: 'action=set_level&value=1' } },
+                                    { type: 'action', action: { type: 'postback', label: 'Level 2', data: 'action=set_level&value=2' } },
+                                    { type: 'action', action: { type: 'postback', label: 'Level 3', data: 'action=set_level&value=3' } },
+                                    { type: 'action', action: { type: 'postback', label: '預設自己 (Level 4)', data: 'action=set_level&value=4' } }
+                                ]
+                            }
+                        }]
+                    });
+                } else if (params.get('action') === 'set_level') {
+                    const newLevel = parseInt(params.get('value'), 10);
+                    await usersRef.doc(userDoc.id).update({ currentViewLevel: newLevel });
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{
+                            type: 'text',
+                            text: `模式已切換！目前視角：Level ${newLevel} 經銷商報價。您現在輸入的關鍵字都會套用此費率。`,
+                            quickReply: {
+                                items: [{ type: 'action', action: { type: 'postback', label: '切換視角', data: 'action=show_level_menu' } }]
+                            }
+                        }]
+                    });
+                }
+                continue;
             }
 
             let intentParams = {
@@ -364,12 +406,21 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             
             console.log(`[過濾後] 符合條件並送到 Carousel 的商品數: ${products.length}`);
 
+            // 統一防護：找不到結果的時候強制掛上 Quick Reply
             if (products.length === 0) {
                 console.log(`[結果] 找不到對應的商品，準備回覆 Not Found 訊息。`);
+                
+                let fallbackMsg = { type: 'text', text: '抱歉，依照您的條件找不到對應的商品。' };
+                if (realLevel === 4) {
+                    fallbackMsg.quickReply = {
+                        items: [{ type: 'action', action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } }]
+                    };
+                }
+
                 try {
                     await lineClient.replyMessage({
                         replyToken: replyToken,
-                        messages: [{ type: 'text', text: '抱歉，依照您的條件找不到對應的商品。' }]
+                        messages: [fallbackMsg]
                     });
                 } catch (err) {
                     console.error(`❌ [Line SDK 錯誤] NotFound replyMessage failed:`, err);
@@ -514,47 +565,6 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     }
                 };
 
-                // 若為真實 Level 4，且不是在觀看模擬結果，加上 Footer (模擬按鈕)
-                if (level === 4 && !simulatedLevel) {
-                    bubble.footer = {
-                        type: "box",
-                        layout: "vertical",
-                        spacing: "sm",
-                        contents: [
-                            {
-                                type: "button",
-                                style: "secondary",
-                                height: "sm",
-                                action: {
-                                    type: "postback",
-                                    label: "模擬L1視角",
-                                    data: `action=simulate&level=1&model=${encodeURIComponent(p.model || '')}`
-                                }
-                            },
-                            {
-                                type: "button",
-                                style: "secondary",
-                                height: "sm",
-                                action: {
-                                    type: "postback",
-                                    label: "模擬L2視角",
-                                    data: `action=simulate&level=2&model=${encodeURIComponent(p.model || '')}`
-                                }
-                            },
-                            {
-                                type: "button",
-                                style: "secondary",
-                                height: "sm",
-                                action: {
-                                    type: "postback",
-                                    label: "模擬L3視角",
-                                    data: `action=simulate&level=3&model=${encodeURIComponent(p.model || '')}`
-                                }
-                            }
-                        ]
-                    };
-                }
-
                 return bubble;
                 } catch (bubbleErr) {
                     console.error(`❌ [卡片組裝失敗] 商品型號: ${p.model}`, bubbleErr);
@@ -564,39 +574,42 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
             if (bubbles.length === 0) {
                 console.error(`❌ 所有過濾後的商品卡片皆組裝失敗。`);
+                
+                let fallbackBubbleMsg = { type: 'text', text: '抱歉，符合條件的商品遇到資料格式問題，無法正常顯示。' };
+                if (realLevel === 4) {
+                    fallbackBubbleMsg.quickReply = {
+                        items: [{ type: 'action', action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } }]
+                    };
+                }
+
                 try {
                     await lineClient.replyMessage({
                         replyToken: replyToken,
-                        messages: [{ type: 'text', text: '抱歉，符合條件的商品遇到資料格式問題，無法正常顯示。' }]
+                        messages: [fallbackBubbleMsg]
                     });
                 } catch (e) {}
                 continue;
             }
 
-            const messages = [{
+            let flexMessageObj = {
                 type: 'flex',
                 altText: `為您尋找到 ${bubbles.length} 筆商品報價`,
                 contents: {
                     type: 'carousel',
                     contents: bubbles
                 }
-            }];
+            };
 
-            if (userData.level == 4 && !simulatedLevel) {
-                messages.push({
-                    type: 'template',
-                    altText: '模擬其他等級視角',
-                    template: {
-                        type: 'buttons',
-                        text: `您目前的最高權限有拉出 ${products.length} 筆結果。是否需要模擬其他經銷商查價視角？`,
-                        actions: [
-                            { type: 'postback', label: '模擬 Level 1 視角', data: `action=simulate&level=1&keyword=${encodeURIComponent(intentParams.keyword || '')}` },
-                            { type: 'postback', label: '模擬 Level 2 視角', data: `action=simulate&level=2&keyword=${encodeURIComponent(intentParams.keyword || '')}` },
-                            { type: 'postback', label: '模擬 Level 3 視角', data: `action=simulate&level=3&keyword=${encodeURIComponent(intentParams.keyword || '')}` }
-                        ]
-                    }
-                });
+            // 全局 Quick Reply 掛載 (僅限 真實 Level 4 使用者)
+            if (realLevel === 4) {
+                flexMessageObj.quickReply = {
+                    items: [
+                        { type: 'action', action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } }
+                    ]
+                };
             }
+
+            const messages = [flexMessageObj];
 
             // --- 日誌強化：紀錄發送前的完整 Payload ---
             console.log("=== Final Flex Message Payload ===");
