@@ -32,26 +32,31 @@ export function updateToolbarScrollState() {
   const searchForm = document.getElementById('searchForm');
 
   if (!state.hasCheckedItems) {
-    toolbar.classList.remove('fixed-active');
-    if(spacer) spacer.style.display = 'none';
+    if (toolbar) toolbar.classList.remove('fixed-active');
+    if (spacer) spacer.style.display = 'none';
     return;
   }
+
+  if (!toolbar || !searchForm) return;
+
   // 計算觸發點（只算 searchForm 的底部位置，不包含 toolbar 本身，所以是穩定的）
   const triggerPoint = searchForm.offsetTop + searchForm.offsetHeight;
-  
+
   if (window.scrollY > triggerPoint) {
     if (!toolbar.classList.contains('fixed-active')) {
-      // 在 fixed 之前，先將 spacer 設為 toolbar 當前高度，防止畫面跳動
-      if(spacer) {
-          spacer.style.height = toolbar.offsetHeight + 'px';
-          spacer.style.display = 'block';
+      if (spacer) {
+        spacer.style.height = toolbar.offsetHeight + 'px';
+        spacer.style.display = 'block';
       }
       toolbar.classList.add('fixed-active');
     }
   } else {
     if (toolbar.classList.contains('fixed-active')) {
       toolbar.classList.remove('fixed-active');
-      if(spacer) spacer.style.display = 'none';
+      if (spacer) {
+        spacer.style.display = 'none';
+        spacer.style.height = '0px';
+      }
     }
   }
 }
