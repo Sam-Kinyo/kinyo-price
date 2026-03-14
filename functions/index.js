@@ -384,6 +384,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             // 模組 4、5：組裝 Flex Message 與試算價格
             // ---------------------------------------------------------
             const bubbles = products.map(p => {
+                try {
                 const cost = parseInt(p.cost) || 0;
                 const priceScale = [];
                 
@@ -504,11 +505,69 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         ]
                     }
                 };
-            });
+
+                // 若為真實 Level 4，且不是在觀看模擬結果，加上 Footer (模擬按鈕)
+                if (level === 4 && !simulatedLevel) {
+                    bubble.footer = {
+                        type: "box",
+                        layout: "vertical",
+                        spacing: "sm",
+                        contents: [
+                            {
+                                type: "button",
+                                style: "secondary",
+                                height: "sm",
+                                action: {
+                                    type: "postback",
+                                    label: "模擬L1視角",
+                                    data: `action=simulate&level=1&model=${encodeURIComponent(p.model || '')}`
+                                }
+                            },
+                            {
+                                type: "button",
+                                style: "secondary",
+                                height: "sm",
+                                action: {
+                                    type: "postback",
+                                    label: "模擬L2視角",
+                                    data: `action=simulate&level=2&model=${encodeURIComponent(p.model || '')}`
+                                }
+                            },
+                            {
+                                type: "button",
+                                style: "secondary",
+                                height: "sm",
+                                action: {
+                                    type: "postback",
+                                    label: "模擬L3視角",
+                                    data: `action=simulate&level=3&model=${encodeURIComponent(p.model || '')}`
+                                }
+                            }
+                        ]
+                    };
+                }
+
+                return bubble;
+                } catch (bubbleErr) {
+                    console.error(`❌ [卡片組裝失敗] 商品型號: ${p.model}`, bubbleErr);
+                    return null;
+                }
+            }).filter(b => b !== null);
+
+            if (bubbles.length === 0) {
+                console.error(`❌ 所有過濾後的商品卡片皆組裝失敗。`);
+                try {
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{ type: 'text', text: '抱歉，符合條件的商品遇到資料格式問題，無法正常顯示。' }]
+                    });
+                } catch (e) {}
+                continue;
+            }
 
             const messages = [{
                 type: 'flex',
-                altText: `為您尋找到 ${products.length} 筆商品報價`,
+                altText: `為您尋找到 ${bubbles.length} 筆商品報價`,
                 contents: {
                     type: 'carousel',
                     contents: bubbles
