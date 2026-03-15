@@ -320,16 +320,25 @@
 
                 showStatus('✅ <b>綁定成功！</b><br>您現在可以關閉本頁面，並返回聊天室開始查價。', 'success');
 
-                // (C) 2 秒後自動關閉 LIFF 視窗
-                setTimeout(() => {
-                    if (liff.isInClient()) {
+                // (C) 成功後發送訊息給聊天室，並關閉視窗
+                if (liff.isInClient()) {
+                    liff.sendMessages([
+                        {
+                            type: 'text',
+                            text: '#帳號綁定完成'
+                        }
+                    ]).then(() => {
                         liff.closeWindow();
-                    } else {
-                        alert('綁定完成！\n網頁版測試無法觸發關閉視窗，請手動關閉。');
-                        bindBtn.disabled = false;
-                        bindBtn.textContent = "綁定完成";
-                    }
-                }, 2000);
+                    }).catch((err) => {
+                        console.error('LIFF 發送訊息失敗', err);
+                        // 防呆：如果送訊息失敗還是讓他關閉
+                        setTimeout(() => liff.closeWindow(), 1500);
+                    });
+                } else {
+                    alert('綁定完成！\n網頁版測試無法觸發關閉視窗與傳送訊息，請手動關閉。');
+                    bindBtn.disabled = false;
+                    bindBtn.textContent = "綁定完成";
+                }
 
             } catch (error) {
                 console.error('登入或綁定失敗:', error);

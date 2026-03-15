@@ -132,6 +132,68 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
             if (event.type === 'message' && event.message.type === 'text') {
                 userText = event.message.text.trim();
+                
+                // --- 階段二：後端實作 LIFF 綁定成功後續與 RBAC 權限回覆 ---
+                if (userText === '#帳號綁定完成') {
+                    shouldSkipSearch = true; // 阻擋原本商品查詢流程
+                    console.log(`[綁定成功驗證] 開始反查 UID: ${lineUid}`);
+                    
+                    try {
+                        const usersRef = db.collection('Users');
+                        const userSnapshot = await usersRef.where('line_uid', '==', lineUid).limit(1).get();
+                        
+                        // 防呆處理
+                        if (userSnapshot.empty) {
+                            await lineClient.replyMessage({
+                                replyToken: replyToken,
+                                messages: [{ type: 'text', text: '系統查無綁定紀錄，請重新操作。' }]
+                            });
+                            continue;
+                        }
+
+                        // 取得權限
+                        const userData = userSnapshot.docs[0].data();
+                        const realLevel = parseInt(userData.level) || 0;
+                        const isVip = !!userData.vipColumn;
+                        
+                        let levelName = '未授權';
+                        if (realLevel === 1) levelName = 'Level 1 經銷商 (批發門檻)';
+                        else if (realLevel === 2) levelName = 'Level 2 經銷商';
+                        else if (realLevel === 3) levelName = 'Level 3 中盤商';
+                        else if (realLevel === 4) levelName = '最高權限 (管理員/區權)';
+                        
+                        if (isVip && realLevel === 0) {
+                             levelName = 'VIP 專屬權限';
+                        }
+                        
+                        // 組裝基礎訊息
+                        let replyMessage = {
+                            type: 'text',
+                            text: `✅ 恭喜您綁定成功！\n\n您現在可直接輸入需求（例：預算500-700 數量300）開始查價。\n\n💳 您的企業採購權限：\n[${levelName}]`
+                        };
+
+                        // 嚴格權限防線 (Level 4 專屬)
+                        if (realLevel === 4) {
+                            replyMessage.quickReply = {
+                                items: [{
+                                    type: "action",
+                                    action: { type: "postback", label: "切換查價視角", data: "action=show_level_menu" }
+                                }]
+                            };
+                        }
+
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [replyMessage]
+                        });
+                        console.log(`[綁定成功驗證] 已發送成功歡迎詞給 Level ${realLevel} 使用者。`);
+                        
+                    } catch (err) {
+                        console.error('[綁定成功驗證] 發生錯誤:', err);
+                    }
+                    continue; // 處理完直接結束此 iteration
+                }
+                
             } else if (event.type === 'postback') {
                 const params = new URLSearchParams(event.postback.data);
                 if (params.get('action') === 'show_level_menu') {
@@ -147,6 +209,100 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 } else {
                     continue;
                 }
+            } else if (event.type === 'follow') {
+                // 處理加入好友 / 解除封鎖事件
+                console.log(`[Follow Event] 收到加入好友或解除封鎖事件，UID: ${lineUid}`);
+                try {
+                    const usersRef = db.collection('Users');
+                    const snapshot = await usersRef.where('line_uid', '==', lineUid).limit(1).get();
+
+                    if (!snapshot.empty) {
+                        // 情境 A：用戶已存在且已綁定 (解除封鎖情境)
+                        console.log(`[Follow Event] 用戶已綁定，發送歡迎回來訊息`);
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [
+                                {
+                                    type: 'text',
+                                    text: '歡迎回來！您的帳號已綁定，可直接輸入關鍵字或點擊下方選單開始查價。',
+                                    quickReply: {
+                                        items: [
+                                            {
+                                                type: 'action',
+                                                action: {
+                                                    type: 'postback',
+                                                    label: '切換查價視角',
+                                                    data: 'action=show_level_menu'
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        });
+                    } else {
+                        // 情境 B：全新用戶或未綁定用戶
+                        console.log(`[Follow Event] 用戶未綁定，發送 Flex Message 引導綁定`);
+                        const flexMessage = {
+                            type: 'flex',
+                            altText: '請綁定 KINYO 專屬報價系統',
+                            contents: {
+                                type: 'bubble',
+                                header: {
+                                    type: 'box',
+                                    layout: 'vertical',
+                                    contents: [
+                                        {
+                                            type: 'text',
+                                            text: 'KINYO 專屬報價系統',
+                                            weight: 'bold',
+                                            size: 'xl',
+                                            color: '#0055aa'
+                                        }
+                                    ]
+                                },
+                                body: {
+                                    type: 'box',
+                                    layout: 'vertical',
+                                    contents: [
+                                        {
+                                            type: 'text',
+                                            text: '請先綁定您的企業信箱，以取得對應等級的報價權限。',
+                                            wrap: true,
+                                            color: '#666666',
+                                            size: 'sm'
+                                        }
+                                    ]
+                                },
+                                footer: {
+                                    type: 'box',
+                                    layout: 'vertical',
+                                    spacing: 'sm',
+                                    contents: [
+                                        {
+                                            type: 'button',
+                                            style: 'primary',
+                                            height: 'sm',
+                                            color: '#0055aa',
+                                            action: {
+                                                type: 'uri',
+                                                label: '立即綁定帳號',
+                                                uri: 'https://liff.line.me/2009444751-vlA8ef2c'
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        };
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [flexMessage]
+                        });
+                    }
+                } catch (error) {
+                    console.error('[Follow Event] 處理 follow 事件時發生錯誤:', error);
+                }
+                continue; // 處理完 follow 事件後，直接換下一個 event
             } else {
                 continue;
             }
