@@ -3,6 +3,15 @@ const admin = require('firebase-admin');
 const { setGlobalDispatcher, ProxyAgent } = require('undici');
 const { line, messagingApi } = require('@line/bot-sdk');
 const { GoogleGenAI, Type, Schema } = require('@google/genai');
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'sam.kuo@kinyo.tw', // 從先前紀錄取回
+    pass: 'ttqv qjjn scyf qfug'
+  }
+});
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -61,9 +70,14 @@ const getConfig = () => ({
 const intentSchema = {
     type: Type.OBJECT,
     properties: {
+        intent: {
+            type: Type.STRING,
+            description: "使用者的意圖分類。若是詢問商品、預算、庫存，輸出 'query'。若是明確提供收件人、電話、地址與多項商品數量進行下單結帳，輸出 'order'。"
+        },
         keyword: {
             type: Type.STRING,
-            description: "使用者想要搜尋的商品型號或名稱 (例如：KPB-2990, 吹風機)。必填寫。"
+            description: "使用者想要搜尋的商品型號或名稱 (例如：KPB-2990, 吹風機)。若是下單意圖則為 null",
+            nullable: true
         },
         target_qty: {
             type: Type.INTEGER,
@@ -88,9 +102,33 @@ const intentSchema = {
         request_image_links: {
             type: Type.BOOLEAN,
             description: "若使用者輸入中包含「大圖」、「網路圖」、「照片」、「圖片」、「素材」等強烈索取圖庫連結的語氣，請設為 true，否則為 false。"
+        },
+        customer: {
+            type: Type.OBJECT,
+            description: "下單客戶的配送資料 (僅在 intent 為 'order' 時輸出)",
+            nullable: true,
+            properties: {
+                name: { type: Type.STRING, description: "收件人姓名或公司名稱", nullable: true },
+                phone: { type: Type.STRING, description: "聯絡電話", nullable: true },
+                address: { type: Type.STRING, description: "配送地址", nullable: true },
+                remark: { type: Type.STRING, description: "訂單備註事項", nullable: true }
+            }
+        },
+        orderItems: {
+            type: Type.ARRAY,
+            description: "下單商品清單陣列 (僅在 intent 為 'order' 時輸出)",
+            nullable: true,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    model: { type: Type.STRING, description: "商品名稱或型號" },
+                    qty: { type: Type.INTEGER, description: "訂購數量。若未註明數量，預設為 1" },
+                    unitPrice: { type: Type.INTEGER, description: "如有標示單價，提取出純數字。若未標示，輸出 null", nullable: true }
+                }
+            }
         }
     },
-    required: ["keyword", "request_image_links"]
+    required: ["intent"]
 };
 
 exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req, res) => {
@@ -122,6 +160,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
         for (const event of events) {
             let userText = "";
             let lineUid = event.source.userId;
+            const groupId = event.source.groupId || event.source.roomId;
+            const isGroup = event.source.type === 'group' || event.source.type === 'room';
             const replyToken = event.replyToken;
             let simulatedLevel = null;
             let simulatedKeyword = null;
@@ -132,6 +172,24 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
             if (event.type === 'message' && event.message.type === 'text') {
                 userText = event.message.text.trim();
+                
+                if (isGroup) {
+                    if (!userText.includes('@小幫手')) continue;
+                    userText = userText.replace('@小幫手', '').trim();
+                
+                    // 處理綁定指令
+                    if (userText.startsWith('#綁定群組')) {
+                        const targetLevel = parseInt(userText.replace('#綁定群組', '').trim(), 10);
+                        if (!isNaN(targetLevel)) {
+                            await db.collection('Groups').doc(groupId).set({ level: targetLevel });
+                            await lineClient.replyMessage({
+                                replyToken: replyToken,
+                                messages: [{ type: 'text', text: `✅ 本群組已綁定 Level ${targetLevel}` }]
+                            });
+                        }
+                        continue;
+                    }
+                }
                 
                 // --- 階段二：後端實作 LIFF 綁定成功後續與 RBAC 權限回覆 ---
                 if (userText === '#帳號綁定完成') {
@@ -185,16 +243,63 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 
             } else if (event.type === 'postback') {
                 const params = new URLSearchParams(event.postback.data);
-                if (params.get('action') === 'show_level_menu') {
+                const action = params.get('action');
+
+                if (action === 'show_level_menu') {
                     shouldSkipSearch = true;
                     userText = "切換選單顯示";
-                } else if (params.get('action') === 'set_level') {
+                } else if (action === 'set_level') {
                     shouldSkipSearch = true;
                     simulatedLevel = parseInt(params.get('value'), 10);
                     userText = "設定權限等級";
-                } else if (params.get('action') === 'get_text_quote') {
+                } else if (action === 'get_text_quote') {
                     shouldSkipSearch = true;
                     userText = "產生單一文字報價";
+                } else if (action === 'confirm_order' || action === 'cancel_order') {
+                    shouldSkipSearch = true;
+                    const orderId = params.get('orderId');
+                    const orderRef = db.collection('PendingOrders').doc(orderId);
+                    
+                    try {
+                        let finalStatus = '';
+                        await db.runTransaction(async (t) => {
+                            const doc = await t.get(orderRef);
+                            if (!doc.exists) throw new Error('找不到該筆訂單');
+                            if (doc.data().status !== 'waiting') throw new Error('此訂單已處理過');
+                            
+                            finalStatus = action === 'confirm_order' ? 'confirmed' : 'cancelled';
+                            t.update(orderRef, { status: finalStatus });
+
+                            // 若確認訂單，觸發 SMTP 發送通知信
+                            if (finalStatus === 'confirmed') {
+                                const orderData = doc.data();
+                                const mailOptions = {
+                                    from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
+                                    to: 'sam.kuo@kinyo.tw', // 為了測試先寄給管理員
+                                    subject: `[新訂單通知] ${orderData.customer?.name || '客戶'} - 總計 $${orderData.totalAmount}`,
+                                    text: `訂單編號: ${orderId}\n客戶名稱: ${orderData.customer?.name}\n電話: ${orderData.customer?.phone}\n總金額: $${orderData.totalAmount}\n\n請登入 Firebase 查看詳細明細。`
+                                };
+                                // 非同步寄信，不阻塞 Transaction
+                                transporter.sendMail(mailOptions).catch(err => console.error("SMTP 發信失敗:", err));
+                            }
+                        });
+
+                        const replyMsg = finalStatus === 'confirmed' 
+                            ? '✅ 訂單已成功送出！我們將盡快為您處理。' 
+                            : '❌ 訂單已取消。';
+
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: replyMsg }]
+                        });
+                        console.log(`[訂單狀態更新] ${orderId} -> ${finalStatus}`);
+                    } catch (err) {
+                        console.error('[訂單處理錯誤]', err);
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: `⚠️ 處理失敗: ${err.message}` }]
+                        });
+                    }
                 } else {
                     continue;
                 }
@@ -308,37 +413,54 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             // ---------------------------------------------------------
             // 模組 3 前置：權限驗證攔截
             // ---------------------------------------------------------
-            console.log(`[驗證] 開始查找 LINE UID: ${lineUid}`);
-            
-            const usersRef = db.collection('Users');
-            const snapshot = await usersRef.where('line_uid', '==', lineUid).limit(1).get();
+            let realLevel = 0;
+            let level = 0;
+            let isVip = false;
+            let userEmail = "Group_User";
 
-            if (snapshot.empty) {
-                console.log(`[權限阻擋] 查無此 LINE UID 綁定紀錄: ${lineUid}`);
-                await lineClient.replyMessage({
-                    replyToken: replyToken,
-                    messages: [{ type: 'text', text: '尚未綁定帳號或無查詢權限，請透過系統選單進行綁定。' }]
-                });
-                continue;
+            if (isGroup) {
+                console.log(`[驗證] 開始查找群組 ID: ${groupId}`);
+                const groupDoc = await db.collection('Groups').doc(groupId).get();
+                if (!groupDoc.exists) {
+                    // 若群組未綁定，靜默忽略 (不打擾對話)
+                    continue;
+                }
+                const groupData = groupDoc.data();
+                realLevel = parseInt(groupData.level) || 0;
+                level = realLevel; // 群組不支援 viewLevel 切換，直接使用真實等級
+                isVip = false; // 群組無 VIP 概念
+                console.log(`✅ [群組權限通過] ID: ${groupId} | 綁定等級: ${realLevel}`);
+            } else {
+                console.log(`[驗證] 開始查找 LINE UID: ${lineUid}`);
+                const usersRef = db.collection('Users');
+                const snapshot = await usersRef.where('line_uid', '==', lineUid).limit(1).get();
+
+                if (snapshot.empty) {
+                    console.log(`[權限阻擋] 查無此 LINE UID 綁定紀錄: ${lineUid}`);
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{ type: 'text', text: '尚未綁定帳號或無查詢權限，請透過系統選單進行綁定。' }]
+                    });
+                    continue;
+                }
+
+                const userDoc = snapshot.docs[0];
+                const userData = userDoc.data();
+                userEmail = userDoc.id;
+                realLevel = parseInt(userData.level) || 0;
+                level = parseInt(userData.currentViewLevel) || realLevel;
+                isVip = !!userData.vipColumn;
+                
+                if (realLevel < 1 && !isVip) {
+                    console.log(`[權限阻擋] 帳號 ${userEmail} 權限不足 (Level: ${realLevel}, VIP: ${isVip})`);
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{ type: 'text', text: '權限不足，請聯絡管理員開通查詢權限。' }]
+                    });
+                    continue;
+                }
+                console.log(`✅ [權限通過] 用戶: ${userEmail} | 真實等級: ${realLevel} | 目前檢視等級: ${level} | VIP: ${isVip}`);
             }
-
-            const userDoc = snapshot.docs[0];
-            const userData = userDoc.data();
-            const userEmail = userDoc.id;
-            let realLevel = parseInt(userData.level) || 0; // 真實權限
-            let level = parseInt(userData.currentViewLevel) || realLevel; // 套用最高設定，若無則為真實權限
-            const isVip = !!userData.vipColumn;
-            
-            if (realLevel < 1 && !isVip) {
-                console.log(`[權限阻擋] 帳號 ${userEmail} 權限不足 (Level: ${realLevel}, VIP: ${isVip})`);
-                await lineClient.replyMessage({
-                    replyToken: replyToken,
-                    messages: [{ type: 'text', text: '權限不足，請聯絡管理員開通查詢權限。' }]
-                });
-                continue;
-            }
-
-            console.log(`✅ [權限通過] 用戶: ${userEmail} | 真實等級: ${realLevel} | 目前檢視等級: ${level} | VIP: ${isVip}`);
 
             // 處理全局快速切換指令 (跳過 Gemini 與搜尋)
             if (shouldSkipSearch) {
@@ -461,11 +583,15 @@ ${evalQty}個：${finalPrice}
             }
 
             let intentParams = {
-                keyword: simulatedKeyword || null,
+                intent: 'query', 
+                keyword: null,
                 target_qty: null,
                 min_budget: null,
                 max_budget: null,
-                min_stock: null
+                min_stock: null,
+                request_image_links: false,
+                customer: null,
+                orderItems: null
             };
 
             if (event.type === 'message') {
@@ -483,13 +609,23 @@ ${evalQty}個：${finalPrice}
                     console.error(`⚠️ [Line SDK 警告] showLoadingAnimation failed:`, loadErr);
                 }
 
-                const prompt = `你是一個專業的商品查詢意圖萃取機器人。
-主要任務：分析使用者的對話，並將其中的「關鍵字(商品名/型號)」、「數量」、「預算上限/下限」、「庫存限制」萃取出來。
-絕對限制：
-1. 你「不可以」直接回答使用者的問題。
-2. 你「不可以」幫使用者計算價格。
-3. 若使用者沒有給出具體的商品名稱（例如只說「東西」、「產品」、「推薦」或單純給預算），請將 keyword 參數設定為空字串 ""。
-4. 你「必須」回傳嚴格的 JSON 格式。
+                const prompt = `你是一個嚴格的 JSON 輸出引擎。請判斷使用者意圖。
+若是查詢報價，輸出: { "intent": "query", "keywords": ["型號"], "min_budget": null, "max_budget": null }
+若是下單，必須嚴格輸出以下 JSON 格式，絕對不可遺漏任何鍵值(Key)：
+{
+  "intent": "order",
+  "customer": { "name": "收件人", "phone": "電話", "address": "地址", "remark": "備註內容" },
+  "orderItems": [ 
+    { "model": "型號", "qty": 數量, "unitPrice": 單價數字 } 
+  ]
+}
+【極重要規則 - 違規將導致系統崩潰】：
+1. orderItems 陣列內的每一個物件，都必須強制包含 "unitPrice" 欄位！
+2. 若使用者有輸入自訂單價 (例如 "kh9660 10台 1245元")，"unitPrice" 必須提取純數字 (例如 1245)。
+3. 若該品項完全未輸入價格，"unitPrice" 必須輸出 null。嚴禁省略此欄位！
+4. "remark" 必須提取備註，若無則輸出 null。
+5. 模糊預算處理規則：若使用者輸入的預算帶有『左右』、『上下』、『附近』等模糊字眼（例如：1000左右），請自動計算正負 10% 作為區間。例如 1000 左右，請輸出 "min_budget": 900 與 "max_budget": 1100。絕對不可將下限設為 0。
+6. 單一數字預算規則：若使用者僅提供單一數字且無模糊字眼（例如：預算1000），請將其視為上限，輸出 "min_budget": 0 與 "max_budget": 1000。
 使用者輸入内容：「${userText}」`;
 
                 const response = await ai.models.generateContent({
@@ -506,6 +642,11 @@ ${evalQty}個：${finalPrice}
                     if (jsonText) {
                         const parsed = JSON.parse(jsonText);
                         intentParams = { ...intentParams, ...parsed };
+                        
+                        // query 關鍵字容錯處理
+                        if (parsed.keywords && Array.isArray(parsed.keywords) && !parsed.keyword) {
+                            intentParams.keyword = parsed.keywords.join(' ');
+                        }
                     }
                 } catch (jsonErr) {
                     console.error(`[Gemini Warn] JSON 解析失敗:`, jsonErr);
@@ -515,7 +656,209 @@ ${evalQty}個：${finalPrice}
             }
 
             // ---------------------------------------------------------
-            // 模組 3：拉取商品並進行 In-Memory Filter
+            // 模組 3 前置：若是下單意圖，直接進入訂單處理流程
+            // ---------------------------------------------------------
+            if (intentParams.intent === 'order') {
+                console.log(`[訂單處理] 開始處理下單意圖`);
+                const productsSnapshot = await db.collection('Products').get();
+                const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                let totalAmount = 0;
+                const validOrderItems = [];
+                const invalidModels = [];
+                const abnormalPriceModels = []; // 紀錄價格異常被剔除的型號
+                const currentViewLevel = level;
+
+                for (const item of intentParams.orderItems) {
+                    const product = products.find(p => {
+                        const dbModelNorm = p.model ? normalize(p.model) : "";
+                        const targetModelNorm = normalize(item.model);
+                        return dbModelNorm.includes(targetModelNorm);
+                    });
+
+                    if (product) {
+                        // 1. 取得該等級可獲得的最底價極限（傳入極大值 99999 觸發最高優惠門檻）
+                        let bottomDivisor = 0.75;
+                        if (currentViewLevel === 1) bottomDivisor = 0.75; // 100+
+                        else if (currentViewLevel === 2) bottomDivisor = 0.82; // 500+
+                        else if (currentViewLevel === 3) bottomDivisor = 0.858; // 1000+
+                        else if (currentViewLevel >= 4) bottomDivisor = 0.89; // 3000+
+                        
+                        // 計算出該等級絕對底價，並取 9 折作為防線 (容錯率 10%)
+                        const absoluteFloorPrice = Math.ceil(((product.cost || 0) / bottomDivisor) * 1.05) * 0.9;
+                        
+                        // 計算正常購買數量下的系統掛牌價
+                        let calc_qty = item.qty;
+                        if (currentViewLevel === 1 && calc_qty > 100) calc_qty = 100;
+                        if (currentViewLevel === 2 && calc_qty > 500) calc_qty = 500;
+                        if (currentViewLevel === 3 && calc_qty > 1000) calc_qty = 1000;
+                        
+                        let divisor = 0.73;
+                        if (currentViewLevel === 1) {
+                            if (calc_qty >= 100) divisor = 0.75;
+                            else divisor = 0.73;
+                        } else if (currentViewLevel === 2) {
+                            if (calc_qty >= 500) divisor = 0.82;
+                            else if (calc_qty >= 300) divisor = 0.80;
+                            else if (calc_qty >= 100) divisor = 0.76;
+                            else divisor = 0.74;
+                        } else if (currentViewLevel >= 3) {
+                            if (calc_qty >= 3000 && currentViewLevel >= 4) divisor = 0.89;
+                            else if (calc_qty >= 1000) divisor = 0.858;
+                            else if (calc_qty >= 500) divisor = 0.835;
+                            else if (calc_qty >= 300) divisor = 0.81;
+                            else if (calc_qty >= 100) divisor = 0.765;
+                            else divisor = 0.745;
+                        }
+                        const systemFinalPrice = Math.ceil(((product.cost || 0) / divisor) * 1.05);
+                        let appliedPrice = systemFinalPrice;
+
+                        // 判斷是否為使用者手動出價
+                        let parsedUnitPrice = null;
+                        if (item.unitPrice !== null && item.unitPrice !== undefined && item.unitPrice !== '') {
+                            parsedUnitPrice = Number(item.unitPrice.toString().replace(/[^\d.]/g, ''));
+                        }
+
+                        if (parsedUnitPrice !== null && !isNaN(parsedUnitPrice)) {
+                            if (parsedUnitPrice >= absoluteFloorPrice) {
+                                appliedPrice = parsedUnitPrice; // 價格高於絕對防線，容許過關
+                            } else {
+                                abnormalPriceModels.push(item.model); // 無效自訂價，單獨剔除
+                                continue;
+                            }
+                        }
+
+                        const subtotal = appliedPrice * item.qty;
+                        totalAmount += subtotal;
+                        validOrderItems.push({
+                            model: product.model,
+                            name: product.name,
+                            qty: item.qty,
+                            unitPrice: appliedPrice,
+                            subtotal: subtotal
+                        });
+                    } else {
+                        invalidModels.push(item.model);
+                    }
+                }
+
+                // 檢查是否完全無有效品項
+                if (validOrderItems.length === 0) {
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{ type: 'text', text: `❌ 訂單無法成立：您輸入的型號皆查無資料或價格異常。` }]
+                    });
+                    continue;
+                }
+
+                // 產生隨機訂單編號
+                const orderId = `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`;
+                const shippingFee = (totalAmount >= 3000 || realLevel >= 4) ? 0 : 150;
+                totalAmount += shippingFee;
+
+                // 存入 Firebase
+                const orderData = {
+                    orderId: orderId,
+                    userId: lineUid,
+                    userEmail: userEmail,
+                    orderLevel: currentViewLevel,
+                    customer: intentParams.customer || {},
+                    items: validOrderItems,
+                    totalAmount: totalAmount,
+                    shippingFee: shippingFee,
+                    status: 'waiting',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                };
+                await db.collection('PendingOrders').doc(orderId).set(orderData);
+
+                // 動態產生訂單明細列表
+                const itemBoxes = validOrderItems.map(item => ({
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                        { type: 'text', text: `${item.model} x${item.qty}`, size: 'sm', color: '#111111', flex: 2, wrap: true },
+                        { type: 'text', text: `$${item.subtotal}`, size: 'sm', color: '#111111', align: 'end', flex: 1 }
+                    ]
+                }));
+
+                const flexMessageObject = {
+                    type: 'flex',
+                    altText: '請確認您的訂單明細與總金額',
+                    contents: {
+                        type: 'bubble',
+                        header: {
+                            type: 'box', layout: 'vertical',
+                            contents: [{ type: 'text', text: '📝 訂單已建立，請確認', weight: 'bold', size: 'lg', color: '#FFFFFF' }],
+                            backgroundColor: '#E11D48'
+                        },
+                        body: {
+                            type: 'box', layout: 'vertical',
+                            contents: [
+                                { type: 'text', text: `收件人：${intentParams.customer?.name || '未提供'}`, size: 'sm', margin: 'md' },
+                                { type: 'text', text: `電話：${intentParams.customer?.phone || '未提供'}`, size: 'sm' },
+                                { type: 'text', text: `地址：${intentParams.customer?.address || '未提供'}`, size: 'sm', wrap: true },
+                                { type: 'text', text: `備註：${intentParams.customer?.remark || '無'}`, size: 'sm', wrap: true },
+                                { type: 'separator', margin: 'lg' },
+                                { type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm', contents: itemBoxes },
+                                { type: 'separator', margin: 'lg' },
+                                {
+                                    type: 'box', layout: 'horizontal', margin: 'lg',
+                                    contents: [
+                                        { type: 'text', text: '運費', size: 'sm', color: '#555555' },
+                                        { type: 'text', text: shippingFee === 0 ? '免運' : `$${shippingFee}`, size: 'sm', color: '#111111', align: 'end' }
+                                    ]
+                                },
+                                {
+                                    type: 'box', layout: 'horizontal', margin: 'md',
+                                    contents: [
+                                        { type: 'text', text: '總計', weight: 'bold', size: 'md', color: '#E11D48' },
+                                        { type: 'text', text: `$${totalAmount}`, weight: 'bold', size: 'md', color: '#E11D48', align: 'end' }
+                                    ]
+                                }
+                            ]
+                        },
+                        footer: {
+                            type: 'box', layout: 'horizontal', spacing: 'sm',
+                            contents: [
+                                {
+                                    type: 'button', style: 'primary', color: '#0055aa',
+                                    action: { type: 'postback', label: '✅ 確認無誤', data: `action=confirm_order&orderId=${orderId}` }
+                                },
+                                {
+                                    type: 'button', style: 'secondary',
+                                    action: { type: 'postback', label: '❌ 取消訂單', data: `action=cancel_order&orderId=${orderId}` }
+                                }
+                            ]
+                        }
+                    }
+                };
+
+                const warningTexts = [];
+                if (invalidModels.length > 0) warningTexts.push(`查無型號: ${invalidModels.join(', ')}`);
+                if (abnormalPriceModels.length > 0) warningTexts.push(`價格異常: ${abnormalPriceModels.join(', ')}`);
+
+                if (warningTexts.length > 0) {
+                    flexMessageObject.contents.body.contents.unshift({
+                        type: 'text',
+                        text: `⚠️ 已自動剔除 - ${warningTexts.join(' | ')}\n請洽 郭庭豪 (0976966333) 確認專案出貨金額。`,
+                        color: '#E11D48',
+                        size: 'xs',
+                        wrap: true,
+                        margin: 'sm'
+                    });
+                }
+
+                await lineClient.replyMessage({
+                    replyToken: replyToken,
+                    messages: [flexMessageObject]
+                });
+                
+                console.log(`✅ [訂單處理] 已回傳確認卡片給使用者`);
+                continue; // 執行完訂單卡片就跳過後續把意圖當成 query 來查商品的邏輯
+            }
+
+            // ---------------------------------------------------------
+            // 模組 3：拉取商品並進行 In-Memory Filter (Query 意圖)
             // ---------------------------------------------------------
             console.log(`[搜尋] 開始拉取 Firestore 商品資料...`);
             const productsSnapshot = await db.collection('Products').get();
