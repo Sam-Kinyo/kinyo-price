@@ -3,14 +3,6 @@
 ======================================================= */
 import { state } from './state.js';
 
-/* 即時報價計算（全站唯一模式） */
-const QUOTE_DIVISORS = {
-  4: { 50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858, 3000: 0.89 },
-  3: { 50: 0.75, 100: 0.78, 300: 0.81, 500: 0.835, 1000: 0.858 },
-  2: { 50: 0.74, 100: 0.77, 300: 0.80 },
-  1: { 50: 0.73, 100: 0.76 },
-};
-
 export function getEffectiveLevel(level) {
   const lv = Math.max(Number(level) || 0, 0);
   if (lv >= 4) return 4;
@@ -22,7 +14,7 @@ export function getVisibleTiers(level) {
   const effectiveLevel = getEffectiveLevel(level);
   if (effectiveLevel >= 4) return [50, 100, 300, 500, 1000, 3000];
   if (effectiveLevel >= 3) return [50, 100, 300, 500, 1000];
-  if (effectiveLevel === 2) return [50, 100, 300];
+  if (effectiveLevel === 2) return [50, 100, 300, 500];
   if (effectiveLevel === 1) return [50, 100];
   return [];
 }
@@ -34,11 +26,35 @@ export function canViewTier(level, qty) {
 export function calcQuotePrice(cost, qty, level) {
   const c = Number(cost);
   if (!Number.isFinite(c) || c <= 0) return null;
-  const q = Number(qty);
-  const tierMap = QUOTE_DIVISORS[getEffectiveLevel(level)];
-  if (!tierMap) return null;
-  const divisor = tierMap[q];
-  if (!divisor) return null;
+  
+  let calc_qty = Number(qty);
+  if (!Number.isFinite(calc_qty) || calc_qty <= 0) return null;
+
+  const l = getEffectiveLevel(level);
+
+  // Stealth Quantity Ceiling
+  if (l === 1 && calc_qty > 100) calc_qty = 100;
+  if (l === 2 && calc_qty > 500) calc_qty = 500;
+  if (l === 3 && calc_qty > 1000) calc_qty = 1000;
+
+  let divisor = 0.73;
+  if (l === 1) {
+      if (calc_qty >= 100) divisor = 0.75;
+      else divisor = 0.73;
+  } else if (l === 2) {
+      if (calc_qty >= 500) divisor = 0.82;
+      else if (calc_qty >= 300) divisor = 0.80;
+      else if (calc_qty >= 100) divisor = 0.76;
+      else divisor = 0.74;
+  } else if (l >= 3) {
+      if (calc_qty >= 3000 && l >= 4) divisor = 0.89;
+      else if (calc_qty >= 1000) divisor = 0.858;
+      else if (calc_qty >= 500) divisor = 0.835;
+      else if (calc_qty >= 300) divisor = 0.81;
+      else if (calc_qty >= 100) divisor = 0.765;
+      else divisor = 0.745;
+  }
+  
   return Math.ceil((c / divisor) * 1.05);
 }
 

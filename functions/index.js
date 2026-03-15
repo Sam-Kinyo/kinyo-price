@@ -418,11 +418,13 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             if (calc_qty >= 100) divisor = 0.75;
                             else divisor = 0.73;
                         } else if (level === 2) {
-                            if (calc_qty >= 300) divisor = 0.80;
+                            if (calc_qty >= 500) divisor = 0.82;
+                            else if (calc_qty >= 300) divisor = 0.80;
                             else if (calc_qty >= 100) divisor = 0.76;
                             else divisor = 0.74;
                         } else if (level >= 3) {
-                            if (calc_qty >= 1000) divisor = 0.858;
+                            if (calc_qty >= 3000 && level >= 4) divisor = 0.89;
+                            else if (calc_qty >= 1000) divisor = 0.858;
                             else if (calc_qty >= 500) divisor = 0.835;
                             else if (calc_qty >= 300) divisor = 0.81;
                             else if (calc_qty >= 100) divisor = 0.765;
@@ -584,11 +586,13 @@ ${evalQty}個：${finalPrice}
                         if (evalQty >= 100) divisor = 0.75;
                         else divisor = 0.73;
                     } else if (level === 2) {
-                        if (evalQty >= 300) divisor = 0.80;
+                        if (evalQty >= 500) divisor = 0.82;
+                        else if (evalQty >= 300) divisor = 0.80;
                         else if (evalQty >= 100) divisor = 0.76;
                         else divisor = 0.74;
                     } else if (level >= 3) {
-                        if (evalQty >= 1000) divisor = 0.858;
+                        if (evalQty >= 3000 && level >= 4) divisor = 0.89;
+                        else if (evalQty >= 1000) divisor = 0.858;
                         else if (evalQty >= 500) divisor = 0.835;
                         else if (evalQty >= 300) divisor = 0.81;
                         else if (evalQty >= 100) divisor = 0.765;
