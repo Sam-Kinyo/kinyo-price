@@ -1,9 +1,18 @@
-﻿{
+{
   "functions": {
     "source": "functions",
     "ignore": [
       "node_modules/**",
       ".git/**"
+    ]
+  },
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "functions/**"
     ]
   }
 }

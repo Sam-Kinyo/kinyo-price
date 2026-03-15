@@ -155,21 +155,10 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const userData = userSnapshot.docs[0].data();
                         const realLevel = parseInt(userData.level) || 0;
                         const isVip = !!userData.vipColumn;
-                        
-                        let levelName = '未授權';
-                        if (realLevel === 1) levelName = 'Level 1 經銷商 (批發門檻)';
-                        else if (realLevel === 2) levelName = 'Level 2 經銷商';
-                        else if (realLevel === 3) levelName = 'Level 3 中盤商';
-                        else if (realLevel === 4) levelName = '最高權限 (管理員/區權)';
-                        
-                        if (isVip && realLevel === 0) {
-                             levelName = 'VIP 專屬權限';
-                        }
-                        
                         // 組裝基礎訊息
                         let replyMessage = {
                             type: 'text',
-                            text: `✅ 恭喜您綁定成功！\n\n您現在可直接輸入需求（例：預算500-700 數量300）開始查價。\n\n💳 您的企業採購權限：\n[${levelName}]`
+                            text: '✅ 恭喜您綁定成功！\n\n您現在可直接輸入需求（例：預算500-700 數量300）開始查價。'
                         };
 
                         // 嚴格權限防線 (Level 4 專屬)
@@ -219,26 +208,35 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     if (!snapshot.empty) {
                         // 情境 A：用戶已存在且已綁定 (解除封鎖情境)
                         console.log(`[Follow Event] 用戶已綁定，發送歡迎回來訊息`);
+                        const userDoc = snapshot.docs[0];
+                        const userLevel = parseInt(userDoc.data().level) || 0;
+
+                        // 1. 宣告基礎回覆訊息 (不含按鈕)
+                        let welcomeBackMessage = {
+                            type: 'text',
+                            text: '歡迎回來！您的帳號已綁定，可直接輸入關鍵字或點擊下方選單開始查價。'
+                        };
+
+                        // 2. 嚴格權限防線：僅 Level 4 賦予切換視角按鈕
+                        if (userLevel === 4) {
+                            welcomeBackMessage.quickReply = {
+                                items: [
+                                    {
+                                        type: "action",
+                                        action: {
+                                            type: "postback",
+                                            label: "切換查價視角",
+                                            data: "action=show_level_menu"
+                                        }
+                                    }
+                                ]
+                            };
+                        }
+
+                        // 3. 執行回覆
                         await lineClient.replyMessage({
                             replyToken: replyToken,
-                            messages: [
-                                {
-                                    type: 'text',
-                                    text: '歡迎回來！您的帳號已綁定，可直接輸入關鍵字或點擊下方選單開始查價。',
-                                    quickReply: {
-                                        items: [
-                                            {
-                                                type: 'action',
-                                                action: {
-                                                    type: 'postback',
-                                                    label: '切換查價視角',
-                                                    data: 'action=show_level_menu'
-                                                }
-                                            }
-                                        ]
-                                    }
-                                }
-                            ]
+                            messages: [welcomeBackMessage]
                         });
                     } else {
                         // 情境 B：全新用戶或未綁定用戶
