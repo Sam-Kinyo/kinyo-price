@@ -108,9 +108,11 @@ const intentSchema = {
             description: "下單客戶的配送資料 (僅在 intent 為 'order' 時輸出)",
             nullable: true,
             properties: {
-                name: { type: Type.STRING, description: "收件人姓名或公司名稱", nullable: true },
+                company: { type: Type.STRING, description: "採購公司名稱", nullable: true },
+                name: { type: Type.STRING, description: "收件人姓名", nullable: true },
                 phone: { type: Type.STRING, description: "聯絡電話", nullable: true },
                 address: { type: Type.STRING, description: "配送地址", nullable: true },
+                deliveryTime: { type: Type.STRING, description: "預期到貨時間", nullable: true },
                 remark: { type: Type.STRING, description: "訂單備註事項", nullable: true }
             }
         },
@@ -191,6 +193,20 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     }
                 }
                 
+                // --- 額外處理：訂單模板回覆 ---
+                if (userText === '訂單' || userText === '@小幫手 訂單') {
+                    const orderTemplate = `@小幫手 下單\n採購公司：\n[型號] [單價] [數量] (多筆請換行新增)\n收件人：\n收件人連絡電話：\n送貨地址：\n預期到貨時間：\n備註：`;
+                    
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{
+                            type: 'text',
+                            text: `請複製以下模板填寫並送出：\n\n${orderTemplate}`
+                        }]
+                    });
+                    continue; // 回傳後即結束本次請求處理
+                }
+
                 // --- 階段二：後端實作 LIFF 綁定成功後續與 RBAC 權限回覆 ---
                 if (userText === '#帳號綁定完成') {
                     shouldSkipSearch = true; // 阻擋原本商品查詢流程
@@ -276,8 +292,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                 const mailOptions = {
                                     from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
                                     to: 'sam.kuo@kinyo.tw', // 為了測試先寄給管理員
-                                    subject: `[新訂單通知] ${orderData.customer?.name || '客戶'} - 總計 $${orderData.totalAmount}`,
-                                    text: `訂單編號: ${orderId}\n客戶名稱: ${orderData.customer?.name}\n電話: ${orderData.customer?.phone}\n總金額: $${orderData.totalAmount}\n\n請登入 Firebase 查看詳細明細。`
+                                    subject: `[新訂單通知] ${orderData.customer?.company || orderData.customer?.name || '客戶'} - 總計 $${orderData.totalAmount}`,
+                                    text: `訂單編號: ${orderId}\n採購公司: ${orderData.customer?.company || '未提供'}\n收件人: ${orderData.customer?.name}\n電話: ${orderData.customer?.phone}\n地址: ${orderData.customer?.address || '未提供'}\n預期到貨時間: ${orderData.customer?.deliveryTime || '未指定'}\n備註: ${orderData.customer?.remark || '無'}\n\n總計金額: $${orderData.totalAmount}`
                                 };
                                 // 非同步寄信，不阻塞 Transaction
                                 transporter.sendMail(mailOptions).catch(err => console.error("SMTP 發信失敗:", err));
@@ -614,7 +630,7 @@ ${evalQty}個：${finalPrice}
 若是下單，必須嚴格輸出以下 JSON 格式，絕對不可遺漏任何鍵值(Key)：
 {
   "intent": "order",
-  "customer": { "name": "收件人", "phone": "電話", "address": "地址", "remark": "備註內容" },
+  "customer": { "company": "採購公司", "name": "收件人", "phone": "電話", "address": "地址", "deliveryTime": "預期到貨時間", "remark": "備註內容" },
   "orderItems": [ 
     { "model": "型號", "qty": 數量, "unitPrice": 單價數字 } 
   ]
@@ -624,8 +640,9 @@ ${evalQty}個：${finalPrice}
 2. 若使用者有輸入自訂單價 (例如 "kh9660 10台 1245元")，"unitPrice" 必須提取純數字 (例如 1245)。
 3. 若該品項完全未輸入價格，"unitPrice" 必須輸出 null。嚴禁省略此欄位！
 4. "remark" 必須提取備註，若無則輸出 null。
-5. 模糊預算處理規則：若使用者輸入的預算帶有『左右』、『上下』、『附近』等模糊字眼（例如：1000左右），請自動計算正負 10% 作為區間。例如 1000 左右，請輸出 "min_budget": 900 與 "max_budget": 1100。絕對不可將下限設為 0。
-6. 單一數字預算規則：若使用者僅提供單一數字且無模糊字眼（例如：預算1000），請將其視為上限，輸出 "min_budget": 0 與 "max_budget": 1000。
+5. 必須提取使用者輸入的「採購公司」與「預期到貨時間」，若無則輸出 null。
+6. 模糊預算處理規則：若使用者輸入的預算帶有『左右』、『上下』、『附近』等模糊字眼（例如：1000左右），請自動計算正負 10% 作為區間。例如 1000 左右，請輸出 "min_budget": 900 與 "max_budget": 1100。絕對不可將下限設為 0。
+7. 單一數字預算規則：若使用者僅提供單一數字且無模糊字眼（例如：預算1000），請將其視為上限，輸出 "min_budget": 0 與 "max_budget": 1000。
 使用者輸入内容：「${userText}」`;
 
                 const response = await ai.models.generateContent({
@@ -681,8 +698,9 @@ ${evalQty}個：${finalPrice}
                         // 庫存檢核防線 (若無 inventory 欄位則預設 99999)
                         const currentStock = (product.inventory !== undefined && product.inventory !== null) ? Number(product.inventory) : 99999;
                         if (item.qty > currentStock) {
+                            console.log(`[庫存提示] ${item.model} 轉預購: 需求 ${item.qty} > 庫存 ${currentStock}`);
                             outOfStockModels.push(`${product.model} (僅剩 ${currentStock})`);
-                            continue;
+                            // 移除 continue，允許庫存不足的訂單繼續算價並成立
                         }
 
                         // 1. 取得該等級可獲得的最底價極限（傳入極大值 99999 觸發最高優惠門檻）
@@ -731,6 +749,7 @@ ${evalQty}個：${finalPrice}
                             if (parsedUnitPrice >= absoluteFloorPrice) {
                                 appliedPrice = parsedUnitPrice; // 價格高於絕對防線，容許過關
                             } else {
+                                console.log(`[剔除原因] ${item.model} 價格破底: 客出 ${parsedUnitPrice} < 底線 ${absoluteFloorPrice} (成本: ${product.cost}, 最終: ${systemFinalPrice})`);
                                 abnormalPriceModels.push(item.model); // 無效自訂價，單獨剔除
                                 continue;
                             }
@@ -746,15 +765,23 @@ ${evalQty}個：${finalPrice}
                             subtotal: subtotal
                         });
                     } else {
+                        console.log(`[剔除原因] 找不到型號: ${item.model}`);
                         invalidModels.push(item.model);
                     }
                 }
 
                 // 檢查是否完全無有效品項
                 if (validOrderItems.length === 0) {
+                    const failReasons = [];
+                    if (invalidModels.length > 0) failReasons.push(`查無型號: ${invalidModels.join(', ')}`);
+                    if (abnormalPriceModels.length > 0) failReasons.push(`價格異常: ${abnormalPriceModels.join(', ')}`);
+                    if (outOfStockModels.length > 0) failReasons.push(`庫存不足轉預購: ${outOfStockModels.join(', ')}`);
+                    
+                    const reasonText = failReasons.length > 0 ? failReasons.join('\n') : '您輸入的型號皆查無資料或價格異常。';
+
                     await lineClient.replyMessage({
                         replyToken: replyToken,
-                        messages: [{ type: 'text', text: `❌ 訂單無法成立：您輸入的型號皆查無資料或價格異常。` }]
+                        messages: [{ type: 'text', text: `❌ 訂單無法成立\n\n原因：\n${reasonText}` }]
                     });
                     continue;
                 }
@@ -802,10 +829,11 @@ ${evalQty}個：${finalPrice}
                         body: {
                             type: 'box', layout: 'vertical',
                             contents: [
-                                { type: 'text', text: `收件人：${intentParams.customer?.name || '未提供'}`, size: 'sm', margin: 'md' },
-                                { type: 'text', text: `電話：${intentParams.customer?.phone || '未提供'}`, size: 'sm' },
-                                { type: 'text', text: `地址：${intentParams.customer?.address || '未提供'}`, size: 'sm', wrap: true },
-                                { type: 'text', text: `備註：${intentParams.customer?.remark || '無'}`, size: 'sm', wrap: true },
+                                { type: 'text', text: `🏢 公司: ${intentParams.customer?.company || '未提供'}`, size: 'sm', color: '#555555', weight: 'bold' },
+                                { type: 'text', text: `👤 收件: ${intentParams.customer?.name || '未提供'} (${intentParams.customer?.phone || '未提供'})`, size: 'sm', color: '#555555' },
+                                { type: 'text', text: `📍 地址: ${intentParams.customer?.address || '未提供'}`, size: 'sm', color: '#555555', wrap: true },
+                                { type: 'text', text: `⏰ 到貨: ${intentParams.customer?.deliveryTime || '未指定'}`, size: 'sm', color: '#1DB446', wrap: true, margin: 'sm' },
+                                { type: 'text', text: `📝 備註: ${intentParams.customer?.remark || '無'}`, size: 'sm', color: '#E11D48', wrap: true, margin: 'sm' },
                                 { type: 'separator', margin: 'lg' },
                                 { type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm', contents: itemBoxes },
                                 { type: 'separator', margin: 'lg' },
