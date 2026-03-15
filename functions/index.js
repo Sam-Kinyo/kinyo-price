@@ -35,16 +35,25 @@ function normalizeKeyword(str) {
 // --- Helper Functions ---
 const normalize = (s) => String(s).replace(/[-\s]/g, '').toUpperCase().trim();
 
+// 提取主型號 (例: KH-9660PI -> KH9660)
+const getBaseModelForImages = (modelName) => {
+  if (!modelName) return '';
+  // 1. 先移除所有連字號、空白等特殊符號
+  let cleanStr = modelName.replace(/[^a-zA-Z0-9]/g, '');
+  // 2. 移除尾部的連續英文字母 (顏色碼)
+  return cleanStr.replace(/[a-zA-Z]+$/, '').toUpperCase();
+};
+
 function getImageUrl(modelName) {
   // 預設佔位圖片 (若查無圖片時顯示)
   const fallbackUrl = "https://images.weserv.nl/?url=raw.githubusercontent.com/firebase/firebase-ios-sdk/master/Firebase/Messaging/Logo/fcm_logo.png&w=400"; 
   if (!modelName) return fallbackUrl;
 
-  // 1. 型號正規化 (去除連字號與空白，全轉大寫)
-  const targetModel = normalize(modelName);
+  // 1. 取得去色的主型號
+  const targetModel = getBaseModelForImages(modelName);
 
-  // 2. 尋找匹配的商品
-  const foundItem = modelData.models.find(m => m.mainModel && normalize(m.mainModel) === targetModel);
+  // 2. 尋找匹配的商品 (資料庫的主型號也需經過相同的防呆清洗)
+  const foundItem = modelData.models.find(m => m.mainModel && getBaseModelForImages(m.mainModel) === targetModel);
   if (!foundItem || !foundItem.mainImage) return fallbackUrl;
 
   // 3. 提取 Google Drive File ID
@@ -176,11 +185,27 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 userText = event.message.text.trim();
                 
                 if (isGroup) {
-                    if (!userText.includes('@小幫手')) continue;
-                    userText = userText.replace('@小幫手', '').trim();
+                    const botName = '@KINYO挺好的';
+                    
+                    // 若沒有標記機器人，直接略過
+                    if (!userText.includes(botName)) continue;
+                    
+                    // 拔除標記詞，留下乾淨的指令
+                    userText = userText.replace(botName, '').trim();
                 
                     // 處理綁定指令
                     if (userText.startsWith('#綁定群組')) {
+                        const adminUid = 'U7043cd6c4576c96ddb23d316fba32a9b'; // 郭庭豪的 LINE UID
+                        
+                        // 權限攔截防線
+                        if (lineUid !== adminUid) {
+                            await lineClient.replyMessage({
+                                replyToken: replyToken,
+                                messages: [{ type: 'text', text: '⛔ 權限不足：僅限系統管理員執行此變更' }]
+                            });
+                            continue;
+                        }
+
                         const targetLevel = parseInt(userText.replace('#綁定群組', '').trim(), 10);
                         if (!isNaN(targetLevel)) {
                             await db.collection('Groups').doc(groupId).set({ level: targetLevel });
@@ -194,8 +219,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 }
                 
                 // --- 額外處理：訂單模板回覆 ---
-                if (userText === '訂單' || userText === '@小幫手 訂單') {
-                    const orderTemplate = `@小幫手 下單\n採購公司：\n[型號] [單價] [數量] (多筆請換行新增)\n收件人：\n收件人連絡電話：\n送貨地址：\n預期到貨時間：\n備註：`;
+                if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
+                    const orderTemplate = `@KINYO挺好的 下單\n採購公司：\n[型號] [單價] [數量] (多筆請換行新增)\n收件人：\n收件人連絡電話：\n送貨地址：\n預期到貨時間：\n備註：`;
                     
                     await lineClient.replyMessage({
                         replyToken: replyToken,
@@ -1030,10 +1055,10 @@ ${evalQty}個：${finalPrice}
             // --- 擴充：處理「圖庫索取」意圖分流 ---
             if (intentParams.request_image_links && products.length > 0) {
                 const product = products[0]; // 取精準度最高的第一筆
-                const targetModelNorm = normalize(product.model);
+                const targetModelNorm = getBaseModelForImages(product.model);
                 
                 // 查找 modelData.json 內的連結
-                const imageInfo = modelData.models.find(m => normalize(m.mainModel) === targetModelNorm);
+                const imageInfo = modelData.models.find(m => getBaseModelForImages(m.mainModel) === targetModelNorm);
                 const folderUrl = imageInfo && imageInfo.folderUrl ? imageInfo.folderUrl : '未提供';
                 const netFolderUrl = imageInfo && imageInfo.netFolderUrl ? imageInfo.netFolderUrl : '未提供';
 
