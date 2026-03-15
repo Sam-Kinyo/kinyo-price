@@ -232,6 +232,63 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     continue; // 回傳後即結束本次請求處理
                 }
 
+                // --- 查詢訂單關鍵字攔截 ---
+                if (userText === '查詢訂單' || userText === '@KINYO挺好的 查詢訂單') {
+                    // 1. 從 Firestore 撈取該群組最近 5 筆訂單
+                    const ordersSnapshot = await db.collection('PendingOrders')
+                      .where('sourceId', '==', groupId)
+                      .orderBy('createdAt', 'desc')
+                      .limit(5)
+                      .get();
+                
+                    if (ordersSnapshot.empty) {
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: '📝 目前本群組尚無歷史訂單紀錄。' }]
+                        });
+                        continue;
+                    }
+                
+                    // 2. 組合 Flex Carousel 輪播卡片
+                    const bubbles = ordersSnapshot.docs.map(doc => {
+                      const data = doc.data();
+                      const orderId = doc.id;
+                      const statusColor = data.status === '已出貨' ? '#1DB446' : '#F59E0B';
+                      const dateStr = data.createdAt ? new Date(data.createdAt._seconds * 1000).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) : '未知時間';
+                
+                      return {
+                        type: 'bubble',
+                        size: 'micro', // 使用微型卡片以便在手機上橫向滑動
+                        header: {
+                          type: 'box',
+                          layout: 'vertical',
+                          contents: [{ type: 'text', text: `狀態：${data.status || '處理中'}`, color: statusColor, weight: 'bold', size: 'sm' }],
+                          paddingAll: '10px'
+                        },
+                        body: {
+                          type: 'box',
+                          layout: 'vertical',
+                          contents: [
+                            { type: 'text', text: `編號: ${orderId.substring(0, 8)}...`, size: 'xs', color: '#888888' },
+                            { type: 'text', text: `客戶: ${data.customer.name}`, weight: 'bold', size: 'sm', margin: 'sm' },
+                            { type: 'text', text: `金額: $${data.totalAmount}`, size: 'sm', color: '#E11D48' },
+                            { type: 'text', text: dateStr, size: 'xxs', color: '#aaaaaa', margin: 'md' }
+                          ]
+                        }
+                      };
+                    });
+                
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{
+                            type: 'flex',
+                            altText: '您的訂單查詢結果',
+                            contents: { type: 'carousel', contents: bubbles }
+                        }]
+                    });
+                    continue;
+                }
+
                 // --- 階段二：後端實作 LIFF 綁定成功後續與 RBAC 權限回覆 ---
                 if (userText === '#帳號綁定完成') {
                     shouldSkipSearch = true; // 阻擋原本商品查詢流程
@@ -308,24 +365,43 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             if (!doc.exists) throw new Error('找不到該筆訂單');
                             if (doc.data().status !== 'waiting') throw new Error('此訂單已處理過');
                             
-                            finalStatus = action === 'confirm_order' ? 'confirmed' : 'cancelled';
-                            t.update(orderRef, { status: finalStatus });
+                            finalStatus = action === 'confirm_order' ? '處理中' : 'cancelled';
+                            
+                            const updateData = { status: finalStatus };
+                            if (finalStatus === '處理中') {
+                                updateData.sourceId = event.source.groupId || event.source.userId;
+                            }
+                            t.update(orderRef, updateData);
 
                             // 若確認訂單，觸發 SMTP 發送通知信
-                            if (finalStatus === 'confirmed') {
+                            if (finalStatus === '處理中') {
                                 const orderData = doc.data();
+                                const functionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${orderId}`;
+                                
                                 const mailOptions = {
                                     from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
                                     to: 'sam.kuo@kinyo.tw', // 為了測試先寄給管理員
-                                    subject: `[新訂單通知] ${orderData.customer?.company || orderData.customer?.name || '客戶'} - 總計 $${orderData.totalAmount}`,
-                                    text: `訂單編號: ${orderId}\n採購公司: ${orderData.customer?.company || '未提供'}\n收件人: ${orderData.customer?.name}\n電話: ${orderData.customer?.phone}\n地址: ${orderData.customer?.address || '未提供'}\n預期到貨時間: ${orderData.customer?.deliveryTime || '未指定'}\n備註: ${orderData.customer?.remark || '無'}\n\n總計金額: $${orderData.totalAmount}`
+                                    subject: `[新訂單通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 總計 $${orderData.totalAmount}`,
+                                    html: `
+                                      <h3>新訂單通知</h3>
+                                      <p><strong>訂單編號:</strong> ${orderId}</p>
+                                      <p><strong>採購公司:</strong> ${orderData.customer?.company || '未提供'}</p>
+                                      <p><strong>收件人:</strong> ${orderData.customer?.name}</p>
+                                      <p><strong>電話:</strong> ${orderData.customer?.phone}</p>
+                                      <p><strong>地址:</strong> ${orderData.customer?.address || '未提供'}</p>
+                                      <p><strong>預期到貨:</strong> ${orderData.customer?.deliveryTime || '未指定'}</p>
+                                      <p><strong>備註:</strong> ${orderData.customer?.remark || '無'}</p>
+                                      <p><strong>總計金額:</strong> $${orderData.totalAmount}</p>
+                                      <hr>
+                                      <a href="${functionUrl}" style="display:inline-block; padding:12px 24px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">✅ 標記為已出貨</a>
+                                    `
                                 };
                                 // 非同步寄信，不阻塞 Transaction
                                 transporter.sendMail(mailOptions).catch(err => console.error("SMTP 發信失敗:", err));
                             }
                         });
 
-                        const replyMsg = finalStatus === 'confirmed' 
+                        const replyMsg = finalStatus === '處理中' 
                             ? '✅ 訂單已成功送出！我們將盡快為您處理。' 
                             : '❌ 訂單已取消。';
 
@@ -1421,5 +1497,68 @@ ${evalQty}個：${finalPrice}
             console.error(`❌ [Line API 詳細錯誤 (Top Level)]`, JSON.stringify(e.originalError.response.data, null, 2));
         }
         res.status(500).send('Internal Server Error');
+    }
+});
+
+// --- API 擴充：信件出貨按鈕回呼 ---
+exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const orderId = req.query.orderId;
+    if (!orderId) return res.status(400).send('缺少訂單編號');
+
+    // 防範信箱預覽機制 (Prefetch)：GET 請求只回傳確認畫面
+    if (req.method === 'GET') {
+        const confirmHtml = `
+            <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
+                <h2 style="color: #333;">確認訂單出貨</h2>
+                <p>即將發送出貨通知給訂單 <strong>${orderId}</strong> 的客戶</p>
+                <form method="POST" action="">
+                    <button type="submit" style="background-color: #28a745; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 20px 2px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold;">
+                        ✅ 確認並發送 LINE 推播
+                    </button>
+                </form>
+            </div>
+        `;
+        return res.send(confirmHtml);
+    }
+  
+    try {
+      const orderRef = db.collection('PendingOrders').doc(orderId);
+      const doc = await orderRef.get();
+      
+      if (!doc.exists) return res.status(404).send('<h2>找不到該訂單</h2>');
+  
+      const orderData = doc.data();
+      
+      // 防呆：避免重複點擊重複推播
+      if (orderData.status === '已出貨') {
+        return res.send('<h2 style="text-align: center; color: #856404; background-color: #fff3cd; padding: 20px;">此訂單先前已經標記為「已出貨」囉！</h2>');
+      }
+  
+      // 更新資料庫狀態
+      await orderRef.update({ status: '已出貨' });
+  
+      // 透過 LINE Messaging API 主動推播至原始群組/用戶
+      const targetId = orderData.sourceId; 
+      if (targetId) {
+        // 在新請求中重新初始化 Line SDK v9 client
+        const config = getConfig();
+        const lineClient = new messagingApi.MessagingApiClient({
+            channelAccessToken: config.channelAccessToken
+        });
+
+        await lineClient.pushMessage({
+          to: targetId,
+          messages: [{
+            type: 'text',
+            text: `📦 系統通知：訂單 (${orderId}) 已由出貨中心安排出貨，請留意收件。`
+          }]
+        });
+      }
+  
+      // 回傳成功畫面給點擊信件的助理
+      return res.send('<h2 style="text-align: center; color: #155724; background-color: #d4edda; padding: 20px; border-radius: 8px;">✅ 狀態更新成功！已自動發送 LINE 出貨通知給客戶。</h2>');
+    } catch (error) {
+      console.error('出貨更新失敗:', error);
+      return res.status(500).send('<h2 style="text-align: center; color: red;">系統發生錯誤，請聯絡管理員</h2>');
     }
 });
