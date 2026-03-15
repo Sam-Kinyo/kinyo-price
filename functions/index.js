@@ -667,16 +667,24 @@ ${evalQty}個：${finalPrice}
                 const validOrderItems = [];
                 const invalidModels = [];
                 const abnormalPriceModels = []; // 紀錄價格異常被剔除的型號
+                const outOfStockModels = []; // 新增：紀錄庫存不足的型號
                 const currentViewLevel = level;
 
                 for (const item of intentParams.orderItems) {
-                    const product = products.find(p => {
-                        const dbModelNorm = p.model ? normalize(p.model) : "";
-                        const targetModelNorm = normalize(item.model);
-                        return dbModelNorm.includes(targetModelNorm);
-                    });
+                    // 新增：強制淨化字串，只保留英文字母與數字，並轉小寫
+                    const sanitizeModel = (str) => str ? str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
+                    
+                    // 使用淨化後的字串進行比對
+                    const product = products.find(p => sanitizeModel(p.model) === sanitizeModel(item.model));
 
                     if (product) {
+                        // 庫存檢核防線 (若無 inventory 欄位則預設 99999)
+                        const currentStock = (product.inventory !== undefined && product.inventory !== null) ? Number(product.inventory) : 99999;
+                        if (item.qty > currentStock) {
+                            outOfStockModels.push(`${product.model} (僅剩 ${currentStock})`);
+                            continue;
+                        }
+
                         // 1. 取得該等級可獲得的最底價極限（傳入極大值 99999 觸發最高優惠門檻）
                         let bottomDivisor = 0.75;
                         if (currentViewLevel === 1) bottomDivisor = 0.75; // 100+
@@ -836,11 +844,14 @@ ${evalQty}個：${finalPrice}
                 const warningTexts = [];
                 if (invalidModels.length > 0) warningTexts.push(`查無型號: ${invalidModels.join(', ')}`);
                 if (abnormalPriceModels.length > 0) warningTexts.push(`價格異常: ${abnormalPriceModels.join(', ')}`);
+                // 新增：將庫存不足訊息推入警告清單
+                if (outOfStockModels.length > 0) warningTexts.push(`庫存不足轉預購: ${outOfStockModels.join(', ')}`);
 
                 if (warningTexts.length > 0) {
+                    // 將警告標語插入卡片最上方
                     flexMessageObject.contents.body.contents.unshift({
                         type: 'text',
-                        text: `⚠️ 已自動剔除 - ${warningTexts.join(' | ')}\n請洽 郭庭豪 (0976966333) 確認專案出貨金額。`,
+                        text: `⚠️ 系統提示 - ${warningTexts.join(' | ')}`,
                         color: '#E11D48',
                         size: 'xs',
                         wrap: true,
