@@ -406,18 +406,27 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const cost = parseInt(p.cost) || 0;
                         
                         // 計算特定數量的單價
-                        let divisor = 0.73;
+                        // --- 靜默數量天花板 (Stealth Quantity Ceiling) ---
+                        let calc_qty = evalQty;
+                        if (level === 1 && calc_qty > 100) calc_qty = 100;
+                        if (level === 2 && calc_qty > 500) calc_qty = 500;
+                        if (level === 3 && calc_qty > 1000) calc_qty = 1000;
+                        
+                        // 計算特定數量的單價 (含稅)
+                        let divisor = 0.73; // 預設防呆
                         if (level === 1) {
-                            divisor = evalQty >= 100 ? 0.76 : 0.73;
+                            if (calc_qty >= 100) divisor = 0.75;
+                            else divisor = 0.73;
                         } else if (level === 2) {
-                            if (evalQty >= 300) divisor = 0.80;
-                            else if (evalQty >= 100) divisor = 0.76;
-                            else divisor = 0.73;
+                            if (calc_qty >= 300) divisor = 0.80;
+                            else if (calc_qty >= 100) divisor = 0.76;
+                            else divisor = 0.74;
                         } else if (level >= 3) {
-                            if (evalQty >= 1000) divisor = 0.858;
-                            else if (evalQty >= 300) divisor = 0.80;
-                            else if (evalQty >= 100) divisor = 0.76;
-                            else divisor = 0.73;
+                            if (calc_qty >= 1000) divisor = 0.858;
+                            else if (calc_qty >= 500) divisor = 0.835;
+                            else if (calc_qty >= 300) divisor = 0.81;
+                            else if (calc_qty >= 100) divisor = 0.765;
+                            else divisor = 0.745;
                         }
                         
                         const finalPrice = Math.ceil((cost / divisor) * 1.05);
@@ -543,35 +552,47 @@ ${evalQty}個：${finalPrice}
                 return p;
             });
 
-            // 過濾 min_stock
+            // 过慮 min_stock
             if (intentParams.min_stock !== undefined && intentParams.min_stock !== null) {
                 products = products.filter(p => p.currentStock >= parseInt(intentParams.min_stock));
             }
+
+            // --- 靜默數量天花板 (Stealth Quantity Ceiling) ---
+            let target_qty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : null;
+            let calc_qty = target_qty !== null ? target_qty : 1;
+            
+            // 依據目前檢視等級 (level) 靜默裁切計算數量
+            // Level 1 上限 300, Level 2 上限 500, Level 3 上限 1000
+            if (level === 1 && calc_qty > 300) calc_qty = 300;
+            if (level === 2 && calc_qty > 500) calc_qty = 500;
+            if (level === 3 && calc_qty > 1000) calc_qty = 1000;
+            // Level 4 維持原數量，不設限
 
             // --- 嚴格預算與庫存過濾 ---
             if (intentParams.min_budget !== null || intentParams.max_budget !== null || intentParams.target_qty !== null) {
                 const maxB = intentParams.max_budget !== null ? parseInt(intentParams.max_budget) : Infinity;
                 const minB = intentParams.min_budget !== null ? parseInt(intentParams.min_budget) : 0;
-                const qty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : null;
                 
                 products = products.filter(p => {
                     const cost = parseInt(p.cost) || 0;
                     if (cost === 0) return false;
 
                     // 計算對應單價 (finalPrice)
-                    let evalQty = qty !== null ? qty : 50; 
-                    let divisor = 0.73;
+                    let evalQty = target_qty !== null ? calc_qty : 50; 
+                    let divisor = 0.73; // 預設防呆
                     if (level === 1) {
-                        divisor = evalQty >= 100 ? 0.76 : 0.73;
+                        if (evalQty >= 100) divisor = 0.75;
+                        else divisor = 0.73;
                     } else if (level === 2) {
                         if (evalQty >= 300) divisor = 0.80;
                         else if (evalQty >= 100) divisor = 0.76;
-                        else divisor = 0.73;
+                        else divisor = 0.74;
                     } else if (level >= 3) {
                         if (evalQty >= 1000) divisor = 0.858;
-                        else if (evalQty >= 300) divisor = 0.80;
-                        else if (evalQty >= 100) divisor = 0.76;
-                        else divisor = 0.73;
+                        else if (evalQty >= 500) divisor = 0.835;
+                        else if (evalQty >= 300) divisor = 0.81;
+                        else if (evalQty >= 100) divisor = 0.765;
+                        else divisor = 0.745;
                     }
                     
                     const finalPrice = Math.ceil((cost / divisor) * 1.05);
@@ -704,9 +725,12 @@ ${evalQty}個：${finalPrice}
                 const cost = parseInt(p.cost) || 0;
                 const priceScale = [];
                 
+                // Helper to ensure 1.05 tax & ceil
+                const calcTaxPrice = (c, d) => Math.ceil((c / d) * 1.05);
+                
                 if (level >= 1) {
-                    let text50 = `50個: $${calculatePrice(cost, 0.73)}`;
-                    let text100 = `100個: $${calculatePrice(cost, 0.76)}`;
+                    let text50 = `50個: $${calcTaxPrice(cost, 0.73)}`;
+                    let text100 = `100個: $${calcTaxPrice(cost, 0.75)}`;
                     
                     if (intentParams.target_qty && intentParams.target_qty >= 50 && intentParams.target_qty < 100) {
                         text50 = `🔥 ${text50}`;
@@ -718,28 +742,57 @@ ${evalQty}個：${finalPrice}
                 }
                 
                 if (level >= 2) {
-                    let text300 = `300個: $${calculatePrice(cost, 0.80)}`;
+                    let text300 = `300個: $${calcTaxPrice(cost, 0.80)}`;
+                    let text500 = `500個: $${calcTaxPrice(cost, 0.82)}`;
+                    
                     if (intentParams.target_qty && intentParams.target_qty >= 300 && intentParams.target_qty < 500) {
                         text300 = `🔥 ${text300}`;
+                    } else if (intentParams.target_qty && intentParams.target_qty >= 500 && intentParams.target_qty < 1000) {
+                        text500 = `🔥 ${text500}`;
                     }
+                    
+                    // Rewrite for specific divisor to override Level 1's display in Level >= 2
+                    priceScale[0] = `50個: $${calcTaxPrice(cost, 0.74)}`;
+                    priceScale[1] = `100個: $${calcTaxPrice(cost, 0.76)}`;
+                    
+                    if (intentParams.target_qty && intentParams.target_qty >= 50 && intentParams.target_qty < 100) {
+                        priceScale[0] = `🔥 ${priceScale[0]}`;
+                    } else if (intentParams.target_qty && intentParams.target_qty >= 100 && intentParams.target_qty < 300) {
+                        priceScale[1] = `🔥 ${priceScale[1]}`;
+                    }
+
                     priceScale.push(text300);
+                    priceScale.push(text500);
                 }
                 
                 if (level >= 3) {
-                    let text500 = `500個: $${calculatePrice(cost, 0.835)}`;
-                    let text1000 = `1000個: $${calculatePrice(cost, 0.858)}`;
+                    let text1000 = `1000個: $${calcTaxPrice(cost, 0.858)}`;
                     
-                    if (intentParams.target_qty && intentParams.target_qty >= 500 && intentParams.target_qty < 1000) {
-                        text500 = `🔥 ${text500}`;
-                    } else if (intentParams.target_qty && intentParams.target_qty >= 1000 && intentParams.target_qty < 3000) {
+                    if (intentParams.target_qty && intentParams.target_qty >= 1000 && intentParams.target_qty < 3000) {
                         text1000 = `🔥 ${text1000}`;
                     }
-                    priceScale.push(text500);
+                    
+                    // Rewrite for specific divisor to override Level 2's display in Level >= 3
+                    priceScale[0] = `50個: $${calcTaxPrice(cost, 0.745)}`;
+                    priceScale[1] = `100個: $${calcTaxPrice(cost, 0.765)}`;
+                    priceScale[2] = `300個: $${calcTaxPrice(cost, 0.81)}`;
+                    priceScale[3] = `500個: $${calcTaxPrice(cost, 0.835)}`;
+                    
+                    if (intentParams.target_qty && intentParams.target_qty >= 50 && intentParams.target_qty < 100) {
+                        priceScale[0] = `🔥 ${priceScale[0]}`;
+                    } else if (intentParams.target_qty && intentParams.target_qty >= 100 && intentParams.target_qty < 300) {
+                        priceScale[1] = `🔥 ${priceScale[1]}`;
+                    } else if (intentParams.target_qty && intentParams.target_qty >= 300 && intentParams.target_qty < 500) {
+                        priceScale[2] = `🔥 ${priceScale[2]}`;
+                    } else if (intentParams.target_qty && intentParams.target_qty >= 500 && intentParams.target_qty < 1000) {
+                        priceScale[3] = `🔥 ${priceScale[3]}`;
+                    }
+
                     priceScale.push(text1000);
                 }
                 
                 if (level >= 4) {
-                    let text3000 = `3000個: $${calculatePrice(cost, 0.89)}`;
+                    let text3000 = `3000個: $${calcTaxPrice(cost, 0.89)}`;
                     if (intentParams.target_qty && intentParams.target_qty >= 3000) {
                         text3000 = `🔥 ${text3000}`;
                     }
