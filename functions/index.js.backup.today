@@ -10,6 +10,11 @@ const { transporter } = require('./src/utils/mailer');
 // 根據 Firebase Functions v3+ 官方規範，.env 檔案的變數會在中介層自動掛載進 process.env
 const modelData = require('./modelData.json');
 
+// 專案特規：高權限群組白名單 (測試群組)
+const SPECIAL_FEATURE_GROUPS = ['C54a2d40ec07a7e72bddd0022de0c1b9e'];
+
+// 申請廠價收件人清單 (測試階段限縮為單一信箱)
+const APPLY_PRICE_EMAILS = 'kuo.tinghow@gmail.com';
 
 // --- 全域同義詞字典檔 ---
 const synonymDict = { "藍芽": "藍牙", "捕蚊拍": "電蚊拍", "台": "臺" };
@@ -76,7 +81,7 @@ const intentSchema = {
         },
         action: {
             type: Type.STRING,
-            description: "特殊動作分類 (例如：borrow_sample, batch_order, repair_info)",
+            description: "特殊動作分類 (例如：borrow_sample, batch_order, apply_price)",
             nullable: true
         },
         keyword: {
@@ -183,6 +188,21 @@ const intentSchema = {
                     }
                 }
             }
+        },
+        data: {
+            type: Type.OBJECT,
+            description: "申請廠價的申請表單資料 (僅在 action 為 'apply_price' 時輸出)",
+            nullable: true,
+            properties: {
+                department: { type: Type.STRING, description: "單位", nullable: true },
+                customer: { type: Type.STRING, description: "客戶名稱", nullable: true },
+                customerId: { type: Type.STRING, description: "客編", nullable: true },
+                model: { type: Type.STRING, description: "型號", nullable: true },
+                quantity: { type: Type.INTEGER, description: "數量。純數字", nullable: true },
+                time: { type: Type.STRING, description: "時間", nullable: true },
+                newFactoryPrice: { type: Type.INTEGER, description: "申請新廠價(未)", nullable: true },
+                salesPrice: { type: Type.INTEGER, description: "銷售客戶價格或回收價格(未)", nullable: true }
+            }
         }
     },
     required: []
@@ -238,11 +258,6 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             // 內部驗證函式：依據環境判定權限
             async function verifyGlobalPermission() {
                 if (isGroup) {
-                    // 若是群組且是文字訊息，不論有無綁定權限，都必須有提到 @KINYO挺好的 才能處理，否則全部靜默忽略
-                    if (event.type === 'message' && (!event.message.text || !event.message.text.includes('@KINYO挺好的'))) {
-                        throw new Error('SILENT_IGNORE'); // 中斷處理但不回傳訊息
-                    }
-
                     // 1. 群組環境：查驗 Groups 集合
                     const groupDoc = await db.collection('Groups').doc(groupId).get();
                     if (groupDoc.exists && groupDoc.data().level) {
@@ -250,7 +265,10 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         realLevel = currentViewLevel;
                         level = currentViewLevel;
                     } else {
-                        // 群組無權限：這時由於已經擋掉未 tag 的情況，能來到這裡代表使用者確實 tag 了機器人
+                        // 群組無權限：若是未標記機器人的文字，靜默忽略；若是點擊按鈕或標記機器人，則跳警告
+                        if (event.type === 'message' && (!event.message.text || !event.message.text.includes('@KINYO挺好的'))) {
+                            throw new Error('SILENT_IGNORE'); // 中斷處理但不回傳訊息
+                        }
                         await lineClient.replyMessage({
                             replyToken: replyToken,
                             messages: [{ type: 'text', text: '⛔ 此群組尚未綁定報價權限。' }]
@@ -340,72 +358,18 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         continue;
                     }
 
-                    // 將群組 ID 寫入系統設定表
-                    await db.collection('SystemConfig').doc('OrderSettings').set({
-                        notifyGroupId: groupId,
-                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true });
+                        // 將群組 ID 寫入系統設定表
+                        await db.collection('SystemConfig').doc('OrderSettings').set({
+                            notifyGroupId: groupId,
+                            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
 
-                    await lineClient.replyMessage({
-                        replyToken: replyToken,
-                        messages: [{ type: 'text', text: '✅ 已將本群組設定為【接單總部】\n未來新訂單將同步推播至此。' }]
-                    });
-                    continue;
-                }
-
-                // --- 額外處理：綁定群組相關指令 ---
-                if (isGroup) {
-                    const botName = '@KINYO挺好的';
-                    const isBotTag = rawUserMessage.startsWith(botName);
-
-                    if (isBotTag) {
-                        const cleanCommand = rawUserMessage.replace(botName, '').trim();
-
-                        // 處理綁定指令
-                        if (cleanCommand.startsWith('#綁定群組')) {
-                            const adminUid = 'U7043cd6c4576c96ddb23d316fba32a9b'; // 郭庭豪的 LINE UID
-
-                            // 權限攔截防線
-                            if (lineUid !== adminUid) {
-                                await lineClient.replyMessage({
-                                    replyToken: replyToken,
-                                    messages: [{ type: 'text', text: '⛔ 權限不足：僅限系統管理員執行此變更' }]
-                                });
-                                continue;
-                            }
-
-                            const targetLevel = parseInt(cleanCommand.replace('#綁定群組', '').trim(), 10);
-                            if (!isNaN(targetLevel)) {
-                                await db.collection('Groups').doc(groupId).set({ level: targetLevel });
-                                await lineClient.replyMessage({
-                                    replyToken: replyToken,
-                                    messages: [{ type: 'text', text: `✅ 本群組已綁定 Level ${targetLevel}` }]
-                                });
-                            }
-                            continue;
-                        }
-
-                        // 處理解除綁定指令
-                        if (cleanCommand.startsWith('#解除綁定')) {
-                            const adminUid = 'U7043cd6c4576c96ddb23d316fba32a9b';
-
-                            if (lineUid !== adminUid) {
-                                await lineClient.replyMessage({
-                                    replyToken: replyToken,
-                                    messages: [{ type: 'text', text: '⛔ 權限不足：僅限系統管理員執行此變更' }]
-                                });
-                                continue;
-                            }
-
-                            await db.collection('Groups').doc(groupId).delete();
-                            await lineClient.replyMessage({
-                                replyToken: replyToken,
-                                messages: [{ type: 'text', text: '✅ 本群組已成功解除報價權限綁定。' }]
-                            });
-                            continue;
-                        }
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: '✅ 已將本群組設定為【接單總部】\n未來新訂單將同步推播至此。' }]
+                        });
+                        continue;
                     }
-                }
 
                 // --- 額外處理：訂單模板回覆 ---
                 if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
@@ -753,7 +717,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             const targetGroupId = configDoc.data().notifyGroupId;
                             const companyName = orderData.customer?.company || '未提供';
                             const projectName = orderData.customer?.projectName || '未提供';
-
+                            
                             const notifyText = `📦 [借樣品通知]\n編號：${newOrderId.substring(0, 8)}\n公司：${companyName}\n案名：${projectName}\n項目：共 ${totalQty} 件\n\n請盡速查看 Email 處理樣品寄送作業。`;
                             await lineClient.pushMessage({
                                 to: targetGroupId,
@@ -878,7 +842,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                             const orderData = tempDoc.data();
                             const newOrderId = `BCH${Date.now()}${Math.floor(Math.random() * 100)}`;
-
+                            
                             // 轉移至 PendingOrders
                             orderData.orderId = newOrderId;
                             orderData.status = '處理中_批次';
@@ -935,12 +899,12 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                 `
                             };
                             transporter.sendMail(mailOptions).catch(err => console.error("批次 SMTP 發信失敗:", err));
-
+                            
                             // 發送 LINE 通知群組 (如果有設定)
                             const configDoc = await db.collection('SystemConfig').doc('OrderSettings').get();
                             if (configDoc.exists && configDoc.data().notifyGroupId) {
                                 const targetGroupId = configDoc.data().notifyGroupId;
-
+                                
                                 // 將 items 轉換為純文字明細列
                                 let notifyItemsText = '';
                                 if (orderData.items && Array.isArray(orderData.items)) {
@@ -948,15 +912,15 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                         notifyItemsText += `- ${item.model} x${item.quantity}\n`;
                                     });
                                 }
-
+                                
                                 const notifyText = `🚨 [行動屋出貨成立]\n\n🏢 門市：${orderData.customer?.company || ''} ${orderData.customer?.name}\n📍 地址：${orderData.customer?.address || '未提供'}\n📝 備註：${orderData.customer?.remark || '無'}\n\n📦 訂單明細：\n${notifyItemsText}\n(總計 ${totalQty} 件)\n\n信件已發送至助理信箱備查。`;
-
+                                
                                 await lineClient.pushMessage({
                                     to: targetGroupId,
                                     messages: [{ type: 'text', text: notifyText }]
                                 });
                             }
-
+                            
                         } catch (err) {
                             console.error(`[批次處理錯誤] ID: ${id}`, err);
                             errorCount++;
@@ -1000,7 +964,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     shouldSkipSearch = true;
                     const requestId = params.get('id');
                     const requestDoc = await db.collection('SpecialRequests').doc(requestId).get();
-
+                    
                     if (!requestDoc.exists || requestDoc.data().status !== 'pending') {
                         return lineClient.replyMessage({
                             replyToken: replyToken,
@@ -1009,7 +973,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     }
 
                     const data = requestDoc.data().data;
-
+                    
                     // 1. 組合 HTML Email 內文
                     const emailHtml = `
                     <h2>廠價申請單</h2>
@@ -1038,7 +1002,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     };
 
                     transporter.sendMail(mailOptions).catch(err => console.error("廠價申請 SMTP 發信失敗:", err));
-
+                    
                     // 3. 更新資料庫狀態為已核准/已送出
                     await db.collection('SpecialRequests').doc(requestId).update({ status: 'sent' });
 
@@ -1313,36 +1277,31 @@ ${evalQty}個：${finalPrice}
             if (event.type === 'message') {
                 const sourceId = event.source.groupId || event.source.roomId || event.source.userId;
 
-
-
-                // ---------------------------------------------------------
-                // 模組 2：呼叫 Gemini 解析意圖 (JSON Schema) 或 Fast Path (純型號)
-                // ---------------------------------------------------------
-                const { analyzeAndCleanMessage } = require('./src/utils/messagePreprocessor');
-                const preprocessResult = analyzeAndCleanMessage(userText);
-                
-                if (!preprocessResult.requireAi) {
-                    intentParams.intent = preprocessResult.intentInfo;
-                    intentParams.action = preprocessResult.actionInfo;
-                    
-                    if (intentParams.intent === 'query') {
-                        intentParams.keyword = preprocessResult.cleanText;
-                        intentParams.target_qty = 1; // 預設查 1 個
-                        console.log(`⚡ [Fast Path] 偵測為純型號查詢，略過 Gemini: "${intentParams.keyword}"`);
-                    } else if (intentParams.intent === 'faq') {
-                        console.log(`⚡ [Fast Path] 偵測為靜態 FAQ: "${intentParams.action}"`);
+                // --- 新增：特規功能權限防火牆 ---
+                if (userText.includes('@KINYO挺好的') && (userText.includes('申請廠價') || userText.includes('個人下單') || userText.includes('申請預留'))) {
+                    if (!SPECIAL_FEATURE_GROUPS.includes(sourceId)) {
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{
+                                type: 'text',
+                                text: '⚠️ [系統權限阻擋]\n此群組未開啟高階行政作業權限。'
+                            }]
+                        });
+                        continue;
                     }
-                } else {
-                    const cleanUserText = preprocessResult.cleanText;
-                    console.log(`[Gemini] 開始解析輸入文字: "${cleanUserText}" (原: "${userText}")`);
+                }
+                // ---------------------------------
+
+                // ---------------------------------------------------------
+                // 模組 2：呼叫 Gemini 解析意圖 (JSON Schema)
+                // ---------------------------------------------------------
+                console.log(`[Gemini] 開始解析輸入文字: "${userText}"`);
 
                 try {
-                    if (!isGroup) {
-                        await lineClient.showLoadingAnimation({
-                            chatId: lineUid,
-                            loadingSeconds: 10
-                        });
-                    }
+                    await lineClient.showLoadingAnimation({
+                        chatId: isGroup ? groupId : lineUid,
+                        loadingSeconds: 10
+                    });
                 } catch (loadErr) {
                     console.error(`⚠️ [Line SDK 警告] showLoadingAnimation failed:`, loadErr);
                 }
@@ -1430,15 +1389,23 @@ ${evalQty}個：${finalPrice}
   ]
 }
 
-【新增情境 3：詢問維修或客服資訊】
-若使用者對話內容長句中包含詢問「維修地址」、「怎麼修」、「保固」、「哪裡維修」、「客服電話」等相關問題，請強制將 action 設為 "repair_info"，intent 設為 "faq"：
+【新增情境 3：申請廠價 (高權限作業)】
+若使用者對話內容包含「申請廠價」，請強制回傳以下 JSON 格式（絕對禁止呼叫報價或計算總金額）：
 {
-  "intent": "faq",
-  "action": "repair_info",
-  "keyword": null
+  "action": "apply_price",
+  "data": {
+    "department": "單位",
+    "customer": "客戶名稱",
+    "customerId": "客編",
+    "model": "型號",
+    "quantity": "數量",
+    "time": "時間",
+    "newFactoryPrice": "申請新廠價(未)",
+    "salesPrice": "銷售客戶價格或回收價格(未)"
+  }
 }
 
-使用者輸入内容：「${cleanUserText}」`;
+使用者輸入内容：「${userText}」`;
 
                 const response = await ai.models.generateContent({
                     model: 'gemini-2.5-flash',
@@ -1464,25 +1431,74 @@ ${evalQty}個：${finalPrice}
                     console.error(`[Gemini Warn] JSON 解析失敗:`, jsonErr);
                 }
 
-                    console.log(`🧠 [Gemini 解析結果]`, JSON.stringify(intentParams, null, 2));
-                } // 結束 if (!preprocessResult.requireAi) else 區塊
+                console.log(`🧠 [Gemini 解析結果]`, JSON.stringify(intentParams, null, 2));
 
                 const fallbackMessage = {
                     type: 'text',
                     text: `🤖 系統提示：無法辨識指令\n\n很抱歉，『挺好的』目前無法完全理解您的需求。為加快處理速度，請參考以下標準指令：\n\n🔍 商品查價：請輸入「查價 + 型號」\n🛒 建立訂單：請填寫完整「下單模板」\n🛠️ 維修資訊：請輸入「維修」或「客服」\n📦 樣品/不良品：請直接填寫完整申請模板\n\n若需專人協助，請直接於群組內標註業務人員，謝謝您！`
                 };
 
+                // ---------------------------------------------------------
+                // 額外模組：特殊 action 攔截處理 (借樣品、新品不良等)
+                // ---------------------------------------------------------
+                if (intentParams.action === 'apply_price') {
+                    const applyData = intentParams.data || {};
+                    const sourceId = event.source.groupId || event.source.roomId || event.source.userId;
+                    
+                    // 1. 將草稿寫入 Firestore (建立 SpecialRequests 集合)
+                    const requestRef = await db.collection('SpecialRequests').add({
+                        type: 'apply_price',
+                        data: applyData,
+                        status: 'pending',
+                        groupId: sourceId,
+                        createdAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
 
-
-                const { handleSpecialActions } = require('./src/workflows/specialActionWorkflow');
-                const { handleFaqRequest } = require('./src/workflows/faqWorkflow');
-
-                // 處理 FAQ (如果由 Fast Path 攔截，或是 Gemini NLP 判斷出是 repair_info)
-                if (intentParams.intent === 'faq' || intentParams.action === 'repair_info') {
-                    await handleFaqRequest(event, lineClient, 'repair');
-                    continue; // 執行完畢跳脫
+                    // 2. 渲染確認用 Flex Message
+                    const confirmFlex = {
+                        type: 'flex',
+                        altText: '廠價申請確認',
+                        contents: {
+                            type: 'bubble',
+                            header: {
+                                type: 'box', layout: 'vertical', backgroundColor: '#8B5CF6', // 紫色以區隔一般訂單
+                                contents: [{ type: 'text', text: '📝 廠價申請草稿已建立', color: '#ffffff', weight: 'bold' }]
+                            },
+                            body: {
+                                type: 'box', layout: 'vertical', spacing: 'sm',
+                                contents: [
+                                    { type: 'text', text: `單位：${applyData.department || '未提供'}`, size: 'sm' },
+                                    { type: 'text', text: `客戶：${applyData.customer || '未提供'} (${applyData.customerId || '無'})`, size: 'sm' },
+                                    { type: 'text', text: `型號：${applyData.model || ''} | 數量：${applyData.quantity || ''}`, size: 'sm' },
+                                    { type: 'text', text: `時間：${applyData.time || '未提供'}`, size: 'sm', wrap: true },
+                                    { type: 'text', text: `新廠價：${applyData.newFactoryPrice || ''}`, size: 'sm', color: '#E11D48', weight: 'bold' },
+                                    { type: 'text', text: `銷售/回收價：${applyData.salesPrice || ''}`, size: 'sm' }
+                                ]
+                            },
+                            footer: {
+                                type: 'box', layout: 'horizontal', spacing: 'sm',
+                                contents: [
+                                    {
+                                        type: 'button', style: 'primary', color: '#10B981',
+                                        action: { type: 'postback', label: '✅ 確認並發送信件', data: `action=confirm_special&id=${requestRef.id}` }
+                                    },
+                                    {
+                                        type: 'button', style: 'secondary',
+                                        action: { type: 'postback', label: '❌ 取消', data: `action=cancel_special&id=${requestRef.id}` }
+                                    }
+                                ]
+                            }
+                        }
+                    };
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [confirmFlex]
+                    });
+                    continue;
                 }
 
+                const { handleSpecialActions } = require('./src/workflows/specialActionWorkflow');
+                
                 const isSpecialAction = ['borrow_sample', 'defective_return', 'batch_order'].includes(intentParams.action);
                 if (isSpecialAction) {
                     await handleSpecialActions(intentParams, { lineClient, replyToken });
@@ -1527,7 +1543,7 @@ ${evalQty}個：${finalPrice}
                     // 將字串轉大寫並去除前後空白，進行比對轉換
                     const upperModel = rawModel.toUpperCase().trim();
                     const finalModel = modelAlias[upperModel] || upperModel;
-
+                    
                     // 後續寫入資料庫或組合 Flex Message 的型號，請全面改用 finalModel
                     item.model = finalModel;
 
@@ -1676,7 +1692,7 @@ ${evalQty}個：${finalPrice}
                 const { createdAt, ...restData } = orderData;
                 const safeOrderData = JSON.parse(JSON.stringify(restData));
                 safeOrderData.createdAt = createdAt; // 補回 Firebase Server Timestamp 物件，因為它無法被 JSON.stringify 轉換
-
+                
                 await db.collection('PendingOrders').doc(orderId).set(safeOrderData);
 
                 // 動態產生訂單明細列表
@@ -1784,7 +1800,7 @@ ${evalQty}個：${finalPrice}
 
             // 1. 同時支援 intent 或 action 為 query/search 的狀況
             if (intentParams.intent === 'query' || intentParams.action === 'query' || intentParams.action === 'search') {
-
+                
                 // 2. 智慧判定：相容 Gemini 的單數字串 (keyword) 或陣列 (keywords)
                 let keywordStr = '';
                 if (typeof intentParams.keyword === 'string') {
@@ -2389,7 +2405,7 @@ exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async 
 
             // 擷取客戶名稱 (優先順序：姓名 > 公司名 > 預設值)
             const customerName = orderData.customer?.name || orderData.customer?.company || '客戶';
-
+            
             // 格式化訂購時間 (轉為 MM/DD 格式)
             let orderDate = '未知時間';
             if (orderData.createdAt) {

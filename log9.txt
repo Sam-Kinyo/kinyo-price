@@ -1,0 +1,1000 @@
+﻿2026-03-16T15:26:36.586766Z ? lineWebhook:                 "flex": 0,
+2026-03-16T15:26:36.586768Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.586801Z ? lineWebhook:               },
+2026-03-16T15:26:36.586803Z ? lineWebhook:               {
+2026-03-16T15:26:36.586806Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.586809Z ? lineWebhook:                 "text": "蝞勗?? 48??蝞?,
+2026-03-16T15:26:36.586812Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.586816Z ? lineWebhook:                 "color": "#aaaaaa"
+2026-03-16T15:26:36.586818Z ? lineWebhook:               },
+2026-03-16T15:26:36.586820Z ? lineWebhook:               {
+2026-03-16T15:26:36.586823Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.586825Z ? lineWebhook:                 "text": "摨怠?: GY 4485 | W 3757",
+2026-03-16T15:26:36.586828Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.586831Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.586835Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.586838Z ? lineWebhook:               },
+2026-03-16T15:26:36.586840Z ? lineWebhook:               {
+2026-03-16T15:26:36.586843Z ? lineWebhook:                 "type": "separator",
+2026-03-16T15:26:36.586846Z ? lineWebhook:                 "margin": "md"
+2026-03-16T15:26:36.586848Z ? lineWebhook:               },
+2026-03-16T15:26:36.586850Z ? lineWebhook:               {
+2026-03-16T15:26:36.586853Z ? lineWebhook:                 "type": "box",
+2026-03-16T15:26:36.586855Z ? lineWebhook:                 "layout": "vertical",
+2026-03-16T15:26:36.586858Z ? lineWebhook:                 "margin": "md",
+2026-03-16T15:26:36.586861Z ? lineWebhook:                 "spacing": "sm",
+2026-03-16T15:26:36.586863Z ? lineWebhook:                 "contents": [
+2026-03-16T15:26:36.586866Z ? lineWebhook:                   {
+2026-03-16T15:26:36.586869Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.586873Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.586875Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.586878Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.586881Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.586884Z ? lineWebhook:                       {
+2026-03-16T15:26:36.586887Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.586890Z ? lineWebhook:                         "text": "50?? $71",
+2026-03-16T15:26:36.586892Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.586895Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.586944Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.586946Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.586949Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.586952Z ? lineWebhook:                       },
+2026-03-16T15:26:36.586954Z ? lineWebhook:                       {
+2026-03-16T15:26:36.586957Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.586959Z ? lineWebhook:                         "text": "100?? $69",
+2026-03-16T15:26:36.586962Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.586964Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.586967Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.586972Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.586975Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.586979Z ? lineWebhook:                       }
+2026-03-16T15:26:36.586982Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.586984Z ? lineWebhook:                   },
+2026-03-16T15:26:36.586987Z ? lineWebhook:                   {
+2026-03-16T15:26:36.586990Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.586994Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.586996Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.586999Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.587002Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.587013Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587017Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587020Z ? lineWebhook:                         "text": "300?? $65",
+2026-03-16T15:26:36.587023Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587026Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587028Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587031Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587034Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587066Z ? lineWebhook:                       },
+2026-03-16T15:26:36.587068Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587071Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587075Z ? lineWebhook:                         "text": "500?? $63",
+2026-03-16T15:26:36.587079Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587081Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587084Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587087Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587089Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587092Z ? lineWebhook:                       }
+2026-03-16T15:26:36.587094Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.587097Z ? lineWebhook:                   },
+2026-03-16T15:26:36.587100Z ? lineWebhook:                   {
+2026-03-16T15:26:36.587104Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.587108Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.587112Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.587121Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.587123Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.587126Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587129Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587132Z ? lineWebhook:                         "text": "1000?? $62",
+2026-03-16T15:26:36.587134Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587137Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587142Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587145Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587147Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587150Z ? lineWebhook:                       },
+2026-03-16T15:26:36.587154Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587158Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587160Z ? lineWebhook:                         "text": " ",
+2026-03-16T15:26:36.587163Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587166Z ? lineWebhook:                         "flex": 1
+2026-03-16T15:26:36.587169Z ? lineWebhook:                       }
+2026-03-16T15:26:36.587172Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.587176Z ? lineWebhook:                   }
+2026-03-16T15:26:36.587179Z ? lineWebhook:                 ]
+2026-03-16T15:26:36.587181Z ? lineWebhook:               }
+2026-03-16T15:26:36.587184Z ? lineWebhook:             ]
+2026-03-16T15:26:36.587186Z ? lineWebhook:           },
+2026-03-16T15:26:36.587189Z ? lineWebhook:           "footer": {
+2026-03-16T15:26:36.587233Z ? lineWebhook:             "type": "box",
+2026-03-16T15:26:36.587235Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:26:36.587238Z ? lineWebhook:             "spacing": "sm",
+2026-03-16T15:26:36.587242Z ? lineWebhook:             "contents": [
+2026-03-16T15:26:36.587244Z ? lineWebhook:               {
+2026-03-16T15:26:36.587246Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:26:36.587249Z ? lineWebhook:                 "style": "primary",
+2026-03-16T15:26:36.587251Z ? lineWebhook:                 "color": "#1DB446",
+2026-03-16T15:26:36.587254Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:26:36.587256Z ? lineWebhook:                 "action": {
+2026-03-16T15:26:36.587259Z ? lineWebhook:                   "type": "postback",
+2026-03-16T15:26:36.587261Z ? lineWebhook:                   "label": "?Ｙ????勗",
+2026-03-16T15:26:36.587264Z ? lineWebhook:                   "data": "action=get_text_quote&model=CM2310&qty=0"
+2026-03-16T15:26:36.587267Z ? lineWebhook:                 }
+2026-03-16T15:26:36.587271Z ? lineWebhook:               },
+2026-03-16T15:26:36.587273Z ? lineWebhook:               {
+2026-03-16T15:26:36.587276Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:26:36.587279Z ? lineWebhook:                 "style": "secondary",
+2026-03-16T15:26:36.587282Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:26:36.587284Z ? lineWebhook:                 "margin": "sm",
+2026-03-16T15:26:36.587287Z ? lineWebhook:                 "action": {
+2026-03-16T15:26:36.587295Z ? lineWebhook:                   "type": "uri",
+2026-03-16T15:26:36.587298Z ? lineWebhook:                   "label": "?? ?亦???隞晶",
+2026-03-16T15:26:36.587301Z ? lineWebhook:                   "uri": "https://www.kinyo.tw/products/cm-2310"
+2026-03-16T15:26:36.587303Z ? lineWebhook:                 }
+2026-03-16T15:26:36.587325Z ? lineWebhook:               }
+2026-03-16T15:26:36.587327Z ? lineWebhook:             ]
+2026-03-16T15:26:36.587329Z ? lineWebhook:           }
+2026-03-16T15:26:36.587331Z ? lineWebhook:         },
+2026-03-16T15:26:36.587334Z ? lineWebhook:         {
+2026-03-16T15:26:36.587337Z ? lineWebhook:           "type": "bubble",
+2026-03-16T15:26:36.587339Z ? lineWebhook:           "hero": {
+2026-03-16T15:26:36.587342Z ? lineWebhook:             "type": "image",
+2026-03-16T15:26:36.587345Z ? lineWebhook:             "url": "https://drive.google.com/thumbnail?id=1YPYWUwjfBIjA6Ewjr5i9Ir2fIkZ2ZyFi&sz=w600",
+2026-03-16T15:26:36.587348Z ? lineWebhook:             "size": "4xl",
+2026-03-16T15:26:36.587351Z ? lineWebhook:             "aspectRatio": "20:13",
+2026-03-16T15:26:36.587353Z ? lineWebhook:             "aspectMode": "fit",
+2026-03-16T15:26:36.587358Z ? lineWebhook:             "action": {
+2026-03-16T15:26:36.587361Z ? lineWebhook:               "type": "uri",
+2026-03-16T15:26:36.587364Z ? lineWebhook:               "label": "?亦???隞晶",
+2026-03-16T15:26:36.587366Z ? lineWebhook:               "uri": "https://www.kinyo.tw/products/kl-5839"
+2026-03-16T15:26:36.587368Z ? lineWebhook:             }
+2026-03-16T15:26:36.587371Z ? lineWebhook:           },
+2026-03-16T15:26:36.587373Z ? lineWebhook:           "body": {
+2026-03-16T15:26:36.587376Z ? lineWebhook:             "type": "box",
+2026-03-16T15:26:36.587379Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:26:36.587381Z ? lineWebhook:             "contents": [
+2026-03-16T15:26:36.587384Z ? lineWebhook:               {
+2026-03-16T15:26:36.587387Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.587389Z ? lineWebhook:                 "text": "KL-5839W ?∠?頞??餅?????,
+2026-03-16T15:26:36.587392Z ? lineWebhook:                 "weight": "bold",
+2026-03-16T15:26:36.587396Z ? lineWebhook:                 "size": "xl",
+2026-03-16T15:26:36.587399Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.587442Z ? lineWebhook:               },
+2026-03-16T15:26:36.587445Z ? lineWebhook:               {
+2026-03-16T15:26:36.587447Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.587450Z ? lineWebhook:                 "text": "??: KL5839",
+2026-03-16T15:26:36.587452Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.587455Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.587458Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.587461Z ? lineWebhook:               },
+2026-03-16T15:26:36.587463Z ? lineWebhook:               {
+2026-03-16T15:26:36.587466Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.587469Z ? lineWebhook:                 "text": "璇Ⅳ: 4711475530218",
+2026-03-16T15:26:36.587472Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.587475Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.587478Z ? lineWebhook:                 "flex": 0,
+2026-03-16T15:26:36.587480Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.587483Z ? lineWebhook:               },
+2026-03-16T15:26:36.587485Z ? lineWebhook:               {
+2026-03-16T15:26:36.587488Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.587490Z ? lineWebhook:                 "text": "蝞勗?? 24??蝞?,
+2026-03-16T15:26:36.587493Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.587496Z ? lineWebhook:                 "color": "#aaaaaa"
+2026-03-16T15:26:36.587499Z ? lineWebhook:               },
+2026-03-16T15:26:36.587501Z ? lineWebhook:               {
+2026-03-16T15:26:36.587504Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.587506Z ? lineWebhook:                 "text": "摨怠?: W 4371 | BU 2926",
+2026-03-16T15:26:36.587510Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.587512Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.587515Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.587518Z ? lineWebhook:               },
+2026-03-16T15:26:36.587520Z ? lineWebhook:               {
+2026-03-16T15:26:36.587523Z ? lineWebhook:                 "type": "separator",
+2026-03-16T15:26:36.587525Z ? lineWebhook:                 "margin": "md"
+2026-03-16T15:26:36.587528Z ? lineWebhook:               },
+2026-03-16T15:26:36.587530Z ? lineWebhook:               {
+2026-03-16T15:26:36.587533Z ? lineWebhook:                 "type": "box",
+2026-03-16T15:26:36.587536Z ? lineWebhook:                 "layout": "vertical",
+2026-03-16T15:26:36.587553Z ? lineWebhook:                 "margin": "md",
+2026-03-16T15:26:36.587559Z ? lineWebhook:                 "spacing": "sm",
+2026-03-16T15:26:36.587562Z ? lineWebhook:                 "contents": [
+2026-03-16T15:26:36.587564Z ? lineWebhook:                   {
+2026-03-16T15:26:36.587568Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.587570Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.587573Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.587575Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.587577Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.587580Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587582Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587585Z ? lineWebhook:                         "text": "50?? $261",
+2026-03-16T15:26:36.587588Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587590Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587593Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587620Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587623Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587625Z ? lineWebhook:                       },
+2026-03-16T15:26:36.587628Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587630Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587633Z ? lineWebhook:                         "text": "100?? $254",
+2026-03-16T15:26:36.587635Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587638Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587641Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587644Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587648Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587651Z ? lineWebhook:                       }
+2026-03-16T15:26:36.587654Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.587657Z ? lineWebhook:                   },
+2026-03-16T15:26:36.587660Z ? lineWebhook:                   {
+2026-03-16T15:26:36.587687Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.587690Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.587693Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.587695Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.587698Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.587700Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587703Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587706Z ? lineWebhook:                         "text": "300?? $240",
+2026-03-16T15:26:36.587708Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587710Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587712Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587715Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587718Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587721Z ? lineWebhook:                       },
+2026-03-16T15:26:36.587723Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587726Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587729Z ? lineWebhook:                         "text": "500?? $233",
+2026-03-16T15:26:36.587731Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587734Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587736Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587741Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587744Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587746Z ? lineWebhook:                       }
+2026-03-16T15:26:36.587748Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.587751Z ? lineWebhook:                   },
+2026-03-16T15:26:36.587753Z ? lineWebhook:                   {
+2026-03-16T15:26:36.587756Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.587758Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.587760Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.587763Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.587766Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.587768Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587770Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587773Z ? lineWebhook:                         "text": "1000?? $227",
+2026-03-16T15:26:36.587776Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587780Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.587798Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.587800Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.587803Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.587806Z ? lineWebhook:                       },
+2026-03-16T15:26:36.587814Z ? lineWebhook:                       {
+2026-03-16T15:26:36.587817Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.587819Z ? lineWebhook:                         "text": " ",
+2026-03-16T15:26:36.587821Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.587824Z ? lineWebhook:                         "flex": 1
+2026-03-16T15:26:36.587827Z ? lineWebhook:                       }
+2026-03-16T15:26:36.587830Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.587832Z ? lineWebhook:                   }
+2026-03-16T15:26:36.587837Z ? lineWebhook:                 ]
+2026-03-16T15:26:36.587839Z ? lineWebhook:               }
+2026-03-16T15:26:36.587841Z ? lineWebhook:             ]
+2026-03-16T15:26:36.587844Z ? lineWebhook:           },
+2026-03-16T15:26:36.587866Z ? lineWebhook:           "footer": {
+2026-03-16T15:26:36.587869Z ? lineWebhook:             "type": "box",
+2026-03-16T15:26:36.587871Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:26:36.587873Z ? lineWebhook:             "spacing": "sm",
+2026-03-16T15:26:36.587876Z ? lineWebhook:             "contents": [
+2026-03-16T15:26:36.587878Z ? lineWebhook:               {
+2026-03-16T15:26:36.587881Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:26:36.587883Z ? lineWebhook:                 "style": "primary",
+2026-03-16T15:26:36.587885Z ? lineWebhook:                 "color": "#1DB446",
+2026-03-16T15:26:36.587888Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:26:36.587891Z ? lineWebhook:                 "action": {
+2026-03-16T15:26:36.587895Z ? lineWebhook:                   "type": "postback",
+2026-03-16T15:26:36.587898Z ? lineWebhook:                   "label": "?Ｙ????勗",
+2026-03-16T15:26:36.587901Z ? lineWebhook:                   "data": "action=get_text_quote&model=KL5839&qty=0"
+2026-03-16T15:26:36.587903Z ? lineWebhook:                 }
+2026-03-16T15:26:36.587906Z ? lineWebhook:               },
+2026-03-16T15:26:36.587908Z ? lineWebhook:               {
+2026-03-16T15:26:36.587910Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:26:36.587913Z ? lineWebhook:                 "style": "secondary",
+2026-03-16T15:26:36.587916Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:26:36.587919Z ? lineWebhook:                 "margin": "sm",
+2026-03-16T15:26:36.587921Z ? lineWebhook:                 "action": {
+2026-03-16T15:26:36.587924Z ? lineWebhook:                   "type": "uri",
+2026-03-16T15:26:36.587927Z ? lineWebhook:                   "label": "?? ?亦???隞晶",
+2026-03-16T15:26:36.587930Z ? lineWebhook:                   "uri": "https://www.kinyo.tw/products/kl-5839"
+2026-03-16T15:26:36.587932Z ? lineWebhook:                 }
+2026-03-16T15:26:36.587934Z ? lineWebhook:               }
+2026-03-16T15:26:36.587937Z ? lineWebhook:             ]
+2026-03-16T15:26:36.587939Z ? lineWebhook:           }
+2026-03-16T15:26:36.587941Z ? lineWebhook:         },
+2026-03-16T15:26:36.587944Z ? lineWebhook:         {
+2026-03-16T15:26:36.587947Z ? lineWebhook:           "type": "bubble",
+2026-03-16T15:26:36.587950Z ? lineWebhook:           "hero": {
+2026-03-16T15:26:36.587953Z ? lineWebhook:             "type": "image",
+2026-03-16T15:26:36.587956Z ? lineWebhook:             "url": "https://drive.google.com/thumbnail?id=1P341lja_1QhkP-LNHHkqJf0Sertce7zu&sz=w600",
+2026-03-16T15:26:36.587959Z ? lineWebhook:             "size": "4xl",
+2026-03-16T15:26:36.587961Z ? lineWebhook:             "aspectRatio": "20:13",
+2026-03-16T15:26:36.587964Z ? lineWebhook:             "aspectMode": "fit",
+2026-03-16T15:26:36.587966Z ? lineWebhook:             "action": {
+2026-03-16T15:26:36.587970Z ? lineWebhook:               "type": "uri",
+2026-03-16T15:26:36.587974Z ? lineWebhook:               "label": "?亦???隞晶",
+2026-03-16T15:26:36.587977Z ? lineWebhook:               "uri": "https://www.kinyo.tw/products/mpp-2345-1"
+2026-03-16T15:26:36.587979Z ? lineWebhook:             }
+2026-03-16T15:26:36.587981Z ? lineWebhook:           },
+2026-03-16T15:26:36.587984Z ? lineWebhook:           "body": {
+2026-03-16T15:26:36.587986Z ? lineWebhook:             "type": "box",
+2026-03-16T15:26:36.587988Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:26:36.587991Z ? lineWebhook:             "contents": [
+2026-03-16T15:26:36.588005Z ? lineWebhook:               {
+2026-03-16T15:26:36.588010Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588013Z ? lineWebhook:                 "text": "MPP-2345-1憭?銝?砍?頧?剜噫閬?,
+2026-03-16T15:26:36.588016Z ? lineWebhook:                 "weight": "bold",
+2026-03-16T15:26:36.588032Z ? lineWebhook:                 "size": "xl",
+2026-03-16T15:26:36.588034Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588036Z ? lineWebhook:               },
+2026-03-16T15:26:36.588039Z ? lineWebhook:               {
+2026-03-16T15:26:36.588042Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588049Z ? lineWebhook:                 "text": "??: MPP2345-1",
+2026-03-16T15:26:36.588051Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588055Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.588057Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588060Z ? lineWebhook:               },
+2026-03-16T15:26:36.588062Z ? lineWebhook:               {
+2026-03-16T15:26:36.588064Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588066Z ? lineWebhook:                 "text": "璇Ⅳ: 4713057448454",
+2026-03-16T15:26:36.588069Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588071Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.588074Z ? lineWebhook:                 "flex": 0,
+2026-03-16T15:26:36.588076Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588079Z ? lineWebhook:               },
+2026-03-16T15:26:36.588081Z ? lineWebhook:               {
+2026-03-16T15:26:36.588083Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588086Z ? lineWebhook:                 "text": "蝞勗?? 60??蝞?,
+2026-03-16T15:26:36.588088Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588091Z ? lineWebhook:                 "color": "#aaaaaa"
+2026-03-16T15:26:36.588093Z ? lineWebhook:               },
+2026-03-16T15:26:36.588096Z ? lineWebhook:               {
+2026-03-16T15:26:36.588100Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588103Z ? lineWebhook:                 "text": "摨怠?: 璅? 3613",
+2026-03-16T15:26:36.588105Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588108Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.588111Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588113Z ? lineWebhook:               },
+2026-03-16T15:26:36.588115Z ? lineWebhook:               {
+2026-03-16T15:26:36.588118Z ? lineWebhook:                 "type": "separator",
+2026-03-16T15:26:36.588120Z ? lineWebhook:                 "margin": "md"
+2026-03-16T15:26:36.588122Z ? lineWebhook:               },
+2026-03-16T15:26:36.588125Z ? lineWebhook:               {
+2026-03-16T15:26:36.588127Z ? lineWebhook:                 "type": "box",
+2026-03-16T15:26:36.588129Z ? lineWebhook:                 "layout": "vertical",
+2026-03-16T15:26:36.588132Z ? lineWebhook:                 "margin": "md",
+2026-03-16T15:26:36.588134Z ? lineWebhook:                 "spacing": "sm",
+2026-03-16T15:26:36.588137Z ? lineWebhook:                 "contents": [
+2026-03-16T15:26:36.588140Z ? lineWebhook:                   {
+2026-03-16T15:26:36.588143Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.588145Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.588147Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.588150Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.588152Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.588155Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588158Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.588161Z ? lineWebhook:                         "text": "50?? $409",
+2026-03-16T15:26:36.588163Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588166Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.588186Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588189Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.588191Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.588194Z ? lineWebhook:                       },
+2026-03-16T15:26:36.588196Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588199Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.588201Z ? lineWebhook:                         "text": "100?? $399",
+2026-03-16T15:26:36.588205Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588207Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.588226Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588228Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.588231Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.588234Z ? lineWebhook:                       }
+2026-03-16T15:26:36.588236Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.588238Z ? lineWebhook:                   },
+2026-03-16T15:26:36.588241Z ? lineWebhook:                   {
+2026-03-16T15:26:36.588243Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.588246Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.588249Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.588251Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.588254Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.588257Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588262Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.588265Z ? lineWebhook:                         "text": "300?? $376",
+2026-03-16T15:26:36.588268Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588270Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.588273Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588275Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.588278Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.588281Z ? lineWebhook:                       },
+2026-03-16T15:26:36.588283Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588286Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.588289Z ? lineWebhook:                         "text": "500?? $365",
+2026-03-16T15:26:36.588292Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588295Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.588297Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588300Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.588302Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.588305Z ? lineWebhook:                       }
+2026-03-16T15:26:36.588307Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.588310Z ? lineWebhook:                   },
+2026-03-16T15:26:36.588313Z ? lineWebhook:                   {
+2026-03-16T15:26:36.588315Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.588318Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.588320Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.588323Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.588326Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.588329Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588331Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.588333Z ? lineWebhook:                         "text": "1000?? $355",
+2026-03-16T15:26:36.588336Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588338Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.588359Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588361Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.588364Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.588367Z ? lineWebhook:                       },
+2026-03-16T15:26:36.588370Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588374Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.588377Z ? lineWebhook:                         "text": " ",
+2026-03-16T15:26:36.588380Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588383Z ? lineWebhook:                         "flex": 1
+2026-03-16T15:26:36.588386Z ? lineWebhook:                       }
+2026-03-16T15:26:36.588389Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.588391Z ? lineWebhook:                   }
+2026-03-16T15:26:36.588394Z ? lineWebhook:                 ]
+2026-03-16T15:26:36.588396Z ? lineWebhook:               }
+2026-03-16T15:26:36.588399Z ? lineWebhook:             ]
+2026-03-16T15:26:36.588402Z ? lineWebhook:           },
+2026-03-16T15:26:36.588404Z ? lineWebhook:           "footer": {
+2026-03-16T15:26:36.588408Z ? lineWebhook:             "type": "box",
+2026-03-16T15:26:36.588412Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:26:36.588416Z ? lineWebhook:             "spacing": "sm",
+2026-03-16T15:26:36.588418Z ? lineWebhook:             "contents": [
+2026-03-16T15:26:36.588429Z ? lineWebhook:               {
+2026-03-16T15:26:36.588433Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:26:36.588437Z ? lineWebhook:                 "style": "primary",
+2026-03-16T15:26:36.588439Z ? lineWebhook:                 "color": "#1DB446",
+2026-03-16T15:26:36.588441Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:26:36.588444Z ? lineWebhook:                 "action": {
+2026-03-16T15:26:36.588446Z ? lineWebhook:                   "type": "postback",
+2026-03-16T15:26:36.588449Z ? lineWebhook:                   "label": "?Ｙ????勗",
+2026-03-16T15:26:36.588454Z ? lineWebhook:                   "data": "action=get_text_quote&model=MPP2345-1&qty=0"
+2026-03-16T15:26:36.588457Z ? lineWebhook:                 }
+2026-03-16T15:26:36.588461Z ? lineWebhook:               },
+2026-03-16T15:26:36.588463Z ? lineWebhook:               {
+2026-03-16T15:26:36.588465Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:26:36.588468Z ? lineWebhook:                 "style": "secondary",
+2026-03-16T15:26:36.588470Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:26:36.588473Z ? lineWebhook:                 "margin": "sm",
+2026-03-16T15:26:36.588475Z ? lineWebhook:                 "action": {
+2026-03-16T15:26:36.588477Z ? lineWebhook:                   "type": "uri",
+2026-03-16T15:26:36.588483Z ? lineWebhook:                   "label": "?? ?亦???隞晶",
+2026-03-16T15:26:36.588486Z ? lineWebhook:                   "uri": "https://www.kinyo.tw/products/mpp-2345-1"
+2026-03-16T15:26:36.588488Z ? lineWebhook:                 }
+2026-03-16T15:26:36.588490Z ? lineWebhook:               }
+2026-03-16T15:26:36.588492Z ? lineWebhook:             ]
+2026-03-16T15:26:36.588497Z ? lineWebhook:           }
+2026-03-16T15:26:36.588500Z ? lineWebhook:         },
+2026-03-16T15:26:36.588502Z ? lineWebhook:         {
+2026-03-16T15:26:36.588505Z ? lineWebhook:           "type": "bubble",
+2026-03-16T15:26:36.588507Z ? lineWebhook:           "hero": {
+2026-03-16T15:26:36.588509Z ? lineWebhook:             "type": "image",
+2026-03-16T15:26:36.588512Z ? lineWebhook:             "url": "https://drive.google.com/thumbnail?id=1TzbP3syU_ctpFddGQLppiYzkUwrXXFwK&sz=w600",
+2026-03-16T15:26:36.588514Z ? lineWebhook:             "size": "4xl",
+2026-03-16T15:26:36.588532Z ? lineWebhook:             "aspectRatio": "20:13",
+2026-03-16T15:26:36.588534Z ? lineWebhook:             "aspectMode": "fit",
+2026-03-16T15:26:36.588537Z ? lineWebhook:             "action": {
+2026-03-16T15:26:36.588539Z ? lineWebhook:               "type": "uri",
+2026-03-16T15:26:36.588542Z ? lineWebhook:               "label": "?亦???隞晶",
+2026-03-16T15:26:36.588544Z ? lineWebhook:               "uri": "https://www.kinyo.tw/products/uf-1685"
+2026-03-16T15:26:36.588546Z ? lineWebhook:             }
+2026-03-16T15:26:36.588549Z ? lineWebhook:           },
+2026-03-16T15:26:36.588551Z ? lineWebhook:           "body": {
+2026-03-16T15:26:36.588554Z ? lineWebhook:             "type": "box",
+2026-03-16T15:26:36.588557Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:26:36.588559Z ? lineWebhook:             "contents": [
+2026-03-16T15:26:36.588561Z ? lineWebhook:               {
+2026-03-16T15:26:36.588564Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588567Z ? lineWebhook:                 "text": "UF-1685 憭?蝡?餈瑚??憸冽?",
+2026-03-16T15:26:36.588570Z ? lineWebhook:                 "weight": "bold",
+2026-03-16T15:26:36.588572Z ? lineWebhook:                 "size": "xl",
+2026-03-16T15:26:36.588575Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588577Z ? lineWebhook:               },
+2026-03-16T15:26:36.588581Z ? lineWebhook:               {
+2026-03-16T15:26:36.588584Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588587Z ? lineWebhook:                 "text": "??: UF1685",
+2026-03-16T15:26:36.588589Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588591Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.588594Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588596Z ? lineWebhook:               },
+2026-03-16T15:26:36.588603Z ? lineWebhook:               {
+2026-03-16T15:26:36.588605Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588608Z ? lineWebhook:                 "text": "璇Ⅳ: 4713057458828",
+2026-03-16T15:26:36.588611Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588613Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.588617Z ? lineWebhook:                 "flex": 0,
+2026-03-16T15:26:36.588621Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588624Z ? lineWebhook:               },
+2026-03-16T15:26:36.588641Z ? lineWebhook:               {
+2026-03-16T15:26:36.588644Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588646Z ? lineWebhook:                 "text": "蝞勗?? 36??蝞?,
+2026-03-16T15:26:36.588649Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588651Z ? lineWebhook:                 "color": "#aaaaaa"
+2026-03-16T15:26:36.588654Z ? lineWebhook:               },
+2026-03-16T15:26:36.588657Z ? lineWebhook:               {
+2026-03-16T15:26:36.588662Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:26:36.588664Z ? lineWebhook:                 "text": "摨怠?: 璅? 3578",
+2026-03-16T15:26:36.588667Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:26:36.588669Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:26:36.588672Z ? lineWebhook:               },
+2026-03-16T15:26:36.588674Z ? lineWebhook:               {
+2026-03-16T15:26:36.588677Z ? lineWebhook:                 "type": "separator",
+2026-03-16T15:26:36.588680Z ? lineWebhook:                 "margin": "md"
+2026-03-16T15:26:36.588683Z ? lineWebhook:               },
+2026-03-16T15:26:36.588685Z ? lineWebhook:               {
+2026-03-16T15:26:36.588688Z ? lineWebhook:                 "type": "box",
+2026-03-16T15:26:36.588705Z ? lineWebhook:                 "layout": "vertical",
+2026-03-16T15:26:36.588708Z ? lineWebhook:                 "margin": "md",
+2026-03-16T15:26:36.588710Z ? lineWebhook:                 "spacing": "sm",
+2026-03-16T15:26:36.588712Z ? lineWebhook:                 "contents": [
+2026-03-16T15:26:36.588718Z ? lineWebhook:                   {
+2026-03-16T15:26:36.588721Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:26:36.588723Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:26:36.588726Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.588728Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:26:36.588731Z ? lineWebhook:                     "contents": [
+2026-03-16T15:26:36.588734Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588738Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:26:36.588741Z ? lineWebhook:                         "text": "50?? $254",
+2026-03-16T15:26:36.588744Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588747Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.588750Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588752Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:26:36.588755Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.588758Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:26:36.588761Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:26:36.588764Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:26:36.588768Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:26:36.588772Z ? lineWebhook:                 "color": "#aaaaaa"
+2026-03-16T15:26:36.588776Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588780Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:26:36.588784Z ? lineWebhook:                     ]
+2026-03-16T15:26:36.588789Z ? lineWebhook:                   "uri": "https://www.kinyo.tw/products/uf-2066"
+2026-03-16T15:26:36.588792Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:26:36.588795Z ? lineWebhook:                 "layout": "vertical",
+2026-03-16T15:26:36.588800Z ? lineWebhook:                         "text": "100?? $604",
+2026-03-16T15:26:36.588804Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:26:36.588807Z ? lineWebhook:                       {
+2026-03-16T15:26:36.588811Z ? lineWebhook:           "footer": {
+2026-03-16T15:26:36.588815Z ? lineWebhook:             ]
+2026-03-16T15:26:36.588819Z ? lineWebhook:                 "text": "RA-5513AM/FM?郭畾菜?單?  暺?,
+2026-03-16T15:26:36.588823Z ? lineWebhook:                 "color": "#aaaaaa"
+2026-03-16T15:26:36.588827Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:26:36.588832Z ? lineWebhook:                       }
+2026-03-16T15:26:36.588837Z ? lineWebhook:                       },
+2026-03-16T15:26:36.588841Z ? lineWebhook:           "footer": {
+2026-03-16T15:26:36.588845Z ? lineWebhook:     "quickReply": {
+2026-03-16T15:26:36.814168Z ? lineWebhook: ??[????] 撌脩??10 蝑??? 1 ???Carousel.
+2026-03-16T15:26:36.816468424Z D lineWebhook: Function execution took 18185 ms, finished with status code: 200
+2026-03-16T15:26:38.910438083Z D lineWebhook: Function execution started
+2026-03-16T15:26:39.062647988Z D lineWebhook: Function execution took 152 ms, finished with status code: 200
+2026-03-16T15:26:48.358087690Z D lineWebhook: Function execution started
+2026-03-16T15:26:48.533510815Z D lineWebhook: Function execution took 175 ms, finished with status code: 200
+2026-03-16T15:26:54.663013148Z D lineWebhook: Function execution started
+2026-03-16T15:26:55.215537281Z D lineWebhook: Function execution took 552 ms, finished with status code: 200
+2026-03-16T15:27:05.090748490Z D lineWebhook: Function execution started
+2026-03-16T15:27:05.130764Z ? lineWebhook: [Gemini] ??閫??頛詨??: "?啣?銝"
+2026-03-16T15:27:08.622332Z ? lineWebhook: ?? [Gemini 閫??蝯?] {
+2026-03-16T15:27:08.622357Z ? lineWebhook:   "intent": "query",
+2026-03-16T15:27:08.622362Z ? lineWebhook:   "keyword": null,
+2026-03-16T15:27:08.622367Z ? lineWebhook:   "target_qty": null,
+2026-03-16T15:27:08.622370Z ? lineWebhook:   "min_budget": null,
+2026-03-16T15:27:08.622373Z ? lineWebhook:   "max_budget": null,
+2026-03-16T15:27:08.622376Z ? lineWebhook:   "min_stock": null,
+2026-03-16T15:27:08.622381Z ? lineWebhook:   "request_image_links": false,
+2026-03-16T15:27:08.622384Z ? lineWebhook:   "customer": {
+2026-03-16T15:27:08.622387Z ? lineWebhook:     "company": null,
+2026-03-16T15:27:08.622390Z ? lineWebhook:     "name": null,
+2026-03-16T15:27:08.622392Z ? lineWebhook:     "phone": null,
+2026-03-16T15:27:08.622395Z ? lineWebhook:     "remark": null,
+2026-03-16T15:27:08.622398Z ? lineWebhook:     "returnDate": null
+2026-03-16T15:27:08.622401Z ? lineWebhook:   },
+2026-03-16T15:27:08.622403Z ? lineWebhook:   "orderItems": null,
+2026-03-16T15:27:08.622406Z ? lineWebhook:   "action": "defective_return",
+2026-03-16T15:27:08.622409Z ? lineWebhook:   "items": null
+2026-03-16T15:27:08.622413Z ? lineWebhook: }
+2026-03-16T15:27:08.622419Z ? lineWebhook: [?寞乩辣] ?脣?啣?銝瘚?
+2026-03-16T15:27:08.770482Z ? lineWebhook: Webhook ?瑁??潛??湧??航炊: HTTPFetchError: 400 - Bad Request
+2026-03-16T15:27:08.770501Z ? lineWebhook:     at HTTPFetchClient.checkResponseStatus (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:144:19)
+2026-03-16T15:27:08.770505Z ? lineWebhook:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-16T15:27:08.770511Z ? lineWebhook:     at async HTTPFetchClient.post (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:68:9)
+2026-03-16T15:27:08.770520Z ? lineWebhook:     at async MessagingApiClient.replyMessageWithHttpInfo (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1213:21)
+2026-03-16T15:27:08.770525Z ? lineWebhook:     at async MessagingApiClient.replyMessage (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1202:17)
+2026-03-16T15:27:08.770528Z ? lineWebhook:     at async /workspace/index.js:1274:21 {
+2026-03-16T15:27:08.770533Z ? lineWebhook:   status: 400,
+2026-03-16T15:27:08.770536Z ? lineWebhook:   statusText: 'Bad Request',
+2026-03-16T15:27:08.770541Z ? lineWebhook:   headers: Headers {
+2026-03-16T15:27:08.770545Z ? lineWebhook:     server: 'legy',
+2026-03-16T15:27:08.770549Z ? lineWebhook:     'content-type': 'application/json',
+2026-03-16T15:27:08.770557Z ? lineWebhook:     'x-content-type-options': 'nosniff',
+2026-03-16T15:27:08.770563Z ? lineWebhook:     'x-frame-options': 'DENY',
+2026-03-16T15:27:08.770567Z ? lineWebhook:     'x-line-request-id': '1bee1e10-3a1d-4706-ab33-36e4ee1571a5',
+2026-03-16T15:27:08.770571Z ? lineWebhook:     'x-xss-protection': '1; mode=block',
+2026-03-16T15:27:08.770579Z ? lineWebhook:     'content-length': '153',
+2026-03-16T15:27:08.770581Z ? lineWebhook:     expires: 'Mon, 16 Mar 2026 15:27:08 GMT',
+2026-03-16T15:27:08.770586Z ? lineWebhook:     'cache-control': 'max-age=0, no-cache, no-store',
+2026-03-16T15:27:08.770590Z ? lineWebhook:     pragma: 'no-cache',
+2026-03-16T15:27:08.770595Z ? lineWebhook:     date: 'Mon, 16 Mar 2026 15:27:08 GMT',
+2026-03-16T15:27:08.770599Z ? lineWebhook:     connection: 'close'
+2026-03-16T15:27:08.770604Z ? lineWebhook:   },
+2026-03-16T15:27:08.770611Z ? lineWebhook:   body: '{"message":"A message (messages[0])?in the request body is invalid","details":[{"message":"must be non-empty text","property":"/body/contents/5/text"}]}'
+2026-03-16T15:27:08.770618Z ? lineWebhook: }
+2026-03-16T15:27:08.771989775Z D lineWebhook: Function execution took 3681 ms, finished with status code: 500
+2026-03-16T15:27:23.666282866Z D lineWebhook: Function execution started
+2026-03-16T15:27:23.688620Z ? lineWebhook: [Gemini] ??閫??頛詨??: "?亥岷 uf3250"
+2026-03-16T15:27:27.081871Z ? lineWebhook: ?? [Gemini 閫??蝯?] {
+2026-03-16T15:27:27.081900Z ? lineWebhook:   "intent": "query",
+2026-03-16T15:27:27.081907Z ? lineWebhook:   "keyword": "uf3250",
+2026-03-16T15:27:27.081913Z ? lineWebhook:   "target_qty": null,
+2026-03-16T15:27:27.081922Z ? lineWebhook:   "min_budget": null,
+2026-03-16T15:27:27.081928Z ? lineWebhook:   "max_budget": null,
+2026-03-16T15:27:27.081933Z ? lineWebhook:   "min_stock": null,
+2026-03-16T15:27:27.081938Z ? lineWebhook:   "request_image_links": false,
+2026-03-16T15:27:27.081943Z ? lineWebhook:   "customer": null,
+2026-03-16T15:27:27.081948Z ? lineWebhook:   "orderItems": null,
+2026-03-16T15:27:27.081952Z ? lineWebhook:   "action": null,
+2026-03-16T15:27:27.081956Z ? lineWebhook:   "items": null
+2026-03-16T15:27:27.081961Z ? lineWebhook: }
+2026-03-16T15:27:27.081967Z ? lineWebhook: [??] ???? Firestore ??鞈?...
+2026-03-16T15:27:29.481698Z ? lineWebhook: [?蕪? 蝮質????????? 731
+2026-03-16T15:27:29.484560Z ? lineWebhook: [?蕪敺 蝚血?璇辣銝阡 Carousel ???: 1
+2026-03-16T15:27:29.484799Z ? lineWebhook: === Final Flex Message Payload ===
+2026-03-16T15:27:29.484896Z ? lineWebhook: [
+2026-03-16T15:27:29.484902Z ? lineWebhook:   {
+2026-03-16T15:27:29.484909Z ? lineWebhook:     "type": "flex",
+2026-03-16T15:27:29.484914Z ? lineWebhook:     "altText": "?箸撠??1 蝑????,
+2026-03-16T15:27:29.484918Z ? lineWebhook:     "contents": {
+2026-03-16T15:27:29.484922Z ? lineWebhook:       "type": "carousel",
+2026-03-16T15:27:29.484927Z ? lineWebhook:       "contents": [
+2026-03-16T15:27:29.484930Z ? lineWebhook:         {
+2026-03-16T15:27:29.484935Z ? lineWebhook:           "type": "bubble",
+2026-03-16T15:27:29.484938Z ? lineWebhook:           "hero": {
+2026-03-16T15:27:29.484942Z ? lineWebhook:             "type": "image",
+2026-03-16T15:27:29.484946Z ? lineWebhook:             "url": "https://drive.google.com/thumbnail?id=1vLQuRiKbyqbtBU3TPvVM54eR7BEg1zm5&sz=w600",
+2026-03-16T15:27:29.484952Z ? lineWebhook:             "size": "4xl",
+2026-03-16T15:27:29.484956Z ? lineWebhook:             "aspectRatio": "20:13",
+2026-03-16T15:27:29.484960Z ? lineWebhook:             "aspectMode": "fit",
+2026-03-16T15:27:29.484964Z ? lineWebhook:             "action": {
+2026-03-16T15:27:29.484967Z ? lineWebhook:               "type": "uri",
+2026-03-16T15:27:29.484971Z ? lineWebhook:               "label": "?亦???隞晶",
+2026-03-16T15:27:29.484975Z ? lineWebhook:               "uri": "https://www.nakay.com.tw/productdetail_tw.php?id=2559"
+2026-03-16T15:27:29.484978Z ? lineWebhook:             }
+2026-03-16T15:27:29.484989Z ? lineWebhook:           },
+2026-03-16T15:27:29.484994Z ? lineWebhook:           "body": {
+2026-03-16T15:27:29.484999Z ? lineWebhook:             "type": "box",
+2026-03-16T15:27:29.485004Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:27:29.485010Z ? lineWebhook:             "contents": [
+2026-03-16T15:27:29.485015Z ? lineWebhook:               {
+2026-03-16T15:27:29.485021Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:27:29.485026Z ? lineWebhook:                 "text": "UF-3250TB ?暹?鋆賢憸冽? ?血?蝐?*??",
+2026-03-16T15:27:29.485029Z ? lineWebhook:                 "weight": "bold",
+2026-03-16T15:27:29.485035Z ? lineWebhook:                 "size": "xl",
+2026-03-16T15:27:29.485040Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:27:29.485044Z ? lineWebhook:               },
+2026-03-16T15:27:29.485047Z ? lineWebhook:               {
+2026-03-16T15:27:29.485053Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:27:29.485058Z ? lineWebhook:                 "text": "??: UF3250",
+2026-03-16T15:27:29.485063Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:27:29.485068Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:27:29.485073Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:27:29.485076Z ? lineWebhook:               },
+2026-03-16T15:27:29.485080Z ? lineWebhook:               {
+2026-03-16T15:27:29.485086Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:27:29.485092Z ? lineWebhook:                 "text": "璇Ⅳ: 4711475537996",
+2026-03-16T15:27:29.485097Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:27:29.485102Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:27:29.485108Z ? lineWebhook:                 "flex": 0,
+2026-03-16T15:27:29.485129Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:27:29.485134Z ? lineWebhook:               },
+2026-03-16T15:27:29.485140Z ? lineWebhook:               {
+2026-03-16T15:27:29.485145Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:27:29.485150Z ? lineWebhook:                 "text": "蝞勗?? 60??蝞?,
+2026-03-16T15:27:29.485155Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:27:29.485158Z ? lineWebhook:                 "color": "#aaaaaa"
+2026-03-16T15:27:29.485161Z ? lineWebhook:               },
+2026-03-16T15:27:29.485164Z ? lineWebhook:               {
+2026-03-16T15:27:29.485167Z ? lineWebhook:                 "type": "text",
+2026-03-16T15:27:29.485170Z ? lineWebhook:                 "text": "摨怠?: TB 506 | GY 0",
+2026-03-16T15:27:29.485188Z ? lineWebhook:                 "size": "sm",
+2026-03-16T15:27:29.485191Z ? lineWebhook:                 "color": "#aaaaaa",
+2026-03-16T15:27:29.485206Z ? lineWebhook:                 "wrap": true
+2026-03-16T15:27:29.485211Z ? lineWebhook:               },
+2026-03-16T15:27:29.485215Z ? lineWebhook:               {
+2026-03-16T15:27:29.485222Z ? lineWebhook:                 "type": "separator",
+2026-03-16T15:27:29.485227Z ? lineWebhook:                 "margin": "md"
+2026-03-16T15:27:29.485232Z ? lineWebhook:               },
+2026-03-16T15:27:29.485236Z ? lineWebhook:               {
+2026-03-16T15:27:29.485240Z ? lineWebhook:                 "type": "box",
+2026-03-16T15:27:29.485243Z ? lineWebhook:                 "layout": "vertical",
+2026-03-16T15:27:29.485272Z ? lineWebhook:                 "margin": "md",
+2026-03-16T15:27:29.485278Z ? lineWebhook:                 "spacing": "sm",
+2026-03-16T15:27:29.485282Z ? lineWebhook:                 "contents": [
+2026-03-16T15:27:29.485287Z ? lineWebhook:                   {
+2026-03-16T15:27:29.485292Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:27:29.485297Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:27:29.485302Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:27:29.485306Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:27:29.485309Z ? lineWebhook:                     "contents": [
+2026-03-16T15:27:29.485313Z ? lineWebhook:                       {
+2026-03-16T15:27:29.485319Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:27:29.485343Z ? lineWebhook:                         "text": "50?? $395",
+2026-03-16T15:27:29.485348Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:27:29.485354Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:27:29.485370Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:27:29.485376Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:27:29.485381Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:27:29.485387Z ? lineWebhook:                       },
+2026-03-16T15:27:29.485393Z ? lineWebhook:                       {
+2026-03-16T15:27:29.485398Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:27:29.485404Z ? lineWebhook:                         "text": "100?? $385",
+2026-03-16T15:27:29.485410Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:27:29.485432Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:27:29.485437Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:27:29.485442Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:27:29.485446Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:27:29.485449Z ? lineWebhook:                       }
+2026-03-16T15:27:29.485452Z ? lineWebhook:                     ]
+2026-03-16T15:27:29.485455Z ? lineWebhook:                   },
+2026-03-16T15:27:29.485458Z ? lineWebhook:                   {
+2026-03-16T15:27:29.485462Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:27:29.485465Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:27:29.485468Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:27:29.485482Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:27:29.485487Z ? lineWebhook:                     "contents": [
+2026-03-16T15:27:29.485492Z ? lineWebhook:                       {
+2026-03-16T15:27:29.485495Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:27:29.485499Z ? lineWebhook:                         "text": "300?? $363",
+2026-03-16T15:27:29.485501Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:27:29.485505Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:27:29.485507Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:27:29.485511Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:27:29.485513Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:27:29.485519Z ? lineWebhook:                       },
+2026-03-16T15:27:29.485539Z ? lineWebhook:                       {
+2026-03-16T15:27:29.485542Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:27:29.485545Z ? lineWebhook:                         "text": "500?? $353",
+2026-03-16T15:27:29.485548Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:27:29.485551Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:27:29.485554Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:27:29.485557Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:27:29.485560Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:27:29.485564Z ? lineWebhook:                       }
+2026-03-16T15:27:29.485566Z ? lineWebhook:                     ]
+2026-03-16T15:27:29.485569Z ? lineWebhook:                   },
+2026-03-16T15:27:29.485600Z ? lineWebhook:                   {
+2026-03-16T15:27:29.485605Z ? lineWebhook:                     "type": "box",
+2026-03-16T15:27:29.485608Z ? lineWebhook:                     "layout": "horizontal",
+2026-03-16T15:27:29.485611Z ? lineWebhook:                     "spacing": "sm",
+2026-03-16T15:27:29.485614Z ? lineWebhook:                     "margin": "sm",
+2026-03-16T15:27:29.485617Z ? lineWebhook:                     "contents": [
+2026-03-16T15:27:29.485621Z ? lineWebhook:                       {
+2026-03-16T15:27:29.485623Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:27:29.485626Z ? lineWebhook:                         "text": "1000?? $343",
+2026-03-16T15:27:29.485629Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:27:29.485632Z ? lineWebhook:                         "color": "#666666",
+2026-03-16T15:27:29.485648Z ? lineWebhook:                         "weight": "regular",
+2026-03-16T15:27:29.485651Z ? lineWebhook:                         "flex": 1,
+2026-03-16T15:27:29.485654Z ? lineWebhook:                         "wrap": true
+2026-03-16T15:27:29.485658Z ? lineWebhook:                       },
+2026-03-16T15:27:29.485662Z ? lineWebhook:                       {
+2026-03-16T15:27:29.485667Z ? lineWebhook:                         "type": "text",
+2026-03-16T15:27:29.485672Z ? lineWebhook:                         "text": " ",
+2026-03-16T15:27:29.485677Z ? lineWebhook:                         "size": "sm",
+2026-03-16T15:27:29.485682Z ? lineWebhook:                         "flex": 1
+2026-03-16T15:27:29.485687Z ? lineWebhook:                       }
+2026-03-16T15:27:29.485691Z ? lineWebhook:                     ]
+2026-03-16T15:27:29.485709Z ? lineWebhook:                   }
+2026-03-16T15:27:29.485714Z ? lineWebhook:                 ]
+2026-03-16T15:27:29.485719Z ? lineWebhook:               }
+2026-03-16T15:27:29.485724Z ? lineWebhook:             ]
+2026-03-16T15:27:29.485730Z ? lineWebhook:           },
+2026-03-16T15:27:29.485735Z ? lineWebhook:           "footer": {
+2026-03-16T15:27:29.485740Z ? lineWebhook:             "type": "box",
+2026-03-16T15:27:29.485745Z ? lineWebhook:             "layout": "vertical",
+2026-03-16T15:27:29.485750Z ? lineWebhook:             "spacing": "sm",
+2026-03-16T15:27:29.485770Z ? lineWebhook:             "contents": [
+2026-03-16T15:27:29.485775Z ? lineWebhook:               {
+2026-03-16T15:27:29.485792Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:27:29.485796Z ? lineWebhook:                 "style": "primary",
+2026-03-16T15:27:29.485798Z ? lineWebhook:                 "color": "#1DB446",
+2026-03-16T15:27:29.485802Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:27:29.485805Z ? lineWebhook:                 "action": {
+2026-03-16T15:27:29.485809Z ? lineWebhook:                   "type": "postback",
+2026-03-16T15:27:29.485814Z ? lineWebhook:                   "label": "?Ｙ????勗",
+2026-03-16T15:27:29.485819Z ? lineWebhook:                   "data": "action=get_text_quote&model=UF3250&qty=0"
+2026-03-16T15:27:29.485824Z ? lineWebhook:                 }
+2026-03-16T15:27:29.485828Z ? lineWebhook:               },
+2026-03-16T15:27:29.485832Z ? lineWebhook:               {
+2026-03-16T15:27:29.485852Z ? lineWebhook:                 "type": "button",
+2026-03-16T15:27:29.485857Z ? lineWebhook:                 "style": "secondary",
+2026-03-16T15:27:29.485861Z ? lineWebhook:                 "height": "sm",
+2026-03-16T15:27:29.485866Z ? lineWebhook:                 "margin": "sm",
+2026-03-16T15:27:29.485872Z ? lineWebhook:                 "action": {
+2026-03-16T15:27:29.485875Z ? lineWebhook:                   "type": "uri",
+2026-03-16T15:27:29.485879Z ? lineWebhook:                   "label": "?? ?亦???隞晶",
+2026-03-16T15:27:29.485881Z ? lineWebhook:                   "uri": "https://www.nakay.com.tw/productdetail_tw.php?id=2559"
+2026-03-16T15:27:29.485884Z ? lineWebhook:                 }
+2026-03-16T15:27:29.485887Z ? lineWebhook:               }
+2026-03-16T15:27:29.485890Z ? lineWebhook:             ]
+2026-03-16T15:27:29.485901Z ? lineWebhook:           }
+2026-03-16T15:27:29.485903Z ? lineWebhook:         }
+2026-03-16T15:27:29.485907Z ? lineWebhook:       ]
+2026-03-16T15:27:29.485909Z ? lineWebhook:     }
+2026-03-16T15:27:29.485913Z ? lineWebhook:   }
+2026-03-16T15:27:29.485918Z ? lineWebhook: ]
+2026-03-16T15:27:29.485924Z ? lineWebhook: ==================================
+2026-03-16T15:27:29.689942Z ? lineWebhook: ??[????] 撌脩??1 蝑??? 1 ???Carousel.
+2026-03-16T15:27:29.691121375Z D lineWebhook: Function execution took 6024 ms, finished with status code: 200
+2026-03-16T15:27:53.105499362Z D lineWebhook: Function execution started
+2026-03-16T15:27:53.120527Z ? lineWebhook: [Postback ?瑁?] 靘?蝢斤?: C54a2d40ec07a7e72bddd0022de0c1b9e, 暺??? U7043cd6c4576c96ddb23d316fba32a9b, 蝜潭蝑?: 3
+2026-03-16T15:27:55.410559Z ? lineWebhook: ??[???勗] 撌脣?銝?賊??勗蝯?Group_User (??: UF3250, ?賊?: 50)
+2026-03-16T15:27:55.411973196Z D lineWebhook: Function execution took 2306 ms, finished with status code: 200
+2026-03-16T15:37:24.868964Z I undefined: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"Kuo.tinghow@gmail.com","principalSubject":"user:Kuo.tinghow@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"211.20.109.13","callerSuppliedUserAgent":"FirebaseCLI/15.10.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-03-16T15:37:26.021580Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.GenerateUploadUrl","authorizationInfo":[{"resource":"projects/kinyo-price/locations/asia-east1","permission":"cloudfunctions.functions.sourceCodeSet","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/kinyo-price/locations/asia-east1","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.GenerateUploadUrlRequest","parent":"projects/kinyo-price/locations/asia-east1"},"response":{"uploadUrl":"https://storage.googleapis.com/uploads-522219538113.asia-east1.cloudfunctions.appspot.com/e1386920-04cb-4021-810c-f3af6e423c10.zip?GoogleAccessId=service-122464645678@gcf-admin-robot.iam.gserviceaccount.com&Expires=1773677245&Signature=W49hD7Tk%2Bxa1RZrHcqBvYhlZ2lW0ePXv3XdvGbjQ4mTqODYZZqOKYze%2BPHaGXSqWeGy56vRX1oXCSRp2mub90Mct1grlpGsdp5XU6vExdbHZ70akmIS6ECsXMdh75FRpCJNQfU%2BR83JuxS5Bs5CTB8akoNauNqawkCyzQe%2Fv%2BeawQ3MTPEKorYDwiqohRJOyHK6CE5GrdoD%2FwoSTIqjKxgzY40Fpo4QxxuKlm8%2FvWcXDicDPR5I1RYFVHgdb95DzpD0Qd5JksuHqkqhzNev5Td7gQuMomaVdm%2BuvgomHz4I0udAns%2F%2B9Pu%2FcngaKGqApU3HwWPd4fYhxoKILfPuN%2Bw%3D%3D","@type":"type.googleapis.com/google.cloud.functions.v1.GenerateUploadUrlResponse"},"resourceLocation":{"currentLocations":["asia-east1"]}}
+2026-03-16T15:37:24.965451Z I undefined: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"Kuo.tinghow@gmail.com","principalSubject":"user:Kuo.tinghow@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"requestAttributes":{"time":"2026-03-16T15:37:25.997918Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.GenerateUploadUrl","authorizationInfo":[{"resource":"projects/kinyo-price/locations/asia-east1","permission":"cloudfunctions.functions.sourceCodeSet","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/kinyo-price/locations/asia-east1","resourceLocation":{"currentLocations":["asia-east1"]}}
+2026-03-16T15:37:27.637650Z N lineWebhook: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"Kuo.tinghow@gmail.com","principalSubject":"user:Kuo.tinghow@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"211.20.109.13","callerSuppliedUserAgent":"FirebaseCLI/15.10.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-03-16T15:37:28.291637Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","authorizationInfo":[{"resource":"projects/kinyo-price/locations/asia-east1/functions/lineWebhook","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/kinyo-price/locations/asia-east1/functions/lineWebhook","request":{"updateMask":"name,sourceUploadUrl,entryPoint,runtime,dockerRegistry,labels,httpsTrigger.securityLevel,minInstances,maxInstances,ingressSettings,environmentVariables,serviceAccountEmail,availableMemoryMb,timeout,vpcConnector,vpcConnectorEgressSettings,sourceToken,buildEnvironmentVariables","function":{"labels":{"firebase-functions-hash":"a0e49f7e89c6152f8df9ccd44b3ee9ca9bdc7c57","deployment-tool":"cli-firebase"},"runtime":"nodejs20","dockerRegistry":"ARTIFACT_REGISTRY","name":"projects/kinyo-price/locations/asia-east1/functions/lineWebhook","entryPoint":"lineWebhook","httpsTrigger":{"securityLevel":"SECURE_ALWAYS"},"sourceUploadUrl":"https://storage.googleapis.com/uploads-522219538113.asia-east1.cloudfunctions.appspot.com/e1386920-04cb-4021-810c-f3af6e423c10.zip?GoogleAccessId=service-122464645678@gcf-admin-robot.iam.gserviceaccount.com&Expires=1773677245&Signature=W49hD7Tk%2Bxa1RZrHcqBvYhlZ2lW0ePXv3XdvGbjQ4mTqODYZZqOKYze%2BPHaGXSqWeGy56vRX1oXCSRp2mub90Mct1grlpGsdp5XU6vExdbHZ70akmIS6ECsXMdh75FRpCJNQfU%2BR83JuxS5Bs5CTB8akoNauNqawkCyzQe%2Fv%2BeawQ3MTPEKorYDwiqohRJOyHK6CE5GrdoD%2FwoSTIqjKxgzY40Fpo4QxxuKlm8%2FvWcXDicDPR5I1RYFVHgdb95DzpD0Qd5JksuHqkqhzNev5Td7gQuMomaVdm%2BuvgomHz4I0udAns%2F%2B9Pu%2FcngaKGqApU3HwWPd4fYhxoKILfPuN%2Bw%3D%3D"},"@type":"type.googleapis.com/google.cloud.functions.v1.UpdateFunctionRequest"},"resourceLocation":{"currentLocations":["asia-east1"]}}
+2026-03-16T15:38:17.290178Z N markOrderShipped: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{"principalEmail":"Kuo.tinghow@gmail.com","principalSubject":"user:Kuo.tinghow@gmail.com","oauthInfo":{"oauthClientId":"563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com"}},"requestMetadata":{"callerIp":"211.20.109.13","callerSuppliedUserAgent":"FirebaseCLI/15.10.0,gzip(gfe),gzip(gfe)","requestAttributes":{"time":"2026-03-16T15:38:18.004987Z","auth":{}},"destinationAttributes":{}},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","authorizationInfo":[{"resource":"projects/kinyo-price/locations/asia-east1/functions/markOrderShipped","permission":"cloudfunctions.functions.update","granted":true,"resourceAttributes":{},"permissionType":"ADMIN_WRITE"}],"resourceName":"projects/kinyo-price/locations/asia-east1/functions/markOrderShipped","request":{"@type":"type.googleapis.com/google.cloud.functions.v1.UpdateFunctionRequest","updateMask":"name,sourceUploadUrl,entryPoint,runtime,dockerRegistry,labels,httpsTrigger.securityLevel,minInstances,maxInstances,ingressSettings,environmentVariables,serviceAccountEmail,availableMemoryMb,timeout,vpcConnector,vpcConnectorEgressSettings,sourceToken,buildEnvironmentVariables","function":{"labels":{"deployment-tool":"cli-firebase","firebase-functions-hash":"a0e49f7e89c6152f8df9ccd44b3ee9ca9bdc7c57"},"name":"projects/kinyo-price/locations/asia-east1/functions/markOrderShipped","entryPoint":"markOrderShipped","runtime":"nodejs20","sourceUploadUrl":"https://storage.googleapis.com/uploads-522219538113.asia-east1.cloudfunctions.appspot.com/e1386920-04cb-4021-810c-f3af6e423c10.zip?GoogleAccessId=service-122464645678@gcf-admin-robot.iam.gserviceaccount.com&Expires=1773677245&Signature=W49hD7Tk%2Bxa1RZrHcqBvYhlZ2lW0ePXv3XdvGbjQ4mTqODYZZqOKYze%2BPHaGXSqWeGy56vRX1oXCSRp2mub90Mct1grlpGsdp5XU6vExdbHZ70akmIS6ECsXMdh75FRpCJNQfU%2BR83JuxS5Bs5CTB8akoNauNqawkCyzQe%2Fv%2BeawQ3MTPEKorYDwiqohRJOyHK6CE5GrdoD%2FwoSTIqjKxgzY40Fpo4QxxuKlm8%2FvWcXDicDPR5I1RYFVHgdb95DzpD0Qd5JksuHqkqhzNev5Td7gQuMomaVdm%2BuvgomHz4I0udAns%2F%2B9Pu%2FcngaKGqApU3HwWPd4fYhxoKILfPuN%2Bw%3D%3D","dockerRegistry":"ARTIFACT_REGISTRY","httpsTrigger":{"securityLevel":"SECURE_ALWAYS"},"sourceToken":"ec605c76-e85c-4e47-b860-80116999e790"}},"resourceLocation":{"currentLocations":["asia-east1"]}}
+2026-03-16T15:38:34.378484Z N markOrderShipped: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","resourceName":"projects/kinyo-price/locations/asia-east1/functions/markOrderShipped"}
+2026-03-16T15:38:35.326146Z N lineWebhook: {"@type":"type.googleapis.com/google.cloud.audit.AuditLog","status":{},"authenticationInfo":{},"serviceName":"cloudfunctions.googleapis.com","methodName":"google.cloud.functions.v1.CloudFunctionsService.UpdateFunction","resourceName":"projects/kinyo-price/locations/asia-east1/functions/lineWebhook"}
+2026-03-16T15:38:51.713358142Z D lineWebhook: Function execution started
+2026-03-16T15:38:56.563599Z ? lineWebhook: [Gemini] ??閫??頛詨??: "?啣?銝"
+2026-03-16T15:38:59.517516Z ? lineWebhook: ?? [Gemini 閫??蝯?] {
+2026-03-16T15:38:59.517532Z ? lineWebhook:   "intent": "query",
+2026-03-16T15:38:59.517536Z ? lineWebhook:   "keyword": null,
+2026-03-16T15:38:59.517540Z ? lineWebhook:   "target_qty": null,
+2026-03-16T15:38:59.517545Z ? lineWebhook:   "min_budget": null,
+2026-03-16T15:38:59.517548Z ? lineWebhook:   "max_budget": null,
+2026-03-16T15:38:59.517553Z ? lineWebhook:   "min_stock": null,
+2026-03-16T15:38:59.517557Z ? lineWebhook:   "request_image_links": false,
+2026-03-16T15:38:59.517560Z ? lineWebhook:   "customer": {
+2026-03-16T15:38:59.517565Z ? lineWebhook:     "company": null,
+2026-03-16T15:38:59.517568Z ? lineWebhook:     "name": null,
+2026-03-16T15:38:59.517572Z ? lineWebhook:     "phone": null,
+2026-03-16T15:38:59.517577Z ? lineWebhook:     "remark": null,
+2026-03-16T15:38:59.517581Z ? lineWebhook:     "returnDate": null
+2026-03-16T15:38:59.517584Z ? lineWebhook:   },
+2026-03-16T15:38:59.517588Z ? lineWebhook:   "orderItems": null,
+2026-03-16T15:38:59.517592Z ? lineWebhook:   "action": "defective_return",
+2026-03-16T15:38:59.517595Z ? lineWebhook:   "items": []
+2026-03-16T15:38:59.517598Z ? lineWebhook: }
+2026-03-16T15:38:59.517601Z ? lineWebhook: [?寞乩辣] ?脣?啣?銝瘚?
+2026-03-16T15:38:59.762851Z ? lineWebhook: Webhook ?瑁??潛??湧??航炊: HTTPFetchError: 400 - Bad Request
+2026-03-16T15:38:59.762874Z ? lineWebhook:     at HTTPFetchClient.checkResponseStatus (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:144:19)
+2026-03-16T15:38:59.762881Z ? lineWebhook:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-16T15:38:59.762887Z ? lineWebhook:     at async HTTPFetchClient.post (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:68:9)
+2026-03-16T15:38:59.762894Z ? lineWebhook:     at async MessagingApiClient.replyMessageWithHttpInfo (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1213:21)
+2026-03-16T15:38:59.762899Z ? lineWebhook:     at async MessagingApiClient.replyMessage (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1202:17)
+2026-03-16T15:38:59.762904Z ? lineWebhook:     at async /workspace/index.js:1274:21 {
+2026-03-16T15:38:59.762910Z ? lineWebhook:   status: 400,
+2026-03-16T15:38:59.762914Z ? lineWebhook:   statusText: 'Bad Request',
+2026-03-16T15:38:59.762919Z ? lineWebhook:   headers: Headers {
+2026-03-16T15:38:59.762923Z ? lineWebhook:     server: 'legy',
+2026-03-16T15:38:59.762928Z ? lineWebhook:     'content-type': 'application/json',
+2026-03-16T15:38:59.762934Z ? lineWebhook:     'x-content-type-options': 'nosniff',
+2026-03-16T15:38:59.762939Z ? lineWebhook:     'x-frame-options': 'DENY',
+2026-03-16T15:38:59.762944Z ? lineWebhook:     'x-line-request-id': 'e4c73306-70f3-4019-98af-019cd1f47d5f',
+2026-03-16T15:38:59.762949Z ? lineWebhook:     'x-xss-protection': '1; mode=block',
+2026-03-16T15:38:59.762954Z ? lineWebhook:     'content-length': '153',
+2026-03-16T15:38:59.762960Z ? lineWebhook:     expires: 'Mon, 16 Mar 2026 15:38:59 GMT',
+2026-03-16T15:38:59.762965Z ? lineWebhook:     'cache-control': 'max-age=0, no-cache, no-store',
+2026-03-16T15:38:59.762970Z ? lineWebhook:     pragma: 'no-cache',
+2026-03-16T15:38:59.762977Z ? lineWebhook:     date: 'Mon, 16 Mar 2026 15:38:59 GMT',
+2026-03-16T15:38:59.762982Z ? lineWebhook:     connection: 'close'
+2026-03-16T15:38:59.762986Z ? lineWebhook:   },
+2026-03-16T15:38:59.762993Z ? lineWebhook:   body: '{"message":"A message (messages[0])?in the request body is invalid","details":[{"message":"must be non-empty text","property":"/body/contents/5/text"}]}'
+2026-03-16T15:38:59.762998Z ? lineWebhook: }
+2026-03-16T15:38:59.765542612Z D lineWebhook: Function execution took 8052 ms, finished with status code: 500
+2026-03-16T15:39:04.096276677Z D lineWebhook: Function execution started
+2026-03-16T15:39:04.194380Z ? lineWebhook: [Gemini] ??閫??頛詨??: "?啣?銝"
+2026-03-16T15:39:07.176525Z ? lineWebhook: ?? [Gemini 閫??蝯?] {
+2026-03-16T15:39:07.176547Z ? lineWebhook:   "intent": "query",
+2026-03-16T15:39:07.176553Z ? lineWebhook:   "keyword": null,
+2026-03-16T15:39:07.176558Z ? lineWebhook:   "target_qty": null,
+2026-03-16T15:39:07.176563Z ? lineWebhook:   "min_budget": null,
+2026-03-16T15:39:07.176567Z ? lineWebhook:   "max_budget": null,
+2026-03-16T15:39:07.176572Z ? lineWebhook:   "min_stock": null,
+2026-03-16T15:39:07.176576Z ? lineWebhook:   "request_image_links": false,
+2026-03-16T15:39:07.176582Z ? lineWebhook:   "customer": {
+2026-03-16T15:39:07.176588Z ? lineWebhook:     "address": null,
+2026-03-16T15:39:07.176593Z ? lineWebhook:     "company": null,
+2026-03-16T15:39:07.176599Z ? lineWebhook:     "deliveryTime": null,
+2026-03-16T15:39:07.176605Z ? lineWebhook:     "name": null,
+2026-03-16T15:39:07.176610Z ? lineWebhook:     "phone": null,
+2026-03-16T15:39:07.176617Z ? lineWebhook:     "projectName": null,
+2026-03-16T15:39:07.176621Z ? lineWebhook:     "remark": null,
+2026-03-16T15:39:07.176629Z ? lineWebhook:     "returnDate": null
+2026-03-16T15:39:07.176635Z ? lineWebhook:   },
+2026-03-16T15:39:07.176640Z ? lineWebhook:   "orderItems": null,
+2026-03-16T15:39:07.176646Z ? lineWebhook:   "action": "defective_return",
+2026-03-16T15:39:07.176652Z ? lineWebhook:   "items": null
+2026-03-16T15:39:07.176656Z ? lineWebhook: }
+2026-03-16T15:39:07.176662Z ? lineWebhook: [?寞乩辣] ?脣?啣?銝瘚?
+2026-03-16T15:39:07.347966Z ? lineWebhook: Webhook ?瑁??潛??湧??航炊: HTTPFetchError: 400 - Bad Request
+2026-03-16T15:39:07.347986Z ? lineWebhook:     at HTTPFetchClient.checkResponseStatus (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:144:19)
+2026-03-16T15:39:07.347992Z ? lineWebhook:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-16T15:39:07.347998Z ? lineWebhook:     at async HTTPFetchClient.post (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:68:9)
+2026-03-16T15:39:07.348003Z ? lineWebhook:     at async MessagingApiClient.replyMessageWithHttpInfo (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1213:21)
+2026-03-16T15:39:07.348009Z ? lineWebhook:     at async MessagingApiClient.replyMessage (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1202:17)
+2026-03-16T15:39:07.348015Z ? lineWebhook:     at async /workspace/index.js:1274:21 {
+2026-03-16T15:39:07.348020Z ? lineWebhook:   status: 400,
+2026-03-16T15:39:07.348025Z ? lineWebhook:   statusText: 'Bad Request',
+2026-03-16T15:39:07.348029Z ? lineWebhook:   headers: Headers {
+2026-03-16T15:39:07.348034Z ? lineWebhook:     server: 'legy',
+2026-03-16T15:39:07.348039Z ? lineWebhook:     'content-type': 'application/json',
+2026-03-16T15:39:07.348044Z ? lineWebhook:     'x-content-type-options': 'nosniff',
+2026-03-16T15:39:07.348050Z ? lineWebhook:     'x-frame-options': 'DENY',
+2026-03-16T15:39:07.348057Z ? lineWebhook:     'x-line-request-id': '125b65a9-e40b-42da-aae3-266925c80ffd',
+2026-03-16T15:39:07.348062Z ? lineWebhook:     'x-xss-protection': '1; mode=block',
+2026-03-16T15:39:07.348066Z ? lineWebhook:     'content-length': '153',
+2026-03-16T15:39:07.348070Z ? lineWebhook:     expires: 'Mon, 16 Mar 2026 15:39:07 GMT',
+2026-03-16T15:39:07.348075Z ? lineWebhook:     'cache-control': 'max-age=0, no-cache, no-store',
+2026-03-16T15:39:07.348080Z ? lineWebhook:     pragma: 'no-cache',
+2026-03-16T15:39:07.348085Z ? lineWebhook:     date: 'Mon, 16 Mar 2026 15:39:07 GMT',
+2026-03-16T15:39:07.348089Z ? lineWebhook:     connection: 'close'
+2026-03-16T15:39:07.348094Z ? lineWebhook:   },
+2026-03-16T15:39:07.348100Z ? lineWebhook:   body: '{"message":"A message (messages[0])?in the request body is invalid","details":[{"message":"must be non-empty text","property":"/body/contents/5/text"}]}'
+2026-03-16T15:39:07.348104Z ? lineWebhook: }
+2026-03-16T15:39:07.349481321Z D lineWebhook: Function execution took 3253 ms, finished with status code: 500
+2026-03-16T15:39:22.637796850Z D lineWebhook: Function execution started
+2026-03-16T15:39:22.700857Z ? lineWebhook: [Gemini] ??閫??頛詨??: "靘?隞?
+2026-03-16T15:39:24.583778Z ? lineWebhook: ?? [Gemini 閫??蝯?] {
+2026-03-16T15:39:24.583798Z ? lineWebhook:   "intent": "query",
+2026-03-16T15:39:24.583803Z ? lineWebhook:   "keyword": null,
+2026-03-16T15:39:24.583807Z ? lineWebhook:   "target_qty": null,
+2026-03-16T15:39:24.583810Z ? lineWebhook:   "min_budget": null,
+2026-03-16T15:39:24.583815Z ? lineWebhook:   "max_budget": null,
+2026-03-16T15:39:24.583819Z ? lineWebhook:   "min_stock": null,
+2026-03-16T15:39:24.583823Z ? lineWebhook:   "request_image_links": false,
+2026-03-16T15:39:24.583826Z ? lineWebhook:   "customer": {
+2026-03-16T15:39:24.583831Z ? lineWebhook:     "company": null,
+2026-03-16T15:39:24.583836Z ? lineWebhook:     "name": null,
+2026-03-16T15:39:24.583840Z ? lineWebhook:     "phone": null,
+2026-03-16T15:39:24.583844Z ? lineWebhook:     "remark": null,
+2026-03-16T15:39:24.583848Z ? lineWebhook:     "returnDate": null
+2026-03-16T15:39:24.583852Z ? lineWebhook:   },
+2026-03-16T15:39:24.583856Z ? lineWebhook:   "orderItems": null,
+2026-03-16T15:39:24.583860Z ? lineWebhook:   "action": "defective_return",
+2026-03-16T15:39:24.583864Z ? lineWebhook:   "items": []
+2026-03-16T15:39:24.583867Z ? lineWebhook: }
+2026-03-16T15:39:24.583871Z ? lineWebhook: [?寞乩辣] ?脣?啣?銝瘚?
+2026-03-16T15:39:24.726431Z ? lineWebhook: Webhook ?瑁??潛??湧??航炊: HTTPFetchError: 400 - Bad Request
+2026-03-16T15:39:24.726448Z ? lineWebhook:     at HTTPFetchClient.checkResponseStatus (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:144:19)
+2026-03-16T15:39:24.726452Z ? lineWebhook:     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-03-16T15:39:24.726456Z ? lineWebhook:     at async HTTPFetchClient.post (/workspace/node_modules/@line/bot-sdk/dist/cjs/http-fetch.js:68:9)
+2026-03-16T15:39:24.726460Z ? lineWebhook:     at async MessagingApiClient.replyMessageWithHttpInfo (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1213:21)
+2026-03-16T15:39:24.726464Z ? lineWebhook:     at async MessagingApiClient.replyMessage (/workspace/node_modules/@line/bot-sdk/dist/cjs/messaging-api/api/messagingApiClient.js:1202:17)
+2026-03-16T15:39:24.726468Z ? lineWebhook:     at async /workspace/index.js:1274:21 {
+2026-03-16T15:39:24.726471Z ? lineWebhook:   status: 400,
+2026-03-16T15:39:24.726473Z ? lineWebhook:   statusText: 'Bad Request',
+2026-03-16T15:39:24.726477Z ? lineWebhook:   headers: Headers {
+2026-03-16T15:39:24.726479Z ? lineWebhook:     server: 'legy',
+2026-03-16T15:39:24.726482Z ? lineWebhook:     'content-type': 'application/json',
+2026-03-16T15:39:24.726486Z ? lineWebhook:     'x-content-type-options': 'nosniff',
+2026-03-16T15:39:24.726490Z ? lineWebhook:     'x-frame-options': 'DENY',
+2026-03-16T15:39:24.726493Z ? lineWebhook:     'x-line-request-id': 'e98bce90-aac7-4c11-a5f9-a286dae3e20b',
+2026-03-16T15:39:24.726496Z ? lineWebhook:     'x-xss-protection': '1; mode=block',
+2026-03-16T15:39:24.726500Z ? lineWebhook:     'content-length': '153',
+2026-03-16T15:39:24.726503Z ? lineWebhook:     expires: 'Mon, 16 Mar 2026 15:39:24 GMT',
+2026-03-16T15:39:24.726507Z ? lineWebhook:     'cache-control': 'max-age=0, no-cache, no-store',
+2026-03-16T15:39:24.726510Z ? lineWebhook:     pragma: 'no-cache',
+2026-03-16T15:39:24.726514Z ? lineWebhook:     date: 'Mon, 16 Mar 2026 15:39:24 GMT',
+2026-03-16T15:39:24.726518Z ? lineWebhook:     connection: 'close'
+2026-03-16T15:39:24.726522Z ? lineWebhook:   },
+2026-03-16T15:39:24.726526Z ? lineWebhook:   body: '{"message":"A message (messages[0])?in the request body is invalid","details":[{"message":"must be non-empty text","property":"/body/contents/5/text"}]}'
+2026-03-16T15:39:24.726529Z ? lineWebhook: }
+2026-03-16T15:39:24.728070230Z D lineWebhook: Function execution took 2090 ms, finished with status code: 500
+2026-03-16T15:39:33.662343535Z D lineWebhook: Function execution started
+2026-03-16T15:39:33.876608345Z D lineWebhook: Function execution took 214 ms, finished with status code: 200
+2026-03-16T15:40:37.945758137Z D lineWebhook: Function execution started
+2026-03-16T15:40:38.049120Z ? lineWebhook: [Gemini] ??閫??頛詨??: "??"
