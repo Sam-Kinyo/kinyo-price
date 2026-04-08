@@ -4,7 +4,7 @@
 import { collection, addDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { db } from './firebase-init.js';
 import { state } from './state.js';
-import { getInventoryRangeLabel, calcQuotePrice } from './helpers.js';
+import { getInventoryRangeLabel, calcQuotePrice, escapeHtml } from './helpers.js';
 import { getDriveMainImage, getDriveNetImages } from './data.js';
 
 /* 報價單渲染 */
@@ -18,7 +18,7 @@ export function renderQuoteList() {
   state.quoteList.forEach((q, idx) => {
     const div = document.createElement("div"); div.className = "quote-item";
     const priceDisplay = `$${q.price}`;
-    div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${q.name}</div><div class="quote-info">${q.model} | ${q.qtyLabel}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${priceDisplay}</div><div style="font-size:12px;color:#888;">x ${q.count}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
+    div.innerHTML = `<div style="flex:1;"><div style="font-weight:700;">${escapeHtml(q.name)}</div><div class="quote-info">${escapeHtml(q.model)} | ${escapeHtml(q.qtyLabel)}</div></div><div style="text-align:right;margin-right:8px;"><div class="quote-price">${escapeHtml(priceDisplay)}</div><div style="font-size:12px;color:#888;">x ${escapeHtml(q.count)}</div></div><div class="quote-del" data-idx="${idx}">🗑️</div>`;
     quoteListBody.appendChild(div);
   });
   document.querySelectorAll(".quote-del").forEach(btn => {

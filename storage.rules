@@ -1,0 +1,14 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // 商品圖片：允許公開讀取（CDN 需要）
+    match /product_images/{allPaths=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    // 其他路徑：需要登入才能讀寫
+    match /{allPaths=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

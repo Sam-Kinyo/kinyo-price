@@ -1,15 +1,20 @@
 const functions = require('firebase-functions');
 const { setGlobalDispatcher, ProxyAgent } = require('undici');
 const { line, messagingApi } = require('@line/bot-sdk');
-const { GoogleGenAI, Type, Schema } = require('@google/genai');
+const { parseUserIntent } = require('./src/llm/geminiParser');
 
 const { admin, db } = require('./src/utils/firebase');
 const { transporter } = require('./src/utils/mailer');
 
 // --- 環境變數與設定 ---
 // 根據 Firebase Functions v3+ 官方規範，.env 檔案的變數會在中介層自動掛載進 process.env
-const modelData = require('./modelData.json');
 
+
+// --- HTML Escape 工具（防 XSS）---
+function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
 
 // --- 全域同義詞字典檔 ---
 const synonymDict = { "藍芽": "藍牙", "捕蚊拍": "電蚊拍", "台": "臺" };
@@ -23,170 +28,21 @@ function normalizeKeyword(str) {
     return normalized;
 }
 
-// --- Helper Functions ---
+// --- Imports & Helper Functions ---
+const { processOrder } = require('./src/services/order');
+const { processQuote } = require('./src/services/quote');
+const { calculateLevelPrice } = require('./src/utils/priceCalculator');
+const { runStorageSync } = require('./src/services/driveSync');
+
+
 const normalize = (s) => String(s).replace(/[-\s]/g, '').toUpperCase().trim();
-
-// 提取主型號 (例: KH-9660PI -> KH9660)
-const getBaseModelForImages = (modelName) => {
-    if (!modelName) return '';
-    // 1. 先移除所有連字號、空白等特殊符號
-    let cleanStr = modelName.replace(/[^a-zA-Z0-9]/g, '');
-    // 2. 移除尾部的連續英文字母 (顏色碼)
-    return cleanStr.replace(/[a-zA-Z]+$/, '').toUpperCase();
-};
-
-function getImageUrl(modelName) {
-    // 預設佔位圖片 (若查無圖片時顯示)
-    const fallbackUrl = "https://images.weserv.nl/?url=raw.githubusercontent.com/firebase/firebase-ios-sdk/master/Firebase/Messaging/Logo/fcm_logo.png&w=400";
-    if (!modelName) return fallbackUrl;
-
-    // 1. 取得去色的主型號
-    const targetModel = getBaseModelForImages(modelName);
-
-    // 2. 尋找匹配的商品 (資料庫的主型號也需經過相同的防呆清洗)
-    const foundItem = modelData.models.find(m => m.mainModel && getBaseModelForImages(m.mainModel) === targetModel);
-    if (!foundItem || !foundItem.mainImage) return fallbackUrl;
-
-    // 3. 提取 Google Drive File ID
-    const match = foundItem.mainImage.match(/id=([a-zA-Z0-9_-]+)/);
-    if (match && match[1]) {
-        // 4. 轉換為 LINE 100% 相容的 Thumbnail API
-        return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w600`;
-    }
-
-    return fallbackUrl;
-}
-
-function calculatePrice(cost, divisor) {
-    return Math.ceil((cost / divisor) * 1.05);
-}
 const getConfig = () => ({
     channelAccessToken: process.env.LINE_CHANNEL_ACCESS_TOKEN,
     channelSecret: process.env.LINE_CHANNEL_SECRET,
     geminiApiKey: process.env.GEMINI_API_KEY
 });
 
-// 定義 Gemini JSON Schema 結構
-const intentSchema = {
-    type: Type.OBJECT,
-    properties: {
-        intent: {
-            type: Type.STRING,
-            description: "使用者的意圖分類。若是詢問商品、預算、庫存，輸出 'query'。若是明確提供收件人、電話、地址與多項商品數量進行下單結帳，輸出 'order'。"
-        },
-        action: {
-            type: Type.STRING,
-            description: "特殊動作分類 (例如：borrow_sample, batch_order, repair_info)",
-            nullable: true
-        },
-        keyword: {
-            type: Type.STRING,
-            description: "使用者想要搜尋的商品型號或名稱 (例如：KPB-2990, 吹風機)。若是下單意圖則為 null",
-            nullable: true
-        },
-        target_qty: {
-            type: Type.INTEGER,
-            description: "使用者預計購買的數量。純數字，無則為 null",
-            nullable: true
-        },
-        min_budget: {
-            type: Type.INTEGER,
-            description: "使用者指定的預算下限或最低預算，純數字，無則為 null",
-            nullable: true
-        },
-        max_budget: {
-            type: Type.INTEGER,
-            description: "使用者指定的預算上限或最高預算，純數字，無則為 null",
-            nullable: true
-        },
-        min_stock: {
-            type: Type.INTEGER,
-            description: "使用者要求的最低安全庫存量限制，純數字，無則為 null",
-            nullable: true
-        },
-        request_image_links: {
-            type: Type.BOOLEAN,
-            description: "若使用者輸入中包含「大圖」、「網路圖」、「照片」、「圖片」、「素材」等強烈索取圖庫連結的語氣，請設為 true，否則為 false。"
-        },
-        customer: {
-            type: Type.OBJECT,
-            description: "下單客戶或申請件(借樣品/新品不良)的聯繫與配送資料",
-            nullable: true,
-            properties: {
-                company: { type: Type.STRING, description: "採購公司名稱", nullable: true },
-                name: { type: Type.STRING, description: "收件人姓名", nullable: true },
-                phone: { type: Type.STRING, description: "聯絡電話", nullable: true },
-                address: { type: Type.STRING, description: "配送地址、送貨地址、取件地址、取件與換貨地址或任何地址相關欄位", nullable: true },
-                deliveryTime: { type: Type.STRING, description: "預期到貨時間", nullable: true },
-                remark: { type: Type.STRING, description: "訂單備註事項", nullable: true },
-                projectName: { type: Type.STRING, description: "借樣品案名", nullable: true },
-                returnDate: { type: Type.STRING, description: "預計歸還日期", nullable: true }
-            },
-            required: ["company", "name", "phone", "address", "deliveryTime", "remark", "projectName", "returnDate"]
-        },
-        orderItems: {
-            type: Type.ARRAY,
-            description: "下單商品清單陣列 (僅在 intent 為 'order' 時輸出)",
-            nullable: true,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    model: { type: Type.STRING, description: "商品名稱或型號" },
-                    qty: { type: Type.INTEGER, description: "訂購數量。若未註明數量，預設為 1" },
-                    unitPrice: { type: Type.INTEGER, description: "如有標示單價，提取出純數字。若未標示，輸出 null", nullable: true }
-                }
-            }
-        },
-        items: {
-            type: Type.ARRAY,
-            description: "商品陣列 (借樣品與新品不良用)",
-            nullable: true,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    model: { type: Type.STRING, description: "商品名稱或型號" },
-                    quantity: { type: Type.INTEGER, description: "數量。純數字" },
-                    reason: { type: Type.STRING, description: "故障原因 (僅新品不良適用)", nullable: true }
-                }
-            }
-        },
-        orders: {
-            type: Type.ARRAY,
-            description: "多筆訂單陣列 (僅在 action 為 'batch_order' 時輸出)",
-            nullable: true,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    customer: {
-                        type: Type.OBJECT,
-                        description: "訂單客戶的聯繫與配送資料",
-                        properties: {
-                            company: { type: Type.STRING, description: "採購公司名稱", nullable: true },
-                            name: { type: Type.STRING, description: "收件人姓名", nullable: true },
-                            phone: { type: Type.STRING, description: "聯絡電話", nullable: true },
-                            address: { type: Type.STRING, description: "配送地址", nullable: true },
-                            remark: { type: Type.STRING, description: "訂單備註事項", nullable: true }
-                        },
-                        required: ["company", "name", "phone", "address", "remark"]
-                    },
-                    items: {
-                        type: Type.ARRAY,
-                        description: "下單商品清單陣列",
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                model: { type: Type.STRING, description: "商品名稱或型號" },
-                                quantity: { type: Type.INTEGER, description: "訂購數量。若未註明數量，預設為 1" },
-                                price: { type: Type.INTEGER, description: "如有標示單價，提取出純數字。若未標示，輸出 0" }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    },
-    required: []
-};
+
 
 exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req, res) => {
     if (req.method !== 'POST') {
@@ -205,7 +61,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
         channelAccessToken: config.channelAccessToken
     });
 
-    const ai = new GoogleGenAI({ apiKey: config.geminiApiKey });
+
 
 
     try {
@@ -249,6 +105,15 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         currentViewLevel = parseInt(groupDoc.data().level) || 0;
                         realLevel = currentViewLevel;
                         level = currentViewLevel;
+
+                        // 新增：群組開啟兩步認證 - 未經開放查價的群組阻擋對話
+                        if (groupDoc.data().isPriceCheckEnabled === false) {
+                            await lineClient.replyMessage({
+                                replyToken: replyToken,
+                                messages: [{ type: 'text', text: '⛔ 此群組的查價與各項功能目前為【關閉】狀態。\n若要開放請聯繫業務人員。' }]
+                            });
+                            throw new Error('PERMISSION_DENIED');
+                        }
                     } else {
                         // 群組無權限：這時由於已經擋掉未 tag 的情況，能來到這裡代表使用者確實 tag 了機器人
                         await lineClient.replyMessage({
@@ -297,7 +162,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 // --- 例外處理：優先放行管理員的 #綁定群組 指令，避免陷入死結 ---
                 if (event.type === 'message' && event.message.type === 'text') {
                     const text = event.message.text.trim();
-                    if (isGroup && text.includes('@KINYO挺好的') && (text.includes('#綁定群組') || text.includes('#解除綁定'))) {
+                    if (isGroup && text.includes('@KINYO挺好的') && (text.includes('#綁定群組') || text.includes('#解除綁定') || text.includes('#開放查價') || text.includes('#開放報價') || text.includes('#關閉查價') || text.includes('#關閉報價') || text.includes('#封鎖查價'))) {
                         // 交給後續既有的綁定 / 解除邏輯處理，此處直接略過全域權限阻擋
                     } else {
                         // --- 核心全域權限防線啟動 ---
@@ -331,7 +196,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     continue;
                 }
                 if (rawUserMessage === '@KINYO挺好的 設定為接單總部') {
-                    const adminUid = 'U7043cd6c4576c96ddb23d316fba32a9b'; // 郭庭豪的 LINE UID
+                    const adminUid = process.env.ADMIN_LINE_UID; // 郭庭豪的 LINE UID
                     if (lineUid !== adminUid) {
                         await lineClient.replyMessage({
                             replyToken: replyToken,
@@ -353,6 +218,29 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     continue;
                 }
 
+                // --- 新增：同步圖庫指令 (限管理員) ---
+                if (rawUserMessage === '#同步圖庫' || rawUserMessage === '@KINYO挺好的 同步圖庫') {
+                    const adminUid = process.env.ADMIN_LINE_UID;
+                    if (lineUid !== adminUid) {
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: '⛔ 權限不足：僅限系統管理員執行此指令' }]
+                        });
+                        continue;
+                    }
+
+                    // 回覆並非同步觸發 Cloud Function
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [{ type: 'text', text: '✅ 已於背景開始強制同步圖庫。\n此過程可能需要數分鐘，請稍候再查看網頁或機器人。' }]
+                    });
+
+                    fetch(`https://asia-east1-kinyo-price.cloudfunctions.net/syncGDrive?token=${process.env.SYNC_TOKEN}`, { signal: AbortSignal.timeout(1000) })
+                        .catch(() => {}); // 忽略 timeout 錯誤，讓它在背景執行
+                        
+                    continue;
+                }
+
                 // --- 額外處理：綁定群組相關指令 ---
                 if (isGroup) {
                     const botName = '@KINYO挺好的';
@@ -363,7 +251,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                         // 處理綁定指令
                         if (cleanCommand.startsWith('#綁定群組')) {
-                            const adminUid = 'U7043cd6c4576c96ddb23d316fba32a9b'; // 郭庭豪的 LINE UID
+                            const adminUid = process.env.ADMIN_LINE_UID; // 郭庭豪的 LINE UID
 
                             // 權限攔截防線
                             if (lineUid !== adminUid) {
@@ -376,18 +264,42 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                             const targetLevel = parseInt(cleanCommand.replace('#綁定群組', '').trim(), 10);
                             if (!isNaN(targetLevel)) {
-                                await db.collection('Groups').doc(groupId).set({ level: targetLevel });
+                                await db.collection('Groups').doc(groupId).set({ level: targetLevel, isPriceCheckEnabled: false });
                                 await lineClient.replyMessage({
                                     replyToken: replyToken,
-                                    messages: [{ type: 'text', text: `✅ 本群組已綁定 Level ${targetLevel}` }]
+                                    messages: [{ type: 'text', text: `✅ 本群組已綁定 Level ${targetLevel}。\n⚠️ 查價功能預設為【關閉】，若要正式開放請您輸入「#開放查價」。` }]
                                 });
                             }
                             continue;
                         }
 
+                        // 新增：處理開放查詢指令
+                        if (cleanCommand.startsWith('#開放查價') || cleanCommand.startsWith('#開放報價')) {
+                            const adminUid = process.env.ADMIN_LINE_UID;
+                            if (lineUid !== adminUid) {
+                                await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '⛔ 權限不足：僅限系統管理員執行此變更' }] });
+                                continue;
+                            }
+                            await db.collection('Groups').doc(groupId).set({ isPriceCheckEnabled: true }, { merge: true });
+                            await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '✅ 本群組的查詢與報價功能已正式【開放】！\n群組成員現在可以開始使用各項功能了。' }] });
+                            continue;
+                        }
+
+                        // 新增：處理關閉查詢指令
+                        if (cleanCommand.startsWith('#關閉查價') || cleanCommand.startsWith('#關閉報價') || cleanCommand.startsWith('#封鎖查價')) {
+                            const adminUid = process.env.ADMIN_LINE_UID;
+                            if (lineUid !== adminUid) {
+                                await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '⛔ 權限不足：僅限系統管理員執行此變更' }] });
+                                continue;
+                            }
+                            await db.collection('Groups').doc(groupId).set({ isPriceCheckEnabled: false }, { merge: true });
+                            await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '🚫 本群組的各項功能目前已【封鎖/關閉】。' }] });
+                            continue;
+                        }
+
                         // 處理解除綁定指令
                         if (cleanCommand.startsWith('#解除綁定')) {
-                            const adminUid = 'U7043cd6c4576c96ddb23d316fba32a9b';
+                            const adminUid = process.env.ADMIN_LINE_UID;
 
                             if (lineUid !== adminUid) {
                                 await lineClient.replyMessage({
@@ -406,6 +318,69 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         }
                     }
                 }
+
+                // --- 新增：靜態收件資訊卡片 ---
+                if (userText === '收件資訊' || userText === '寄件地址' || userText === '@KINYO挺好的 收件資訊' || userText === '@KINYO挺好的 寄件地址') {
+                    const shippingFlex = {
+                        type: 'flex',
+                        altText: '收件資訊',
+                        contents: {
+                            type: 'bubble',
+                            header: {
+                                type: 'box', layout: 'vertical', backgroundColor: '#1E3A8A',
+                                contents: [{ type: 'text', text: '📦 標準收件資訊', color: '#ffffff', weight: 'bold', size: 'lg' }]
+                            },
+                            body: {
+                                type: 'box', layout: 'vertical', spacing: 'md',
+                                contents: [
+                                    { type: 'text', text: '請將包裹或樣品寄至以下地址：', size: 'sm', color: '#666666' },
+                                    {
+                                        type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm',
+                                        contents: [
+                                            {
+                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                contents: [
+                                                    { type: 'text', text: '地址', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                    { type: 'text', text: '新竹市東區經國路一段187號', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                ]
+                                            },
+                                            {
+                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                contents: [
+                                                    { type: 'text', text: '收件人', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                    { type: 'text', text: '郭庭豪', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                ]
+                                            },
+                                            {
+                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                contents: [
+                                                    { type: 'text', text: '市話', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                    { type: 'text', text: '03-5396966 #266', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                ]
+                                            },
+                                            {
+                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                contents: [
+                                                    { type: 'text', text: '手機', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                    { type: 'text', text: '0976-966333', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    { type: 'separator', margin: 'lg' },
+                                    { type: 'text', text: '⚠️ 寄件時請務必於外箱或託運單註明：', size: 'xs', color: '#EF4444', margin: 'lg', wrap: true },
+                                    { type: 'text', text: '1. 寄件人名稱\n2. 內容物明細', size: 'sm', color: '#333333', wrap: true }
+                                ]
+                            }
+                        }
+                    };
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [shippingFlex]
+                    });
+                    continue;
+                }
+                // -----------------------------------
 
                 // --- 額外處理：訂單模板回覆 ---
                 if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
@@ -544,7 +519,18 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 const params = new URLSearchParams(postbackData);
                 const action = params.get('action');
 
-                if (action === 'show_level_menu') {
+                if (action === 'export_ppt') {
+                    const pptModel = params.get('model') || '';
+                    let pptQty = parseInt(params.get('qty'));
+                    pptQty = (isNaN(pptQty) || pptQty <= 0) ? 50 : pptQty;
+                    const pptIntentParams = {
+                        intent: 'query', action: 'export_ppt', keyword: pptModel, target_qty: pptQty, min_budget: null, max_budget: null
+                    };
+                    const userContext = { level: currentViewLevel, userEmail, realLevel };
+                    const { processPptExport } = require('./src/services/pptGenerator');
+                    await processPptExport(pptIntentParams, userContext, event, lineClient);
+                    continue;
+                } else if (action === 'show_level_menu') {
                     shouldSkipSearch = true;
                     userText = "切換選單顯示";
                 } else if (action === 'set_level') {
@@ -619,7 +605,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                                 const mailOptions = {
                                     from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
-                                    to: ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                                    to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
                                     subject: `[新訂單通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 總計 ${totalDisplay.replace(/<[^>]+>/g, '')}`,
                                     html: `
                                       <h2 style="color: #333;">新訂單通知</h2>
@@ -636,11 +622,51 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                       <h3 style="color: #E11D48;">總計金額: ${totalDisplay}</h3>
                                       <hr>
                                       <br>
-                                      <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">✅ 標記為已出貨</a>
+                                      <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 標記為已出貨</a>
+                                      <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${orderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
                                     `
                                 };
                                 // 非同步寄信，不阻塞 Transaction
                                 transporter.sendMail(mailOptions).catch(err => console.error("SMTP 發信失敗:", err));
+
+                                // ---------------------------------
+                                // --- 修改：大單備貨通知邏輯 ---
+                                // 1. 篩選出數量嚴格大於 300 的商品
+                                const largeQuantityItems = (orderData.items || []).filter(item => (item.quantity || item.qty || 0) > 300);
+
+                                // 2. 若存在大單商品，觸發採購與商開通知信
+                                if (largeQuantityItems.length > 0) {
+                                  let restockItemsHtml = '';
+                                  largeQuantityItems.forEach(item => {
+                                    restockItemsHtml += `<tr><td style="padding: 8px; border: 1px solid #ddd;">${item.model}</td><td style="padding: 8px; border: 1px solid #ddd; color: #E11D48; font-weight: bold;">${item.qty || item.quantity || 0}</td></tr>`;
+                                  });
+
+                                  const restockEmailHtml = `
+                                    <h2 style="color: #E11D48;">⚠️ 大單出貨與備貨警示</h2>
+                                    <p>系統偵測到以下商品單筆出貨量大於 300，請評估是否需要提前備貨：</p>
+                                    <table style="border-collapse: collapse; width: 100%; max-width: 500px;">
+                                      <tr style="background-color: #f3f4f6;"><th style="padding: 8px; border: 1px solid #ddd; text-align: left;">型號</th><th style="padding: 8px; border: 1px solid #ddd; text-align: left;">出貨數量</th></tr>
+                                      ${restockItemsHtml}
+                                    </table>
+                                    <hr>
+                                    <p><strong>關聯訂單資訊：</strong></p>
+                                    <ul>
+                                      <li>客戶名稱：${orderData.customer?.company || orderData.customer?.name || '未提供'}</li>
+                                      <li>負責業務：郭庭豪</li>
+                                    </ul>
+                                    <p style="color: #666; font-size: 12px;">[系統提示] 此為系統自動偵測觸發之備貨警示信。</p>
+                                  `;
+
+                                  const restockMailOptions = {
+                                    from: '系統通知信箱 <sam.kuo@kinyo.tw>',
+                                    to: process.env.RESTOCK_NOTIFY_EMAILS || 'crystal.lin@nakay.com.tw, iris@nakay.com.tw, irene.tien@nakay.com.tw, chloe@nakay.com.tw, kelly@nakay.com.tw, sam.kuo@kinyo.tw',
+                                    subject: '【大單備貨警示】型號庫存消耗通知',
+                                    html: restockEmailHtml
+                                  };
+
+                                  transporter.sendMail(restockMailOptions).catch(err => console.error("⚠️ 大單備貨通知發送失敗:", err));
+                                }
+                                // ---------------------------------
 
                                 try {
                                     const configDoc = await admin.firestore().collection('SystemConfig').doc('OrderSettings').get();
@@ -679,6 +705,31 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         await lineClient.replyMessage({
                             replyToken: replyToken,
                             messages: [{ type: 'text', text: `⚠️ 處理失敗: ${err.message}` }]
+                        });
+                    }
+                } else if (action === 'cancel_temp_order') {
+                    shouldSkipSearch = true;
+                    const tempOrderId = params.get('id');
+                    try {
+                        const tempDocRef = db.collection('tempOrders').doc(tempOrderId);
+                        const tempDoc = await tempDocRef.get();
+                        if (!tempDoc.exists) {
+                            return lineClient.replyMessage({
+                                replyToken: replyToken,
+                                messages: [{ type: 'text', text: '這筆申請先前已經處理過或是已取消囉！' }]
+                            });
+                        }
+                        await tempDocRef.delete();
+                        console.log(`[取消暫存] 成功刪除紀錄 ${tempOrderId}`);
+                        return lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: '✅ 申請/暫存單已成功取消。' }]
+                        });
+                    } catch (err) {
+                        console.error('[取消暫存錯誤]', err);
+                        return lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: `⚠️ 取消失敗: ${err.message}` }]
                         });
                     }
                 } else if (action === 'confirm_sample') {
@@ -724,7 +775,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                         const mailOptions = {
                             from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
-                            to: ['sam.kuo@kinyo.tw'],
+                            to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
                             subject: `[借樣品通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                             html: `
                               <h2 style="color: #F59E0B;">📦 借樣品申請通知</h2>
@@ -741,8 +792,9 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                               ${itemsHtml}
                               <hr>
                               <br>
-                              <p style="color: #666; font-size: 13px;">※ 若樣品已寄出，可點擊下方按鈕結案</p>
-                              <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">✅ 標記為已出貨/結案</a>
+                              <p style="color: #666; font-size: 13px;">※ 若樣品已寄出，可點擊下方按鈕結案；若有缺貨或異常，可點擊通知客戶</p>
+                              <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 標記為已出貨/結案</a>
+                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
                             `
                         };
                         transporter.sendMail(mailOptions).catch(err => console.error("借樣品 SMTP 發信失敗:", err));
@@ -931,7 +983,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                   ${itemsHtml}
                                   <hr>
                                   <br>
-                                  <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">✅ 標記為已出貨</a>
+                                  <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 標記為已出貨</a>
+                                  <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
                                 `
                             };
                             transporter.sendMail(mailOptions).catch(err => console.error("批次 SMTP 發信失敗:", err));
@@ -1243,33 +1296,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                         const cost = parseInt(p.cost) || 0;
 
-                        // 計算特定數量的單價
-                        // --- 靜默數量天花板 (Stealth Quantity Ceiling) ---
-                        let calc_qty = evalQty;
-                        if (currentViewLevel === 1 && calc_qty > 100) calc_qty = 100;
-                        if (currentViewLevel === 2 && calc_qty > 500) calc_qty = 500;
-                        if (currentViewLevel === 3 && calc_qty > 1000) calc_qty = 1000;
-
-                        // 計算特定數量的單價 (含稅)
-                        let divisor = 0.73; // 預設防呆
-                        if (currentViewLevel === 1) {
-                            if (calc_qty >= 100) divisor = 0.75;
-                            else divisor = 0.73;
-                        } else if (currentViewLevel === 2) {
-                            if (calc_qty >= 500) divisor = 0.82;
-                            else if (calc_qty >= 300) divisor = 0.80;
-                            else if (calc_qty >= 100) divisor = 0.76;
-                            else divisor = 0.74;
-                        } else if (currentViewLevel >= 3) {
-                            if (calc_qty >= 3000 && currentViewLevel >= 4) divisor = 0.89;
-                            else if (calc_qty >= 1000) divisor = 0.858;
-                            else if (calc_qty >= 500) divisor = 0.835;
-                            else if (calc_qty >= 300) divisor = 0.81;
-                            else if (calc_qty >= 100) divisor = 0.765;
-                            else divisor = 0.745;
-                        }
-
-                        const finalPrice = Math.ceil((cost / divisor) * 1.05);
+                        const finalPrice = calculateLevelPrice(cost, currentViewLevel, evalQty);
 
                         const textMsg = `【${p.model}】${p.name || '未命名'}
 賣場售價：${p.marketPrice || '未提供'}
@@ -1347,122 +1374,7 @@ ${evalQty}個：${finalPrice}
                     console.error(`⚠️ [Line SDK 警告] showLoadingAnimation failed:`, loadErr);
                 }
 
-                const prompt = `你是一個嚴格的 JSON 輸出引擎。請判斷使用者意圖。
-
-【最高權限規則：訂單與報價的絕對邊界】
-1. 建立訂單的絕對條件：使用者的輸入字串中，必須明確包含「下單」或「訂單」這兩個關鍵字之一。
-2. 若對話文字中「沒有」出現「下單」或「訂單」，即使包含大量商品型號與數量，也【絕對禁止】將 action 判定為建立訂單。
-3. 承上，缺乏上述關鍵字的多品項查詢，請強制將 action 判定為「報價」或「匯出 Excel」(依系統現有報價邏輯的 action 名稱)。
-
-若是查詢報價，輸出: { "intent": "query", "keywords": ["型號"], "min_budget": null, "max_budget": null }
-若是下單，必須嚴格輸出以下 JSON 格式，絕對不可遺漏任何鍵值(Key)：
-{
-  "intent": "order",
-  "customer": { "company": "採購公司", "name": "收件人", "phone": "電話", "address": "送貨地址", "deliveryTime": "預期到貨", "remark": "備註內容" },
-  "orderItems": [ 
-    { "model": "型號", "quantity": 數量, "price": 單價數字 } 
-  ]
-}
-【極重要規則 - 違規將導致系統崩潰】：
-1. orderItems 陣列內的每一個物件，都必須強制包含 "price" 欄位！
-2. 若客戶明文提供單價，請擷取該單價；若客戶未提供單價，絕對禁止自動帶入系統價格，請強制將 price 設為 0。
-3. 若訂單內有任何品項單價為 0，請將整筆訂單的 totalAmount 設為 0，不要自行瞎猜計算總額。
-4. 確保輸出的 JSON 陣列中，數量欄位統一命名為 quantity，單價命名為 price。
-5. "remark" 必須提取備註，若無則輸出 null。
-6. "address" 必須對應使用者填寫的任何包含「地址」的欄位（如送貨地址、取件地址、取件與換貨地址等），"deliveryTime" 必須對應「預期到貨」，若無則輸出 null。
-7. 必須提取使用者輸入的「採購公司」，若無則輸出 null。
-8. 模糊預算處理規則：若使用者輸入的預算帶有『左右』、『上下』、『附近』等模糊字眼（例如：1000左右），請自動計算正負 10% 作為區間。例如 1000 左右，請輸出 "min_budget": 900 與 "max_budget": 1100。絕對不可將下限設為 0。
-9. 單一數字預算規則：若使用者僅提供單一數字且無模糊字眼（例如：預算1000），請將其視為上限，輸出 "min_budget": 0 與 "max_budget": 1000。
-
-【專屬客製化情境：行動屋批次出貨】
-當使用者輸入字串開頭包含「行動屋出貨」時，請啟動批次解析模式：
-1. 忽略一般訂單格式，請以「----」或多個連續橫線作為分界，將文字拆分為多筆訂單。
-2. 從每筆訂單中精準擷取資料。商品型號通常在方括號內 (如 [KVC-6243])，數量在星號後 (如 *9)。
-3. 強制回傳以下 JSON 格式：
-{
-  "action": "batch_order",
-  "orders": [
-    {
-      "customer": {
-        "company": "行動屋",
-        "name": "店名 (如：遠傳健行店)",
-        "phone": "電話",
-        "address": "地址",
-        "remark": "無"
-      },
-      "items": [
-        { "model": "型號", "quantity": 數量, "price": 0 }
-      ]
-    }
-  ]
-}
-
-【新增情境 1：借樣品申請】
-若使用者對話內容包含「借樣品」，請強制回傳以下 JSON 格式（絕對禁止呼叫報價或計算總金額）：
-{
-  "action": "borrow_sample",
-  "customer": {
-    "company": "採購公司名稱",
-    "name": "收件人名稱",
-    "phone": "聯絡電話",
-    "address": "請精準擷取任何『地址』相關欄位的字串",
-    "projectName": "借樣品案名",
-    "returnDate": "預計歸還日期 (若無則輸出 null)"
-  },
-  "items": [
-    { "model": "商品型號", "quantity": 數量 }
-  ]
-}
-
-【新增情境 2：新品不良 / 來回件申請】
-若使用者對話內容包含「新品不良」或「來回件」，請強制回傳以下 JSON 格式（絕對禁止呼叫報價或計算總金額）：
-{
-  "action": "defective_return",
-  "customer": {
-    "company": "採購公司名稱",
-    "name": "客戶姓名",
-    "phone": "客戶聯絡電話",
-    "address": "請精準擷取任何『地址』相關欄位的字串",
-    "remark": "備註內容 (若無則輸出 null)"
-  },
-  "items": [
-    { "model": "不良品型號", "quantity": 數量, "reason": "故障原因" }
-  ]
-}
-
-【新增情境 3：詢問維修或客服資訊】
-若使用者對話內容長句中包含詢問「維修地址」、「怎麼修」、「保固」、「哪裡維修」、「客服電話」等相關問題，請強制將 action 設為 "repair_info"，intent 設為 "faq"：
-{
-  "intent": "faq",
-  "action": "repair_info",
-  "keyword": null
-}
-
-使用者輸入内容：「${cleanUserText}」`;
-
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: prompt,
-                    config: {
-                        responseMimeType: "application/json",
-                        responseSchema: intentSchema
-                    }
-                });
-
-                try {
-                    const jsonText = response.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (jsonText) {
-                        const parsed = JSON.parse(jsonText);
-                        intentParams = { ...intentParams, ...parsed };
-
-                        // query 關鍵字容錯處理
-                        if (parsed.keywords && Array.isArray(parsed.keywords) && !parsed.keyword) {
-                            intentParams.keyword = parsed.keywords.join(' ');
-                        }
-                    }
-                } catch (jsonErr) {
-                    console.error(`[Gemini Warn] JSON 解析失敗:`, jsonErr);
-                }
+                intentParams = await parseUserIntent(cleanUserText, config.geminiApiKey);
 
                     console.log(`🧠 [Gemini 解析結果]`, JSON.stringify(intentParams, null, 2));
                 } // 結束 if (!preprocessResult.requireAi) else 區塊
@@ -1478,8 +1390,9 @@ ${evalQty}個：${finalPrice}
                 const { handleFaqRequest } = require('./src/workflows/faqWorkflow');
 
                 // 處理 FAQ (如果由 Fast Path 攔截，或是 Gemini NLP 判斷出是 repair_info)
-                if (intentParams.intent === 'faq' || intentParams.action === 'repair_info') {
-                    await handleFaqRequest(event, lineClient, 'repair');
+                if (intentParams.intent === 'faq' || intentParams.action === 'repair_info' || intentParams.action === 'user_guide') {
+                    const faqType = (intentParams.action === 'user_guide') ? 'user_guide' : 'repair';
+                    await handleFaqRequest(event, lineClient, faqType);
                     continue; // 執行完畢跳脫
                 }
 
@@ -1487,7 +1400,7 @@ ${evalQty}個：${finalPrice}
                 if (isSpecialAction) {
                     await handleSpecialActions(intentParams, { lineClient, replyToken });
                     continue; // 執行完特殊意圖後跳過後續查詢邏輯
-                } else if (intentParams.intent === 'query' || intentParams.intent === 'order' || intentParams.action === 'query' || intentParams.action === 'search') {
+                } else if (intentParams.intent === 'query' || intentParams.intent === 'order' || intentParams.action === 'query' || intentParams.action === 'search' || intentParams.action === 'export_ppt') {
                     // 允許正規查詢與下單指令通過，不在此處阻擋
                 } else {
                     // 復原最後一道防線 (阻擋未知或垃圾訊息)
@@ -1499,835 +1412,19 @@ ${evalQty}個：${finalPrice}
             }
 
             // ---------------------------------------------------------
-            // 模組 3 前置：若是下單意圖，直接進入訂單處理流程
+            // 模組 3 & 4：交由服務層進行後續處理 (Quote & Order)
             // ---------------------------------------------------------
+            console.log(`[Trace] 準備進入服務層. intent: ${intentParams.intent}, action: ${intentParams.action}, keyword: ${intentParams.keyword}`);
             if (intentParams.intent === 'order') {
-                console.log(`[訂單處理] 開始處理下單意圖`);
-                const productsSnapshot = await db.collection('Products').get();
-                const products = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-                let totalAmount = 0;
-                const validOrderItems = [];
-                const invalidModels = [];
-                const abnormalPriceModels = []; // 紀錄價格異常被剔除的型號
-                const outOfStockModels = []; // 新增：紀錄庫存不足的型號
-                const currentViewLevel = level;
-
-                for (const item of intentParams.orderItems) {
-                    // 原始擷取到的型號
-                    let rawModel = item.model || item.name || '';
-
-                    // 建立別名對照表 (未來有新規則可直接在此擴充)
-                    const modelAlias = {
-                        'HD08': 'MHDP08',
-                        'HD-08': 'MHDP08',
-                        'HD 08': 'MHDP08'
-                    };
-
-                    // 將字串轉大寫並去除前後空白，進行比對轉換
-                    const upperModel = rawModel.toUpperCase().trim();
-                    const finalModel = modelAlias[upperModel] || upperModel;
-
-                    // 後續寫入資料庫或組合 Flex Message 的型號，請全面改用 finalModel
-                    item.model = finalModel;
-
-                    // 新增：強制淨化字串，只保留英文字母與數字，並轉小寫
-                    const sanitizeModel = (str) => str ? str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
-
-                    // 使用淨化後的字串進行比對
-                    const product = products.find(p => sanitizeModel(p.model) === sanitizeModel(item.model));
-
-                    if (product) {
-                        // 庫存檢核防線 (若無 inventory 欄位則預設 99999)
-                        const currentStock = (product.inventory !== undefined && product.inventory !== null) ? Number(product.inventory) : 99999;
-                        if (item.qty > currentStock) {
-                            console.log(`[庫存提示] ${item.model} 轉預購: 需求 ${item.qty} > 庫存 ${currentStock}`);
-                            outOfStockModels.push(`${product.model} (僅剩 ${currentStock})`);
-                            // 移除 continue，允許庫存不足的訂單繼續算價並成立
-                        }
-
-                        // 1. 取得該等級可獲得的最底價極限（傳入極大值 99999 觸發最高優惠門檻）
-                        let bottomDivisor = 0.75;
-                        if (currentViewLevel === 1) bottomDivisor = 0.75; // 100+
-                        else if (currentViewLevel === 2) bottomDivisor = 0.82; // 500+
-                        else if (currentViewLevel === 3) bottomDivisor = 0.858; // 1000+
-                        else if (currentViewLevel >= 4) bottomDivisor = 0.89; // 3000+
-
-                        // 計算出該等級絕對底價，並取 9 折作為防線 (容錯率 10%)
-                        const absoluteFloorPrice = Math.ceil(((product.cost || 0) / bottomDivisor) * 1.05) * 0.9;
-
-                        // 計算正常購買數量下的系統掛牌價
-                        let calc_qty = item.qty;
-                        if (currentViewLevel === 1 && calc_qty > 100) calc_qty = 100;
-                        if (currentViewLevel === 2 && calc_qty > 500) calc_qty = 500;
-                        if (currentViewLevel === 3 && calc_qty > 1000) calc_qty = 1000;
-
-                        let divisor = 0.73;
-                        if (currentViewLevel === 1) {
-                            if (calc_qty >= 100) divisor = 0.75;
-                            else divisor = 0.73;
-                        } else if (currentViewLevel === 2) {
-                            if (calc_qty >= 500) divisor = 0.82;
-                            else if (calc_qty >= 300) divisor = 0.80;
-                            else if (calc_qty >= 100) divisor = 0.76;
-                            else divisor = 0.74;
-                        } else if (currentViewLevel >= 3) {
-                            if (calc_qty >= 3000 && currentViewLevel >= 4) divisor = 0.89;
-                            else if (calc_qty >= 1000) divisor = 0.858;
-                            else if (calc_qty >= 500) divisor = 0.835;
-                            else if (calc_qty >= 300) divisor = 0.81;
-                            else if (calc_qty >= 100) divisor = 0.765;
-                            else divisor = 0.745;
-                        }
-                        const systemFinalPrice = Math.ceil(((product.cost || 0) / divisor) * 1.05);
-                        let appliedPrice = systemFinalPrice;
-
-                        // 判斷是否為使用者手動出價
-                        let parsedUnitPrice = null;
-                        if (item.price !== null && item.price !== undefined && item.price !== '') {
-                            parsedUnitPrice = Number(item.price.toString().replace(/[^\d.]/g, ''));
-                        }
-
-                        // 若無報價或解析為0，則維持不報價 (0)，不帶入系統報價
-                        if (parsedUnitPrice === null || isNaN(parsedUnitPrice) || parsedUnitPrice === 0) {
-                            appliedPrice = 0;
-                        } else {
-                            // 客戶有明確報價，進行底線防護檢查
-                            if (parsedUnitPrice >= absoluteFloorPrice) {
-                                appliedPrice = parsedUnitPrice; // 價格高於絕對防線，容許過關
-                            } else {
-                                console.log(`[剔除原因] ${item.model} 價格破底: 客出 ${parsedUnitPrice} < 底線 ${absoluteFloorPrice} (成本: ${product.cost}, 最終: ${systemFinalPrice})`);
-                                abnormalPriceModels.push(item.model); // 無效自訂價，單獨剔除
-                                continue;
-                            }
-                        }
-
-                        const subtotal = appliedPrice * item.qty;
-                        if (appliedPrice > 0) {
-                            totalAmount += subtotal;
-                        } else {
-                            // 若有任何一筆品項為0(未填報價)，則整筆訂單總額設為0(待確認)
-                            // 因為後續流程也是判斷 totalAmount > 0 才有顯示
-                            totalAmount = 0;
-                        }
-
-                        validOrderItems.push({
-                            model: (product && product.model) ? product.model : '未提供',
-                            name: (product && product.name) ? product.name : '未知名稱(請確認型號)',
-                            qty: (item && item.qty) ? item.qty : (Math.max(1, calc_qty) || 1),
-                            unitPrice: (appliedPrice !== undefined && appliedPrice !== null) ? appliedPrice : 0,
-                            subtotal: (subtotal !== undefined && subtotal !== null) ? subtotal : 0
-                        });
-                    } else {
-                        console.log(`[剔除原因] 找不到型號: ${item.model}`);
-                        invalidModels.push(item.model);
-                    }
-                }
-
-                // 修正：如果中途因為有 0元 品項使得 totalAmount 歸零，後續也不應該再加總運費讓他變成非零
-                if (totalAmount === 0 && validOrderItems.some(i => i.unitPrice === 0)) {
-                    totalAmount = 0; // 強制為 0 待確認
-                }
-
-                // 檢查是否完全無有效品項
-                if (validOrderItems.length === 0) {
-                    const failReasons = [];
-                    if (invalidModels.length > 0) failReasons.push(`查無型號: ${invalidModels.join(', ')}`);
-                    if (abnormalPriceModels.length > 0) failReasons.push(`價格異常: ${abnormalPriceModels.join(', ')}`);
-                    if (outOfStockModels.length > 0) failReasons.push(`庫存不足轉預購: ${outOfStockModels.join(', ')}`);
-
-                    const reasonText = failReasons.length > 0 ? failReasons.join('\n') : '您輸入的型號皆查無資料或價格異常。';
-
-                    await lineClient.replyMessage({
-                        replyToken: replyToken,
-                        messages: [{ type: 'text', text: `❌ 訂單無法成立\n\n原因：\n${reasonText}` }]
-                    });
-                    continue;
-                }
-
-                // 修正：如果中途因為有 0元 品項使得 totalAmount 歸零
-                // 產生隨機訂單編號
-                const orderId = `ORD${Date.now()}${Math.floor(Math.random() * 1000)}`;
-                let shippingFee = 0;
-
-                if (totalAmount === 0 && validOrderItems.some(i => i.unitPrice === 0)) {
-                    totalAmount = 0; // 強制為 0 待確認
-                    shippingFee = 0; // 金額待確認時不計算運費
-                } else {
-                    shippingFee = (totalAmount >= 3000 || realLevel >= 4) ? 0 : 150;
-                    totalAmount += shippingFee;
-                }
-
-                // 存入 Firebase
-                const orderData = {
-                    orderId: orderId,
-                    userId: lineUid,
-                    userEmail: userEmail,
-                    orderLevel: currentViewLevel,
-                    customer: intentParams.customer || {},
-                    items: validOrderItems,
-                    totalAmount: totalAmount,
-                    shippingFee: shippingFee,
-                    status: 'waiting',
-                    createdAt: admin.firestore.FieldValue.serverTimestamp()
-                };
-
-                // 將帶有 timestamp 的物件，分離一般資料作清洗，再把 timestamp 放回去
-                const { createdAt, ...restData } = orderData;
-                const safeOrderData = JSON.parse(JSON.stringify(restData));
-                safeOrderData.createdAt = createdAt; // 補回 Firebase Server Timestamp 物件，因為它無法被 JSON.stringify 轉換
-
-                await db.collection('PendingOrders').doc(orderId).set(safeOrderData);
-
-                // 動態產生訂單明細列表
-                const itemBoxes = validOrderItems.map(item => ({
-                    type: 'box',
-                    layout: 'horizontal',
-                    contents: [
-                        { type: 'text', text: `${item.model} x${item.qty}`, size: 'sm', color: '#111111', flex: 2, wrap: true },
-                        { type: 'text', text: item.subtotal > 0 ? `$${item.subtotal}` : `待確認`, size: 'sm', color: item.subtotal > 0 ? '#111111' : '#E11D48', align: 'end', flex: 1 }
-                    ]
-                }));
-
-                const totalAmountDisplay = totalAmount > 0 ? `$${totalAmount}` : '待確認';
-
-                const flexMessageObject = {
-                    type: 'flex',
-                    altText: '請確認您的訂單明細與總金額',
-                    contents: {
-                        type: 'bubble',
-                        header: {
-                            type: 'box', layout: 'vertical',
-                            contents: [{ type: 'text', text: '📝 訂單已建立，請確認', weight: 'bold', size: 'lg', color: '#FFFFFF' }],
-                            backgroundColor: '#E11D48'
-                        },
-                        body: {
-                            type: 'box', layout: 'vertical',
-                            contents: [
-                                { type: 'text', text: `🏢 公司: ${intentParams.customer?.company || '未提供'}`, size: 'sm', color: '#555555', weight: 'bold' },
-                                { type: 'text', text: `👤 收件: ${intentParams.customer?.name || '未提供'} (${intentParams.customer?.phone || '未提供'})`, size: 'sm', color: '#555555' },
-                                { type: 'text', text: `📍 地址: ${intentParams.customer?.address || '未提供'}`, size: 'sm', color: '#555555', wrap: true },
-                                { type: 'text', text: `⏰ 到貨: ${intentParams.customer?.deliveryTime || '未指定'}`, size: 'sm', color: '#1DB446', wrap: true, margin: 'sm' },
-                                { type: 'text', text: `📝 備註: ${intentParams.customer?.remark || '無'}`, size: 'sm', color: '#E11D48', wrap: true, margin: 'sm' },
-                                { type: 'separator', margin: 'lg' },
-                                { type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm', contents: itemBoxes },
-                                { type: 'separator', margin: 'lg' },
-                                {
-                                    type: 'box', layout: 'horizontal', margin: 'lg',
-                                    contents: [
-                                        { type: 'text', text: '運費', size: 'sm', color: '#555555' },
-                                        { type: 'text', text: totalAmount > 0 ? (shippingFee === 0 ? '免運' : `$${shippingFee}`) : '待確認', size: 'sm', color: totalAmount > 0 ? '#111111' : '#E11D48', align: 'end' }
-                                    ]
-                                },
-                                {
-                                    type: 'box', layout: 'horizontal', margin: 'md',
-                                    contents: [
-                                        { type: 'text', text: '總計', weight: 'bold', size: 'md', color: '#E11D48' },
-                                        { type: 'text', text: totalAmountDisplay, weight: 'bold', size: 'md', color: '#E11D48', align: 'end' }
-                                    ]
-                                }
-                            ]
-                        },
-                        footer: {
-                            type: 'box', layout: 'horizontal', spacing: 'sm',
-                            contents: [
-                                {
-                                    type: 'button', style: 'primary', color: '#0055aa',
-                                    action: { type: 'postback', label: '✅ 確認無誤', data: `action=confirm_order&orderId=${orderId}` }
-                                },
-                                {
-                                    type: 'button', style: 'secondary',
-                                    action: { type: 'postback', label: '❌ 取消訂單', data: `action=cancel_order&orderId=${orderId}` }
-                                }
-                            ]
-                        }
-                    }
-                };
-
-                const warningTexts = [];
-                if (invalidModels.length > 0) warningTexts.push(`查無型號: ${invalidModels.join(', ')}`);
-                if (abnormalPriceModels.length > 0) warningTexts.push(`價格異常: ${abnormalPriceModels.join(', ')}`);
-                // 新增：將庫存不足訊息推入警告清單
-                if (outOfStockModels.length > 0) warningTexts.push(`庫存不足轉預購: ${outOfStockModels.join(', ')}`);
-
-                if (warningTexts.length > 0) {
-                    // 將警告標語插入卡片最上方
-                    flexMessageObject.contents.body.contents.unshift({
-                        type: 'text',
-                        text: `⚠️ 系統提示 - ${warningTexts.join(' | ')}`,
-                        color: '#E11D48',
-                        size: 'xs',
-                        wrap: true,
-                        margin: 'sm'
-                    });
-                }
-
-                await lineClient.replyMessage({
-                    replyToken: replyToken,
-                    messages: [flexMessageObject]
-                });
-
-                console.log(`✅ [訂單處理] 已回傳確認卡片給使用者`);
-                continue; // 執行完訂單卡片就跳過後續把意圖當成 query 來查商品的邏輯
-            }
-
-            // ---------------------------------------------------------
-            // 模組 3：拉取商品並進行 In-Memory Filter (Query 意圖)
-            // ---------------------------------------------------------
-            console.log(`[搜尋] 開始拉取 Firestore 商品資料...`);
-            const productsSnapshot = await db.collection('Products').get();
-            let products = productsSnapshot.docs
-                .map(doc => ({ id: doc.id, ...doc.data() }))
-                .filter(p => !p.status || p.status === 'active'); // 相容可能沒有 status 的舊資料
-
-            console.log(`[過濾前] 總計取得有效商品數: ${products.length}`);
-
-            // 1. 同時支援 intent 或 action 為 query/search 的狀況
-            if (intentParams.intent === 'query' || intentParams.action === 'query' || intentParams.action === 'search') {
-
-                // 2. 智慧判定：相容 Gemini 的單數字串 (keyword) 或陣列 (keywords)
-                let keywordStr = '';
-                if (typeof intentParams.keyword === 'string') {
-                    keywordStr = intentParams.keyword.trim();
-                } else if (Array.isArray(intentParams.keywords) && intentParams.keywords.length > 0) {
-                    keywordStr = intentParams.keywords[0].trim();
-                }
-
-                const searchKw = normalizeKeyword(keywordStr).toLowerCase(); // 統一轉換用於搜尋
-
-                // 🚨 核心防護：強制覆寫回原本的陣列格式，確保下方的舊代碼不會因為 null 而當機 Timeout！
-                intentParams.keywords = keywordStr ? [keywordStr] : [];
-
-                const minB = intentParams.min_budget;
-                const maxB = intentParams.max_budget;
-
-                // 3. 雙重空值防呆 (關鍵字與預算皆空才阻擋)
-                const hasKeyword = intentParams.keywords.length > 0;
-                const hasBudget = (minB !== null && minB !== undefined) || (maxB !== null && maxB !== undefined);
-
-                if (!hasKeyword && !hasBudget) {
-                    await lineClient.replyMessage({
-                        replyToken: replyToken,
-                        messages: [fallbackMessage]
-                    });
-                    continue;
-                }
-
-                if (keywordStr !== searchKw && searchKw !== "") {
-                    console.log(`[正規化] 關鍵字轉換: "${keywordStr}" -> "${searchKw}"`);
-                }
-
-                products = products.filter(p => {
-                    const pName = normalizeKeyword(p.name || "").toLowerCase();
-                    const pModel = normalizeKeyword(p.model || "").toLowerCase();
-                    return searchKw === "" || pName.includes(searchKw) || pModel.includes(searchKw);
-                });
-            }
-
-            // 未命中觀測機制 (Log Missing Keywords)
-            if (products.length === 0 && intentParams.keyword) {
-                console.warn(`[Miss] 找不到符合關鍵字的商品: "${intentParams.keyword}"`);
-                // 這裡未來可以實作寫入 Firestore 統計表
-            }
-
-            // 防禦性讀取庫存
-            products = products.map(p => {
-                p.currentStock = Number(p.inventory || 0);
-                return p;
-            });
-
-            // 过慮 min_stock
-            if (intentParams.min_stock !== undefined && intentParams.min_stock !== null) {
-                products = products.filter(p => p.currentStock >= parseInt(intentParams.min_stock));
-            }
-
-            // --- 靜默數量天花板 (Stealth Quantity Ceiling) ---
-            let target_qty = intentParams.target_qty !== null ? parseInt(intentParams.target_qty) : null;
-            let calc_qty = target_qty !== null ? target_qty : 1;
-
-            // 依據目前檢視等級 (level) 靜默裁切計算數量
-            // Level 1 上限 300, Level 2 上限 500, Level 3 上限 1000
-            if (level === 1 && calc_qty > 300) calc_qty = 300;
-            if (level === 2 && calc_qty > 500) calc_qty = 500;
-            if (level === 3 && calc_qty > 1000) calc_qty = 1000;
-            // Level 4 維持原數量，不設限
-
-            // --- 嚴格預算與庫存過濾 ---
-            if (intentParams.min_budget !== null || intentParams.max_budget !== null || intentParams.target_qty !== null) {
-                const maxB = intentParams.max_budget !== null ? parseInt(intentParams.max_budget) : Infinity;
-                const minB = intentParams.min_budget !== null ? parseInt(intentParams.min_budget) : 0;
-
-                products = products.filter(p => {
-                    const cost = parseInt(p.cost) || 0;
-                    if (cost === 0) return false;
-
-                    // 計算對應單價 (finalPrice)
-                    let evalQty = target_qty !== null ? calc_qty : 50;
-                    let divisor = 0.73; // 預設防呆
-                    if (level === 1) {
-                        if (evalQty >= 100) divisor = 0.75;
-                        else divisor = 0.73;
-                    } else if (level === 2) {
-                        if (evalQty >= 500) divisor = 0.82;
-                        else if (evalQty >= 300) divisor = 0.80;
-                        else if (evalQty >= 100) divisor = 0.76;
-                        else divisor = 0.74;
-                    } else if (level >= 3) {
-                        if (evalQty >= 3000 && level >= 4) divisor = 0.89;
-                        else if (evalQty >= 1000) divisor = 0.858;
-                        else if (evalQty >= 500) divisor = 0.835;
-                        else if (evalQty >= 300) divisor = 0.81;
-                        else if (evalQty >= 100) divisor = 0.765;
-                        else divisor = 0.745;
-                    }
-
-                    const finalPrice = Math.ceil((cost / divisor) * 1.05);
-                    p.finalPrice = finalPrice; // 存入物件供後續渲染
-
-                    // 嚴格預算防線
-                    return finalPrice >= minB && finalPrice <= maxB;
-                });
-            }
-
-            // 隨機排序：將商品打亂，但確保缺貨商品(currentStock <= 0)永遠排在最下方
-            products.sort((a, b) => {
-                const aInStock = a.currentStock > 0 ? 1 : 0;
-                const bInStock = b.currentStock > 0 ? 1 : 0;
-                if (aInStock !== bInStock) {
-                    return bInStock - aInStock;
-                }
-                return Math.random() - 0.5;
-            });
-
-            // 雙軌輸出：文字摘要清單 (Text Summary)
-            if (products.length > 0 && (intentParams.min_budget !== null || intentParams.max_budget !== null)) {
-                try {
-                    const targetEmail = userEmail;
-                    if (!targetEmail) throw new Error("找不到使用者的 Email 變數");
-
-                    const userRecord = await admin.auth().getUserByEmail(targetEmail);
-                    customToken = await admin.auth().createCustomToken(userRecord.uid);
-                    console.log("Token 生成成功:", customToken.substring(0, 15) + "...");
-                } catch (error) {
-                    console.error('SSO Token 生成失敗:', error.message);
-                }
-
-                const maxB = intentParams.max_budget !== null ? intentParams.max_budget : '無上限';
-                const minB = intentParams.min_budget !== null ? intentParams.min_budget : 0;
-
-                // 1. 初始化摘要字串
-                summaryText = `🔍 預算區間 $${minB} - $${maxB}\n`;
-                summaryText += `隨機為您推薦 ${Math.min(products.length, 15)} 筆符合之商品：\n\n`;
-
-                // 2. 宣告 textList 變數 (截取前 15 筆)
-                const textList = products.slice(0, 15);
-
-                // 3. 執行迴圈組裝字串
-                textList.forEach((p, index) => {
-                    // 根據使用者級別隱藏或轉換庫存狀態 (Level 1 顯示充足/缺貨，Level 2以上顯示實際數字)
-                    const stockTag = p.currentStock <= 0 ? " ⚠️[缺貨]" : "";
-                    const inventoryDisplay = (level >= 2) ? ` (庫存: ${p.currentStock})` : (p.currentStock > 0 ? " (庫存: 充足)" : " (庫存: 缺貨)");
-                    summaryText += `${index + 1}. 【${p.model}】${p.name || '未命名'}${stockTag}\n   💰$${p.finalPrice || 0}${inventoryDisplay}\n`;
-                });
-
-                // 註解：我們將純文字合併在 Flex Message Array 後端發送 `messages.push({ type: 'text', text: summaryText.trim() });` 
-                // 若在這裡直接送出 client.replyMessage()，replyToken 將會遭到消耗，導致稍後的卡片傳遞失敗 (LINE SDK: Invalid replyToken)
-            }
-
-            // --- 擴充：處理「圖庫索取」意圖分流 ---
-            if (intentParams.request_image_links && products.length > 0) {
-                const product = products[0]; // 取精準度最高的第一筆
-                const targetModelNorm = getBaseModelForImages(product.model);
-
-                // 查找 modelData.json 內的連結
-                const imageInfo = modelData.models.find(m => getBaseModelForImages(m.mainModel) === targetModelNorm);
-                const folderUrl = imageInfo && imageInfo.folderUrl ? imageInfo.folderUrl : '未提供';
-                const netFolderUrl = imageInfo && imageInfo.netFolderUrl ? imageInfo.netFolderUrl : '未提供';
-
-                const imageReplyText = `【${product.model}】圖庫連結\n📁 商品大圖：${folderUrl}\n📁 網路素材：${netFolderUrl}`;
-
-                await lineClient.replyMessage({
-                    replyToken: replyToken,
-                    messages: [{ type: 'text', text: imageReplyText }]
-                });
-                console.log(`✅ [圖庫索取] 已傳送圖庫連結給 ${userEmail} (型號: ${product.model})`);
-                continue; // 中斷後續的 Flex Message 報價流程
-            }
-
-            // Base Model 聚合邏輯 (SPU Grouping)
-            const groupedProducts = Object.values(products.reduce((acc, current) => {
-                // 分離主型號與尾綴
-                const match = current.model.match(/^([a-zA-Z0-9-]+?\d+)([a-zA-Z]*)$/);
-                const baseModel = match ? match[1].toUpperCase() : current.model.toUpperCase();
-                const suffix = match && match[2] ? match[2].toUpperCase() : '標準';
-
-                if (!acc[baseModel]) {
-                    // 初始化主型號物件，以第一筆遇到的商品資料為基準
-                    acc[baseModel] = { ...current };
-                    acc[baseModel].model = baseModel; // 顯示用的型號去尾綴
-                    acc[baseModel].skus = [];
-                    acc[baseModel].totalStock = 0;
-                }
-
-                // 將這筆 SPU 存入陣列
-                acc[baseModel].skus.push({
-                    suffix: suffix,
-                    stock: current.currentStock,
-                    originalModel: current.model
-                });
-                acc[baseModel].totalStock += current.currentStock;
-
-                return acc;
-            }, {}));
-
-            // 最多取 10 個 Base Model 送到 Carousel
-            products = groupedProducts.slice(0, 10);
-
-            console.log(`[過濾後] 符合條件並送到 Carousel 的商品數: ${products.length}`);
-
-            // 統一防護：找不到結果的時候強制掛上 Quick Reply
-            if (products.length === 0) {
-                console.log(`[結果] 找不到對應的商品，準備回覆 Not Found 訊息。`);
-
-                let fallbackMsg = { type: 'text', text: '抱歉，依照您的條件找不到對應的商品。' };
-                if (realLevel === 4) {
-                    fallbackMsg.quickReply = {
-                        items: [{ type: 'action', action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } }]
-                    };
-                }
-
-                try {
-                    await lineClient.replyMessage({
-                        replyToken: replyToken,
-                        messages: [fallbackMsg]
-                    });
-                } catch (err) {
-                    console.error(`❌ [Line SDK 錯誤] NotFound replyMessage failed:`, err);
-                    if (err.originalError && err.originalError.response && err.originalError.response.data) {
-                        console.error(`❌ [Line API 詳細錯誤]`, JSON.stringify(err.originalError.response.data, null, 2));
-                    }
-                }
-                continue;
-            }
-
-            // ---------------------------------------------------------
-            // 模組 4、5：組裝 Flex Message 與試算價格
-            // ---------------------------------------------------------
-            const bubbles = products.map(p => {
-                try {
-                    const cost = parseInt(p.cost) || 0;
-                    const priceScale = [];
-
-                    // Helper to ensure 1.05 tax & ceil
-                    const calcTaxPrice = (c, d) => Math.ceil((c / d) * 1.05);
-
-                    if (level >= 1) {
-                        let text50 = `50個: $${calcTaxPrice(cost, 0.73)}`;
-                        let text100 = `100個: $${calcTaxPrice(cost, 0.75)}`;
-
-                        if (intentParams.target_qty && intentParams.target_qty >= 50 && intentParams.target_qty < 100) {
-                            text50 = `🔥 ${text50}`;
-                        } else if (intentParams.target_qty && intentParams.target_qty >= 100 && intentParams.target_qty < 300) {
-                            text100 = `🔥 ${text100}`;
-                        }
-                        priceScale.push(text50);
-                        priceScale.push(text100);
-                    }
-
-                    if (level >= 2) {
-                        let text300 = `300個: $${calcTaxPrice(cost, 0.80)}`;
-                        let text500 = `500個: $${calcTaxPrice(cost, 0.82)}`;
-
-                        if (intentParams.target_qty && intentParams.target_qty >= 300 && intentParams.target_qty < 500) {
-                            text300 = `🔥 ${text300}`;
-                        } else if (intentParams.target_qty && intentParams.target_qty >= 500 && intentParams.target_qty < 1000) {
-                            text500 = `🔥 ${text500}`;
-                        }
-
-                        // Rewrite for specific divisor to override Level 1's display in Level >= 2
-                        priceScale[0] = `50個: $${calcTaxPrice(cost, 0.74)}`;
-                        priceScale[1] = `100個: $${calcTaxPrice(cost, 0.76)}`;
-
-                        if (intentParams.target_qty && intentParams.target_qty >= 50 && intentParams.target_qty < 100) {
-                            priceScale[0] = `🔥 ${priceScale[0]}`;
-                        } else if (intentParams.target_qty && intentParams.target_qty >= 100 && intentParams.target_qty < 300) {
-                            priceScale[1] = `🔥 ${priceScale[1]}`;
-                        }
-
-                        priceScale.push(text300);
-                        priceScale.push(text500);
-                    }
-
-                    if (level >= 3) {
-                        let text1000 = `1000個: $${calcTaxPrice(cost, 0.858)}`;
-
-                        if (intentParams.target_qty && intentParams.target_qty >= 1000 && intentParams.target_qty < 3000) {
-                            text1000 = `🔥 ${text1000}`;
-                        }
-
-                        // Rewrite for specific divisor to override Level 2's display in Level >= 3
-                        priceScale[0] = `50個: $${calcTaxPrice(cost, 0.745)}`;
-                        priceScale[1] = `100個: $${calcTaxPrice(cost, 0.765)}`;
-                        priceScale[2] = `300個: $${calcTaxPrice(cost, 0.81)}`;
-                        priceScale[3] = `500個: $${calcTaxPrice(cost, 0.835)}`;
-
-                        if (intentParams.target_qty && intentParams.target_qty >= 50 && intentParams.target_qty < 100) {
-                            priceScale[0] = `🔥 ${priceScale[0]}`;
-                        } else if (intentParams.target_qty && intentParams.target_qty >= 100 && intentParams.target_qty < 300) {
-                            priceScale[1] = `🔥 ${priceScale[1]}`;
-                        } else if (intentParams.target_qty && intentParams.target_qty >= 300 && intentParams.target_qty < 500) {
-                            priceScale[2] = `🔥 ${priceScale[2]}`;
-                        } else if (intentParams.target_qty && intentParams.target_qty >= 500 && intentParams.target_qty < 1000) {
-                            priceScale[3] = `🔥 ${priceScale[3]}`;
-                        }
-
-                        priceScale.push(text1000);
-                    }
-
-                    if (level >= 4) {
-                        let text3000 = `3000個: $${calcTaxPrice(cost, 0.89)}`;
-                        if (intentParams.target_qty && intentParams.target_qty >= 3000) {
-                            text3000 = `🔥 ${text3000}`;
-                        }
-                        priceScale.push(text3000);
-                    }
-
-                    // 庫存字串組合
-                    let stockText = ' ';
-                    if (level >= 2) {
-                        // Level 2 以上顯示詳細庫存
-                        const stockDetails = p.skus.map(sku => `${sku.suffix} ${sku.stock}`).join(' | ');
-                        stockText = `庫存: ${stockDetails}`;
-                    } else if (level === 1) {
-                        // Level 1 只顯示是否缺貨
-                        stockText = p.totalStock > 0 ? '庫存: 充足' : '庫存: 缺貨';
-                    }
-
-                    const imgUrl = getImageUrl(p.model);
-
-                    // 嚴格校驗 URL 格式，若不合法則強迫使用預設
-                    let targetUrl = "https://www.kinyo.tw/";
-                    if (p.productUrl && typeof p.productUrl === 'string' && p.productUrl.startsWith('http')) {
-                        targetUrl = p.productUrl;
-                    }
-
-                    const bubble = {
-                        type: "bubble",
-                        hero: {
-                            type: "image",
-                            url: imgUrl,
-                            size: "4xl",
-                            aspectRatio: "20:13",
-                            aspectMode: "fit",
-                            action: { type: "uri", label: "查看商品介紹", uri: targetUrl }
-                        },
-                        body: {
-                            type: "box",
-                            layout: "vertical",
-                            contents: [
-                                {
-                                    type: "text",
-                                    text: p.name || '未命名商品',
-                                    weight: "bold",
-                                    size: "xl",
-                                    wrap: true
-                                },
-                                {
-                                    type: "text",
-                                    text: `型號: ${p.model || '無'}`,
-                                    size: "sm",
-                                    color: "#aaaaaa",
-                                    wrap: true
-                                },
-                                {
-                                    type: "text",
-                                    text: `條碼: ${p.internationalBarcode || '無'}`,
-                                    size: "sm",
-                                    color: "#aaaaaa",
-                                    flex: 0,
-                                    wrap: true
-                                },
-                                {
-                                    type: "text",
-                                    text: `箱入數: ${p.cartonQty || '未提供'}`,
-                                    size: "sm",
-                                    color: "#aaaaaa"
-                                },
-                                {
-                                    type: "text",
-                                    text: stockText,
-                                    size: "sm",
-                                    color: "#aaaaaa",
-                                    wrap: true
-                                },
-                                {
-                                    type: "separator",
-                                    margin: "md"
-                                }
-                            ]
-                        }
-                    };
-
-                    // 實作報價雙排化 (Two-column Grid)
-                    const formattedPriceRows = [];
-                    for (let i = 0; i < priceScale.length; i += 2) {
-                        const rowContents = [
-                            { type: 'text', text: priceScale[i], size: 'sm', color: priceScale[i].includes('🔥') ? '#ff0000' : '#666666', weight: priceScale[i].includes('🔥') ? "bold" : "regular", flex: 1, wrap: true }
-                        ];
-
-                        if (i + 1 < priceScale.length) {
-                            rowContents.push({ type: 'text', text: priceScale[i + 1], size: 'sm', color: priceScale[i + 1].includes('🔥') ? '#ff0000' : '#666666', weight: priceScale[i + 1].includes('🔥') ? "bold" : "regular", flex: 1, wrap: true });
-                        } else {
-                            rowContents.push({ type: 'text', text: ' ', size: 'sm', flex: 1 }); // 總數為奇數時補齊版面
-                        }
-
-                        formattedPriceRows.push({
-                            type: 'box',
-                            layout: 'horizontal',
-                            spacing: 'sm',
-                            margin: 'sm',
-                            contents: rowContents
-                        });
-                    }
-
-                    // 將雙排價格塞回 body 中
-                    bubble.body.contents.push({
-                        type: "box",
-                        layout: "vertical",
-                        margin: "md",
-                        spacing: "sm",
-                        contents: formattedPriceRows
-                    });
-
-                    // 加入產生文字報價與官網連結的 Footer 按鈕
-                    bubble.footer = {
-                        type: 'box',
-                        layout: 'vertical',
-                        spacing: 'sm',
-                        contents: [
-                            {
-                                type: 'button',
-                                style: 'primary',
-                                color: '#1DB446',
-                                height: 'sm',
-                                action: {
-                                    type: 'postback',
-                                    label: '產生文字報價',
-                                    data: `action=get_text_quote&model=${encodeURIComponent(p.model || '')}&qty=${intentParams.target_qty || 0}`
-                                }
-                            },
-                            {
-                                type: 'button',
-                                style: 'secondary',
-                                height: 'sm',
-                                margin: 'sm',
-                                action: {
-                                    type: 'uri',
-                                    label: '📄 查看商品介紹',
-                                    uri: targetUrl
-                                }
-                            }
-                        ]
-                    };
-
-                    return bubble;
-                } catch (bubbleErr) {
-                    console.error(`❌ [卡片組裝失敗] 商品型號: ${p.model}`, bubbleErr);
-                    return null;
-                }
-            }).filter(b => b !== null);
-
-            if (bubbles.length === 0) {
-                console.error(`❌ 所有過濾後的商品卡片皆組裝失敗。`);
-
-                let fallbackBubbleMsg = { type: 'text', text: '抱歉，符合條件的商品遇到資料格式問題，無法正常顯示。' };
-                if (realLevel === 4) {
-                    fallbackBubbleMsg.quickReply = {
-                        items: [{ type: 'action', action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' } }]
-                    };
-                }
-
-                try {
-                    await lineClient.replyMessage({
-                        replyToken: replyToken,
-                        messages: [fallbackBubbleMsg]
-                    });
-                } catch (e) { }
-                continue;
-            }
-
-            let flexMessageObj = {
-                type: 'flex',
-                altText: `為您尋找到 ${bubbles.length} 筆商品報價`,
-                contents: {
-                    type: 'carousel',
-                    contents: bubbles
-                }
-            };
-
-            // 準備 Quick Reply 基礎結構 (空陣列)
-            const quickReplyItems = [];
-
-            // 全局切換視角掛載 (僅限 真實 Level 4 使用者)
-            if (realLevel === 4) {
-                quickReplyItems.push({
-                    type: 'action',
-                    action: { type: 'postback', label: '切換查價視角', data: 'action=show_level_menu' }
-                });
-            }
-
-            // --- 擴展：若商品總數大於 9 筆，加入進入大看板的專屬按鈕 ---
-            if (products.length > 9) {
-                const ssoMin = intentParams.min_budget !== null ? intentParams.min_budget : 0;
-                const ssoMax = intentParams.max_budget !== null ? intentParams.max_budget : '';
-                const ssoQty = intentParams.target_qty || 0;
-
-                // 如果 customToken 是空的，就在網址塞入 ERROR 讓我們知道它失敗了
-                const safeToken = customToken || 'TOKEN_GENERATION_FAILED';
-                const ssoUrl = `https://kinyo-gift.com/system?auth_token=${safeToken}&min=${ssoMin}&max=${ssoMax}&qty=${ssoQty}&level=${level}`;
-
-                // 安插在陣列開頭，讓使用者最先看到
-                quickReplyItems.unshift({
-                    type: "action",
-                    action: {
-                        type: "uri",
-                        label: "✨ 進入大看板挑選",
-                        uri: ssoUrl
-                    }
-                });
-            }
-
-            // 若最終有需要掛載的 Quick Reply，塞進 Flex Message 根目錄
-            if (quickReplyItems.length > 0) {
-                flexMessageObj.quickReply = { items: quickReplyItems };
-            }
-
-            const messages = [];
-            // 若有文字摘要，先推送在陣列最前端
-            if (summaryText !== "") {
-                messages.push({ type: 'text', text: summaryText.trim() });
-            }
-            messages.push(flexMessageObj);
-
-            // --- 日誌強化：紀錄發送前的完整 Payload ---
-            console.log("=== Final Flex Message Payload ===");
-            console.log(JSON.stringify(messages, null, 2));
-            console.log("==================================");
-
-            try {
-                await lineClient.replyMessage({
-                    replyToken: replyToken,
-                    messages: messages
-                });
-                console.log(`✅ [回覆成功] 已發送 ${products.length} 筆商品與 1 個查價 Carousel.`);
-            } catch (err) {
-                console.error(`❌ [Line SDK 錯誤] replyMessage failed:`, err);
-                if (err.originalError && err.originalError.response && err.originalError.response.data) {
-                    console.error(`❌ [Line API 詳細錯誤]`, JSON.stringify(err.originalError.response.data, null, 2));
-                }
-                if (err.response && err.response.data) {
-                    console.error(`❌ [Line API 詳細錯誤 (Axios)]`, JSON.stringify(err.response.data, null, 2));
-                }
+                const userContext = { level, lineUid, userEmail, realLevel };
+                await processOrder(intentParams, userContext, event, lineClient);
+            } else if (intentParams.action === 'export_ppt') {
+                const userContext = { level, userEmail, realLevel };
+                const { processPptExport } = require('./src/services/pptGenerator');
+                await processPptExport(intentParams, userContext, event, lineClient);
+            } else if (intentParams.intent === 'query' || intentParams.action === 'query' || intentParams.action === 'search') {
+                const userContext = { level, userEmail, realLevel };
+                await processQuote(intentParams, userContext, event, lineClient);
             }
         }
 
@@ -2348,10 +1445,14 @@ exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async 
 
     // 防範信箱預覽機制 (Prefetch)：GET 請求只回傳確認畫面
     if (req.method === 'GET') {
+        const isSample = orderId.startsWith('SMP');
+        const titleText = isSample ? '確認樣品寄出' : '確認訂單出貨';
+        const targetText = isSample ? '樣品單' : '訂單';
+        
         const confirmHtml = `
             <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
-                <h2 style="color: #333;">確認訂單出貨</h2>
-                <p>即將發送出貨通知給訂單 <strong>${orderId}</strong> 的客戶</p>
+                <h2 style="color: #333;">${titleText}</h2>
+                <p>即將發送出貨通知給${targetText} <strong>${orderId}</strong> 的客戶</p>
                 <form method="POST" action="">
                     <button type="submit" style="background-color: #28a745; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 20px 2px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold;">
                         ✅ 確認並發送 LINE 推播
@@ -2400,12 +1501,20 @@ exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async 
                 orderDate = `${mm}/${dd}`;
             }
 
-            const notifyText = `📦 系統通知：訂單 (${customerName}；${orderDate}) 已由出貨中心安排出貨，請留意收件。`;
+            const isSample = orderId.startsWith('SMP');
+            const notifyText = isSample
+                ? `📦 系統通知：樣品 (${customerName}；${orderDate}) 已安排寄出，請留意收件。`
+                : `📦 系統通知：訂單 (${customerName}；${orderDate}) 已由出貨中心安排出貨，請留意收件。`;
 
-            await lineClient.pushMessage({
-                to: targetId,
-                messages: [{ type: 'text', text: notifyText }]
-            });
+            try {
+                await lineClient.pushMessage({
+                    to: targetId,
+                    messages: [{ type: 'text', text: notifyText }]
+                });
+            } catch (pushErr) {
+                console.warn('[LINE Push Failed]', pushErr.response?.data || pushErr.message);
+                return res.send('<h2 style="text-align: center; color: #856404; background-color: #fff3cd; padding: 20px; border-radius: 8px;">✅ 狀態更新成功！但因群組無效或 LINE 推播配額不足，未能發送聊天室通知。</h2>');
+            }
         }
 
         // 回傳成功畫面給點擊信件的助理
@@ -2479,3 +1588,219 @@ exports.markRMACompleted = functions.region('asia-east1').https.onRequest(async 
         return res.status(500).send('<h2 style="text-align: center; color: red;">系統發生錯誤，請聯絡管理員</h2>');
     }
 });
+
+// --- API 擴充：訂單異常 / 缺貨通知表單 ---
+exports.orderExceptionForm = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const orderId = req.query.orderId;
+    if (!orderId) return res.status(400).send('缺少訂單編號');
+
+    try {
+        const orderRef = db.collection('PendingOrders').doc(orderId);
+        const doc = await orderRef.get();
+
+        if (!doc.exists) return res.status(404).send('<h2>找不到該訂單</h2>');
+
+        const orderData = doc.data();
+        const customerName = orderData.customer?.name || orderData.customer?.company || '客戶';
+
+        const formHtml = `
+            <!DOCTYPE html>
+            <html lang="zh-TW">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>訂單異常 / 通知客戶</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; color: #333; line-height: 1.6; padding: 20px; }
+                    .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                    h2 { color: #E11D48; margin-top: 0; }
+                    .info-box { background-color: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+                    .form-group { margin-bottom: 20px; }
+                    label { display: block; margin-bottom: 8px; font-weight: bold; }
+                    textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; font-family: inherit; }
+                    .submit-btn { background-color: #E11D48; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background-color 0.2s; }
+                    .submit-btn:hover { background-color: #be123c; }
+                    .note { font-size: 13px; color: #666; margin-top: 10px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <h2>⚠️ 訂單異常 / 通知客戶</h2>
+                    <div class="info-box">
+                        <p style="margin:0 0 5px 0;"><strong>訂單編號：</strong> ${escapeHtml(orderId)}</p>
+                        <p style="margin:0;"><strong>客戶名稱：</strong> ${escapeHtml(customerName)}</p>
+                    </div>
+                    
+                    <form action="https://asia-east1-kinyo-price.cloudfunctions.net/submitOrderException" method="POST">
+                        <input type="hidden" name="orderId" value="${escapeHtml(orderId)}">
+                        <div class="form-group">
+                            <label for="reason">缺貨明細 / 留言給客戶：</label>
+                            <textarea id="reason" name="reason" placeholder="請輸入要通知客戶的內容，例：\n您好，訂單中的「AB-1234」目前缺貨，我們將先寄出部分商品，缺貨的部分預計下週一補寄給您，若有問題請回覆我們。" required></textarea>
+                            <p class="note">※ 送出後，系統將會直接透過 LINE Bot 推播這段訊息給該名客戶。</p>
+                        </div>
+                        <button type="submit" class="submit-btn" onclick="return confirm('確定要發送通知給客戶嗎？');">✅ 發送出貨與異常通知</button>
+                    </form>
+                </div>
+            </body>
+            </html>
+        `;
+
+        res.status(200).send(formHtml);
+    } catch (error) {
+        console.error('開啟異常通知表單錯誤:', error);
+        res.status(500).send('<h2>系統發生錯誤，請聯絡管理員</h2>');
+    }
+});
+
+// --- API 擴充：送出訂單異常通知 ---
+exports.submitOrderException = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    if (req.method !== 'POST') {
+        return res.status(405).send('Method Not Allowed');
+    }
+
+    const { orderId, reason } = req.body;
+    if (!orderId || !reason) {
+        return res.status(400).send('<h2>缺少必要欄位</h2>');
+    }
+
+    try {
+        const orderRef = db.collection('PendingOrders').doc(orderId);
+        const doc = await orderRef.get();
+
+        if (!doc.exists) return res.status(404).send('<h2>找不到該訂單</h2>');
+
+        const orderData = doc.data();
+        
+        // 更新資料庫狀態紀錄
+        await orderRef.update({ 
+            exceptionMessage: reason,
+            exceptionNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: '處理中_已發送異常通知'
+        });
+
+        // 透過 LINE Messaging API 發送推播
+        const targetId = orderData.sourceId;
+        if (targetId) {
+            const config = getConfig();
+            const lineClient = new messagingApi.MessagingApiClient({
+                channelAccessToken: config.channelAccessToken
+            });
+
+            const notifyText = `⚠️ 單據狀況通知 (單號：${orderId})\n\n工作人員留給您的訊息：\n\n${reason.trim()}`;
+
+            try {
+                await lineClient.pushMessage({
+                    to: targetId,
+                    messages: [{ type: 'text', text: notifyText }]
+                });
+            } catch (pushErr) {
+                console.warn('[LINE Push Failed]', pushErr.response?.data || pushErr.message);
+                return res.send(`
+                    <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
+                        <h2 style="color: #856404; background-color: #fff3cd; padding: 20px; border-radius: 8px;">✅ 狀態更新成功！但因群組設定或推播配額不足，未能即時發送 LINE 通知。</h2>
+                        <a href="javascript:window.close();" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px;">關閉視窗</a>
+                    </div>
+                `);
+            }
+        }
+
+        return res.send(`
+            <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
+                <h2 style="color: #155724; background-color: #d4edda; padding: 20px; border-radius: 8px;">✅ 已成功向客戶發送通知！</h2>
+                <a href="javascript:window.close();" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px;">關閉視窗</a>
+            </div>
+        `);
+    } catch (error) {
+        console.error('送出異常通知失敗:', error);
+        return res.status(500).send('<h2>系統發生錯誤，請聯絡管理員</h2>');
+    }
+});
+
+// --- 新增：手動觸發 GDrive 背景同步 ---
+exports.syncGDrive = functions
+    .runWith({ timeoutSeconds: 540, memory: '1GB' })
+    .region('asia-east1')
+    .https.onRequest(async (req, res) => {
+    const token = req.query.token;
+    const startIndex = parseInt(req.query.startIndex, 10) || 0;
+    
+    if (!process.env.SYNC_TOKEN || token !== process.env.SYNC_TOKEN) {
+        return res.status(403).send('Forbidden: Invalid token');
+    }
+    
+    const targetModel = req.query.targetModel || null;
+    console.log(`開始執行完整同步任務，可能需要數分鐘... 索引起點: ${startIndex}${targetModel ? `, 單一型號: ${targetModel}` : ''}`);
+    
+    // 初始化 LINE Client
+    let lineClient = null;
+    try {
+        const config = getConfig();
+        if (config.channelAccessToken) {
+            lineClient = new messagingApi.MessagingApiClient({
+                channelAccessToken: config.channelAccessToken
+            });
+        }
+    } catch (e) {
+        console.error("無法初始化 LINE Client", e);
+    }
+
+    const adminUid = process.env.ADMIN_LINE_UID;
+    
+    try {
+        const result = await runStorageSync(startIndex, targetModel);
+        if (result.continueFrom) {
+            console.log(`⏳ 準備回傳接力 (下一個索引: ${result.continueFrom}/${result.total})`);
+            if (lineClient && adminUid) {
+                await lineClient.pushMessage({
+                    to: adminUid,
+                    messages: [{ type: "text", text: `⏳ [系統通知] 圖庫同步已達 7 分鐘，為防止逾時中斷，系統已切換批次接力下載。\n目前進度：${result.continueFrom} / ${result.total} 個型號。\n背景自動接力同步中，請稍候...` }]
+                }).catch(e => console.error("通知發送失敗", e));
+            }
+            
+            // 觸發下一次同步
+            fetch(`https://asia-east1-kinyo-price.cloudfunctions.net/syncGDrive?token=${process.env.SYNC_TOKEN}&startIndex=${result.continueFrom}${targetModel ? "&targetModel=" + targetModel : ""}`, { signal: AbortSignal.timeout(1000) })
+                .catch(() => {}); // 預防 HeadersTimeoutError
+        } else if (result.success) {
+            console.log('✅ 同步任務完成');
+            if (lineClient && adminUid) {
+                await lineClient.pushMessage({
+                    to: adminUid,
+                    messages: [{ type: 'text', text: '✅ [系統通知] 圖庫背景同步已順利完成！\n您可以前往網頁查看最新的圖片。' }]
+                }).catch(e => console.error("通知發送失敗", e));
+            }
+            return res.status(200).send('同步任務已順利完成！請查閱 Logs 確認。');
+        } else {
+            console.error('❌ 同步任務發生錯誤:', result.error);
+            if (lineClient && adminUid) {
+                await lineClient.pushMessage({
+                    to: adminUid,
+                    messages: [{ type: 'text', text: `❌ [系統通知] 圖庫背景同步失敗！\n錯誤訊息：${result.error}` }]
+                }).catch(e => console.error("通知發送失敗", e));
+            }
+            return res.status(500).send('同步任務失敗: ' + result.error);
+        }
+    } catch (err) {
+        console.error("未捕捉錯誤:", err);
+        if (lineClient && adminUid) {
+            await lineClient.pushMessage({
+                to: adminUid,
+                messages: [{ type: 'text', text: `❌ [系統通知] 圖庫背景同步發生意外錯誤！\n錯誤訊息：${err.message}` }]
+            }).catch(e => console.error("通知發送失敗", e));
+        }
+        return res.status(500).send('意外系統錯誤');
+    }
+});
+
+exports.testQueryKH198 = functions.https.onRequest(async (req, res) => {
+    try {
+        const docSnap = await db.collection('ProductImages').doc('KH198').get();
+        if (docSnap.exists) {
+            res.status(200).json(docSnap.data());
+        } else {
+            res.status(404).json({ error: "Not found" });
+        }
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+

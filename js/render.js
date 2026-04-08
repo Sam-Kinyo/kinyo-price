@@ -2,7 +2,7 @@
    渲染模組 (Render)
 ======================================================= */
 import { state } from './state.js';
-import { renderStockByVariant, openSheet, wrapImageUrl, calcQuotePrice } from './helpers.js';
+import { renderStockByVariant, openSheet, wrapImageUrl, calcQuotePrice, escapeHtml } from './helpers.js';
 import { getDriveMainImage, getDriveMainFolder, getDriveNetGallery, getDriveNetImages } from './data.js';
 import { logCheckboxInterest } from './quote.js';
 
@@ -88,15 +88,12 @@ export function renderResults(list) {
     const driveMainImg = getDriveMainImage(item.model, item.mainModel);
     
     let rawBackup = null;
-    if (driveMainImg) rawBackup = driveMainImg;
-    else if (netImages.length > 0) rawBackup = netImages[0];
+    if (netImages.length > 0 && netImages[0]) rawBackup = netImages[0];
+    else if (driveMainImg) rawBackup = driveMainImg;
+    else if (item.imageUrl && item.imageUrl.startsWith("http")) rawBackup = item.imageUrl;
 
-    let backupImg = wrapImageUrl(rawBackup, 150);
-
-    let img = item.imageUrl; 
-    if (!img || !img.startsWith("http")) {
-        img = backupImg;
-    }
+    let img = wrapImageUrl(rawBackup, 150);
+    let backupImg = wrapImageUrl(item.imageUrl, 150);
     
 
     const tr = document.createElement("tr");
@@ -167,42 +164,42 @@ export function renderResults(list) {
         minPriceDisplay = showMinPrice ? (item.minPrice ?? "-") : "---";
         marketPriceDisplay = item.marketPrice ?? "-";
     }
-    const catBadge = item.category ? `<span class="category-badge">${item.category}</span>` : "";
+    const catBadge = item.category ? `<span class="category-badge">${escapeHtml(item.category)}</span>` : "";
     const variantStockHtml = renderStockByVariant(item);
 
     tr.innerHTML = `
        <td>
-        <input type="checkbox" class="row-check" data-model="${item.model}">
+        <input type="checkbox" class="row-check" data-model="${escapeHtml(item.model)}">
       </td>
-      
+
       <td style="text-align:center; vertical-align: top;">
-        <div class="model-cell" style="font-weight:700; font-size:14px; margin-bottom:6px; color:#334155; cursor:pointer;" onclick="event.stopPropagation();">${item.mainModel || "-"}</div>
-        <img src="${img}" class="product-img" 
+        <div class="model-cell" style="font-weight:700; font-size:14px; margin-bottom:6px; color:#334155; cursor:pointer;" onclick="event.stopPropagation();">${escapeHtml(item.mainModel) || "-"}</div>
+        <img src="${escapeHtml(img)}" class="product-img"
              loading="lazy"
-             onerror="this.onerror=null; this.src='${backupImg}';">
+             onerror="this.onerror=null; this.src='${escapeHtml(backupImg)}';">
       </td>
 
       <td>
-        ${catBadge} 
-        <div style="font-weight:700; margin-bottom:4px; font-size:15px; line-height:1.4;">${item.name || "-"}</div>
+        ${catBadge}
+        <div style="font-weight:700; margin-bottom:4px; font-size:15px; line-height:1.4;">${escapeHtml(item.name) || "-"}</div>
         <div style="font-size:13px; color:#64748b; margin-bottom:6px;">
-           ${item.colorList ? `顏色：${item.colorList}` : ''}
+           ${item.colorList ? `顏色：${escapeHtml(item.colorList)}` : ''}
         </div>
         ${variantStockHtml}
-        
+
         <div class="price-tag-container" style="font-size:13px; margin-bottom:8px; margin-top:8px;">${priceHtml}</div>
-        
+
         ${state.currentUserVipConfig ? '' : `
         <div style="display:flex; gap:8px; margin-top:8px;">
-          <button class="line-share-btn btn-secondary" data-model="${item.model}" style="padding:4px 12px; font-size:12px; border-radius:6px;">LINE</button>
-          <button class="btn-outline-add add-quote-btn" data-model="${item.model}">➕ 報價</button>
+          <button class="line-share-btn btn-secondary" data-model="${escapeHtml(item.model)}" style="padding:4px 12px; font-size:12px; border-radius:6px;">LINE</button>
+          <button class="btn-outline-add add-quote-btn" data-model="${escapeHtml(item.model)}">➕ 報價</button>
         </div>
         `}
       </td>
 
       <td style="text-align:right; vertical-align: top;">
-        <div style="font-weight:700; color:#ef4444; font-size:16px; margin-bottom:4px;">${minPriceDisplay}</div>
-        <div style="color:#94a3b8; font-size:12px; text-decoration:line-through;">${marketPriceDisplay}</div>
+        <div style="font-weight:700; color:#ef4444; font-size:16px; margin-bottom:4px;">${escapeHtml(minPriceDisplay)}</div>
+        <div style="color:#94a3b8; font-size:12px; text-decoration:line-through;">${escapeHtml(marketPriceDisplay)}</div>
       </td>
     `;
 
@@ -261,14 +258,12 @@ export function showDetailMobile(item) {
   const driveMainImg = getDriveMainImage(item.model, item.mainModel);
 
   let rawBackup = null;
-  if (driveMainImg) rawBackup = driveMainImg;
-  else if (netImages.length > 0) rawBackup = netImages[0];
-  let backupImg = wrapImageUrl(rawBackup, 400);
+  if (netImages.length > 0 && netImages[0]) rawBackup = netImages[0];
+  else if (driveMainImg) rawBackup = driveMainImg;
+  else if (item.imageUrl && item.imageUrl.startsWith("http")) rawBackup = item.imageUrl;
 
-  let img = item.imageUrl;
-  if (!img || !img.startsWith("http")) {
-      img = backupImg;
-  }
+  let img = wrapImageUrl(rawBackup, 400);
+  let backupImg = wrapImageUrl(item.imageUrl, 400);
 
   const getPrice = (p) => (item[p] ?? "-");
   const getQuoteByTier = (tier) => {
@@ -297,9 +292,9 @@ export function showDetailMobile(item) {
 
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
-      const imgsHtml = netImages.slice(0, 6).map(url => { 
+      const imgsHtml = netImages.slice(0, 6).map(url => {
           const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&w=100&h=100&fit=cover";
-          return `<img src="${displayUrl}" loading="lazy" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${url}', '_blank')">`;
+          return `<img src="${escapeHtml(displayUrl)}" loading="lazy" style="width:100%; aspect-ratio:1; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${escapeHtml(url)}', '_blank')">`;
       }).join("");
       netThumbHtml = `<div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px;">${imgsHtml}</div>`;
   }
@@ -365,32 +360,32 @@ export function showDetailMobile(item) {
   const sheetContent = document.getElementById("sheetContent");
   sheetContent.innerHTML = `
     <div style="text-align:center; margin-bottom:16px; background:#fafafa; padding:10px; border-radius:8px;">
-      <img src="${img}" style="max-height:250px; max-width:100%; object-fit:contain; border-radius:4px;" 
-           onerror="this.onerror=null;this.src='${backupImg}';">
+      <img src="${escapeHtml(img)}" style="max-height:250px; max-width:100%; object-fit:contain; border-radius:4px;"
+           onerror="this.onerror=null;this.src='${escapeHtml(backupImg)}';">
     </div>
-    
-    <div style="font-weight:700; font-size:18px; margin-bottom:8px;">${item.name || "-"}</div>
-    
+
+    <div style="font-weight:700; font-size:18px; margin-bottom:8px;">${escapeHtml(item.name) || "-"}</div>
+
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
-        ${item.category ? `<span style="background:#f3f4f6; color:#4b5563; padding:4px 8px; border-radius:4px; font-size:12px;">分類：${item.category}</span>` : ""}
-        ${item.netSalesPermission ? `<span style="background:#e0e7ff; color:#3730a3; padding:4px 8px; border-radius:4px; font-size:12px;">權限：${item.netSalesPermission}</span>` : ""}
+        ${item.category ? `<span style="background:#f3f4f6; color:#4b5563; padding:4px 8px; border-radius:4px; font-size:12px;">分類：${escapeHtml(item.category)}</span>` : ""}
+        ${item.netSalesPermission ? `<span style="background:#e0e7ff; color:#3730a3; padding:4px 8px; border-radius:4px; font-size:12px;">權限：${escapeHtml(item.netSalesPermission)}</span>` : ""}
     </div>
 
     ${stockHtml}
 
     <div style="color:#666; font-size:14px; margin-bottom:16px;">
-       <div>型號：${item.model}</div>
-       <div>主型號：${item.mainModel}</div>
-       <div>顏色：${item.colorList || "-"}</div>
-       <div>箱入數：${item.cartonQty || "-"}</div>
-       <div>國際條碼：${item.barcode || item.internationalBarcode || "-"}</div>
+       <div>型號：${escapeHtml(item.model)}</div>
+       <div>主型號：${escapeHtml(item.mainModel)}</div>
+       <div>顏色：${escapeHtml(item.colorList) || "-"}</div>
+       <div>箱入數：${escapeHtml(item.cartonQty) || "-"}</div>
+       <div>國際條碼：${escapeHtml(item.barcode || item.internationalBarcode) || "-"}</div>
     </div>
 
     ${priceBlockHtml}
 
     <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px;">
-        ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載大圖</a>` : ''}
-        ${actNetLink ? `<a href="${actNetLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載網路圖</a>` : ''}
+        ${actMainLink ? `<a href="${escapeHtml(actMainLink)}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載大圖</a>` : ''}
+        ${actNetLink ? `<a href="${escapeHtml(actNetLink)}" target="_blank" class="btn-secondary" style="flex:1; text-align:center;">下載網路圖</a>` : ''}
     </div>
 
     ${netThumbHtml}
@@ -398,8 +393,8 @@ export function showDetailMobile(item) {
     <div style="height:20px;"></div>
     ${state.currentUserVipConfig ? '' : `
     <div style="display:flex; gap:10px;">
-       <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
-       <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
+       <button class="btn-primary line-share-btn" data-model="${escapeHtml(item.model)}" style="flex:1;">LINE 分享</button>
+       <button class="btn-outline-add add-quote-btn" data-model="${escapeHtml(item.model)}" style="flex:1;">加入報價單</button>
     </div>
     `}
     <div style="height:30px;"></div>
@@ -422,20 +417,18 @@ export function showDetailDesktop(item) {
   const driveMainImg = getDriveMainImage(item.model, item.mainModel);
   
   let rawBackup = null;
-  if (driveMainImg) rawBackup = driveMainImg;
-  else if (netImages.length > 0) rawBackup = netImages[0];
-  let backupImg = wrapImageUrl(rawBackup, 400);
+  if (netImages.length > 0 && netImages[0]) rawBackup = netImages[0];
+  else if (driveMainImg) rawBackup = driveMainImg;
+  else if (item.imageUrl && item.imageUrl.startsWith("http")) rawBackup = item.imageUrl;
 
-  let img = item.imageUrl;
-  if (!img || !img.startsWith("http")) {
-      img = backupImg;
-  }
+  let img = wrapImageUrl(rawBackup, 400);
+  let backupImg = wrapImageUrl(item.imageUrl, 400);
 
   let netThumbHtml = "";
   if (netImages && netImages.length > 0) {
-      const imgsHtml = netImages.slice(0, 6).map(url => { 
+      const imgsHtml = netImages.slice(0, 6).map(url => {
           const displayUrl = "https://images.weserv.nl/?url=" + encodeURIComponent(url) + "&w=100&h=100&fit=cover";
-          return `<img src="${displayUrl}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${url}', '_blank')">`;
+          return `<img src="${escapeHtml(displayUrl)}" loading="lazy" style="cursor:pointer; width:100%; height:60px; object-fit:cover; border-radius:4px; border:1px solid #eee;" onclick="window.open('${escapeHtml(url)}', '_blank')">`;
       }).join("");
       netThumbHtml = `<div class="net-gallery" style="grid-template-columns:repeat(6, 1fr); gap:4px; margin-top:8px;">${imgsHtml}</div>`;
   }
@@ -527,33 +520,33 @@ export function showDetailDesktop(item) {
   detailCard.style.display = "block";
   detailCard.innerHTML = `
     <button class="card-close-btn" onclick="document.getElementById('detailCard').style.display='none'">×</button>
-    
-    <img src="${img}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px; object-fit:contain; max-height:300px; background:#fafafa;" 
-         onerror="this.onerror=null;this.src='${backupImg}';">
+
+    <img src="${escapeHtml(img)}" style="width:100%; border-radius:10px; border:1px solid #eee; margin-bottom:12px; object-fit:contain; max-height:300px; background:#fafafa;"
+         onerror="this.onerror=null;this.src='${escapeHtml(backupImg)}';">
 
     <div style="margin-bottom:16px;">
       <div style="display:flex; gap:8px; flex-wrap:wrap;">
-        ${actMainLink ? `<a href="${actMainLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載大圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無大圖</button>`}
-        ${actNetLink ? `<a href="${actNetLink}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載網路圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無網路圖</button>`}
+        ${actMainLink ? `<a href="${escapeHtml(actMainLink)}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載大圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無大圖</button>`}
+        ${actNetLink ? `<a href="${escapeHtml(actNetLink)}" target="_blank" class="btn-secondary" style="flex:1; text-align:center; font-size:13px; padding:8px;">下載網路圖</a>` : `<button disabled class="btn-secondary" style="flex:1; color:#ccc;">無網路圖</button>`}
       </div>
       ${netThumbHtml}
     </div>
 
     <div style="margin-bottom:16px; background:#f9fafb; padding:12px; border-radius:8px;">
-      <div style="font-weight:700; font-size:16px; margin-bottom:8px; color:#111;">${item.name || "-"}</div>
-      
+      <div style="font-weight:700; font-size:16px; margin-bottom:8px; color:#111;">${escapeHtml(item.name) || "-"}</div>
+
       <div style="margin-bottom:8px; font-size:13px; color:#555;">
-        ${item.category ? `<span style="background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-right:6px;">分類: ${item.category}</span>` : ""}
-        ${item.netSalesPermission ? `<span style="background:#dbeafe; padding:2px 6px; border-radius:4px; color:#1e40af;">網路權限: ${item.netSalesPermission}</span>` : ""}
+        ${item.category ? `<span style="background:#e5e7eb; padding:2px 6px; border-radius:4px; margin-right:6px;">分類: ${escapeHtml(item.category)}</span>` : ""}
+        ${item.netSalesPermission ? `<span style="background:#dbeafe; padding:2px 6px; border-radius:4px; color:#1e40af;">網路權限: ${escapeHtml(item.netSalesPermission)}</span>` : ""}
       </div>
-      
+
       ${stockHtml}
 
       <div style="font-size:14px; line-height:1.8; color:#444;">
-        <div><span style="color:#888;">顏色：</span> ${item.colorList || "-"}</div>
-        <div><span style="color:#888;">箱入數：</span> ${item.cartonQty || "-"}</div>
-        <div><span style="color:#888;">國際條碼：</span> ${item.barcode || item.internationalBarcode || "-"}</div>
-        <div><span style="color:#888;">連結：</span> ${item.productUrl ? `<a href="${item.productUrl}" target="_blank" style="color:#2563eb;text-decoration:underline;">開啟網頁</a>` : "-"}</div>
+        <div><span style="color:#888;">顏色：</span> ${escapeHtml(item.colorList) || "-"}</div>
+        <div><span style="color:#888;">箱入數：</span> ${escapeHtml(item.cartonQty) || "-"}</div>
+        <div><span style="color:#888;">國際條碼：</span> ${escapeHtml(item.barcode || item.internationalBarcode) || "-"}</div>
+        <div><span style="color:#888;">連結：</span> ${item.productUrl ? `<a href="${escapeHtml(item.productUrl)}" target="_blank" style="color:#2563eb;text-decoration:underline;">開啟網頁</a>` : "-"}</div>
       </div>
     </div>
 
@@ -564,8 +557,8 @@ export function showDetailDesktop(item) {
 
     ${state.currentUserVipConfig ? '' : `
     <div style="display:flex; gap:8px; margin-top:16px;">
-      <button class="btn-primary line-share-btn" data-model="${item.model}" style="flex:1;">LINE 分享</button>
-      <button class="btn-outline-add add-quote-btn" data-model="${item.model}" style="flex:1;">加入報價單</button>
+      <button class="btn-primary line-share-btn" data-model="${escapeHtml(item.model)}" style="flex:1;">LINE 分享</button>
+      <button class="btn-outline-add add-quote-btn" data-model="${escapeHtml(item.model)}" style="flex:1;">加入報價單</button>
     </div>
     `}
   `;

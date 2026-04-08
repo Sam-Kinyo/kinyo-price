@@ -14,3 +14,18 @@ node_modules/
 # OS
 .DS_Store
 Thumbs.db
+
+# Logs and local scripts
+logs/
+functions/scripts/
+
+# GCP and Firebase Keys
+credentials.json
+credentials.json.bak
+serviceAccountKey.json
+*.json.bak
+.firebase/
+functions/.env
+functions/credentials.json
+backend_archive/serviceAccountKey.json
+backend_archive/.env

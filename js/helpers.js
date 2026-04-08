@@ -48,11 +48,11 @@ export function calcQuotePrice(cost, qty, level) {
       else divisor = 0.74;
   } else if (l >= 3) {
       if (calc_qty >= 3000 && l >= 4) divisor = 0.89;
-      else if (calc_qty >= 1000) divisor = 0.858;
-      else if (calc_qty >= 500) divisor = 0.835;
-      else if (calc_qty >= 300) divisor = 0.81;
-      else if (calc_qty >= 100) divisor = 0.765;
-      else divisor = 0.745;
+      else if (calc_qty >= 1000) divisor = 0.865;
+      else if (calc_qty >= 500) divisor = 0.845;
+      else if (calc_qty >= 300) divisor = 0.825;
+      else if (calc_qty >= 100) divisor = 0.79;
+      else divisor = 0.76;
   }
   
   return Math.ceil((c / divisor) * 1.05);
@@ -305,6 +305,17 @@ export function shuffleArray(arr) {
       [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+/* HTML Escape 工具：防止 XSS */
+export function escapeHtml(str) {
+    if (str == null) return "";
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 /* 圖片 URL 包裝工具 */
