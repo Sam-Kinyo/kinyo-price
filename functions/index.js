@@ -1861,11 +1861,19 @@ exports.scheduledDriveSync = functions
 
 exports.testQueryKH198 = functions.https.onRequest(async (req, res) => {
     try {
-        const docSnap = await db.collection('ProductImages').doc('KH198').get();
+        const modelId = req.query.model || 'KH198';
+        const col = req.query.col || 'ProductImages';
+        const docSnap = await db.collection(col).doc(modelId).get();
         if (docSnap.exists) {
             res.status(200).json(docSnap.data());
         } else {
-            res.status(404).json({ error: "Not found" });
+            // 嘗試搜尋
+            const snap = await db.collection(col).where('model', '==', modelId).limit(1).get();
+            if (!snap.empty) {
+                res.status(200).json({ _docId: snap.docs[0].id, ...snap.docs[0].data() });
+            } else {
+                res.status(404).json({ error: "Not found", collection: col, model: modelId });
+            }
         }
     } catch (e) {
         res.status(500).json({ error: e.message });
