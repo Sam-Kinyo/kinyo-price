@@ -1729,8 +1729,10 @@ exports.syncGDrive = functions
     }
     
     const targetModel = req.query.targetModel || null;
-    console.log(`開始執行完整同步任務，可能需要數分鐘... 索引起點: ${startIndex}${targetModel ? `, 單一型號: ${targetModel}` : ''}`);
-    
+    const isIncremental = req.query.mode === 'incremental';
+    const modeLabel = isIncremental ? '增量' : '全量';
+    console.log(`開始執行${modeLabel}同步任務，可能需要數分鐘... 索引起點: ${startIndex}${targetModel ? `, 單一型號: ${targetModel}` : ''}`);
+
     // 初始化 LINE Client
     let lineClient = null;
     try {
@@ -1747,7 +1749,7 @@ exports.syncGDrive = functions
     const adminUid = process.env.ADMIN_LINE_UID;
     
     try {
-        const result = await runStorageSync(startIndex, targetModel);
+        const result = await runStorageSync(startIndex, targetModel, { incremental: isIncremental });
         if (result.continueFrom) {
             console.log(`⏳ 準備回傳接力 (下一個索引: ${result.continueFrom}/${result.total})`);
             if (lineClient && adminUid) {
@@ -1757,8 +1759,8 @@ exports.syncGDrive = functions
                 }).catch(e => console.error("通知發送失敗", e));
             }
             
-            // 觸發下一次同步
-            fetch(`https://asia-east1-kinyo-price.cloudfunctions.net/syncGDrive?token=${process.env.SYNC_TOKEN}&startIndex=${result.continueFrom}${targetModel ? "&targetModel=" + targetModel : ""}`, { signal: AbortSignal.timeout(1000) })
+            // 觸發下一次同步（傳遞增量模式 flag）
+            fetch(`https://asia-east1-kinyo-price.cloudfunctions.net/syncGDrive?token=${process.env.SYNC_TOKEN}&startIndex=${result.continueFrom}${targetModel ? "&targetModel=" + targetModel : ""}${result.incremental ? "&mode=incremental" : ""}`, { signal: AbortSignal.timeout(1000) })
                 .catch(() => {}); // 預防 HeadersTimeoutError
         } else if (result.success) {
             console.log('✅ 同步任務完成');
@@ -1790,6 +1792,72 @@ exports.syncGDrive = functions
         return res.status(500).send('意外系統錯誤');
     }
 });
+
+// --- 每日自動增量圖庫同步（凌晨 3 點台灣時間）---
+exports.scheduledDriveSync = functions
+    .runWith({ timeoutSeconds: 540, memory: '1GB' })
+    .region('asia-east1')
+    .pubsub.schedule('0 3 * * *')
+    .timeZone('Asia/Taipei')
+    .onRun(async (context) => {
+        console.log('🕐 [排程] 每日增量圖庫同步開始...');
+
+        let lineClient = null;
+        try {
+            const config = getConfig();
+            if (config.channelAccessToken) {
+                lineClient = new messagingApi.MessagingApiClient({
+                    channelAccessToken: config.channelAccessToken
+                });
+            }
+        } catch (e) {
+            console.error("無法初始化 LINE Client", e);
+        }
+
+        const adminUid = process.env.ADMIN_LINE_UID;
+
+        try {
+            const result = await runStorageSync(0, null, { incremental: true });
+
+            if (result.continueFrom) {
+                // 超過 7.5 分鐘，chain 到 HTTP endpoint 繼續
+                if (lineClient && adminUid) {
+                    await lineClient.pushMessage({
+                        to: adminUid,
+                        messages: [{ type: "text", text: `⏳ [排程同步] 增量同步已達時間限制，啟動接力。\n進度：${result.continueFrom} / ${result.total}` }]
+                    }).catch(e => console.error("通知發送失敗", e));
+                }
+                fetch(`https://asia-east1-kinyo-price.cloudfunctions.net/syncGDrive?token=${process.env.SYNC_TOKEN}&startIndex=${result.continueFrom}&mode=incremental`, { signal: AbortSignal.timeout(1000) })
+                    .catch(() => {});
+            } else if (result.success) {
+                console.log('✅ [排程] 增量同步完成');
+                if (lineClient && adminUid) {
+                    await lineClient.pushMessage({
+                        to: adminUid,
+                        messages: [{ type: 'text', text: '✅ [排程同步] 每日增量圖庫同步已完成！' }]
+                    }).catch(e => console.error("通知發送失敗", e));
+                }
+            } else {
+                console.error('❌ [排程] 同步失敗:', result.error);
+                if (lineClient && adminUid) {
+                    await lineClient.pushMessage({
+                        to: adminUid,
+                        messages: [{ type: 'text', text: `❌ [排程同步] 每日增量同步失敗！\n錯誤：${result.error}` }]
+                    }).catch(e => console.error("通知發送失敗", e));
+                }
+            }
+        } catch (err) {
+            console.error("[排程] 意外錯誤:", err);
+            if (lineClient && adminUid) {
+                await lineClient.pushMessage({
+                    to: adminUid,
+                    messages: [{ type: 'text', text: `❌ [排程同步] 排程同步發生意外錯誤！\n${err.message}` }]
+                }).catch(e => console.error("通知發送失敗", e));
+            }
+        }
+
+        return null;
+    });
 
 exports.testQueryKH198 = functions.https.onRequest(async (req, res) => {
     try {
