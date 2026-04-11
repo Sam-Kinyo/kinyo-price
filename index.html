@@ -550,18 +550,47 @@
         }
 
         let allProductsCache = [];
+        let driveImageMap = {};
+
+        function normalizeKey(key) {
+            if (!key) return "";
+            let base = key.split('.')[0].split('_')[0].toUpperCase();
+            base = base.replace(/-/g, '');
+            let m = base.match(/^([A-Z]+)(\d+)([A-Z]*)$/);
+            if (m) return m[1] + m[2];
+            return base;
+        }
 
         async function ensureDataLoaded() {
             if (allProductsCache.length > 0) return;
             try {
-                const q = query(collection(db, "Products"));
-                const querySnapshot = await getDocs(q);
-                querySnapshot.forEach((doc) => {
+                // 同時載入 Products 和 ProductImages
+                const [prodSnap, imgSnap] = await Promise.all([
+                    getDocs(query(collection(db, "Products"))),
+                    getDocs(query(collection(db, "ProductImages")))
+                ]);
+
+                // 建立 Drive 圖片 map
+                imgSnap.forEach((d) => {
+                    const data = d.data();
+                    const key = normalizeKey(data.mainModel || d.id);
+                    if (data.netImages && data.netImages.length > 0 && data.netImages[0]) {
+                        driveImageMap[key] = data.netImages[0];
+                    } else if (data.mainImage) {
+                        driveImageMap[key] = data.mainImage;
+                    }
+                });
+
+                prodSnap.forEach((doc) => {
                     const d = doc.data();
                     if (d.status !== 'inactive') {
+                        // 嘗試從 driveImageMap 取得圖片作為 fallback
+                        const driveKey = normalizeKey(d.mainModel || d.model);
+                        const driveImg = driveImageMap[driveKey] || "";
                         allProductsCache.push({
                             name: d.name || "", model: d.model || "",
-                            mainModel: d.mainModel || "", imageUrl: d.imageUrl || "",
+                            mainModel: d.mainModel || "",
+                            imageUrl: d.imageUrl || driveImg || "",
                             marketPrice: parseFloat(d.marketPrice) || 0
                         });
                     }
