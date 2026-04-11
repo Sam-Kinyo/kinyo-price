@@ -2,36 +2,28 @@
 <html lang="zh-Hant">
 
 <head>
-    <!-- 👇👇👇 Google Ads 追蹤代碼 👇👇👇 -->
-    <!-- Google tag (gtag.js) -->
+    <!-- Google Ads 追蹤代碼 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17808239126"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
-
         gtag('config', 'AW-17808239126');
-
-        // 追蹤轉換按鈕點擊的函式
         function trackLineConversion() {
             console.log("已記錄 Google Ads 轉換: 客戶嘗試聯絡 (LINE/Email/電話)");
-            // gtag('event', 'conversion', {'send_to': 'AW-17808239126/您的轉換標籤_請填在這裡'});
         }
     </script>
-    <!-- 👆👆👆 代碼結束 👆👆👆 -->
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>KINYO 企業採購｜原廠直營業務團隊・客製化禮贈品與大量採購詢價首選</title>
 
-    <!-- 🆕 網站小圖示 (Favicon) -->
     <link rel="icon"
         href="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg"
         type="image/jpeg">
 
     <meta name="description" content="尋找高品質企業禮贈品？選擇 KINYO 原廠直營業務團隊，為您提供專屬的「24H 快速報價」與「免費效果圖設計」服務。全平台 2000+ 款精選 3C 與家電，皆享「原廠一年保固」。不論是尾牙抽獎、股東會紀念品，歡迎立即進行大量採購詢價，獲取最優惠的原廠底價！">
 
-    <!-- SEO: Organization Schema (給 Google 爬蟲看的結構化資料) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -40,1409 +32,498 @@
       "alternateName": "KINYO Enterprise Gifting",
       "url": "https://kinyo-gift.com",
       "logo": "https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg",
-      "description": "KINYO 企業採購專區提供高品質客製化禮贈品，由原廠直營業務團隊為您服務。歡迎大量採購詢價，享有 24H 快速報價、免費效果圖設計與原廠一年保固！",
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "sales",
-        "availableLanguage": "Chinese"
-      },
-      "parentOrganization": {
-        "@type": "Organization",
-        "name": "耐嘉股份有限公司"
-      },
+      "description": "KINYO 企業採購專區提供高品質客製化禮贈品，由原廠直營業務團隊為您服務。",
+      "contactPoint": { "@type": "ContactPoint", "contactType": "sales", "availableLanguage": "Chinese" },
+      "parentOrganization": { "@type": "Organization", "name": "耐嘉股份有限公司" },
       "areaServed": "TW"
     }
     </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --primary: #0f172a;
-            --primary-light: #334155;
-            --accent: #2563eb;
-            --accent-dark: #1d4ed8;
-            --gold: #d97706;
-            --bg-light: #f8fafc;
-            --text-gray: #475569;
-            --border: #e2e8f0;
-            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
-            --shadow-glow: 0 0 20px rgba(37, 99, 235, 0.15);
-            --container-width: 1440px;
-            --radius: 12px;
+            --primary: #2c1810;
+            --primary-light: #5c4033;
+            --accent: #c2703e;
+            --accent-dark: #a85d32;
+            --accent-light: #f5e6d8;
+            --bg-warm: #faf7f4;
+            --bg-cream: #f3ece4;
+            --gold: #b8860b;
+            --text-gray: #6b5b4f;
+            --border: #e8ddd0;
+            --shadow: 0 2px 12px rgba(44, 24, 16, 0.06);
+            --shadow-lg: 0 8px 30px rgba(44, 24, 16, 0.08);
+            --container-width: 1200px;
+            --radius: 16px;
         }
+
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
             background-color: #ffffff;
-            letter-spacing: 0.015em;
             color: var(--primary);
-            line-height: 1.6;
+            line-height: 1.7;
             overflow-x: hidden;
         }
 
-        /* --- 導覽列 --- */
+        .container { max-width: var(--container-width); margin: 0 auto; padding: 0 24px; }
+
+        /* --- Nav --- */
         nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0 4%;
-            height: 72px;
-            background: transparent;
-            position: sticky;
-            top: 0;
-            z-index: 999;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 4%; height: 68px;
+            background: #fff; position: sticky; top: 0; z-index: 999;
+            border-bottom: 1px solid var(--border);
         }
-
-        nav.nav-scrolled {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
-            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-        }
-
-        .logo-img {
-            transition: 0.4s;
-            filter: brightness(0) invert(1);
-        }
-
-        nav.nav-scrolled .logo-img {
-            filter: none;
-        }
-
-        .logo-link img {
-            height: 42px;
-            width: auto;
-            display: block;
-        }
-
-        /* 導覽列右側群組 */
-        .nav-right {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
+        .logo-link img { height: 38px; display: block; }
+        .nav-right { display: flex; align-items: center; gap: 8px; }
         .nav-btn {
-            text-decoration: none;
-            color: white;
-            background: var(--primary);
-            font-weight: 500;
-            font-size: 14px;
-            padding: 8px 20px;
-            border-radius: 8px;
-            transition: 0.3s;
-            letter-spacing: 1px;
-            display: inline-block;
-            white-space: nowrap;
+            text-decoration: none; font-weight: 500; font-size: 13px;
+            padding: 8px 16px; border-radius: 8px; transition: 0.2s;
+            display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
         }
+        .nav-btn-outline { background: #fff; color: var(--text-gray); border: 1px solid var(--border); }
+        .nav-btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+        .nav-btn-primary { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
+        .nav-btn-primary:hover { background: var(--accent-dark); }
 
-        .nav-btn:hover {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
-
-        .nav-btn-outline {
-            background: white;
-            color: #555;
-            border: 1px solid #ddd;
-        }
-
-        .nav-btn-outline:hover {
-            background: #f8f9fa;
-            color: #333;
-            border-color: #bbb;
-        }
-
-        .nav-btn-catalog {
-            background: white;
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .nav-btn-catalog:hover {
-            background: var(--accent);
-            color: white;
-        }
-
-        .nav-btn-order {
-            background: var(--accent);
-            color: white;
-            border: 1px solid var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 4px 10px rgba(0, 85, 170, 0.2);
-        }
-
-        .nav-btn-order:hover {
-            background: var(--accent-dark);
-            color: white;
-            border-color: var(--accent-dark);
-            transform: translateY(-1px);
-        }
-
-        
-        /* --- Premium Hero Section --- */
+        /* --- Hero --- */
         .hero {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 120px 6% 120px 6%;
-            background: #0f172a; 
-            position: relative;
-            min-height: 85vh;
-            width: 100%;
-            margin: 0 auto;
-            box-sizing: border-box;
-            overflow: hidden;
+            padding: 80px 6% 60px; background: var(--bg-warm);
+            display: flex; align-items: center; gap: 60px;
+            min-height: 520px;
         }
-        
-        /* Subtle glow in the background */
-        .hero::before {
-            content: "";
-            position: absolute;
-            top: 20%; left: 30%;
-            transform: translateX(-50%);
-            width: 800px; height: 800px;
-            background: radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 60%);
-            pointer-events: none;
-            z-index: 0;
-            border-radius: 50%;
+        .hero-left { flex: 1; max-width: 580px; }
+        .hero-tag {
+            display: inline-block; background: var(--accent-light); color: var(--accent);
+            font-size: 13px; font-weight: 600; padding: 6px 14px;
+            border-radius: 20px; margin-bottom: 20px;
         }
-
-        /* 雙欄排版設定 */
-        .hero-left {
-            flex: 1;
-            max-width: 650px;
-            z-index: 2;
-            animation: fadeInLeft 1s ease forwards;
-        }
-
-        .hero-right {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-            height: 500px;
-        }
-
-        /* 浮動商品圖片區塊 */
-        .hero-floating-grid {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            animation: fadeInRight 1s ease forwards 0.3s;
-            opacity: 0;
-        }
-
-        .float-item {
-            position: absolute;
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-        }
-
-        .float-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
-        }
-
-        .float-item:hover {
-            transform: scale(1.05) translateY(-10px) !important;
-            border-color: rgba(255, 255, 255, 0.3);
-            background: rgba(255, 255, 255, 0.08);
-            z-index: 10 !important;
-        }
-
-        /* 調整個別圖片位置與動畫 (動態取得 8 組) */
-        .fi-1 { width: 220px; height: 220px; top: 5%; right: 15%; animation: float 6s ease-in-out infinite; z-index: 5; }
-        .fi-2 { width: 140px; height: 140px; top: 40%; right: -5%; animation: float 5.5s ease-in-out infinite 1s; z-index: 3;}
-        .fi-3 { width: 180px; height: 180px; bottom: 5%; right: 25%; animation: float 6.5s ease-in-out infinite 2s; z-index: 4;}
-        .fi-4 { width: 150px; height: 150px; top: 20%; left: 5%; animation: float 5s ease-in-out infinite 0.5s; z-index: 4;}
-        .fi-5 { width: 120px; height: 120px; bottom: 35%; left: -5%; animation: float 7s ease-in-out infinite 1.5s; z-index: 2;}
-        .fi-6 { width: 130px; height: 130px; bottom: 0%; left: 15%; animation: float 5.8s ease-in-out infinite 0.8s; z-index: 3;}
-        .fi-7 { width: 110px; height: 110px; top: -10%; right: 35%; animation: float 6.2s ease-in-out infinite 2.5s; z-index: 1;}
-        .fi-8 { width: 100px; height: 100px; bottom: 15%; right: 5%; animation: float 4.8s ease-in-out infinite 1.2s; z-index: 2;}
-
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-15px); }
-            100% { transform: translateY(0px); }
-        }
-
-        @keyframes fadeInLeft {
-            from { opacity: 0; transform: translateX(-30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @keyframes fadeInRight {
-            from { opacity: 0; transform: translateX(30px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .hero-content {
-            margin-bottom: 40px;
-        }
-
-        .hero-label {
-            display: inline-block;
-            background: rgba(255,255,255,0.05);
-            color: #e2e8f0;
-            font-size: 13px;
-            font-weight: 600;
-            padding: 6px 16px;
-            border-radius: 50px;
-            margin-bottom: 24px;
-            letter-spacing: 2px;
-            border: 1px solid rgba(255,255,255,0.15);
-        }
-
         .hero h1 {
-            font-size: 54px;
-            line-height: 1.2;
-            margin: 0 0 24px 0;
-            color: #ffffff;
-            font-weight: 800;
-            letter-spacing: -0.03em;
+            font-size: 42px; line-height: 1.25; margin: 0 0 20px;
+            font-weight: 800; letter-spacing: -0.02em; color: var(--primary);
         }
-
+        .hero h1 span { color: var(--accent); }
         .hero p {
-            font-size: 18px;
-            color: #94a3b8;
-            margin: 0 0 40px 0;
-            font-weight: 400;
-            line-height: 1.7;
-        }
-
-        .cta-group {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .btn-primary {
-            background: #ffffff;
-            color: #0f172a;
-            border: 1px solid #ffffff;
-        }
-
-        .btn-primary:hover {
-            background: transparent;
-            color: #ffffff;
-            transform: translateY(-2px);
-        }
-
-        .btn-outline-light {
-            background: transparent;
-            color: #ffffff;
-            border: 1px solid rgba(255,255,255,0.3);
-        }
-
-        .btn-outline-light:hover {
-            background: #ffffff;
-            color: #0f172a;
-            border-color: #ffffff;
-            transform: translateY(-2px);
-        }
-
-        /* --- Search Bar Premium --- */
-        .top-search-bar {
-            position: relative;
-            max-width: 760px;
-            width: 100%;
-            z-index: 10;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            margin-bottom: 0;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 24px 28px;
-            padding-left: 64px;
-            padding-right: 140px;
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-radius: 16px; /* modern slight rounded corner, not pill */
-            font-size: 18px;
-            outline: none;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            height: 76px;
-            color: #ffffff;
-            font-weight: 500;
-            box-sizing: border-box;
-        }
-        
-        .search-input::placeholder {
-            color: #64748b;
-        }
-
-        .search-input:focus {
-            border-color: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05), 0 20px 40px rgba(0,0,0,0.6);
-            background: rgba(15, 23, 42, 0.9);
-        }
-
-        .search-icon {
-            color: #94a3b8;
-        }
-
-        .search-btn-submit {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            height: 52px;
-            background: #2563eb; /* sharp blue accent */
-            color: white;
-            border: none;
-            border-radius: 10px;
-            padding: 0 32px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 16px;
-            letter-spacing: 1px;
-        }
-
-        .search-btn-submit:hover {
-            background: #3b82f6;
-            transform: translateY(-50%) scale(1.02);
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
-        }
-
-        /* Tags over dark background */
-        .search-tags {
-            display: flex;
-            gap: 12px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-            justify-content: flex-start;
-        }
-
-        @media (max-width: 991px) {
-            .hero {
-                flex-direction: column;
-                padding-top: 80px;
-            }
-            .hero-left {
-                text-align: center;
-                margin-bottom: 40px;
-            }
-            .hero h1 { font-size: 42px; }
-            .hero p { margin: 0 auto 30px auto; }
-            .cta-group { justify-content: center; }
-            .top-search-bar { align-items: center; }
-            .search-tags { justify-content: center; }
-            
-            .hero-right {
-                height: 300px;
-                width: 100%;
-            }
-            .fi-1 { width: 140px; height: 140px; right: 5%; top: 5%; }
-            .fi-2 { width: 110px; height: 110px; left: 5%; top: 30%; }
-            .fi-3 { width: 130px; height: 130px; right: 25%; bottom: 10%; }
-            .fi-4 { width: 100px; height: 100px; left: 25%; top: 0%; }
-            .fi-5, .fi-6, .fi-7, .fi-8 { display: none; }
-        }
-
-        .search-tags .tag-chip {
-            font-size: 13px;
-            font-weight: 500;
-            color: #94a3b8;
-            background: transparent;
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
-            box-shadow: none;
-        }
-
-        .search-tags .tag-chip:hover {
-            color: #ffffff;
-            border-color: #ffffff;
-            background: rgba(255,255,255,0.05);
-            transform: translateY(-2px);
-            box-shadow: none;
-        }
-
-        /* --- Hot Section Below Hero --- */
-        .hot-section {
-            padding: 120px 6%;
-            background: #f8fafc;
-        }
-        
-        .hot-container {
-            max-width: var(--container-width);
-            margin: 0 auto;
-        }
-
-        .hero-hot-title {
-            text-align: center;
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 40px;
-            letter-spacing: -0.02em;
-        }
-
-        .hero-hot-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 24px;
-        }
-
-        .mini-card {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-        
-        .mini-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-            border-color: transparent;
-        }
-
-
-        /* --- 🆕 預算區塊 (視覺升級版) --- */
-        .dual-section {
-            padding: 120px 6%;
-            background: white;
-            border-bottom: 1px solid #eee;
-        }
-
-        .dual-container {
-            max-width: var(--container-width);
-            margin: 0 auto;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-                .col-budget {
-            background: #ffffff;
-            color: var(--primary);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 60px;
-            width: 100%;
-            max-width: 800px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .col-budget::before {
-            content: "✨";
-            position: absolute;
-            top: -20px;
-            right: -20px;
-            font-size: 60px;
-            transform: rotate(15deg);
-        }
-
-        .budget-form {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .input-group {
-            text-align: left;
-            width: 100%;
-        }
-
-        .input-group label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: var(--text-gray);
-            font-size: 14px;
-            letter-spacing: 0.5px;
-        }
-
-        .input-group input {
-            width: 100%;
-            padding: 16px;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            background: #ffffff;
-            color: var(--primary);
-            font-weight: 500;
-        }
-
-        .input-group input::placeholder {
-            color: #475569;
-        }
-
-        .input-group input:focus {
-            border-color: #38bdf8;
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.1);
-        }
-
-        .btn-calc {
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-            color: white;
-            border: none;
-            padding: 16px 32px;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 100%;
-            margin-top: 15px;
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
-            letter-spacing: 1px;
-        }
-
-        .btn-calc:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 15px 35px rgba(37, 99, 235, 0.4);
-            filter: brightness(1.1);
-        }
-
-        .section-title {
-            text-align: center;
-            font-size: 32px;
-            font-weight: 800;
-            margin-bottom: 12px;
-            color: var(--primary);
-            letter-spacing: -0.02em;
-        }
-
-        .col-budget .section-desc {
-            color: #94a3b8;
-        }
-
-        .section-desc {
-            text-align: center;
-            color: var(--text-gray);
-            margin-bottom: 30px;
-            font-size: 15px;
-        }
-
-        /* --- 🔍 搜尋結果區塊 --- */
-        #search-results-section {
-            display: none;
-            padding: 60px 6%;
-            background: white;
-            border-bottom: 1px solid #eee;
-        }
-
-        .results-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-
-        .results-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        .close-results {
-            cursor: pointer;
-            color: #999;
-            font-size: 14px;
-            text-decoration: underline;
-        }
-
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 25px;
-        }
-
-        .product-card {
-            border: 1px solid #eee;
-            border-radius: 16px;
-            overflow: hidden;
-            transition: 0.2s;
-            background: white;
-            position: relative;
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.1);
-            border-color: #bfdbfe;
-        }
-
-        .pc-img-box {
-            width: 100%;
-            aspect-ratio: 1/1;
-            overflow: hidden;
-            background: #f9f9f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .pc-img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            transition: 0.3s;
-        }
-
-        .product-card:hover .pc-img {
-            transform: scale(1.05);
-        }
-
-        .pc-info {
-            padding: 16px;
-        }
-
-        .pc-model {
-            font-size: 12px;
-            color: #999;
-            margin-bottom: 4px;
-            background: #f1f5f9;
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-
-        .pc-name {
-            font-size: 15px;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 8px;
-            line-height: 1.4;
-            height: 42px;
-            overflow: hidden;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            line-clamp: 2;
-            -webkit-box-orient: vertical;
-        }
-
-        .pc-price-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-top: 10px;
-            border-top: 1px dashed #eee;
-            padding-top: 10px;
-        }
-
-        .pc-login-btn {
-            display: block;
-            width: 100%;
-            text-align: center;
-            margin-top: 12px;
-            padding: 10px 0;
-            background: #eff6ff;
-            color: var(--accent);
-            font-size: 14px;
-            font-weight: 600;
-            border-radius: 8px;
-            text-decoration: none;
-            transition: 0.2s;
-        }
-
-        .pc-login-btn:hover {
-            background: var(--accent);
-            color: white;
-        }
-
-        /* 其他區塊 */
-        .process-section {
-            padding: 120px 6%;
-            background: white;
-        }
-
-        .process-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 30px;
-            max-width: var(--container-width);
-            margin: 0 auto;
-            text-align: center;
-        }
-
-        .process-item {
-            position: relative;
-        }
-
-        .process-item::after {
-            content: "";
-            position: absolute;
-            right: -15px;
-            top: 40px;
-            width: 30px;
-            height: 2px;
-            background: linear-gradient(to right, rgba(37,99,235,0.1), rgba(37,99,235,0.5));
-            display: none;
-        }
-
-        .p-icon {
-            width: 80px;
-            height: 80px;
-            background: #f0f7ff;
-            color: var(--accent);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 32px;
-            margin: 0 auto 20px;
-            font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0, 85, 170, 0.1);
-        }
-
-        .process-item h4 {
-            margin: 0 0 10px;
-            font-size: 18px;
-            color: var(--primary);
-        }
-
-        .process-item p {
-            font-size: 14px;
-            color: #777;
-            line-height: 1.6;
-        }
-
-        .cat-section {
-            padding: 120px 6%;
-            background: #ffffff;
-        }
-
-        .cat-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 24px;
-            max-width: var(--container-width);
-            margin: 0 auto;
-        }
-
-        .cat-card {
-            background: white;
-            border-radius: 16px;
-            padding: 30px;
-            text-align: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
-            transition: 0.3s;
-            cursor: pointer;
-            text-decoration: none;
-            display: block;
-            border: 1px solid var(--border); box-shadow: var(--shadow); background: var(--bg-light);
-        }
-
-        .cat-card:hover {
-            transform: translateY(-5px);
+            font-size: 17px; color: var(--text-gray); margin: 0 0 32px;
+            line-height: 1.8; font-weight: 400;
+        }
+        .hero-right { flex: 1; display: flex; justify-content: center; }
+        .hero-right .hero-floating-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
+            max-width: 400px; width: 100%;
+        }
+        .hero-right .float-item {
+            background: #fff; border-radius: 16px; padding: 16px;
+            border: 1px solid var(--border); box-shadow: var(--shadow);
+            display: flex; align-items: center; justify-content: center;
+            aspect-ratio: 1; transition: 0.25s; cursor: pointer; text-decoration: none;
+        }
+        .hero-right .float-item:hover {
+            transform: translateY(-4px); box-shadow: var(--shadow-lg);
             border-color: var(--accent);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        .hero-right .float-item img {
+            width: 100%; height: 100%; object-fit: contain;
+        }
+        /* Hide extra floating items */
+        .fi-5, .fi-6, .fi-7, .fi-8 { display: none; }
+
+        /* Search bar */
+        .search-bar {
+            display: flex; gap: 10px; margin-bottom: 16px;
+        }
+        .search-bar input {
+            flex: 1; padding: 14px 20px; border: 2px solid var(--border);
+            border-radius: 12px; font-size: 16px; background: #fff;
+            color: var(--primary); outline: none; transition: 0.2s;
+        }
+        .search-bar input::placeholder { color: #a89888; }
+        .search-bar input:focus { border-color: var(--accent); }
+        .search-bar button {
+            padding: 14px 28px; background: var(--accent); color: #fff;
+            border: none; border-radius: 12px; font-size: 15px;
+            font-weight: 600; cursor: pointer; transition: 0.2s; white-space: nowrap;
+        }
+        .search-bar button:hover { background: var(--accent-dark); }
+
+        .search-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+        .tag-chip {
+            font-size: 13px; color: var(--text-gray); background: #fff;
+            padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+            cursor: pointer; transition: 0.2s;
+        }
+        .tag-chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+        .cta-group { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+        .btn {
+            display: inline-block; padding: 13px 28px; border-radius: 10px;
+            font-size: 15px; font-weight: 600; text-decoration: none;
+            transition: 0.2s; cursor: pointer;
+        }
+        .btn-accent { background: var(--accent); color: #fff; border: 2px solid var(--accent); }
+        .btn-accent:hover { background: var(--accent-dark); border-color: var(--accent-dark); transform: translateY(-2px); }
+        .btn-soft { background: #fff; color: var(--primary); border: 2px solid var(--border); }
+        .btn-soft:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* --- Section Common --- */
+        .section { padding: 80px 6%; }
+        .section-alt { background: var(--bg-warm); }
+        .section-title {
+            font-size: 26px; font-weight: 700; color: var(--primary);
+            text-align: center; margin-bottom: 10px;
+        }
+        .section-desc {
+            text-align: center; color: var(--text-gray); margin-bottom: 40px;
+            font-size: 15px; line-height: 1.7;
         }
 
-        .cat-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-            display: block;
+        /* --- Hot Products --- */
+        .hot-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+            max-width: var(--container-width); margin: 0 auto;
+        }
+        .mini-card {
+            background: #fff; border-radius: var(--radius); padding: 20px;
+            border: 1px solid var(--border); text-align: center;
+            transition: 0.25s; cursor: pointer; position: relative;
+        }
+        .mini-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+        .mini-card img { width: 100%; aspect-ratio: 1; object-fit: contain; margin-bottom: 12px; border-radius: 8px; }
+        .mini-card .mini-name { font-size: 14px; font-weight: 600; color: var(--primary); line-height: 1.4; margin-bottom: 6px; }
+        .mini-card .mini-count { font-size: 12px; color: var(--text-gray); }
+        .mini-card .mini-rank {
+            position: absolute; top: 12px; left: 12px;
+            color: #fff; font-size: 11px; font-weight: 700;
+            padding: 3px 10px; border-radius: 6px;
         }
 
-        .trust-section {
-            padding: 120px 6%;
-            background: #ffffff;
-            text-align: center;
+        /* --- Budget + Category Combined --- */
+        .combo-section { display: flex; gap: 40px; max-width: var(--container-width); margin: 0 auto; align-items: flex-start; }
+        .combo-left {
+            flex: 1; background: #fff; border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 36px;
         }
+        .combo-left h3 { font-size: 20px; font-weight: 700; margin: 0 0 8px; color: var(--primary); }
+        .combo-left .desc { font-size: 14px; color: var(--text-gray); margin-bottom: 24px; }
+        .budget-row { display: flex; gap: 16px; margin-bottom: 16px; }
+        .budget-row .field { flex: 1; }
+        .budget-row label { display: block; font-size: 13px; font-weight: 600; color: var(--text-gray); margin-bottom: 6px; }
+        .budget-row input {
+            width: 100%; padding: 12px 16px; border: 2px solid var(--border);
+            border-radius: 10px; font-size: 15px; outline: none; transition: 0.2s;
+        }
+        .budget-row input:focus { border-color: var(--accent); }
+        .btn-calc {
+            width: 100%; padding: 14px; background: var(--accent); color: #fff;
+            border: none; border-radius: 10px; font-size: 15px; font-weight: 600;
+            cursor: pointer; transition: 0.2s; margin-top: 8px;
+        }
+        .btn-calc:hover { background: var(--accent-dark); }
+        .budget-note { text-align: center; color: var(--text-gray); font-size: 12px; margin-top: 12px; }
 
-        .trust-marquee {
-            width: 100%;
-            overflow: hidden;
-            background: #ffffff;
-            padding: 30px 0;
-            position: relative;
-            margin-top: 40px;
+        .combo-right { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .cat-card {
+            background: #fff; border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 28px 20px; text-align: center; text-decoration: none;
+            transition: 0.25s; display: flex; flex-direction: column; align-items: center; gap: 8px;
         }
+        .cat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+        .cat-icon { font-size: 36px; }
+        .cat-title { font-size: 15px; font-weight: 600; color: var(--primary); }
+        .cat-desc { font-size: 12px; color: var(--text-gray); }
 
-        /* Gradient mask for smooth edge fading */
-        .trust-marquee::before, .trust-marquee::after {
-            content: "";
-            position: absolute;
-            top: 0;
-            width: 15%;
-            height: 100%;
-            z-index: 2;
+        /* --- Process --- */
+        .process-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;
+            max-width: var(--container-width); margin: 0 auto;
         }
-        .trust-marquee::before {
-            left: 0;
-            background: linear-gradient(to right, #ffffff, transparent);
+        .process-item { text-align: center; }
+        .p-icon {
+            width: 56px; height: 56px; background: var(--accent-light); color: var(--accent);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700; margin: 0 auto 16px;
         }
-        .trust-marquee::after {
-            right: 0;
-            background: linear-gradient(to left, #ffffff, transparent);
-        }
+        .process-item h4 { margin: 0 0 6px; font-size: 16px; color: var(--primary); }
+        .process-item p { font-size: 13px; color: var(--text-gray); margin: 0; line-height: 1.6; }
 
-        .trust-track {
-            display: flex;
-            width: max-content;
-            animation: scroll 25s linear infinite;
+        /* --- Search Results --- */
+        #search-results-section { display: none; padding: 60px 6%; background: #fff; border-bottom: 1px solid var(--border); }
+        .results-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .results-title { font-size: 22px; font-weight: 700; color: var(--primary); }
+        .close-results { cursor: pointer; color: var(--text-gray); font-size: 13px; text-decoration: underline; }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+        .product-card {
+            border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden;
+            transition: 0.2s; background: #fff; cursor: pointer;
         }
-        
-        .trust-track:hover {
-            animation-play-state: paused;
+        .product-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+        .pc-img-box {
+            width: 100%; aspect-ratio: 1; overflow: hidden; background: var(--bg-warm);
+            display: flex; align-items: center; justify-content: center; padding: 16px;
         }
+        .pc-img { width: 100%; height: 100%; object-fit: contain; }
+        .pc-info { padding: 14px; }
+        .pc-model {
+            font-size: 11px; color: var(--text-gray); margin-bottom: 4px;
+            background: var(--accent-light); display: inline-block; padding: 2px 8px; border-radius: 4px;
+        }
+        .pc-name {
+            font-size: 14px; font-weight: 600; color: var(--primary); margin-bottom: 8px;
+            line-height: 1.4; height: 40px; overflow: hidden;
+            display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical;
+        }
+        .pc-price-row {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            border-top: 1px dashed var(--border); padding-top: 8px; margin-top: 8px;
+        }
+        .pc-login-btn {
+            display: block; width: 100%; text-align: center; margin-top: 10px;
+            padding: 9px 0; background: var(--accent-light); color: var(--accent);
+            font-size: 13px; font-weight: 600; border-radius: 8px; text-decoration: none; transition: 0.2s;
+        }
+        .pc-login-btn:hover { background: var(--accent); color: #fff; }
 
-        .trust-item {
-            font-size: 24px;
-            font-weight: 800;
-            color: var(--border); /* Light grey initially */
-            margin: 0 40px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.3s;
-            cursor: default;
-        }
-        
-        .trust-item:hover {
-            color: var(--primary-light);
-            text-shadow: 0 0 20px rgba(0,0,0,0.05);
-        }
-
-        @keyframes scroll {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-
-        footer {
-            background: #1a1a1a;
-            color: #888;
-            padding: 60px 6%;
-            font-size: 13px;
-        }
-
+        /* --- Footer --- */
+        footer { background: var(--primary); color: #c4a98a; padding: 50px 6%; font-size: 13px; }
         .footer-content {
-            max-width: var(--container-width);
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 40px;
+            max-width: var(--container-width); margin: 0 auto;
+            display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px;
         }
+        .footer-col h4 { color: #fff; margin-bottom: 16px; font-size: 15px; }
+        .footer-col p { margin-bottom: 8px; }
+        .copyright { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
 
-        .footer-col h4 {
-            color: white;
-            margin-bottom: 20px;
-            font-size: 16px;
-        }
-
-        .footer-col p {
-            margin-bottom: 10px;
-        }
-
-        .copyright {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid #333;
-        }
-
-
-
-        /* ✨ 回到頂部按鈕 (Floating) */
+        /* --- Floating Buttons --- */
         #btn-back-to-top {
-            position: fixed;
-            bottom: 95px; /* 為了讓出位置給 LINE 按鈕 */
-            right: 30px;
-            display: none;
-            width: 45px;
-            height: 45px;
-            background: rgba(34, 34, 34, 0.8);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            font-size: 20px;
-            z-index: 999;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-            transition: 0.3s;
-            align-items: center;
-            justify-content: center;
+            position: fixed; bottom: 90px; right: 24px; display: none;
+            width: 42px; height: 42px; background: rgba(44, 24, 16, 0.7);
+            color: #fff; border: none; border-radius: 50%; cursor: pointer;
+            font-size: 18px; z-index: 999; box-shadow: 0 2px 8px rgba(0,0,0,0.15); transition: 0.2s;
         }
-
-        #btn-back-to-top:hover {
-            background: var(--accent);
-            transform: translateY(-3px);
-        }
-
-        /* ✨ 業務在線 LINE 浮動按鈕 */
+        #btn-back-to-top:hover { background: var(--accent); }
         #floating-line-btn {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            background: #06c755;
-            color: white;
-            border-radius: 50px;
-            padding: 12px 24px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 16px;
-            font-weight: 700;
-            text-decoration: none;
-            box-shadow: 0 4px 15px rgba(6, 199, 85, 0.4);
-            z-index: 1000;
-            transition: 0.3s;
-            animation: bounce 3s infinite;
+            position: fixed; bottom: 24px; right: 24px;
+            background: #06c755; color: #fff; border-radius: 50px;
+            padding: 12px 20px; display: flex; align-items: center; gap: 8px;
+            font-size: 15px; font-weight: 600; text-decoration: none;
+            box-shadow: 0 4px 12px rgba(6, 199, 85, 0.35); z-index: 1000; transition: 0.2s;
         }
-
-        #floating-line-btn:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(6, 199, 85, 0.6);
-            animation: none;
-        }
-
+        #floating-line-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(6, 199, 85, 0.5); }
         .line-badge {
-            background: #ff3b30;
-            color: white;
-            font-size: 11px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            border: 2px solid white;
-            font-weight: 900;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            background: #ff3b30; color: #fff; font-size: 10px; padding: 2px 6px;
+            border-radius: 10px; position: absolute; top: -6px; right: -6px;
+            border: 2px solid #fff; font-weight: 700;
         }
 
-        @keyframes bounce {
-            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-            40% { transform: translateY(-10px); }
-            60% { transform: translateY(-5px); }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @media (min-width: 901px) {
-            .process-item:not(:last-child)::after {
-                display: block;
-            }
-        }
+        /* --- Responsive --- */
         @media (max-width: 900px) {
+            .hero { flex-direction: column; padding: 50px 5% 40px; gap: 30px; min-height: auto; }
+            .hero-left { text-align: center; max-width: 100%; }
+            .hero h1 { font-size: 30px; }
+            .hero p { text-align: center; }
+            .cta-group { justify-content: center; }
+            .search-tags { justify-content: center; }
+            .hero-right { display: none; }
 
-            /* 手機版 Hero 調整 */
-            .hero {
-                padding: 40px 5%;
-                gap: 30px;
-            }
+            .hot-grid { grid-template-columns: 1fr 1fr; }
+            .combo-section { flex-direction: column; }
+            .combo-right { grid-template-columns: 1fr 1fr; }
+            .process-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+            .budget-row { flex-direction: column; }
+            .footer-content { flex-direction: column; }
 
-            .hero-body {
-                flex-direction: column;
-                gap: 40px;
-            }
-
-            .hero-content {
-                max-width: 100%;
-                order: 1;
-                text-align: center;
-            }
-
-            .hero-right-col {
-                order: 2;
-                width: 100%;
-                max-width: 100%;
-            }
-
-            .hero h1 {
-                font-size: 32px;
-            }
-
-            .hero p {
-                text-align: center;
-            }
-
-            .cta-group {
-                justify-content: center;
-            }
-
-            .dual-container {
-                flex-direction: column;
-            }
-
-            .col-budget {
-                width: 100%;
-                padding: 40px 24px;
-                border-radius: 16px;
-            }
-
-            .footer-content {
-                flex-direction: column;
-            }
-
-            .budget-inputs {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .btn-calc {
-            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
-            color: white;
-            border: none;
-            padding: 16px 32px;
-            border-radius: 12px;
-            font-size: 18px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 100%;
-            margin-top: 15px;
-            box-shadow: 0 10px 25px rgba(37, 99, 235, 0.3);
-            letter-spacing: 1px;
+            #floating-line-btn { bottom: 16px; right: 12px; padding: 10px 16px; font-size: 13px; }
+            #btn-back-to-top { bottom: 72px; right: 16px; width: 38px; height: 38px; }
         }
 
-            .hero-hot-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .hero h1 {
-                font-size: 40px;
-            }
-            .hero {
-                padding: 100px 5% 80px 5%;
-                min-height: auto;
-            }
-
-            nav {
-                padding: 0 4%;
-            }
-
-            .nav-right {
-                gap: 6px;
-            }
-
-            .nav-btn span {
-                display: none;
-            }
-
-            .nav-btn {
-                padding: 8px 12px;
-                font-size: 13px;
-            }
-
-            .top-search-bar {
-                max-width: 100%;
-            }
-
-            /* 手機版縮小 LINE 浮動按鈕 */
-            #floating-line-btn {
-                bottom: 20px;
-                right: 15px;
-                padding: 10px 16px;
-                font-size: 14px;
-            }
-            #floating-line-btn span[style="font-size:24px;"] {
-                font-size: 20px !important;
-            }
-            .line-badge {
-                font-size: 10px;
-                top: -6px;
-                right: -4px;
-            }
-
-            /* 避免回到頂部擋住 LINE 按鈕 */
-            #btn-back-to-top {
-                bottom: 80px;
-                right: 20px;
-                width: 40px;
-                height: 40px;
-                font-size: 16px;
-            }
-
-            /* 調整回到頂部位置 */
+        @media (max-width: 600px) {
+            .nav-right { gap: 4px; }
+            .nav-btn { padding: 6px 10px; font-size: 12px; }
+            .nav-btn .desktop-only { display: none; }
+            .hot-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .combo-right { grid-template-columns: 1fr; }
+            .process-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 
 <body>
 
-    <!-- ✨ 回到頂部按鈕 ✨ -->
-    <button id="btn-back-to-top" onclick="scrollToTop()" title="回到頂部">↑</button>
+    <button id="btn-back-to-top" onclick="scrollToTop()">&#8593;</button>
 
-    <!-- ✨ 業務在線 LINE 浮動按鈕 ✨ -->
     <a href="https://line.me/ti/p/qiHzrCaf_P" target="_blank" id="floating-line-btn" onclick="trackLineConversion()">
-        <span style="font-size:24px;">💬</span>
-        <span>專人一對一服務</span>
-        <span class="line-badge">業務經理在線</span>
+        <span style="font-size:20px;">&#x1F4AC;</span>
+        <span>LINE 專人服務</span>
+        <span class="line-badge">在線</span>
     </a>
-
-
 
     <nav>
         <a href="index.html" class="logo-link">
-            <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg"
-                alt="KINYO" class="logo-img">
+            <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO">
         </a>
-
         <div class="nav-right">
-            <!-- 1. 網頁導覽 -->
-            <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" target="_blank"
-                class="nav-btn nav-btn-catalog">
-                🗺️ <span class="desktop-only">網頁導覽</span>
+            <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" target="_blank" class="nav-btn nav-btn-outline">
+                <span class="desktop-only">&#128203; 採購型錄</span><span class="mobile-icon" style="display:none;">&#128203;</span>
             </a>
-
-            <!-- 2. 企客下單系統 -->
-            <a href="https://www.kinyo-gift.com/order" class="nav-btn nav-btn-order" target="_blank">
-                🛒 <span class="desktop-only">企客下單系統</span>
+            <a href="https://www.kinyo-gift.com/order" target="_blank" class="nav-btn nav-btn-outline">
+                <span class="desktop-only">&#128722; 企客下單</span>
             </a>
-
-            <!-- 3. 售後服務 -->
             <a href="https://www.kinyo-gift.com/return_form" target="_blank" class="nav-btn nav-btn-outline">
-                🛠️ <span class="desktop-only">售後服務</span>
+                <span class="desktop-only">&#128295; 售後服務</span>
             </a>
-
-            <!-- 4. 夥伴登入 -->
-            <a href="https://www.kinyo-gift.com/system" target="_blank" class="nav-btn">
-                👤 <span class="desktop-only">夥伴登入</span>
+            <a href="https://www.kinyo-gift.com/system" target="_blank" class="nav-btn nav-btn-primary">
+                <span class="desktop-only">&#128100; 夥伴登入</span>
             </a>
         </div>
     </nav>
 
-    <!-- Hero Section (Premium Dark Mode) -->
+    <!-- Hero -->
     <section class="hero">
         <div class="hero-left">
-            <div class="hero-content">
-                <span class="hero-label">KINYO B2B 原廠直營方案</span>
-                <h1>
-                    企業禮贈品採購之首選<br>
-                    最高規格的專業服務
-                </h1>
-                <p>專為指標性企業、上市櫃公司與福委會打造。享受專人 24H 極速報價、全線 2000+ 原廠商品底價與頂級客製化售後體驗。</p>
-    
-                <div class="cta-group">
-                    <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-primary" target="_blank" onclick="trackLineConversion()">
-                        索取大宗採購報價
-                    </a>
-                    <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-outline-light" onclick="trackLineConversion()">
-                        Email 洽詢
-                    </a>
-                </div>
+            <div class="hero-tag">KINYO 原廠直營</div>
+            <h1>為企業挑選<br><span>最合適的禮贈品</span></h1>
+            <p>從尾牙禮品到股東會贈品，2000+ 款原廠商品任您挑選。<br>專人 24H 報價，原廠一年保固，讓採購變得簡單又安心。</p>
+
+            <div class="search-bar">
+                <input type="text" id="publicSearchInput" placeholder="搜尋商品名稱或型號..."
+                    onkeydown="if(event.key === 'Enter') performPublicSearch()">
+                <button onclick="performPublicSearch()">搜尋</button>
             </div>
-    
-            <div class="top-search-bar">
-                <div class="search-input-wrapper" style="width: 100%; position: relative;">
-                    <span class="search-icon" style="position: absolute; left: 24px; top: 50%; transform: translateY(-50%); font-size: 20px;">🔍</span>
-                    <input type="text" id="publicSearchInput" class="search-input"
-                        placeholder="輸入商品關鍵字或型號開始探索..."
-                        onkeydown="if(event.key === 'Enter') performPublicSearch()">
-                    <button class="search-btn-submit" onclick="performPublicSearch()">探索</button>
-                </div>
-                <div class="search-tags">
-                    <div class="tag-chip" onclick="quickSearch('電暖器')">🔥 精選電暖器</div>
-                    <div class="tag-chip" onclick="quickSearch('kpb')">🔋 大容量行動電源</div>
-                    <div class="tag-chip" onclick="quickSearch('kh')">💇‍♀️ 負離子吹風機</div>
-                    <div class="tag-chip" onclick="quickSearch('bts')">🎵 藍牙音響設備</div>
-                </div>
+            <div class="search-tags">
+                <div class="tag-chip" onclick="quickSearch('電暖器')">精選電暖器</div>
+                <div class="tag-chip" onclick="quickSearch('kpb')">大容量行動電源</div>
+                <div class="tag-chip" onclick="quickSearch('kh')">負離子吹風機</div>
+                <div class="tag-chip" onclick="quickSearch('bts')">藍牙音響</div>
+            </div>
+
+            <div class="cta-group">
+                <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-accent" target="_blank" onclick="trackLineConversion()">索取採購報價</a>
+                <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-soft" onclick="trackLineConversion()">Email 洽詢</a>
             </div>
         </div>
-        
+
         <div class="hero-right">
-            <!-- 將由 Script 根據 LINE Bot 詢問排名自動生成 8 個浮動商品 -->
-            <div id="hero-floating-grid" class="hero-floating-grid">
-            </div>
+            <div id="hero-floating-grid" class="hero-floating-grid"></div>
         </div>
     </section>
 
-    <!-- 原本的主視覺熱門區塊往下移 -->
-    <section class="hot-section">
-        <div class="hot-container">
-            <div class="hero-hot-title">
-                本週企業熱搜指標
-            </div>
-            <div id="hot-grid" class="hero-hot-grid">
-                <div style="grid-column:1/-1; text-align:center; color:#999; padding:20px;">
-                    正在載入大數據...
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 🆕 預算神器 (視覺升級版) -->
-    <section class="dual-section">
-        <div class="dual-container">
-            <!-- 預算逆推神器 -->
-            <div class="dual-col col-budget">
-                <h2 class="section-title">預算逆推神器 🪄</h2>
-                <p class="section-desc">輸入您的採購條件，AI 系統自動為您篩選最佳 CP 值組合</p>
-
-                <div class="budget-form">
-                    <div style="display: flex; gap: 20px; width: 100%;" class="budget-inputs">
-                        <div class="input-group">
-                            <label>💰 總採購預算 (元)</label>
-                            <input type="number" id="budgetTotal" placeholder="例如：50000">
-                        </div>
-                        <div class="input-group">
-                            <label>👥 預計數量 (個)</label>
-                            <input type="number" id="budgetQty" placeholder="例如：100">
-                        </div>
-                    </div>
-                    <button class="btn-calc" onclick="calculateBudget()">開始幫我推薦 ✨</button>
-                    <div style="text-align: center; color: #64748b; font-size: 13px; margin-top: 10px;">
-                        * 顯示結果為市價參考，實際批發價請加 LINE 詢問，驚喜價保證滿意
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 🔍 搜尋結果展示區 -->
+    <!-- Search Results -->
     <section id="search-results-section">
         <div class="results-header">
-            <div class="results-title">搜尋結果 <span id="result-count"
-                    style="font-size:16px; color:#666; font-weight:400;"></span></div>
+            <div class="results-title">搜尋結果 <span id="result-count" style="font-size:15px; color:var(--text-gray); font-weight:400;"></span></div>
             <div class="close-results" onclick="closeSearchResults()">關閉搜尋</div>
         </div>
         <div id="results-grid" class="results-grid"></div>
         <div id="loading-text" style="text-align:center; color:#999; display:none;">正在搜尋資料庫...</div>
-        <div style="text-align:center; padding: 30px 20px 20px;">
-            <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" class="btn btn-line" style="display:inline-block; font-size: 18px; padding: 14px 30px; background:#111; box-shadow: 0 4px 10px rgba(0,0,0,0.2);" target="_blank">
-                📥 下載 KINYO 最新採購型錄
-            </a>
+        <div style="text-align:center; padding: 24px 0 0;">
+            <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" class="btn btn-soft" target="_blank">下載 KINYO 最新採購型錄</a>
         </div>
     </section>
 
-    <!-- 採購流程 -->
-    <section class="process-section">
-        <h2 class="section-title" style="color:var(--primary); text-align:center; font-size:28px; font-weight:700;">專業採購流程與保固服務</h2>
-        <div class="section-desc">專屬原廠業務對接，從尾牙禮品客製提案到股東會贈品大量配送，皆享有原廠一年安心保固與最高效的採購體驗。</div>
+    <!-- Hot Products -->
+    <section class="section section-alt">
+        <h2 class="section-title">本週熱門推薦</h2>
+        <p class="section-desc">根據企業客戶詢價數據，為您精選最受歡迎的品項</p>
+        <div id="hot-grid" class="hot-grid">
+            <div style="grid-column:1/-1; text-align:center; color:var(--text-gray); padding:20px;">正在載入資料...</div>
+        </div>
+    </section>
+
+    <!-- Budget + Category -->
+    <section class="section">
+        <div class="combo-section">
+            <div class="combo-left">
+                <h3>預算推薦</h3>
+                <p class="desc">輸入採購預算與數量，為您篩選最合適的商品組合</p>
+                <div class="budget-row">
+                    <div class="field">
+                        <label>總預算（元）</label>
+                        <input type="number" id="budgetTotal" placeholder="例如：50000">
+                    </div>
+                    <div class="field">
+                        <label>預計數量（個）</label>
+                        <input type="number" id="budgetQty" placeholder="例如：100">
+                    </div>
+                </div>
+                <button class="btn-calc" onclick="calculateBudget()">開始推薦</button>
+                <div class="budget-note">* 顯示結果為市價參考，實際批發價請加 LINE 詢問</div>
+            </div>
+            <div class="combo-right">
+                <a href="javascript:void(0)" onclick="quickSearch('耳機'); return false;" class="cat-card">
+                    <span class="cat-icon">&#127911;</span>
+                    <span class="cat-title">數位科技</span>
+                    <span class="cat-desc">耳機、喇叭、行動電源</span>
+                </a>
+                <a href="javascript:void(0)" onclick="quickSearch('風扇'); return false;" class="cat-card">
+                    <span class="cat-icon">&#127968;</span>
+                    <span class="cat-title">生活家電</span>
+                    <span class="cat-desc">風扇、廚房家電、清淨機</span>
+                </a>
+                <a href="javascript:void(0)" onclick="quickSearch('滑鼠'); return false;" class="cat-card">
+                    <span class="cat-icon">&#128433;</span>
+                    <span class="cat-title">辦公周邊</span>
+                    <span class="cat-desc">滑鼠、鍵盤、計算機</span>
+                </a>
+                <a href="javascript:void(0)" onclick="quickSearch('禮品'); return false;" class="cat-card">
+                    <span class="cat-icon">&#127873;</span>
+                    <span class="cat-title">季節禮品</span>
+                    <span class="cat-desc">股東會贈品、尾牙禮品</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Process -->
+    <section class="section section-alt">
+        <h2 class="section-title">採購流程</h2>
+        <p class="section-desc">從諮詢到出貨，由原廠專屬業務全程為您服務</p>
         <div class="process-grid">
             <div class="process-item">
                 <div class="p-icon">1</div>
                 <h4>線上諮詢</h4>
-                <p>透過 LINE 或系統挑選心儀商品</p>
+                <p>透過 LINE 或系統挑選商品</p>
             </div>
             <div class="process-item">
                 <div class="p-icon">2</div>
                 <h4>專屬報價</h4>
-                <p>依數量提供最具競爭力的批發價</p>
+                <p>依數量提供最具競爭力的價格</p>
             </div>
             <div class="process-item">
                 <div class="p-icon">3</div>
                 <h4>確認下單</h4>
-                <p>確認庫存與交期，安排備貨</p>
+                <p>確認庫存與交期後安排備貨</p>
             </div>
             <div class="process-item">
                 <div class="p-icon">4</div>
                 <h4>快速出貨</h4>
-                <p>現貨 24H 內出貨，安心有保障</p>
+                <p>現貨 24H 內出貨，原廠保固</p>
             </div>
         </div>
     </section>
 
-    <!-- 熱門分類 -->
-    <section class="cat-section">
-        <h2 class="section-title" style="color:var(--primary); text-align:center; font-size:28px; font-weight:700;">
-            2025 熱門採購品項（含 3C、生活家電、美容保健）</h2>
-        <div class="section-desc" style="text-align:center; color:#555; margin-bottom:30px;">不論是高人氣的尾牙禮品還是實用的股東會贈品，我們皆有豐富的高 CP 值選擇。</div>
-        <div class="cat-grid">
-            <a href="/category/3c-digital/" onclick="quickSearch('耳機'); return false;" class="cat-card"><span class="cat-icon">🎧</span><span
-                    class="cat-title">數位科技</span><span class="cat-desc">耳機、喇叭、行動電源</span></a>
-            <a href="/category/home-appliance/" onclick="quickSearch('風扇'); return false;" class="cat-card"><span class="cat-icon">🏠</span><span
-                    class="cat-title">生活家電</span><span class="cat-desc">風扇、廚房家電、清淨機</span></a>
-            <a href="/category/office/" onclick="quickSearch('滑鼠'); return false;" class="cat-card"><span class="cat-icon">🖱️</span><span
-                    class="cat-title">辦公周邊</span><span class="cat-desc">滑鼠、鍵盤、計算機</span></a>
-            <a href="/category/seasonal/" onclick="quickSearch('禮品'); return false;" class="cat-card"><span class="cat-icon">🎁</span><span
-                    class="cat-title">季節禮品</span><span class="cat-desc">股東會贈品、尾牙禮品</span></a>
-        </div>
-        <div style="text-align:center; padding: 40px 20px 10px;">
-            <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-line" style="display:inline-block; font-size: 18px; padding: 14px 30px;" target="_blank" onclick="trackLineConversion()">
-                立即獲取大宗採購優惠報價
-            </a>
-        </div>
-    </section>
-
-    <!-- 信任訊號 -->
-    <section class="trust-section">
-        <h2 class="section-title" style="color:var(--primary); text-align:center; font-size:28px; font-weight:700;">
-            企業合作案例與社會認同
-        </h2>
-        <div class="section-desc">數百家知名企業的信賴首選，涵蓋各大股東會贈品與科技廠尾牙禮品大宗採購訂單。<br>※ 由於個資與商業機密考量，部分合作單位僅列舉產業別。如需詳細案例請加 LINE 索取。</div>
-        
-        <div class="trust-marquee">
-            <div class="trust-track">
-                <div class="trust-item">科技大廠與半導體</div>
-                <div class="trust-item">上市金融集團</div>
-                <div class="trust-item">知名醫療體系</div>
-                <div class="trust-item">國立大專院校</div>
-                <div class="trust-item">跨國電商平台</div>
-                <div class="trust-item">連鎖汽車保修</div>
-                <!-- Duplicate for infinite scroll -->
-                <div class="trust-item">科技大廠與半導體</div>
-                <div class="trust-item">上市金融集團</div>
-                <div class="trust-item">知名醫療體系</div>
-                <div class="trust-item">國立大專院校</div>
-                <div class="trust-item">跨國電商平台</div>
-                <div class="trust-item">連鎖汽車保修</div>
-            </div>
-        </div>
-    </section>
-
+    <!-- Footer -->
     <footer>
         <div class="footer-content">
             <div class="footer-col">
                 <h4>KINYO 企業採購中心</h4>
-                <p>台灣老字號品牌，品質安心有保障。<br>提供最完整的售後服務與保固。</p>
+                <p>台灣老字號品牌，品質安心有保障</p>
+                <p>原廠一年保固，完善售後服務</p>
             </div>
             <div class="footer-col">
                 <h4>聯絡資訊</h4>
-                <p>聯絡人：KINYO-郭庭豪</p>
+                <p>聯絡人：KINYO - 郭庭豪</p>
                 <p>電話：0976-966-333</p>
                 <p>信箱：sam.kuo@kinyo.tw</p>
             </div>
         </div>
-        <div class="copyright">&copy; 2025 KINYO Enterprise Gifting. All Rights Reserved.</div>
+        <div class="copyright">&copy; 2025 KINYO Enterprise. All Rights Reserved.</div>
     </footer>
 
     <!-- Firebase & Search Script -->
@@ -1465,7 +546,7 @@
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
         } catch (e) {
-            console.error("Firebase 初始化失敗:", e);
+            console.error("Firebase init failed:", e);
         }
 
         let allProductsCache = [];
@@ -1479,20 +560,15 @@
                     const d = doc.data();
                     if (d.status !== 'inactive') {
                         allProductsCache.push({
-                            name: d.name || "",
-                            model: d.model || "",
-                            mainModel: d.mainModel || "",
-                            imageUrl: d.imageUrl || "",
+                            name: d.name || "", model: d.model || "",
+                            mainModel: d.mainModel || "", imageUrl: d.imageUrl || "",
                             marketPrice: parseFloat(d.marketPrice) || 0
                         });
                     }
                 });
-            } catch (e) {
-                console.error("讀取資料失敗:", e);
-            }
+            } catch (e) { console.error("Data load failed:", e); }
         }
 
-        // --- 🔥 雲端連線版熱門榜 ---
         async function loadHotProducts() {
             const hotGrid = document.getElementById('hot-grid');
             await ensureDataLoaded();
@@ -1501,36 +577,28 @@
             try {
                 const docRef = doc(db, "SiteConfig", "homeHotList");
                 const docSnap = await getDoc(docRef);
-
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if (data.items && Array.isArray(data.items)) {
-                        displayData = data.items;
-                    }
+                    if (data.items && Array.isArray(data.items)) displayData = data.items;
                 }
-            } catch (e) {
-                console.error("讀取熱門榜失敗:", e);
-            }
+            } catch (e) { console.error("Hot list load failed:", e); }
 
             const defaultPicks = [
-                { model: 'KIA-25', count: 128, name: '多功能電烤盤' },
-                { model: 'KHD-9660', count: 95, name: '負離子吹風機' },
-                { model: 'KCR-195', count: 86, name: '多功能料理鍋' },
-                { model: 'AY-012', count: 72, name: '藍牙音響' },
-                { model: 'KPB-2511', count: 65, name: '大容量行動電源' },
-                { model: 'ACF-3142', count: 58, name: '立式電風扇' },
-                { model: 'KLG-2028', count: 42, name: '萬用箱' },
-                { model: 'DHM-3450', count: 39, name: '除濕機' }
+                { model: 'KIA-25', name: '多功能電烤盤' },
+                { model: 'KHD-9660', name: '負離子吹風機' },
+                { model: 'KCR-195', name: '多功能料理鍋' },
+                { model: 'AY-012', name: '藍牙音響' },
+                { model: 'KPB-2511', name: '大容量行動電源' },
+                { model: 'ACF-3142', name: '立式電風扇' },
+                { model: 'KLG-2028', name: '萬用箱' },
+                { model: 'DHM-3450', name: '除濕機' }
             ];
 
-            // 確保有足夠數量 (至少 8 筆給浮動雲朵)
             if (displayData.length < 8) {
                 const existingModels = displayData.map(d => d.model);
                 for (const def of defaultPicks) {
                     if (displayData.length >= 8) break;
-                    if (!existingModels.includes(def.model)) {
-                        displayData.push(def);
-                    }
+                    if (!existingModels.includes(def.model)) displayData.push(def);
                 }
             }
 
@@ -1540,7 +608,6 @@
 
             displayData.forEach((hotItem, index) => {
                 const searchTarget = (hotItem.model || '').toLowerCase().replace(/[-_]/g, '');
-                
                 let productDetail = allProductsCache.find(p => {
                     const m1 = (p.model || '').toLowerCase().replace(/[-_]/g, '');
                     const m2 = (p.mainModel || '').toLowerCase().replace(/[-_]/g, '');
@@ -1562,80 +629,59 @@
                     }
                 }
 
-                // 渲染熱門榜列表 (只取前 4 名)
+                const openLine = function () {
+                    if (typeof trackLineConversion === 'function') trackLineConversion();
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(`詢問：${displayName} (${displayModel})`).then(() => {
+                            window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
+                        }).catch(() => { window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); });
+                    } else { window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); }
+                };
+
+                // Hot list cards (top 4)
                 if (index < 4) {
                     const card = document.createElement('div');
                     card.className = 'mini-card';
-                    card.onclick = function () {
-                        if (typeof trackLineConversion === 'function') trackLineConversion();
-                        // 加入 Fallback 防呆：如果 clipboard api 失效 (如本機預覽 file://)，一樣會彈出網頁
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(`詢問：${displayName} (${displayModel})`).then(() => {
-                                window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
-                            }).catch(() => {
-                                window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
-                            });
-                        } else {
-                            window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
-                        }
-                    };
+                    card.onclick = openLine;
 
-                    let rankClass = "background:#0055aa;";
-                    if (index === 0) rankClass = "background:#ef4444; box-shadow: 0 2px 4px rgba(239,68,68,0.4);";
-                    if (index === 1) rankClass = "background:#f97316;";
-                    if (index === 2) rankClass = "background:#eab308;";
-
-                    const rankHtml = `<div class="mini-rank" style="${rankClass}">TOP ${index + 1}</div>`;
-                    const countHtml = `<div class="mini-count">本週詢價 <b>${hotItem.count || 99}</b> 次</div>`;
+                    let rankStyle = "background:var(--accent);";
+                    if (index === 0) rankStyle = "background:#c0392b;";
+                    if (index === 1) rankStyle = "background:#e67e22;";
+                    if (index === 2) rankStyle = "background:#d4a017;";
 
                     card.innerHTML = `
-                    ${rankHtml}
-                    <img src="${imgDisplay}" loading="lazy" alt="${displayName}">
-                    <div class="mini-name">${displayName}</div>
-                    ${countHtml}
+                        <div class="mini-rank" style="${rankStyle}">TOP ${index + 1}</div>
+                        <img src="${imgDisplay}" loading="lazy" alt="${displayName}">
+                        <div class="mini-name">${displayName}</div>
+                        ${hotItem.count ? `<div class="mini-count">本週詢價 ${hotItem.count} 次</div>` : '<div class="mini-count">熱門推薦</div>'}
                     `;
                     hotGrid.appendChild(card);
                 }
 
-                // 渲染主視覺浮動產品牆 (前 8 名)
-                if (index < 8 && heroGrid) {
+                // Hero grid (top 4 as 2x2)
+                if (index < 4 && heroGrid) {
                     const floatItem = document.createElement('a');
-                    floatItem.className = `float-item fi-${index + 1}`;
+                    floatItem.className = 'float-item';
                     floatItem.href = 'javascript:void(0)';
                     floatItem.title = `${displayName} (${displayModel})`;
-                    floatItem.onclick = function () {
-                        if (typeof trackLineConversion === 'function') trackLineConversion();
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(`詢問：${displayName} (${displayModel})`).then(() => {
-                                window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
-                            }).catch(() => {
-                                window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
-                            });
-                        } else {
-                            window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
-                        }
-                    };
+                    floatItem.onclick = openLine;
                     floatItem.innerHTML = `<img src="${imgDisplay}" alt="${displayName}">`;
                     heroGrid.appendChild(floatItem);
                 }
             });
 
             if (displayData.length === 0) {
-                hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center;">熱門榜更新中...</div>';
+                hotGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-gray);">資料載入中...</div>';
             }
         }
 
         async function logProductClick(product) {
             try {
-                const analyticsRef = collection(db, "ProductClicks");
-                addDoc(analyticsRef, {
-                    model: product.model,
-                    name: product.name,
-                    price: product.marketPrice,
-                    clickedAt: new Date(),
-                    source: 'homepage_search'
+                addDoc(collection(db, "ProductClicks"), {
+                    model: product.model, name: product.name, price: product.marketPrice,
+                    clickedAt: new Date(), source: 'homepage_search'
                 });
-            } catch (e) { console.warn("Analytics write failed:", e); }
+            } catch (e) {}
         }
 
         function displayProducts(products, titleOverride) {
@@ -1645,16 +691,15 @@
             const titleDiv = document.querySelector('.results-title');
 
             if (titleOverride) titleDiv.innerHTML = titleOverride;
-            else titleDiv.innerHTML = `搜尋結果 <span id="result-count" style="font-size:16px; color:#666; font-weight:400;"></span>`;
+            else titleDiv.innerHTML = `搜尋結果 <span id="result-count" style="font-size:15px; color:var(--text-gray); font-weight:400;"></span>`;
 
             resultsSection.style.display = 'block';
             resultsSection.scrollIntoView({ behavior: 'smooth' });
-
             grid.innerHTML = '';
             if (countSpan) countSpan.textContent = `(共 ${products.length} 筆)`;
 
             if (products.length === 0) {
-                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#999; padding:20px;">找不到符合條件的商品，請調整搜尋條件或直接加 LINE 詢問。</div>';
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:var(--text-gray); padding:20px;">找不到符合條件的商品，請調整搜尋條件或直接加 LINE 詢問。</div>';
                 return;
             }
 
@@ -1669,97 +714,67 @@
 
                 const card = document.createElement('div');
                 card.className = 'product-card';
-
                 card.onclick = function () {
                     logProductClick(item);
-                    navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
-                        window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
-                        alert('已複製產品名稱！請在 LINE 對話框貼上即可詢問。');
-                    });
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(`詢問：${item.name} (${item.model})`).then(() => {
+                            window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
+                            alert('已複製產品名稱！請在 LINE 對話框貼上即可詢問。');
+                        }).catch(() => { window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); });
+                    } else { window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank'); }
                 };
-                card.style.cursor = "pointer";
 
                 card.innerHTML = `
-                <div class="pc-img-box">
-                    <img src="${imgDisplay}" class="pc-img" loading="lazy" alt="${item.name} | KINYO 企業採購">
-                </div>
-                <div class="pc-info">
-                    <div class="pc-model">${item.model}</div>
-                    <div class="pc-name">${item.name}</div>
-                    <div class="pc-price-row">
-                        <span style="font-size:12px; color:#999;">市價</span>
-                        <span style="font-size:16px; font-weight:700; color:#333;">$${item.marketPrice}</span>
+                    <div class="pc-img-box"><img src="${imgDisplay}" class="pc-img" loading="lazy" alt="${item.name}"></div>
+                    <div class="pc-info">
+                        <div class="pc-model">${item.model}</div>
+                        <div class="pc-name">${item.name}</div>
+                        <div class="pc-price-row">
+                            <span style="font-size:12px; color:var(--text-gray);">市價</span>
+                            <span style="font-size:16px; font-weight:700; color:var(--primary);">$${item.marketPrice}</span>
+                        </div>
+                        <div class="pc-login-btn">LINE 詢價</div>
                     </div>
-                    <div class="pc-login-btn">
-                        <span style="font-size:16px; vertical-align:middle;">💬</span> 點擊加 LINE 詢價
-                    </div>
-                </div>
-            `;
+                `;
                 grid.appendChild(card);
             });
 
             if (products.length > displayLimit) {
                 const moreDiv = document.createElement('div');
-                moreDiv.style.gridColumn = "1/-1";
-                moreDiv.style.textAlign = "center";
-                moreDiv.style.padding = "10px";
-                moreDiv.style.color = "#666";
-                moreDiv.innerHTML = `還有 ${products.length - displayLimit} 筆結果，請<a href="https://www.kinyo-gift.com/system" target="_blank" style="color:#0055aa; font-weight:bold;">登入系統</a>查看完整清單`;
+                moreDiv.style.cssText = "grid-column:1/-1; text-align:center; padding:10px; color:var(--text-gray);";
+                moreDiv.innerHTML = `還有 ${products.length - displayLimit} 筆結果，請<a href="https://www.kinyo-gift.com/system" target="_blank" style="color:var(--accent); font-weight:600;">登入系統</a>查看完整清單`;
                 grid.appendChild(moreDiv);
             }
         }
 
-        // 🚀 回歸原本單一搜尋框邏輯
         window.performPublicSearch = async function () {
             const keyword = document.getElementById('publicSearchInput').value.trim().toLowerCase();
             if (!keyword) { alert("請輸入關鍵字"); return; }
-
             await ensureDataLoaded();
-
             const results = allProductsCache.filter(p =>
                 p.name.toLowerCase().includes(keyword) ||
                 p.model.toLowerCase().includes(keyword) ||
                 p.mainModel.toLowerCase().includes(keyword)
             );
-
             displayProducts(results);
         };
 
-        // ✨ 快速搜尋 (給 Tag 用)
         window.quickSearch = function (txt) {
             document.getElementById('publicSearchInput').value = txt;
             performPublicSearch();
-        }
+        };
 
         window.calculateBudget = async function () {
             const total = parseFloat(document.getElementById('budgetTotal').value);
             const qty = parseFloat(document.getElementById('budgetQty').value);
-
-            if (!total || !qty || qty <= 0) {
-                alert("請輸入有效的預算金額與數量");
-                return;
-            }
-
+            if (!total || !qty || qty <= 0) { alert("請輸入有效的預算金額與數量"); return; }
             const unitBudget = total / qty;
-            // 邏輯優化：市價通常會比預算高 1.5~2 倍，這樣批發價才可能落在預算內
             const minPrice = unitBudget * 1.2;
             const maxPrice = unitBudget * 2.5;
-
             await ensureDataLoaded();
-
-            const recommendations = allProductsCache.filter(p =>
-                p.marketPrice >= minPrice && p.marketPrice <= maxPrice
-            );
-
-            // 價格排序
+            const recommendations = allProductsCache.filter(p => p.marketPrice >= minPrice && p.marketPrice <= maxPrice);
             recommendations.sort((a, b) => b.marketPrice - a.marketPrice);
-
-            const titleHtml = `
-            預算推薦清單 
-            <div style="font-size:14px;font-weight:400;color:#666; margin-top:5px;">
-                單價預算約 <b style="color:#0055aa">$${Math.floor(unitBudget)}</b>，
-                為您推薦市價 <b style="color:#222">$${Math.floor(minPrice)}~$${Math.floor(maxPrice)}</b> 的高 CP 值商品
-            </div>`;
+            const titleHtml = `預算推薦清單 <div style="font-size:14px;font-weight:400;color:var(--text-gray);margin-top:4px;">單價預算約 <b style="color:var(--accent)">$${Math.floor(unitBudget)}</b>，推薦市價 <b>$${Math.floor(minPrice)}~$${Math.floor(maxPrice)}</b> 的商品</div>`;
             displayProducts(recommendations, titleHtml);
         };
 
@@ -1770,43 +785,19 @@
         loadHotProducts();
     </script>
 
-    <!-- 其他 UI 腳本 -->
     <script>
         function copyEmail() {
-            if (typeof trackLineConversion === 'function') {
-                trackLineConversion();
-            }
-
+            if (typeof trackLineConversion === 'function') trackLineConversion();
             const email = "sam.kuo@kinyo.tw";
-            navigator.clipboard.writeText(email).then(() => {
-                alert("✅ 信箱已複製：\n" + email);
-            }).catch(err => {
-                prompt("請手動複製信箱：", email);
-            });
+            navigator.clipboard.writeText(email).then(() => { alert("信箱已複製：" + email); }).catch(() => { prompt("請手動複製信箱：", email); });
         }
 
-        // ✨ 回到頂部按鈕邏輯與導覽列透明切換
         const backToTopBtn = document.getElementById("btn-back-to-top");
-        const topNav = document.querySelector("nav");
         window.onscroll = function () {
-            if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-                backToTopBtn.style.display = "flex";
-            } else {
-                backToTopBtn.style.display = "none";
-            }
-
-            if (document.body.scrollTop > 50 || document.documentElement.scrollTop > 50) {
-                if(topNav) topNav.classList.add("nav-scrolled");
-            } else {
-                if(topNav) topNav.classList.remove("nav-scrolled");
-            }
+            backToTopBtn.style.display = (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) ? "flex" : "none";
         };
-        function scrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
     </script>
 
-
 </body>
-
 </html>

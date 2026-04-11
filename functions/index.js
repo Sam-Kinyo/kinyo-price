@@ -1856,6 +1856,43 @@ exports.scheduledDriveSync = functions
             }
         }
 
+        // --- 每日熱門榜統計（基於 ProductClicks 過去 7 天數據）---
+        try {
+            console.log('📊 [排程] 開始統計每週熱門詢價榜...');
+            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const clicksSnap = await db.collection('ProductClicks')
+                .where('clickedAt', '>=', admin.firestore.Timestamp.fromDate(sevenDaysAgo))
+                .get();
+
+            if (!clicksSnap.empty) {
+                const modelCounts = {};
+                const modelNames = {};
+                clicksSnap.docs.forEach(d => {
+                    const data = d.data();
+                    const model = (data.model || '').toUpperCase().trim();
+                    if (!model) return;
+                    modelCounts[model] = (modelCounts[model] || 0) + 1;
+                    if (data.name) modelNames[model] = data.name;
+                });
+
+                const hotArray = Object.keys(modelCounts).map(model => ({
+                    model, name: modelNames[model] || '', count: modelCounts[model]
+                })).sort((a, b) => b.count - a.count).slice(0, 8);
+
+                if (hotArray.length > 0) {
+                    await db.collection('SiteConfig').doc('homeHotList').set({
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                        items: hotArray
+                    }, { merge: true });
+                    console.log(`📊 [排程] 熱門榜已更新，共 ${hotArray.length} 筆`);
+                }
+            } else {
+                console.log('📊 [排程] 過去 7 天無 ProductClicks 資料，跳過熱門榜更新');
+            }
+        } catch (hotErr) {
+            console.error('[排程] 熱門榜統計失敗:', hotErr);
+        }
+
         return null;
     });
 
