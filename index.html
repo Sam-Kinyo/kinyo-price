@@ -3,23 +3,23 @@
 
 <head>
     <!-- Google Ads + GA4 追蹤 -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-8303305884"></script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17808239126"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
-        gtag('config', 'AW-8303305884');
+        gtag('config', 'AW-17808239126');
         gtag('config', 'G-R0PWMZNSJH'); // GA4
 
         // --- 轉換追蹤 ---
         // TODO: 在 Google Ads 後台建立轉換動作後，把 YOUR_CONVERSION_LABEL 替換成真實標籤
-        var CONVERSION_LABEL = 'YOUR_CONVERSION_LABEL';
+        var CONVERSION_LABEL = 'r4pUCJS-iJocEJbU0KtC';
 
         function trackConversion(action, label) {
             // Google Ads 轉換
             if (CONVERSION_LABEL !== 'YOUR_CONVERSION_LABEL') {
                 gtag('event', 'conversion', {
-                    'send_to': 'AW-8303305884/' + CONVERSION_LABEL,
+                    'send_to': 'AW-17808239126/' + CONVERSION_LABEL,
                     'event_callback': function() {}
                 });
             }
