@@ -554,7 +554,11 @@
 
         function normalizeKey(key) {
             if (!key) return "";
-            let base = key.split('.')[0].split('_')[0].toUpperCase();
+            let base = key.split('.')[0].split('_')[0].split(' ')[0].toUpperCase();
+            if (base.startsWith("WV-")) {
+                let wm = base.match(/^(WV-[A-Z0-9]+)/);
+                return wm ? wm[1] : base;
+            }
             base = base.replace(/-/g, '');
             let m = base.match(/^([A-Z]+)(\d+)([A-Z]*)$/);
             if (m) return m[1] + m[2];
