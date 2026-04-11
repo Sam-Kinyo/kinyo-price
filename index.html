@@ -115,25 +115,32 @@
             line-height: 1.8; font-weight: 400;
         }
         .hero-right { flex: 1; display: flex; justify-content: center; }
-        .hero-right .hero-floating-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;
-            max-width: 400px; width: 100%;
+        .scene-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+            max-width: 440px; width: 100%;
         }
-        .hero-right .float-item {
-            background: #fff; border-radius: 16px; padding: 16px;
+        .scene-card {
+            background: #fff; border-radius: 16px; padding: 24px 20px;
             border: 1px solid var(--border); box-shadow: var(--shadow);
-            display: flex; align-items: center; justify-content: center;
-            aspect-ratio: 1; transition: 0.25s; cursor: pointer; text-decoration: none;
+            cursor: pointer; transition: 0.25s; text-decoration: none;
+            display: flex; flex-direction: column; gap: 8px; position: relative;
         }
-        .hero-right .float-item:hover {
+        .scene-card:hover {
             transform: translateY(-4px); box-shadow: var(--shadow-lg);
             border-color: var(--accent);
         }
-        .hero-right .float-item img {
-            width: 100%; height: 100%; object-fit: contain;
+        .scene-icon {
+            font-size: 28px; width: 48px; height: 48px;
+            background: var(--accent-light); border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
         }
-        /* Hide extra floating items */
-        .fi-5, .fi-6, .fi-7, .fi-8 { display: none; }
+        .scene-title { font-size: 16px; font-weight: 700; color: var(--primary); }
+        .scene-desc { font-size: 13px; color: var(--text-gray); line-height: 1.5; }
+        .scene-arrow {
+            position: absolute; bottom: 16px; right: 16px;
+            color: var(--border); font-size: 18px; transition: 0.2s;
+        }
+        .scene-card:hover .scene-arrow { color: var(--accent); }
 
         /* Search bar */
         .search-bar {
@@ -330,7 +337,8 @@
             .hero p { text-align: center; }
             .cta-group { justify-content: center; }
             .search-tags { justify-content: center; }
-            .hero-right { display: none; }
+            .hero-right { width: 100%; }
+            .scene-grid { max-width: 100%; }
 
             .hot-grid { grid-template-columns: 1fr 1fr; }
             .combo-section { flex-direction: column; }
@@ -410,7 +418,32 @@
         </div>
 
         <div class="hero-right">
-            <div id="hero-floating-grid" class="hero-floating-grid"></div>
+            <div class="scene-grid">
+                <a class="scene-card" onclick="quickSearch('電暖器')">
+                    <div class="scene-icon">&#127878;</div>
+                    <div class="scene-title">尾牙抽獎</div>
+                    <div class="scene-desc">全場最夯的年末好禮</div>
+                    <span class="scene-arrow">&rarr;</span>
+                </a>
+                <a class="scene-card" onclick="quickSearch('禮品')">
+                    <div class="scene-icon">&#127941;</div>
+                    <div class="scene-title">股東會贈品</div>
+                    <div class="scene-desc">質感兼具的紀念好物</div>
+                    <span class="scene-arrow">&rarr;</span>
+                </a>
+                <a class="scene-card" onclick="quickSearch('行動電源')">
+                    <div class="scene-icon">&#128188;</div>
+                    <div class="scene-title">員工福利</div>
+                    <div class="scene-desc">實用日常的暖心首選</div>
+                    <span class="scene-arrow">&rarr;</span>
+                </a>
+                <a class="scene-card" onclick="quickSearch('料理鍋')">
+                    <div class="scene-icon">&#127873;</div>
+                    <div class="scene-title">客戶送禮</div>
+                    <div class="scene-desc">送進心坎的品牌好禮</div>
+                    <span class="scene-arrow">&rarr;</span>
+                </a>
+            </div>
         </div>
     </section>
 
@@ -637,8 +670,6 @@
             }
 
             hotGrid.innerHTML = '';
-            const heroGrid = document.querySelector('.hero-floating-grid');
-            if (heroGrid) heroGrid.innerHTML = '';
 
             displayData.forEach((hotItem, index) => {
                 const searchTarget = (hotItem.model || '').toLowerCase().replace(/[-_]/g, '');
@@ -692,16 +723,6 @@
                     hotGrid.appendChild(card);
                 }
 
-                // Hero grid (top 4 as 2x2)
-                if (index < 4 && heroGrid) {
-                    const floatItem = document.createElement('a');
-                    floatItem.className = 'float-item';
-                    floatItem.href = 'javascript:void(0)';
-                    floatItem.title = `${displayName} (${displayModel})`;
-                    floatItem.onclick = openLine;
-                    floatItem.innerHTML = `<img src="${imgDisplay}" alt="${displayName}">`;
-                    heroGrid.appendChild(floatItem);
-                }
             });
 
             if (displayData.length === 0) {
