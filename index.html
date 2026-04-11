@@ -419,28 +419,28 @@
 
         <div class="hero-right">
             <div class="scene-grid">
-                <a class="scene-card" onclick="quickSearch('電暖器')">
+                <a class="scene-card" onclick="sceneSearch(1000, 2000, 50, '尾牙抽獎')">
                     <div class="scene-icon">&#127878;</div>
                     <div class="scene-title">尾牙抽獎</div>
-                    <div class="scene-desc">全場最夯的年末好禮</div>
+                    <div class="scene-desc">$1,000 - $2,000 / 50 份起</div>
                     <span class="scene-arrow">&rarr;</span>
                 </a>
-                <a class="scene-card" onclick="quickSearch('禮品')">
+                <a class="scene-card" onclick="sceneSearch(100, 300, 1000, '股東會贈品')">
                     <div class="scene-icon">&#127941;</div>
                     <div class="scene-title">股東會贈品</div>
-                    <div class="scene-desc">質感兼具的紀念好物</div>
+                    <div class="scene-desc">$100 - $300 / 1,000 份起</div>
                     <span class="scene-arrow">&rarr;</span>
                 </a>
-                <a class="scene-card" onclick="quickSearch('行動電源')">
+                <a class="scene-card" onclick="sceneSearch(400, 600, 100, '員工福利')">
                     <div class="scene-icon">&#128188;</div>
                     <div class="scene-title">員工福利</div>
-                    <div class="scene-desc">實用日常的暖心首選</div>
+                    <div class="scene-desc">$500 左右 / 100 份起</div>
                     <span class="scene-arrow">&rarr;</span>
                 </a>
-                <a class="scene-card" onclick="quickSearch('料理鍋')">
+                <a class="scene-card" onclick="sceneSearch(600, 1000, 100, '客戶送禮')">
                     <div class="scene-icon">&#127873;</div>
                     <div class="scene-title">客戶送禮</div>
-                    <div class="scene-desc">送進心坎的品牌好禮</div>
+                    <div class="scene-desc">$800 左右 / 100 份起</div>
                     <span class="scene-arrow">&rarr;</span>
                 </a>
             </div>
@@ -817,6 +817,16 @@
         window.quickSearch = function (txt) {
             document.getElementById('publicSearchInput').value = txt;
             performPublicSearch();
+        };
+
+        window.sceneSearch = async function (minPrice, maxPrice, qty, sceneName) {
+            await ensureDataLoaded();
+            const results = allProductsCache.filter(p =>
+                p.marketPrice >= minPrice && p.marketPrice <= maxPrice
+            ).sort((a, b) => b.marketPrice - a.marketPrice);
+
+            const titleHtml = `${sceneName}推薦 <div style="font-size:14px;font-weight:400;color:var(--text-gray);margin-top:4px;">市價 <b>$${minPrice.toLocaleString()} ~ $${maxPrice.toLocaleString()}</b>，適合 <b>${qty.toLocaleString()}</b> 份採購，實際批發價請加 LINE 詢問</div>`;
+            displayProducts(results, titleHtml);
         };
 
         window.calculateBudget = async function () {
