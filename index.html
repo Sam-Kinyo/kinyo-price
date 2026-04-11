@@ -590,10 +590,12 @@
                     if (d.status !== 'inactive') {
                         const driveKey = normalizeKey(d.mainModel || d.model);
                         const driveImg = driveImageMap[driveKey] || "";
+                        // imageUrl 必須是完整 URL 才有效，相對路徑視為無效
+                        const validImg = (d.imageUrl && d.imageUrl.startsWith('http')) ? d.imageUrl : '';
                         allProductsCache.push({
                             name: d.name || "", model: d.model || "",
                             mainModel: d.mainModel || "",
-                            imageUrl: d.imageUrl || driveImg || "",
+                            imageUrl: validImg || driveImg || "",
                             marketPrice: parseFloat(d.marketPrice) || 0
                         });
                     }
