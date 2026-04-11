@@ -2,16 +2,59 @@
 <html lang="zh-Hant">
 
 <head>
-    <!-- Google Ads 追蹤代碼 -->
+    <!-- Google Ads + GA4 追蹤 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17808239126"></script>
     <script>
         window.dataLayer = window.dataLayer || [];
         function gtag() { dataLayer.push(arguments); }
         gtag('js', new Date());
         gtag('config', 'AW-17808239126');
-        function trackLineConversion() {
-            console.log("已記錄 Google Ads 轉換: 客戶嘗試聯絡 (LINE/Email/電話)");
+        gtag('config', 'G-R0PWMZNSJH'); // GA4
+
+        // --- 轉換追蹤 ---
+        // TODO: 在 Google Ads 後台建立轉換動作後，把 YOUR_CONVERSION_LABEL 替換成真實標籤
+        var CONVERSION_LABEL = 'YOUR_CONVERSION_LABEL';
+
+        function trackConversion(action, label) {
+            // Google Ads 轉換
+            if (CONVERSION_LABEL !== 'YOUR_CONVERSION_LABEL') {
+                gtag('event', 'conversion', {
+                    'send_to': 'AW-17808239126/' + CONVERSION_LABEL,
+                    'event_callback': function() {}
+                });
+            }
+            // GA4 自訂事件（不管有沒有 Ads 標籤都會記錄）
+            gtag('event', action, {
+                'event_category': 'engagement',
+                'event_label': label || ''
+            });
         }
+
+        function trackLineConversion() { trackConversion('line_contact', 'LINE諮詢'); }
+        function trackEmailConversion() { trackConversion('email_contact', 'Email詢價'); }
+        function trackPhoneConversion() { trackConversion('phone_contact', '電話聯繫'); }
+        function trackSearchConversion(keyword) { trackConversion('product_search', keyword); }
+        function trackSceneConversion(scene) { trackConversion('scene_click', scene); }
+
+        // --- UTM / gclid 參數追蹤 ---
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var trackingParams = [];
+            ['gclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term'].forEach(function(key) {
+                var val = params.get(key);
+                if (val) trackingParams.push(key + '=' + encodeURIComponent(val));
+            });
+            if (trackingParams.length > 0) {
+                window._adTracking = trackingParams.join('&');
+                // 把追蹤參數附加到所有 LINE 連結
+                document.addEventListener('DOMContentLoaded', function() {
+                    document.querySelectorAll('a[href*="line.me"]').forEach(function(a) {
+                        // 存到 sessionStorage 讓 LINE 對話可追蹤來源
+                        sessionStorage.setItem('kinyo_ad_source', window._adTracking);
+                    });
+                });
+            }
+        })();
     </script>
 
     <meta charset="UTF-8">
@@ -22,7 +65,16 @@
         href="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg"
         type="image/jpeg">
 
-    <meta name="description" content="尋找高品質企業禮贈品？選擇 KINYO 原廠直營業務團隊，為您提供專屬的「24H 快速報價」與「免費效果圖設計」服務。全平台 2000+ 款精選 3C 與家電，皆享「原廠一年保固」。不論是尾牙抽獎、股東會紀念品，歡迎立即進行大量採購詢價，獲取最優惠的原廠底價！">
+    <meta name="description" content="KINYO 原廠直營企業採購，2000+ 款 3C 家電禮贈品，24H 專人報價，原廠一年保固。尾牙抽獎、股東會贈品、員工福利、客戶送禮，大量採購享原廠底價。">
+    <link rel="canonical" href="https://kinyo-gift.com/">
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kinyo-gift.com/">
+    <meta property="og:title" content="KINYO 企業採購｜原廠直營 2000+ 款禮贈品・24H 專人報價">
+    <meta property="og:description" content="尾牙抽獎、股東會贈品、員工福利一站搞定。原廠直營底價，一年保固，專人 LINE 即時服務。">
+    <meta property="og:image" content="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg&w=1200">
+    <meta property="og:locale" content="zh_TW">
+    <meta property="og:site_name" content="KINYO 企業採購中心">
 
     <script type="application/ld+json">
     {
@@ -41,6 +93,8 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
 
     <style>
@@ -413,31 +467,31 @@
 
             <div class="cta-group">
                 <a href="https://line.me/ti/p/qiHzrCaf_P" class="btn btn-accent" target="_blank" onclick="trackLineConversion()">索取採購報價</a>
-                <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-soft" onclick="trackLineConversion()">Email 洽詢</a>
+                <a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" class="btn btn-soft" onclick="trackEmailConversion()">Email 洽詢</a>
             </div>
         </div>
 
         <div class="hero-right">
             <div class="scene-grid">
-                <a class="scene-card" onclick="sceneSearch(1000, 2000, 50, '尾牙抽獎')">
+                <a class="scene-card" onclick="trackSceneConversion('尾牙抽獎'); sceneSearch(1000, 2000, 50, '尾牙抽獎')">
                     <div class="scene-icon">&#127878;</div>
                     <div class="scene-title">尾牙抽獎</div>
                     <div class="scene-desc">$1,000 - $2,000 / 50 份起</div>
                     <span class="scene-arrow">&rarr;</span>
                 </a>
-                <a class="scene-card" onclick="sceneSearch(100, 300, 1000, '股東會贈品')">
+                <a class="scene-card" onclick="trackSceneConversion('股東會贈品'); sceneSearch(100, 300, 1000, '股東會贈品')">
                     <div class="scene-icon">&#127941;</div>
                     <div class="scene-title">股東會贈品</div>
                     <div class="scene-desc">$100 - $300 / 1,000 份起</div>
                     <span class="scene-arrow">&rarr;</span>
                 </a>
-                <a class="scene-card" onclick="sceneSearch(400, 600, 100, '員工福利')">
+                <a class="scene-card" onclick="trackSceneConversion('員工福利'); sceneSearch(400, 600, 100, '員工福利')">
                     <div class="scene-icon">&#128188;</div>
                     <div class="scene-title">員工福利</div>
                     <div class="scene-desc">$500 左右 / 100 份起</div>
                     <span class="scene-arrow">&rarr;</span>
                 </a>
-                <a class="scene-card" onclick="sceneSearch(600, 1000, 100, '客戶送禮')">
+                <a class="scene-card" onclick="trackSceneConversion('客戶送禮'); sceneSearch(600, 1000, 100, '客戶送禮')">
                     <div class="scene-icon">&#127873;</div>
                     <div class="scene-title">客戶送禮</div>
                     <div class="scene-desc">$800 左右 / 100 份起</div>
@@ -552,8 +606,8 @@
             <div class="footer-col">
                 <h4>聯絡資訊</h4>
                 <p>聯絡人：KINYO - 郭庭豪</p>
-                <p>電話：0976-966-333</p>
-                <p>信箱：sam.kuo@kinyo.tw</p>
+                <p><a href="tel:0976966333" onclick="trackPhoneConversion()" style="color:#c4a98a; text-decoration:none;">電話：0976-966-333</a></p>
+                <p><a href="mailto:sam.kuo@kinyo.tw?subject=企業採購詢價" onclick="trackEmailConversion()" style="color:#c4a98a; text-decoration:none;">信箱：sam.kuo@kinyo.tw</a></p>
             </div>
         </div>
         <div class="copyright">&copy; 2025 KINYO Enterprise. All Rights Reserved.</div>
@@ -805,6 +859,7 @@
         window.performPublicSearch = async function () {
             const keyword = document.getElementById('publicSearchInput').value.trim().toLowerCase();
             if (!keyword) { alert("請輸入關鍵字"); return; }
+            trackSearchConversion(keyword);
             await ensureDataLoaded();
             const results = allProductsCache.filter(p =>
                 p.name.toLowerCase().includes(keyword) ||
