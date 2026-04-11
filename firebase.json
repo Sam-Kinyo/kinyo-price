@@ -14,5 +14,11 @@
       "**/node_modules/**",
       "functions/**"
     ]
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

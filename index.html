@@ -563,14 +563,10 @@
 
         async function ensureDataLoaded() {
             if (allProductsCache.length > 0) return;
-            try {
-                // 同時載入 Products 和 ProductImages
-                const [prodSnap, imgSnap] = await Promise.all([
-                    getDocs(query(collection(db, "Products"))),
-                    getDocs(query(collection(db, "ProductImages")))
-                ]);
 
-                // 建立 Drive 圖片 map
+            // 先嘗試載入 ProductImages（可能因權限失敗，不影響主流程）
+            try {
+                const imgSnap = await getDocs(query(collection(db, "ProductImages")));
                 imgSnap.forEach((d) => {
                     const data = d.data();
                     const key = normalizeKey(data.mainModel || d.id);
@@ -580,11 +576,14 @@
                         driveImageMap[key] = data.mainImage;
                     }
                 });
+            } catch (e) { console.warn("ProductImages load skipped:", e.message); }
 
+            // 載入 Products（主要資料）
+            try {
+                const prodSnap = await getDocs(query(collection(db, "Products")));
                 prodSnap.forEach((doc) => {
                     const d = doc.data();
                     if (d.status !== 'inactive') {
-                        // 嘗試從 driveImageMap 取得圖片作為 fallback
                         const driveKey = normalizeKey(d.mainModel || d.model);
                         const driveImg = driveImageMap[driveKey] || "";
                         allProductsCache.push({
@@ -595,7 +594,7 @@
                         });
                     }
                 });
-            } catch (e) { console.error("Data load failed:", e); }
+            } catch (e) { console.error("Products load failed:", e); }
         }
 
         async function loadHotProducts() {
