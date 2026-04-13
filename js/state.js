@@ -19,9 +19,10 @@ export const state = {
   hasCheckedItems: false,
 
   // Import state
-  currentImportMode: "",       // 'inventory' or 'product'
+  currentImportMode: "",       // 'inventory' | 'product' | 'deadstock' | 'welfare'
   pendingInventoryMap: new Map(),
   pendingProductData: [],      // Array of { action, data, id? }
+  pendingSiteListItems: [],    // Deadstock/Welfare items to save to SiteConfig
 
   // Drive maps
   driveMap: new Map(),

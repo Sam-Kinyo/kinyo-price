@@ -1,7 +1,7 @@
 /* =======================================================
-   匯入模組 (Import: 產品總表 + 庫存)
+   匯入模組 (Import: 產品總表 + 庫存 + 呆滯品 + 福利品)
 ======================================================= */
-import { collection, doc, writeBatch } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
+import { collection, doc, writeBatch, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { db } from './firebase-init.js';
 import { state } from './state.js';
 import { getDocsWithRetry } from './data.js';
@@ -260,6 +260,139 @@ export async function saveProductDataToFirestore(actions) {
     } finally {
         importProductBtn.disabled = false;
         importProductBtn.textContent = "📥 匯入產品總表 (同步上下架)";
+    }
+}
+
+/* 呆滯品 / 福利品匯入解析
+   Excel 欄位：型號, 特價(或 出清價 / 福利價), 備註(選填), 狀態(選填)
+*/
+export function setupSiteListUpload(kind) {
+    // kind: 'deadstock' | 'welfare'
+    const inputId = kind === 'deadstock' ? 'deadStockUpload' : 'welfareUpload';
+    const input = document.getElementById(inputId);
+    if (!input) return;
+
+    const LABEL = kind === 'deadstock' ? '呆滯品' : '福利品';
+
+    input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        state.currentImportMode = kind;
+
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            try {
+                const workbook = XLSX.read(evt.target.result, { type: 'binary' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                let hModel = -1, hPrice = -1, hNote = -1, hStatus = -1;
+                // 在前 5 列掃標題
+                outer: for (let r = 0; r < Math.min(rows.length, 5); r++) {
+                    const row = rows[r] || [];
+                    for (let c = 0; c < row.length; c++) {
+                        const cell = String(row[c] || '').trim().toLowerCase();
+                        if (cell === 'model' || cell === '型號' || cell === '產品') hModel = c;
+                        if (cell.includes('特價') || cell.includes('出清價') || cell.includes('福利價') || cell.includes('專案價') || cell === 'price' || cell === 'specialprice') hPrice = c;
+                        if (cell.includes('備註') || cell.includes('note') || cell.includes('說明')) hNote = c;
+                        if (cell.includes('狀態') || cell === 'status') hStatus = c;
+                    }
+                    if (hModel !== -1 && hPrice !== -1) break outer;
+                }
+
+                if (hModel === -1 || hPrice === -1) {
+                    alert(`⚠️ 找不到必要欄位。請確認 Excel 第一列包含「型號」和「特價」（或「出清價」/「福利價」）兩欄。`);
+                    return;
+                }
+
+                const items = [];
+                rows.forEach((row, idx) => {
+                    if (idx === 0) return; // 跳過表頭
+                    const model = String(row[hModel] || '').trim();
+                    if (!model || model === '型號' || model.toLowerCase() === 'model') return;
+
+                    const priceRaw = row[hPrice];
+                    const specialPrice = parseInt(priceRaw, 10);
+                    if (!specialPrice || specialPrice <= 0) return;
+
+                    const note = hNote !== -1 ? String(row[hNote] || '').trim() : '';
+                    const statusRaw = hStatus !== -1 ? String(row[hStatus] || '').trim().toLowerCase() : '';
+                    const isInactive = ['下架', '停售', 'inactive', 'off', 'n', '0'].includes(statusRaw);
+
+                    if (isInactive) return; // 下架品跳過
+
+                    items.push({ model, specialPrice, note });
+                });
+
+                // 顯示預覽
+                const previewHeader = document.getElementById('previewHeader');
+                const previewContent = document.getElementById('previewContent');
+                const previewOverlay = document.getElementById('previewOverlay');
+
+                previewHeader.textContent = `${LABEL}匯入預覽 (將覆寫整份清單)`;
+                const tableRows = items.map((it, i) => `
+                    <tr>
+                        <td style="padding:6px 10px; border-bottom:1px solid #eee;">${i + 1}</td>
+                        <td style="padding:6px 10px; border-bottom:1px solid #eee;"><b>${it.model}</b></td>
+                        <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#dc2626; font-weight:bold;">$${it.specialPrice.toLocaleString()}</td>
+                        <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#666;">${it.note || '—'}</td>
+                    </tr>
+                `).join('');
+
+                previewContent.innerHTML = `
+                    <div style="padding:16px;">
+                        <h3 style="color:#2563eb; margin:0 0 8px;">已解析 ${items.length} 筆${LABEL}</h3>
+                        <p style="color:#666; font-size:13px; margin:0 0 12px;">
+                            ⚠️ 確認後將<b>覆寫整份${LABEL}清單</b>（不是追加）。網站會讀取此清單顯示商品。
+                        </p>
+                        <div style="max-height:420px; overflow-y:auto; border:1px solid #e5e5e5; border-radius:8px;">
+                            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                                <thead style="background:#f9fafb; position:sticky; top:0;">
+                                    <tr>
+                                        <th style="padding:8px 10px; text-align:left;">#</th>
+                                        <th style="padding:8px 10px; text-align:left;">型號</th>
+                                        <th style="padding:8px 10px; text-align:left;">${kind === 'deadstock' ? '出清價' : '福利價'}</th>
+                                        <th style="padding:8px 10px; text-align:left;">備註</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRows || '<tr><td colspan="4" style="padding:20px; text-align:center; color:#999;">無資料</td></tr>'}</tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+
+                state.pendingSiteListItems = items;
+                previewOverlay.style.display = 'flex';
+
+            } catch (err) {
+                console.error(err);
+                alert('檔案讀取失敗，請檢查 Excel 格式');
+            }
+        };
+        reader.readAsBinaryString(file);
+    };
+}
+
+export async function saveSiteListToFirestore(kind, items) {
+    const btnId = kind === 'deadstock' ? 'importDeadStockBtn' : 'importWelfareBtn';
+    const docId = kind === 'deadstock' ? 'deadStockList' : 'welfareList';
+    const LABEL = kind === 'deadstock' ? '呆滯品' : '福利品';
+    const btn = document.getElementById(btnId);
+    if (btn) btn.disabled = true;
+
+    try {
+        await setDoc(doc(db, 'SiteConfig', docId), {
+            items,
+            updatedAt: serverTimestamp(),
+            updatedBy: state.currentUserEmail || 'unknown'
+        }, { merge: false });
+
+        alert(`${LABEL}清單已成功更新！\n共 ${items.length} 筆商品。\n網站會自動顯示最新清單。`);
+    } catch (e) {
+        console.error('save site list failed', e);
+        alert(`${LABEL}寫入失敗，請檢查 Console`);
+    } finally {
+        if (btn) btn.disabled = false;
     }
 }
 

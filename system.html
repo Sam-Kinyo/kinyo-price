@@ -110,6 +110,8 @@
 
 <!-- Hidden File Inputs -->
 <input type="file" id="productUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+<input type="file" id="deadStockUpload" accept=".csv, .xlsx, .xls" style="display:none" />
+<input type="file" id="welfareUpload" accept=".csv, .xlsx, .xls" style="display:none" />
 
 <div class="toolbar">
   <!-- L4-only: Level Switch -->
@@ -156,6 +158,8 @@
         <div class="options-dropdown-btns">
           <button id="quoteToolbarBtn" class="dropdown-action-btn" style="display:none;">📋 報價單</button>
           <button id="importProductBtn" class="dropdown-action-btn" style="display:none; color:#2563eb; border-color:#2563eb; background:#eff6ff; font-weight:bold;">📥 匯入產品</button>
+          <button id="importDeadStockBtn" class="dropdown-action-btn" style="display:none; color:#dc2626; border-color:#dc2626; background:#fef2f2; font-weight:bold;">🏷️ 匯入呆滯品</button>
+          <button id="importWelfareBtn" class="dropdown-action-btn" style="display:none; color:#16a34a; border-color:#16a34a; background:#f0fdf4; font-weight:bold;">💚 匯入福利品</button>
           <button id="toggleAdvancedL4Btn" class="dropdown-action-btn" style="display:none; color:#16a34a; border-color:#16a34a;">⚙️ 進階 L4</button>
         </div>
         <div id="advancedL4Group" style="display:none; margin-top:8px; gap:8px; flex-wrap:wrap;">
@@ -218,6 +222,6 @@
 </button>
 
 <!-- 拆分後的 JS 模組 (單一入口) -->
-<script type="module" src="js/app.js?v=20260409a"></script>
+<script type="module" src="js/app.js?v=20260413a"></script>
 </body>
 </html>

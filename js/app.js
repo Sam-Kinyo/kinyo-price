@@ -3,15 +3,15 @@
    所有模組在此整合
 ======================================================= */
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { db } from './firebase-init.js';
-import { state } from './state.js';
-import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js';
-import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js';
-import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js';
-import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js';
-import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js';
-import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore } from './import.js';
-import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js';
+import { db } from './firebase-init.js?v=b';
+import { state } from './state.js?v=b';
+import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js?v=b';
+import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js?v=b';
+import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js?v=b';
+import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js?v=b';
+import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js?v=b';
+import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore, setupSiteListUpload, saveSiteListToFirestore } from './import.js?v=b';
+import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js?v=b';
 
 /* =======================================================
    DOM References
@@ -25,6 +25,10 @@ const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
 const clearBtn        = document.getElementById("clearBtn");
 const importProductBtn = document.getElementById("importProductBtn");
 const productUpload   = document.getElementById("productUpload");
+const importDeadStockBtn = document.getElementById("importDeadStockBtn");
+const deadStockUpload = document.getElementById("deadStockUpload");
+const importWelfareBtn = document.getElementById("importWelfareBtn");
+const welfareUpload = document.getElementById("welfareUpload");
 
 const sheetCloseBtn   = document.getElementById("sheetCloseBtn");
 const quoteCloseBtn   = document.getElementById("quoteCloseBtn");
@@ -99,6 +103,24 @@ if(importProductBtn) {
 }
 setupProductUpload();
 
+// 匯入呆滯品
+if (importDeadStockBtn) {
+    importDeadStockBtn.onclick = () => {
+        deadStockUpload.value = '';
+        deadStockUpload.click();
+    };
+}
+setupSiteListUpload('deadstock');
+
+// 匯入福利品
+if (importWelfareBtn) {
+    importWelfareBtn.onclick = () => {
+        welfareUpload.value = '';
+        welfareUpload.click();
+    };
+}
+setupSiteListUpload('welfare');
+
 // 大數據匯出
 const exportHistoryBtn = document.getElementById("exportHistoryBtn");
 if(exportHistoryBtn) {
@@ -145,12 +167,24 @@ if(cancelImportBtn) {
         previewOverlay.style.display = "none";
         state.pendingInventoryMap.clear();
         state.pendingProductData = [];
-        productUpload.value = '';
+        state.pendingSiteListItems = [];
+        if (productUpload) productUpload.value = '';
+        if (deadStockUpload) deadStockUpload.value = '';
+        if (welfareUpload) welfareUpload.value = '';
     };
 }
 
 if(confirmImportBtn) {
     confirmImportBtn.onclick = () => {
+        if (state.currentImportMode === 'deadstock' || state.currentImportMode === 'welfare') {
+            if (!state.pendingSiteListItems || state.pendingSiteListItems.length === 0) return;
+            const kind = state.currentImportMode;
+            const items = state.pendingSiteListItems;
+            previewOverlay.style.display = 'none';
+            saveSiteListToFirestore(kind, items);
+            state.pendingSiteListItems = [];
+            return;
+        }
         if(state.currentImportMode === 'inventory') {
             if(state.pendingInventoryMap.size === 0) return;
             previewOverlay.style.display = "none";

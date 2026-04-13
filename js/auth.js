@@ -3,24 +3,30 @@
 ======================================================= */
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, signInWithCustomToken, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { db, auth } from './firebase-init.js';
-import { state } from './state.js';
-import { setupQtySelectByLevel } from './search.js';
-import { updateUserDisplay, searchProducts } from './search.js';
-import { preloadDriveModelData, preloadProducts } from './data.js';
+import { db, auth } from './firebase-init.js?v=b';
+import { state } from './state.js?v=b';
+import { setupQtySelectByLevel } from './search.js?v=b';
+import { updateUserDisplay, searchProducts } from './search.js?v=b';
+import { preloadDriveModelData, preloadProducts } from './data.js?v=b';
 
 /* 權限更新 */
 export function updatePermissions() {
     const importProductBtn = document.getElementById("importProductBtn");
+    const importDeadStockBtn = document.getElementById("importDeadStockBtn");
+    const importWelfareBtn = document.getElementById("importWelfareBtn");
     const toggleBtn = document.getElementById("toggleAdvancedL4Btn");
     const advancedGroup = document.getElementById("advancedL4Group");
     const stockFilter = document.getElementById("stockFilter");
 
     if (state.userLevel >= 4) {
-        if(importProductBtn) importProductBtn.style.display = 'inline-block'; 
-        if(toggleBtn) toggleBtn.style.display = 'inline-block'; 
+        if(importProductBtn) importProductBtn.style.display = 'inline-block';
+        if(importDeadStockBtn) importDeadStockBtn.style.display = 'inline-block';
+        if(importWelfareBtn) importWelfareBtn.style.display = 'inline-block';
+        if(toggleBtn) toggleBtn.style.display = 'inline-block';
     } else {
-        if(importProductBtn) importProductBtn.style.display = 'none'; 
+        if(importProductBtn) importProductBtn.style.display = 'none';
+        if(importDeadStockBtn) importDeadStockBtn.style.display = 'none';
+        if(importWelfareBtn) importWelfareBtn.style.display = 'none';
         if(toggleBtn) toggleBtn.style.display = 'none';
         if(advancedGroup) advancedGroup.style.display = 'none';
     }
