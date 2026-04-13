@@ -45,14 +45,13 @@ export function saveCache(data) {
 /* Drive 預載 */
 export async function preloadDriveModelData() {
   try {
-    const res = await fetch(`./modelData.json?v=${Date.now()}`, { cache: "no-store" });
-    if (!res.ok) throw new Error("modelData.json 讀取失敗");
-    const data = await res.json();
+    const snap = await getDocsWithRetry(collection(db, "ProductImages"));
 
     state.driveMap.clear(); state.netMap.clear(); state.netImagesMap.clear(); state.mainFolderMap.clear();
 
-    (data.models || []).forEach(m => {
-      const rawKey = String(m.mainModel || m.model || "").trim();
+    snap.forEach(docSnap => {
+      const m = docSnap.data();
+      const rawKey = String(m.mainModel || m.model || docSnap.id || "").trim();
       if (!rawKey) return;
       const key = normalizeKey(rawKey);
 
@@ -204,8 +203,8 @@ export async function preloadProducts() {
     updateCategoryOptions(); 
 
   } catch (e) {
-    console.error(e);
-    alert("商品資料載入失敗");
+    console.error("下載錯誤詳情:", e);
+    alert("商品資料載入失敗: " + (e.message || "未知錯誤"));
   }
   
   hideLoading();

@@ -3,15 +3,15 @@
    所有模組在此整合
 ======================================================= */
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { db } from './firebase-init.js?v=b';
-import { state } from './state.js?v=b';
-import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js?v=b';
-import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js?v=b';
-import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js?v=b';
-import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js?v=b';
-import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js?v=b';
-import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore, setupSiteListUpload, saveSiteListToFirestore } from './import.js?v=b';
-import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js?v=b';
+import { db } from './firebase-init.js?v=c';
+import { state } from './state.js?v=c';
+import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js?v=c';
+import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js?v=c';
+import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js?v=c';
+import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js?v=c';
+import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js?v=c';
+import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore, setupSiteListUpload, saveSiteListToFirestore } from './import.js?v=c';
+import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js?v=c';
 
 /* =======================================================
    DOM References
