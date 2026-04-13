@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <title>KINYO 查價系統（V8.0 串接LINE BOT）</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" type="image/jpeg">
 
 <!-- PptxGenJS for PPT export & XLSX for Excel -->
 <script src="https://unpkg.com/pptxgenjs@3.10.0/dist/pptxgen.bundle.js"></script>
@@ -19,9 +20,11 @@
   <div class="login-card">
     <h2>KINYO 查價系統</h2>
     <p style="color:#666;margin-bottom:20px;">請輸入帳號密碼登入</p>
-    <input type="email" id="loginEmail" class="login-input" placeholder="電子信箱">
-    <input type="password" id="loginPassword" class="login-input" placeholder="密碼">
-    <button id="doLoginBtn" class="login-btn">登入</button>
+    <form id="loginForm" onsubmit="return false;" autocomplete="on">
+      <input type="email" id="loginEmail" class="login-input" placeholder="電子信箱" autocomplete="username">
+      <input type="password" id="loginPassword" class="login-input" placeholder="密碼" autocomplete="current-password">
+      <button type="submit" id="doLoginBtn" class="login-btn">登入</button>
+    </form>
     <div id="loginError" class="login-error"></div>
   </div>
 </div>
