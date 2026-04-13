@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <!-- Google Ads + GA4 追蹤 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-17808239126"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
+        gtag('config', 'AW-17808239126');
+        gtag('config', 'G-R0PWMZNSJH');
+        var CONVERSION_LABEL = 'r4pUCJS-iJocEJbU0KtC';
+        function trackConversion(action, label) {
+            if (CONVERSION_LABEL !== 'YOUR_CONVERSION_LABEL') {
+                gtag('event', 'conversion', { 'send_to': 'AW-17808239126/' + CONVERSION_LABEL, 'event_callback': function(){} });
+            }
+            gtag('event', action, { 'event_category': 'engagement', 'event_label': label || '' });
+        }
+        function trackLineConversion() { trackConversion('line_contact', 'LINE諮詢_福利品'); }
+        function trackCartAdd(model) { trackConversion('add_to_cart', model); }
+        function trackCheckout() { trackConversion('begin_checkout', '福利品結帳'); }
+        function trackPurchase(orderId, total) { trackConversion('purchase', orderId); }
+
+        // UTM / gclid
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var tp = [];
+            ['gclid','utm_source','utm_medium','utm_campaign','utm_term'].forEach(function(k) {
+                var v = params.get(k); if (v) tp.push(k + '=' + encodeURIComponent(v));
+            });
+            if (tp.length > 0) {
+                window._adTracking = tp.join('&');
+                sessionStorage.setItem('kinyo_ad_source', window._adTracking);
+            }
+        })();
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KINYO 福利品專區｜超值優惠・企業福利採購首選</title>
+    <link rel="icon" href="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" type="image/jpeg">
+    <meta name="description" content="KINYO 福利品專區，品質保證超值優惠！適合企業福利、員工禮品、大量採購，享受原廠保固服務。">
+    <link rel="canonical" href="https://kinyo-gift.com/welfare">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://kinyo-gift.com/welfare">
+    <meta property="og:title" content="KINYO 福利品專區｜超值優惠">
+    <meta property="og:description" content="品質保證超值優惠，企業福利採購首選！">
+    <meta property="og:image" content="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg&w=1200">
+    <meta property="og:locale" content="zh_TW">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { opacity: 0; transition: opacity 0.4s; }
+        @keyframes fadeInUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slideInRight { from { transform:translateX(100%); } to { transform:translateX(0); } }
+        @keyframes slideOutRight { from { transform:translateX(0); } to { transform:translateX(100%); } }
+        @keyframes pulse { 0%,100% { transform:scale(1); } 50% { transform:scale(1.1); } }
+        .fade-in-up { animation: fadeInUp 0.5s ease-out forwards; }
+    </style>
+</head>
+
+<body class="bg-white text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback, useRef, useMemo } = React;
+
+        // ====== CONFIG ======
+        const PAGE_CONFIG = {
+            type: 'welfare',
+            configDocId: 'welfareList',
+            title: '福利品專區',
+            subtitle: '超值優惠',
+            heroDescription: '品質保證・企業福利採購首選・原廠保固服務',
+            heroBg: 'from-emerald-600 via-teal-500 to-cyan-500',
+            heroBgAlt: 'from-emerald-700 to-teal-600',
+            accentColor: 'emerald',
+            badgeText: '福利優惠',
+            priceLabel: '福利價',
+            ctaText: '立即選購',
+            emptyText: '目前沒有福利品，請稍後再來！',
+        };
+
+        // ====== FIREBASE CONFIG ======
+        const FIREBASE_CONFIG = {
+            apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+            authDomain: "kinyo-price.firebaseapp.com",
+            projectId: "kinyo-price",
+            storageBucket: "kinyo-price.firebasestorage.app",
+            messagingSenderId: "122464645678",
+            appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf",
+            measurementId: "G-R0PWMZNSJH"
+        };
+
+        const CART_STORAGE_KEY = 'KINYO_CART';
+        const LINE_URL = 'https://line.me/ti/p/qiHzrCaf_P';
+
+        // ====== ICONS ======
+        const Icon = ({d, size=20, cls=""}) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={cls}>{typeof d === 'string' ? <path d={d}/> : d}</svg>
+        );
+        const CartIcon = (p) => <Icon {...p} d={<><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></>}/>;
+        const XIcon = (p) => <Icon {...p} d={<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>}/>;
+        const PlusIcon = (p) => <Icon {...p} d="M5 12h14M12 5v14"/>;
+        const MinusIcon = (p) => <Icon {...p} d="M5 12h14"/>;
+        const TrashIcon = (p) => <Icon {...p} d={<><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></>}/>;
+        const UserIcon = (p) => <Icon {...p} d={<><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>}/>;
+        const CheckIcon = (p) => <Icon {...p} d={<><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></>}/>;
+        const LogOutIcon = (p) => <Icon {...p} d={<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></>}/>;
+        const ShoppingBag = (p) => <Icon {...p} d={<><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></>}/>;
+
+        // ====== CART HELPERS ======
+        function loadCart() {
+            try { return JSON.parse(localStorage.getItem(CART_STORAGE_KEY)) || []; }
+            catch { return []; }
+        }
+        function saveCart(cart) { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); }
+
+        // ====== FIREBASE INIT (lazy) ======
+        let _fb = null;
+        async function getFirebase() {
+            if (_fb) return _fb;
+            const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js");
+            const fs = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
+            const auth = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js");
+            const app = initializeApp(FIREBASE_CONFIG);
+            _fb = { app, db: fs.getFirestore(app), auth: auth.getAuth(app), fs, authMod: auth };
+            return _fb;
+        }
+
+        // ====== PRODUCT DATA LOADER ======
+        let _productsCache = null;
+        async function loadAllProducts() {
+            if (_productsCache) return _productsCache;
+            const { db, fs } = await getFirebase();
+            const cache = [];
+            const driveMap = {};
+
+            try {
+                const imgSnap = await fs.getDocs(fs.query(fs.collection(db, "ProductImages")));
+                imgSnap.forEach((d) => {
+                    const data = d.data();
+                    const key = normalizeKey(data.mainModel || d.id);
+                    if (data.netImages && data.netImages.length > 0 && data.netImages[0]) driveMap[key] = data.netImages[0];
+                    else if (data.mainImage) driveMap[key] = data.mainImage;
+                });
+            } catch (e) { console.warn("ProductImages skipped:", e.message); }
+
+            try {
+                const prodSnap = await fs.getDocs(fs.query(fs.collection(db, "Products")));
+                prodSnap.forEach((doc) => {
+                    const d = doc.data();
+                    if (d.status !== 'inactive') {
+                        const driveKey = normalizeKey(d.mainModel || d.model);
+                        const driveImg = driveMap[driveKey] || "";
+                        const validImg = (d.imageUrl && d.imageUrl.startsWith('http')) ? d.imageUrl : '';
+                        cache.push({
+                            name: d.name || "", model: d.model || "",
+                            mainModel: d.mainModel || "",
+                            imageUrl: validImg || driveImg || "",
+                            marketPrice: parseFloat(d.marketPrice) || 0,
+                            inventory: parseInt(d.inventory) || 0
+                        });
+                    }
+                });
+            } catch (e) { console.error("Products load failed:", e); }
+
+            _productsCache = cache;
+            return cache;
+        }
+
+        function normalizeKey(key) {
+            if (!key) return "";
+            let base = key.split('.')[0].split('_')[0].split(' ')[0].toUpperCase();
+            if (base.startsWith("WV-")) { let m = base.match(/^(WV-[A-Z0-9]+)/); return m ? m[1] : base; }
+            base = base.replace(/-/g, '');
+            let m = base.match(/^([A-Z]+)(\d+)([A-Z]*)$/);
+            if (m) return m[1] + m[2];
+            return base;
+        }
+
+        function findProduct(allProducts, model) {
+            const targetNorm = normalizeKey(model || '');
+            const target = (model || '').toLowerCase().replace(/[-_]/g, '');
+            return allProducts.find(p => {
+                const pn1 = normalizeKey(p.model || '');
+                const pn2 = normalizeKey(p.mainModel || '');
+                if (pn1 && pn1 === targetNorm) return true;
+                if (pn2 && pn2 === targetNorm) return true;
+                const m1 = (p.model || '').toLowerCase().replace(/[-_]/g, '');
+                const m2 = (p.mainModel || '').toLowerCase().replace(/[-_]/g, '');
+                return m1 === target || m2 === target || m1.startsWith(target) || m2.startsWith(target);
+            });
+        }
+
+        function getImageUrl(product) {
+            if (!product || !product.imageUrl || !product.imageUrl.startsWith('http'))
+                return 'https://placehold.co/400x400/f1f5f9/94a3b8?text=No+Image';
+            return `https://images.weserv.nl/?url=${encodeURIComponent(product.imageUrl)}&w=400&output=webp`;
+        }
+
+        // ====== TOAST ======
+        const Toast = ({ message, type, onClose }) => {
+            useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, []);
+            const bg = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-slate-700';
+            return (
+                <div className={`fixed top-20 right-4 z-[9999] ${bg} text-white px-5 py-3 rounded-lg shadow-lg text-sm font-medium fade-in-up`}>
+                    {message}
+                </div>
+            );
+        };
+
+        // ====== NAVBAR ======
+        const Navbar = ({ cartCount, onCartClick, user, onAuthClick, onLogout }) => (
+            <nav className="flex justify-between items-center px-[4%] h-[68px] bg-white sticky top-0 z-[999] border-b border-[#e8ddd0]" style={{fontFamily:"'Inter','Noto Sans TC',sans-serif"}}>
+                <a href="index.html">
+                    <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO" className="h-[38px]" />
+                </a>
+                <div className="flex items-center gap-2">
+                    <a href="deadstock.html" className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg border border-red-500 text-red-500 hover:bg-red-50 transition no-underline whitespace-nowrap">呆滯品出清</a>
+                    <a href="welfare.html" className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg border border-emerald-600 text-emerald-600 hover:bg-emerald-50 transition no-underline whitespace-nowrap">福利品專區</a>
+                    {user ? (
+                        <button onClick={onLogout} className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg border border-slate-300 text-slate-500 hover:border-slate-400 transition" title={user.email}>
+                            <LogOutIcon size={14}/> 登出
+                        </button>
+                    ) : (
+                        <button onClick={onAuthClick} className="inline-flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg border border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-emerald-600 transition">
+                            <UserIcon size={14}/> <span className="hidden sm:inline">登入/註冊</span><span className="sm:hidden">登入</span>
+                        </button>
+                    )}
+                    <button onClick={onCartClick} className="relative inline-flex items-center gap-1 text-xs font-medium px-3 py-2 rounded-lg bg-emerald-500 text-white hover:bg-emerald-600 transition">
+                        <CartIcon size={16}/>
+                        <span className="hidden sm:inline">購物車</span>
+                        {cartCount > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 bg-amber-400 text-slate-900 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center" style={{animation:'pulse 2s infinite'}}>{cartCount}</span>
+                        )}
+                    </button>
+                </div>
+            </nav>
+        );
+
+        // ====== AUTH MODAL ======
+        const AuthModal = ({ open, onClose, onLogin }) => {
+            const [tab, setTab] = useState('login');
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [name, setName] = useState('');
+            const [phone, setPhone] = useState('');
+            const [company, setCompany] = useState('');
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            if (!open) return null;
+
+            const handleLogin = async (e) => {
+                e.preventDefault();
+                setLoading(true); setError('');
+                try {
+                    const { authMod, auth } = await getFirebase();
+                    await authMod.setPersistence(auth, authMod.browserLocalPersistence);
+                    const cred = await authMod.signInWithEmailAndPassword(auth, email, password);
+                    onLogin(cred.user);
+                    onClose();
+                } catch (err) {
+                    setError(err.code === 'auth/invalid-credential' ? '帳號或密碼錯誤' : err.code === 'auth/user-not-found' ? '此帳號不存在' : '登入失敗：' + err.message);
+                }
+                setLoading(false);
+            };
+
+            const handleRegister = async (e) => {
+                e.preventDefault();
+                if (!name.trim() || !phone.trim()) { setError('請填寫姓名和電話'); return; }
+                setLoading(true); setError('');
+                try {
+                    const { authMod, auth, db, fs } = await getFirebase();
+                    await authMod.setPersistence(auth, authMod.browserLocalPersistence);
+                    const cred = await authMod.createUserWithEmailAndPassword(auth, email, password);
+                    await fs.setDoc(fs.doc(db, "Customers", cred.user.uid), {
+                        email, name: name.trim(), phone: phone.trim(),
+                        company: company.trim(), address: '',
+                        createdAt: new Date().toISOString()
+                    });
+                    onLogin(cred.user);
+                    onClose();
+                } catch (err) {
+                    setError(err.code === 'auth/email-already-in-use' ? '此 Email 已註冊，請直接登入' : err.code === 'auth/weak-password' ? '密碼至少需要 6 個字元' : '註冊失敗：' + err.message);
+                }
+                setLoading(false);
+            };
+
+            return (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+                    <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl fade-in-up" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between p-5 border-b">
+                            <h3 className="text-lg font-bold">{tab === 'login' ? '會員登入' : '註冊會員'}</h3>
+                            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg"><XIcon size={20}/></button>
+                        </div>
+                        <div className="flex border-b">
+                            <button onClick={() => {setTab('login');setError('');}} className={`flex-1 py-3 text-sm font-medium transition ${tab==='login' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-400'}`}>登入</button>
+                            <button onClick={() => {setTab('register');setError('');}} className={`flex-1 py-3 text-sm font-medium transition ${tab==='register' ? 'text-emerald-500 border-b-2 border-emerald-500' : 'text-slate-400'}`}>註冊</button>
+                        </div>
+                        <form onSubmit={tab === 'login' ? handleLogin : handleRegister} className="p-5 space-y-4">
+                            {error && <div className="text-red-500 text-sm bg-red-50 p-3 rounded-lg">{error}</div>}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                                <input type="email" required value={email} onChange={e=>setEmail(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none" placeholder="your@email.com"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">密碼</label>
+                                <input type="password" required minLength={6} value={password} onChange={e=>setPassword(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none" placeholder="至少 6 個字元"/>
+                            </div>
+                            {tab === 'register' && <>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">姓名 <span className="text-red-500">*</span></label>
+                                    <input type="text" required value={name} onChange={e=>setName(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none" placeholder="您的姓名"/>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">電話 <span className="text-red-500">*</span></label>
+                                    <input type="tel" required value={phone} onChange={e=>setPhone(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none" placeholder="0912-345-678"/>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">公司名稱（選填）</label>
+                                    <input type="text" value={company} onChange={e=>setCompany(e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none" placeholder="您的公司"/>
+                                </div>
+                            </>}
+                            <button type="submit" disabled={loading} className="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg transition disabled:opacity-50">
+                                {loading ? '處理中...' : tab === 'login' ? '登入' : '註冊'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // ====== HERO BANNER ======
+        const HeroBanner = () => (
+            <section className={`bg-gradient-to-r ${PAGE_CONFIG.heroBg} text-white py-16 sm:py-24 px-6`}>
+                <div className="max-w-4xl mx-auto text-center">
+                    <span className="inline-block bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-4 py-1.5 rounded-full mb-6 tracking-wide">{PAGE_CONFIG.badgeText}</span>
+                    <h1 className="text-3xl sm:text-5xl font-black mb-4 leading-tight">{PAGE_CONFIG.title}<br/><span className="text-emerald-200">{PAGE_CONFIG.subtitle}</span></h1>
+                    <p className="text-base sm:text-lg text-white/80 mb-8 max-w-2xl mx-auto">{PAGE_CONFIG.heroDescription}</p>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                        <a href="#products" className="inline-flex items-center gap-2 bg-white text-emerald-600 font-bold px-8 py-3 rounded-full hover:bg-emerald-50 transition text-sm sm:text-base no-underline">
+                            <ShoppingBag size={18}/> {PAGE_CONFIG.ctaText}
+                        </a>
+                        <a href={LINE_URL} target="_blank" onClick={() => trackLineConversion()} className="inline-flex items-center gap-2 bg-green-500 text-white font-bold px-8 py-3 rounded-full hover:bg-green-600 transition text-sm sm:text-base no-underline">
+                            LINE 專人諮詢
+                        </a>
+                    </div>
+                </div>
+            </section>
+        );
+
+        // ====== PRODUCT CARD ======
+        const ProductCard = ({ item, product, onAddToCart }) => {
+            const [qty, setQty] = useState(1);
+            const imgUrl = getImageUrl(product);
+            const marketPrice = product ? product.marketPrice : 0;
+            const specialPrice = item.specialPrice || 0;
+            const discount = marketPrice > 0 ? Math.round((1 - specialPrice / marketPrice) * 100) : 0;
+            const displayName = product ? product.name : item.model;
+            const displayModel = product ? product.model : item.model;
+
+            const handleAdd = () => {
+                onAddToCart({ model: displayModel, name: displayName, specialPrice, marketPrice, imageUrl: product?.imageUrl || '', quantity: qty, note: item.note || '', source: PAGE_CONFIG.type });
+                trackCartAdd(displayModel);
+                setQty(1);
+            };
+
+            return (
+                <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative">
+                    {discount > 0 && (
+                        <div className="absolute top-3 right-3 bg-emerald-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg z-10">-{discount}%</div>
+                    )}
+                    <div className="aspect-square bg-slate-50 overflow-hidden">
+                        <img src={imgUrl} alt={displayName} loading="lazy" className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500"/>
+                    </div>
+                    <div className="p-4">
+                        <div className="text-[11px] text-slate-400 font-medium mb-1">{displayModel}</div>
+                        <div className="text-sm font-bold text-slate-800 mb-1 line-clamp-2 min-h-[2.5rem]">{displayName}</div>
+                        {item.note && <div className="text-[11px] text-emerald-600 bg-emerald-50 inline-block px-2 py-0.5 rounded-full mb-2">{item.note}</div>}
+                        <div className="flex items-baseline gap-2 mb-3">
+                            {marketPrice > 0 && <span className="text-xs text-slate-400 line-through">市價 ${marketPrice.toLocaleString()}</span>}
+                            <span className="text-xl font-black text-emerald-600">${specialPrice.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <button onClick={() => setQty(Math.max(1, qty-1))} className="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 transition"><MinusIcon size={14}/></button>
+                            <span className="w-10 text-center text-sm font-bold">{qty}</span>
+                            <button onClick={() => setQty(qty+1)} className="w-8 h-8 flex items-center justify-center border border-slate-200 rounded-lg hover:bg-slate-50 transition"><PlusIcon size={14}/></button>
+                        </div>
+                        <button onClick={handleAdd} className="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-lg transition flex items-center justify-center gap-1.5">
+                            <CartIcon size={15}/> 加入購物車
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ====== PRODUCT GRID ======
+        const ProductGrid = ({ items, products, onAddToCart, loading }) => (
+            <section id="products" className="py-12 sm:py-16 px-4 sm:px-6 bg-slate-50">
+                <div className="max-w-6xl mx-auto">
+                    <h2 className="text-2xl sm:text-3xl font-black text-center mb-2">{PAGE_CONFIG.badgeText}商品</h2>
+                    <p className="text-slate-500 text-center mb-10 text-sm">品質保證・超值優惠・企業福利首選</p>
+                    {loading ? (
+                        <div className="text-center py-20 text-slate-400">
+                            <div className="inline-block w-8 h-8 border-4 border-slate-200 border-t-emerald-500 rounded-full animate-spin mb-3"></div>
+                            <p>載入商品中...</p>
+                        </div>
+                    ) : items.length === 0 ? (
+                        <div className="text-center py-20 text-slate-400">
+                            <ShoppingBag size={48} cls="mx-auto mb-3 text-slate-300"/>
+                            <p>{PAGE_CONFIG.emptyText}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+                            {items.map((item, i) => (
+                                <ProductCard key={item.model + i} item={item} product={findProduct(products, item.model)} onAddToCart={onAddToCart}/>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </section>
+        );
+
+        // ====== CART DRAWER ======
+        const CartDrawer = ({ open, onClose, cart, onUpdateQty, onRemove, onCheckout }) => {
+            const total = cart.reduce((s, c) => s + c.specialPrice * c.quantity, 0);
+            const totalQty = cart.reduce((s, c) => s + c.quantity, 0);
+
+            return (
+                <>
+                    {open && <div className="fixed inset-0 bg-black/40 z-[9998]" onClick={onClose}/>}
+                    <div className={`fixed top-0 right-0 h-full w-full sm:w-[420px] bg-white z-[9999] shadow-2xl flex flex-col transition-transform duration-300 ${open ? 'translate-x-0' : 'translate-x-full'}`}>
+                        <div className="flex items-center justify-between p-5 border-b">
+                            <h3 className="text-lg font-bold flex items-center gap-2"><CartIcon size={20}/> 購物車 ({totalQty})</h3>
+                            <button onClick={onClose} className="p-1 hover:bg-slate-100 rounded-lg"><XIcon size={20}/></button>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                            {cart.length === 0 ? (
+                                <div className="text-center py-16 text-slate-400">
+                                    <CartIcon size={48} cls="mx-auto mb-3 text-slate-300"/>
+                                    <p>購物車是空的</p>
+                                    <p className="text-xs mt-1">快去挑選超值商品吧！</p>
+                                </div>
+                            ) : cart.map((c, i) => (
+                                <div key={c.model + i} className="flex gap-3 bg-slate-50 p-3 rounded-xl">
+                                    <img src={getImageUrl(c)} alt={c.name} className="w-16 h-16 object-contain rounded-lg bg-white border"/>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="text-sm font-bold text-slate-800 truncate">{c.name}</div>
+                                        <div className="text-[11px] text-slate-400">{c.model}</div>
+                                        <div className="text-emerald-600 font-bold text-sm mt-1">${c.specialPrice.toLocaleString()} <span className="text-slate-400 font-normal text-xs">x {c.quantity}</span></div>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <button onClick={() => onRemove(i)} className="p-1 text-slate-300 hover:text-red-500 transition"><TrashIcon size={14}/></button>
+                                        <div className="flex items-center gap-1 mt-auto">
+                                            <button onClick={() => onUpdateQty(i, Math.max(1, c.quantity - 1))} className="w-6 h-6 flex items-center justify-center border rounded text-xs hover:bg-slate-100">-</button>
+                                            <span className="w-6 text-center text-xs font-bold">{c.quantity}</span>
+                                            <button onClick={() => onUpdateQty(i, c.quantity + 1)} className="w-6 h-6 flex items-center justify-center border rounded text-xs hover:bg-slate-100">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {cart.length > 0 && (
+                            <div className="border-t p-5 space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500">合計</span>
+                                    <span className="text-2xl font-black text-emerald-600">${total.toLocaleString()}</span>
+                                </div>
+                                <button onClick={onCheckout} className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition text-base">
+                                    前往結帳
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </>
+            );
+        };
+
+        // ====== CHECKOUT FORM ======
+        const CheckoutForm = ({ cart, user, onSubmit, onBack, loading }) => {
+            const [form, setForm] = useState({ name: '', phone: '', company: '', address: '', note: '' });
+            const [profileLoaded, setProfileLoaded] = useState(false);
+            const total = cart.reduce((s, c) => s + c.specialPrice * c.quantity, 0);
+
+            useEffect(() => {
+                if (user && !profileLoaded) {
+                    (async () => {
+                        try {
+                            const { db, fs } = await getFirebase();
+                            const snap = await fs.getDoc(fs.doc(db, "Customers", user.uid));
+                            if (snap.exists()) {
+                                const d = snap.data();
+                                setForm(f => ({ ...f, name: d.name || '', phone: d.phone || '', company: d.company || '', address: d.address || '' }));
+                            }
+                        } catch (e) { console.warn("Profile load failed:", e); }
+                        setProfileLoaded(true);
+                    })();
+                }
+            }, [user]);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                onSubmit(form);
+            };
+
+            const set = (k, v) => setForm(f => ({...f, [k]: v}));
+
+            return (
+                <section className="py-12 px-4 sm:px-6">
+                    <div className="max-w-2xl mx-auto">
+                        <button onClick={onBack} className="text-sm text-slate-500 hover:text-slate-700 mb-6 flex items-center gap-1">&larr; 返回商品</button>
+                        <h2 className="text-2xl font-black mb-8">確認訂單</h2>
+                        <div className="bg-slate-50 rounded-2xl p-5 mb-8">
+                            <h3 className="font-bold mb-3 text-sm text-slate-600">訂單明細</h3>
+                            {cart.map((c, i) => (
+                                <div key={i} className="flex justify-between items-center py-2 border-b border-slate-200 last:border-0">
+                                    <div>
+                                        <div className="text-sm font-medium">{c.name}</div>
+                                        <div className="text-xs text-slate-400">{c.model} x {c.quantity}</div>
+                                    </div>
+                                    <div className="text-sm font-bold text-emerald-600">${(c.specialPrice * c.quantity).toLocaleString()}</div>
+                                </div>
+                            ))}
+                            <div className="flex justify-between items-center pt-3 mt-2">
+                                <span className="font-bold">合計</span>
+                                <span className="text-xl font-black text-emerald-600">${total.toLocaleString()}</span>
+                            </div>
+                        </div>
+                        <form onSubmit={handleSubmit} className="space-y-4">
+                            <h3 className="font-bold text-sm text-slate-600">收件資訊</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">姓名 <span className="text-red-500">*</span></label>
+                                    <input type="text" required value={form.name} onChange={e=>set('name',e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"/>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">電話 <span className="text-red-500">*</span></label>
+                                    <input type="tel" required value={form.phone} onChange={e=>set('phone',e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"/>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">公司名稱</label>
+                                <input type="text" value={form.company} onChange={e=>set('company',e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">收件地址 <span className="text-red-500">*</span></label>
+                                <input type="text" required value={form.address} onChange={e=>set('address',e.target.value)} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none" placeholder="完整收件地址"/>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">備註</label>
+                                <textarea value={form.note} onChange={e=>set('note',e.target.value)} rows={3} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none resize-none" placeholder="有其他需求請在此說明"/>
+                            </div>
+                            <button type="submit" disabled={loading} className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl transition text-base disabled:opacity-50">
+                                {loading ? '提交中...' : '確認下單'}
+                            </button>
+                            <p className="text-xs text-slate-400 text-center">下單後業務將在 1-2 個工作天內聯繫確認付款方式</p>
+                        </form>
+                    </div>
+                </section>
+            );
+        };
+
+        // ====== ORDER SUCCESS ======
+        const OrderSuccess = ({ orderId, onContinue }) => (
+            <section className="py-20 px-4 text-center">
+                <div className="max-w-md mx-auto fade-in-up">
+                    <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckIcon size={40} cls="text-emerald-500"/>
+                    </div>
+                    <h2 className="text-2xl font-black mb-3">下單成功！</h2>
+                    <p className="text-slate-500 mb-2">您的訂單編號</p>
+                    <div className="bg-slate-100 rounded-xl py-3 px-6 inline-block mb-6">
+                        <span className="text-lg font-mono font-bold text-slate-800">{orderId}</span>
+                    </div>
+                    <p className="text-slate-500 text-sm mb-8">業務將在 1-2 個工作天內聯繫您確認訂單與付款方式。<br/>如有緊急需求，請透過 LINE 聯繫我們。</p>
+                    <div className="flex flex-wrap gap-3 justify-center">
+                        <button onClick={onContinue} className="px-8 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-full transition">繼續購物</button>
+                        <a href={LINE_URL} target="_blank" className="px-8 py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-full transition no-underline">LINE 聯繫</a>
+                    </div>
+                </div>
+            </section>
+        );
+
+        // ====== TRUST SECTION ======
+        const TrustSection = () => (
+            <section className="py-12 px-4 sm:px-6 bg-white">
+                <div className="max-w-4xl mx-auto">
+                    <h2 className="text-xl font-bold text-center mb-8">為什麼選擇 KINYO 福利品？</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+                        <div className="p-6">
+                            <div className="text-3xl mb-3">&#9989;</div>
+                            <h4 className="font-bold mb-2">品質保證</h4>
+                            <p className="text-sm text-slate-500">全新商品，經過嚴格品質檢測，安心使用</p>
+                        </div>
+                        <div className="p-6">
+                            <div className="text-3xl mb-3">&#127873;</div>
+                            <h4 className="font-bold mb-2">企業福利首選</h4>
+                            <p className="text-sm text-slate-500">員工禮品、企業福利、活動贈品的最佳選擇</p>
+                        </div>
+                        <div className="p-6">
+                            <div className="text-3xl mb-3">&#128170;</div>
+                            <h4 className="font-bold mb-2">原廠保固</h4>
+                            <p className="text-sm text-slate-500">享有原廠完整保固服務，售後無憂</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        );
+
+        // ====== FOOTER ======
+        const Footer = () => (
+            <footer className="bg-[#2c1810] text-[#c4a98a] py-10 px-6">
+                <div className="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between gap-6">
+                    <div>
+                        <h4 className="text-white font-bold mb-2">KINYO 企業採購中心</h4>
+                        <p className="text-sm">台灣老字號品牌，品質安心有保障</p>
+                        <p className="text-sm">原廠一年保固，完善售後服務</p>
+                    </div>
+                    <div>
+                        <h4 className="text-white font-bold mb-2">聯絡資訊</h4>
+                        <p className="text-sm">聯絡人：KINYO - 郭庭豪</p>
+                        <p className="text-sm"><a href="tel:0976966333" className="text-[#c4a98a] no-underline hover:text-white">電話：0976-966-333</a></p>
+                        <p className="text-sm"><a href="mailto:sam.kuo@kinyo.tw" className="text-[#c4a98a] no-underline hover:text-white">信箱：sam.kuo@kinyo.tw</a></p>
+                    </div>
+                </div>
+                <div className="text-center text-xs text-[#8b7355] mt-8">&copy; 2025 KINYO Enterprise. All Rights Reserved.</div>
+            </footer>
+        );
+
+        // ====== FLOATING CART BUTTON (mobile) ======
+        const FloatingCartBtn = ({ count, onClick }) => (
+            <button onClick={onClick} className="fixed bottom-6 right-6 z-[997] bg-emerald-500 hover:bg-emerald-600 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition sm:hidden">
+                <CartIcon size={24}/>
+                {count > 0 && <span className="absolute -top-1 -right-1 bg-amber-400 text-slate-900 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">{count}</span>}
+            </button>
+        );
+
+        // ====== MAIN APP ======
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [authOpen, setAuthOpen] = useState(false);
+            const [cartOpen, setCartOpen] = useState(false);
+            const [cart, setCart] = useState(loadCart());
+            const [page, setPage] = useState('browse');
+            const [configItems, setConfigItems] = useState([]);
+            const [allProducts, setAllProducts] = useState([]);
+            const [loadingProducts, setLoadingProducts] = useState(true);
+            const [submitting, setSubmitting] = useState(false);
+            const [orderId, setOrderId] = useState('');
+            const [toast, setToast] = useState(null);
+
+            const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
+
+            useEffect(() => { saveCart(cart); }, [cart]);
+
+            useEffect(() => {
+                (async () => {
+                    const { authMod, auth } = await getFirebase();
+                    authMod.onAuthStateChanged(auth, (u) => setUser(u));
+                })();
+            }, []);
+
+            useEffect(() => {
+                (async () => {
+                    try {
+                        const products = await loadAllProducts();
+                        setAllProducts(products);
+                        const { db, fs } = await getFirebase();
+                        const snap = await fs.getDoc(fs.doc(db, "SiteConfig", PAGE_CONFIG.configDocId));
+                        if (snap.exists()) {
+                            const data = snap.data();
+                            if (data.items && Array.isArray(data.items)) setConfigItems(data.items);
+                        }
+                    } catch (e) { console.error("Load failed:", e); }
+                    setLoadingProducts(false);
+                })();
+            }, []);
+
+            useEffect(() => { document.body.style.opacity = '1'; }, []);
+
+            const showToast = (message, type='success') => setToast({ message, type });
+
+            const addToCart = useCallback((item) => {
+                setCart(prev => {
+                    const idx = prev.findIndex(c => c.model === item.model && c.source === item.source);
+                    if (idx >= 0) {
+                        const next = [...prev];
+                        next[idx] = { ...next[idx], quantity: next[idx].quantity + item.quantity };
+                        return next;
+                    }
+                    return [...prev, item];
+                });
+                showToast(`已加入購物車：${item.name} x ${item.quantity}`);
+            }, []);
+
+            const updateQty = useCallback((idx, qty) => {
+                setCart(prev => { const n = [...prev]; n[idx] = {...n[idx], quantity: qty}; return n; });
+            }, []);
+
+            const removeItem = useCallback((idx) => {
+                setCart(prev => prev.filter((_, i) => i !== idx));
+            }, []);
+
+            const handleCheckout = () => {
+                if (!user) { setAuthOpen(true); return; }
+                if (cart.length === 0) return;
+                setCartOpen(false);
+                setPage('checkout');
+                trackCheckout();
+                window.scrollTo(0, 0);
+            };
+
+            const handleSubmitOrder = async (form) => {
+                setSubmitting(true);
+                try {
+                    const { db, fs } = await getFirebase();
+                    const now = new Date();
+                    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+                    const rand = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+                    const newOrderId = `CS-${dateStr}-${rand}`;
+                    const total = cart.reduce((s, c) => s + c.specialPrice * c.quantity, 0);
+
+                    await fs.setDoc(fs.doc(db, "CustomerOrders", newOrderId), {
+                        orderId: newOrderId,
+                        customerId: user.uid,
+                        customerEmail: user.email,
+                        customerName: form.name,
+                        customerPhone: form.phone,
+                        company: form.company,
+                        shippingAddress: form.address,
+                        items: cart.map(c => ({
+                            model: c.model, name: c.name,
+                            specialPrice: c.specialPrice,
+                            quantity: c.quantity,
+                            subtotal: c.specialPrice * c.quantity
+                        })),
+                        totalAmount: total,
+                        note: form.note,
+                        status: 'pending',
+                        source: PAGE_CONFIG.type,
+                        createdAt: now.toISOString(),
+                        paymentStatus: 'unpaid'
+                    });
+
+                    if (form.address) {
+                        await fs.setDoc(fs.doc(db, "Customers", user.uid), { address: form.address }, { merge: true });
+                    }
+
+                    trackPurchase(newOrderId, total);
+                    setOrderId(newOrderId);
+                    setCart([]);
+                    setPage('success');
+                    window.scrollTo(0, 0);
+                } catch (e) {
+                    console.error("Order submit failed:", e);
+                    showToast('下單失敗，請稍後再試', 'error');
+                }
+                setSubmitting(false);
+            };
+
+            const handleLogout = async () => {
+                const { authMod, auth } = await getFirebase();
+                await authMod.signOut(auth);
+                setUser(null);
+                showToast('已登出');
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col" style={{fontFamily:"'Inter','Noto Sans TC',sans-serif"}}>
+                    <Navbar cartCount={cartCount} onCartClick={() => setCartOpen(true)} user={user} onAuthClick={() => setAuthOpen(true)} onLogout={handleLogout}/>
+
+                    {page === 'browse' && <>
+                        <HeroBanner />
+                        <ProductGrid items={configItems} products={allProducts} onAddToCart={addToCart} loading={loadingProducts}/>
+                        <TrustSection />
+                    </>}
+
+                    {page === 'checkout' && (
+                        <CheckoutForm cart={cart} user={user} onSubmit={handleSubmitOrder} onBack={() => {setPage('browse'); window.scrollTo(0,0);}} loading={submitting}/>
+                    )}
+
+                    {page === 'success' && (
+                        <OrderSuccess orderId={orderId} onContinue={() => {setPage('browse'); window.scrollTo(0,0);}}/>
+                    )}
+
+                    <div className="flex-1"/>
+                    <Footer />
+
+                    <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} cart={cart} onUpdateQty={updateQty} onRemove={removeItem} onCheckout={handleCheckout}/>
+                    <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} onLogin={(u) => setUser(u)}/>
+                    <FloatingCartBtn count={cartCount} onClick={() => setCartOpen(true)}/>
+                    {toast && <Toast {...toast} onClose={() => setToast(null)}/>}
+                </div>
+            );
+        };
+
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
