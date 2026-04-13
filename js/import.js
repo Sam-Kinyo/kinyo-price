@@ -298,14 +298,14 @@ export function setupSiteListUpload(kind) {
                 const isCompanyFormat = concat.includes('末售') && concat.includes('銷售') && concat.includes('條碼');
 
                 const items = [];
-                const skipped = { noPrice: 0, wrongStatus: 0, noModel: 0 };
+                const skipped = { noPrice: 0, wrongStatus: 0, noModel: 0, zeroCost: 0 };
 
                 if (isCompanyFormat) {
                     // === 公司後台格式 ===
                     // Row 1: 主表頭 (大類別/產品/分級/銷售狀態/網銷狀態/生產狀態/條碼/價格(merged)/箱入數(merged)/庫存(merged)/...)
                     // Row 2: 子表頭 (廠價/中現/中票/小現/小票/末售/賣場/外箱/內箱/成品倉/專賣倉/...)
                     let hModel = -1, hName = -1, hCategory = -1, hSalesStatus = -1, hWebStatus = -1;
-                    let hEndSale = -1, hMarket = -1, hFinished = -1, hExclusive = -1;
+                    let hCost = -1, hEndSale = -1, hMarket = -1, hFinished = -1, hExclusive = -1;
 
                     for (let c = 0; c < Math.max(row1.length, row2.length); c++) {
                         const h1 = String(row1[c] || '').trim();
@@ -319,18 +319,20 @@ export function setupSiteListUpload(kind) {
                         if (h1.includes('大類別') || h1 === '類別') hCategory = c;
                         if (h1.includes('銷售') && h1.includes('狀態')) hSalesStatus = c;
                         if (h1.includes('網銷') && h1.includes('狀態')) hWebStatus = c;
+                        if (h2 === '廠價' || combined === '廠價') hCost = c;
                         if (h2 === '末售' || combined === '末售') hEndSale = c;
                         if (h2 === '賣場' || combined === '賣場') hMarket = c;
                         if (h2 === '成品倉' || combined === '成品倉') hFinished = c;
                         if (h2 === '專賣倉' || combined === '專賣倉') hExclusive = c;
                     }
 
-                    if (hModel === -1 || hEndSale === -1) {
-                        alert('⚠️ 偵測到公司後台格式，但找不到「產品」或「末售」欄位。請確認這是「產品價格查詢」報表。');
+                    if (hModel === -1 || hCost === -1) {
+                        alert('⚠️ 偵測到公司後台格式，但找不到「產品」或「廠價」欄位。請確認這是「產品價格查詢」報表。');
                         return;
                     }
 
                     // 資料列從 row 3 開始（row 0 結果筆數，row 1+2 雙列表頭）
+                    // 出清價公式：廠價 / 0.74 * 1.05
                     for (let r = 3; r < rows.length; r++) {
                         const row = rows[r] || [];
                         const model = String(row[hModel] || '').trim();
@@ -340,18 +342,19 @@ export function setupSiteListUpload(kind) {
                         const salesStatus = String(row[hSalesStatus] || '').trim();
                         if (!salesStatus.includes(STATUS_KEYWORD)) { skipped.wrongStatus++; continue; }
 
-                        // 價格優先用末售，fallback 賣場
-                        let priceRaw = row[hEndSale];
-                        if (priceRaw === null || priceRaw === '' || priceRaw === 0) priceRaw = row[hMarket];
-                        const specialPrice = parseInt(priceRaw, 10);
+                        // 價格公式：廠價 / 0.74 * 1.05
+                        const cost = parseFloat(row[hCost]) || 0;
+                        if (cost <= 0) { skipped.zeroCost++; continue; }
+                        const specialPrice = Math.round(cost / 0.74 * 1.05);
                         if (!specialPrice || specialPrice <= 0) { skipped.noPrice++; continue; }
 
                         const inv = (parseInt(row[hFinished] || 0, 10) + parseInt(row[hExclusive] || 0, 10)) || 0;
                         const name = hName !== -1 ? String(row[hName] || '').trim() : '';
+                        const endSale = hEndSale !== -1 ? parseInt(row[hEndSale], 10) : 0;
                         // 自動產生備註：顯示庫存（若有）
                         const autoNote = inv > 0 ? `限量 ${inv} 件` : '';
 
-                        items.push({ model, specialPrice, note: autoNote, _name: name, _inv: inv });
+                        items.push({ model, specialPrice, note: autoNote, _name: name, _inv: inv, _cost: cost, _endSale: endSale });
                     }
 
                 } else {
@@ -396,11 +399,12 @@ export function setupSiteListUpload(kind) {
 
                 const tableRows = items.map((it, i) => {
                     const nameCell = it._name ? `<div style="font-size:11px; color:#666;">${it._name}</div>` : '';
+                    const costCell = isCompanyFormat && it._cost ? `<div style="font-size:11px; color:#64748b;">廠價 $${it._cost}</div>` : '';
                     return `
                         <tr>
                             <td style="padding:6px 10px; border-bottom:1px solid #eee;">${i + 1}</td>
                             <td style="padding:6px 10px; border-bottom:1px solid #eee;"><b>${it.model}</b>${nameCell}</td>
-                            <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#dc2626; font-weight:bold;">$${it.specialPrice.toLocaleString()}</td>
+                            <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#dc2626; font-weight:bold;">$${it.specialPrice.toLocaleString()}${costCell}</td>
                             <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#666;">${it.note || '—'}</td>
                         </tr>
                     `;
@@ -408,6 +412,7 @@ export function setupSiteListUpload(kind) {
 
                 const skippedSummary = [];
                 if (skipped.wrongStatus > 0) skippedSummary.push(`${skipped.wrongStatus} 筆狀態非${LABEL}`);
+                if (skipped.zeroCost > 0) skippedSummary.push(`${skipped.zeroCost} 筆廠價=0`);
                 if (skipped.noPrice > 0) skippedSummary.push(`${skipped.noPrice} 筆無價格`);
                 if (skipped.noModel > 0) skippedSummary.push(`${skipped.noModel} 筆無型號`);
 
@@ -417,7 +422,7 @@ export function setupSiteListUpload(kind) {
                         ${skippedSummary.length > 0 ? `<div style="background:#fff7ed; border:1px solid #fed7aa; padding:8px 12px; border-radius:6px; font-size:12px; color:#9a3412; margin-bottom:10px;">跳過 ${skippedSummary.join('、')}</div>` : ''}
                         <p style="color:#666; font-size:13px; margin:0 0 12px;">
                             ⚠️ 確認後將<b>覆寫整份${LABEL}清單</b>（不是追加）。網站會讀取此清單顯示商品。
-                            ${isCompanyFormat ? '<br>💡 偵測到公司後台格式：已依「銷售狀態=' + LABEL + '」過濾，價格使用「末售」欄（無則用賣場）' : ''}
+                            ${isCompanyFormat ? '<br>💡 偵測到公司後台格式：按「銷售狀態=' + LABEL + '」過濾，<b>出清價 = 廠價 / 0.74 × 1.05（四捨五入）</b>' : ''}
                         </p>
                         <div style="max-height:420px; overflow-y:auto; border:1px solid #e5e5e5; border-radius:8px;">
                             <table style="width:100%; border-collapse:collapse; font-size:13px;">
@@ -425,7 +430,7 @@ export function setupSiteListUpload(kind) {
                                     <tr>
                                         <th style="padding:8px 10px; text-align:left;">#</th>
                                         <th style="padding:8px 10px; text-align:left;">型號 / 品名</th>
-                                        <th style="padding:8px 10px; text-align:left;">${kind === 'deadstock' ? '出清價' : '福利價'}</th>
+                                        <th style="padding:8px 10px; text-align:left;">${kind === 'deadstock' ? '出清價 (計算)' : '福利價 (計算)'}</th>
                                         <th style="padding:8px 10px; text-align:left;">備註</th>
                                     </tr>
                                 </thead>
