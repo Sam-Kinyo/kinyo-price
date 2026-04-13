@@ -431,6 +431,12 @@
             <img src="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" alt="KINYO">
         </a>
         <div class="nav-right">
+            <a href="deadstock.html" class="nav-btn nav-btn-outline" style="border-color:#dc2626;color:#dc2626;">
+                <span class="desktop-only">呆滯品出清</span>
+            </a>
+            <a href="welfare.html" class="nav-btn nav-btn-outline" style="border-color:#16a34a;color:#16a34a;">
+                <span class="desktop-only">福利品專區</span>
+            </a>
             <a href="https://drive.google.com/file/d/1tUZuzhje9o41bVchxfrY2g6H8n8hLKIu/view?usp=sharing" target="_blank" class="nav-btn nav-btn-outline">
                 <span class="desktop-only">&#128203; 採購型錄</span><span class="mobile-icon" style="display:none;">&#128203;</span>
             </a>
@@ -726,8 +732,13 @@
             hotGrid.innerHTML = '';
 
             displayData.forEach((hotItem, index) => {
+                const hotNormalized = normalizeKey(hotItem.model || '');
                 const searchTarget = (hotItem.model || '').toLowerCase().replace(/[-_]/g, '');
                 let productDetail = allProductsCache.find(p => {
+                    const pn1 = normalizeKey(p.model || '');
+                    const pn2 = normalizeKey(p.mainModel || '');
+                    if (pn1 && pn1 === hotNormalized) return true;
+                    if (pn2 && pn2 === hotNormalized) return true;
                     const m1 = (p.model || '').toLowerCase().replace(/[-_]/g, '');
                     const m2 = (p.mainModel || '').toLowerCase().replace(/[-_]/g, '');
                     return m1 === searchTarget || m2 === searchTarget || m1.startsWith(searchTarget) || m2.startsWith(searchTarget);
@@ -741,11 +752,18 @@
                     imgDisplay = productDetail.imageUrl;
                     displayName = productDetail.name;
                     displayModel = productDetail.model;
-                    if (!imgDisplay || !imgDisplay.startsWith('http')) {
-                        imgDisplay = 'https://placehold.co/300x300?text=No+Image';
-                    } else {
-                        imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(productDetail.imageUrl)}&w=400&output=webp`;
+                }
+                // Fallback: 直接從 driveImageMap 取圖（即使 Product 不存在或無有效圖）
+                if (!imgDisplay || !imgDisplay.startsWith('http')) {
+                    const driveImg = driveImageMap[hotNormalized];
+                    if (driveImg && driveImg.startsWith('http')) {
+                        imgDisplay = driveImg;
                     }
+                }
+                if (!imgDisplay || !imgDisplay.startsWith('http')) {
+                    imgDisplay = 'https://placehold.co/300x300?text=No+Image';
+                } else {
+                    imgDisplay = `https://images.weserv.nl/?url=${encodeURIComponent(imgDisplay)}&w=400&output=webp`;
                 }
 
                 const openLine = function () {
