@@ -265,6 +265,78 @@
             padding: 3px 10px; border-radius: 6px;
         }
 
+        /* --- Themed Catalog Grid --- */
+        .catalog-grid {
+            display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px;
+            max-width: var(--container-width); margin: 0 auto;
+        }
+        .catalog-card {
+            background: #fff; border-radius: var(--radius); overflow: hidden;
+            cursor: pointer; border: 1px solid var(--border);
+            transition: 0.25s;
+        }
+        .catalog-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--accent); }
+        .catalog-card-img {
+            width: 100%; aspect-ratio: 3/4; object-fit: cover;
+            background: var(--bg-warm); display: block;
+        }
+        .catalog-card-body { padding: 12px 14px 16px; }
+        .catalog-card-title {
+            font-size: 14px; font-weight: 600; color: var(--primary);
+            line-height: 1.35; margin-bottom: 6px; min-height: 38px;
+        }
+        .catalog-card-meta { font-size: 11px; color: var(--text-gray); margin-bottom: 6px; }
+        .catalog-card-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+        .catalog-tag {
+            background: var(--bg-warm); color: var(--accent);
+            font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600;
+        }
+
+        /* --- Catalog Lightbox --- */
+        .catalog-viewer {
+            position: fixed; inset: 0; background: rgba(20,12,8,0.96);
+            z-index: 9999; display: none; flex-direction: column;
+        }
+        .catalog-viewer.is-open { display: flex; }
+        .cv-close {
+            position: absolute; top: 16px; right: 16px;
+            background: rgba(255,255,255,0.12); color: #fff; border: none;
+            width: 42px; height: 42px; border-radius: 50%;
+            font-size: 26px; cursor: pointer; z-index: 10; line-height: 1;
+        }
+        .cv-close:hover { background: rgba(255,255,255,0.25); }
+        .cv-header {
+            padding: 18px 70px; color: #fff;
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 15px;
+        }
+        #cv-title { font-weight: 600; }
+        #cv-page { color: rgba(255,255,255,0.7); font-size: 13px; }
+        .cv-stage {
+            flex: 1; display: flex; align-items: center; justify-content: center;
+            position: relative; padding: 0 16px; min-height: 0;
+        }
+        #cv-image {
+            max-width: 100%; max-height: 78vh; object-fit: contain;
+            border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .cv-arrow {
+            position: absolute; top: 50%; transform: translateY(-50%);
+            background: rgba(255,255,255,0.12); color: #fff; border: none;
+            width: 52px; height: 52px; border-radius: 50%;
+            font-size: 32px; cursor: pointer; line-height: 1;
+        }
+        .cv-arrow:hover { background: rgba(255,255,255,0.25); }
+        .cv-prev { left: 24px; }
+        .cv-next { right: 24px; }
+        .cv-cta { padding: 16px; text-align: center; }
+        .cv-line-btn {
+            background: var(--accent); color: #fff; border: none;
+            padding: 13px 32px; border-radius: 30px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+        }
+        .cv-line-btn:hover { background: #b35d2c; }
+
         /* --- Budget + Category Combined --- */
         .combo-section { display: flex; gap: 40px; max-width: var(--container-width); margin: 0 auto; align-items: flex-start; }
         .combo-left {
@@ -395,11 +467,15 @@
             .scene-grid { max-width: 100%; }
 
             .hot-grid { grid-template-columns: 1fr 1fr; }
+            .catalog-grid { grid-template-columns: repeat(3, 1fr); gap: 14px; }
             .combo-section { flex-direction: column; }
             .combo-right { grid-template-columns: 1fr 1fr; }
             .process-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
             .budget-row { flex-direction: column; }
             .footer-content { flex-direction: column; }
+            .cv-header { padding: 14px 50px; }
+            .cv-arrow { width: 40px; height: 40px; font-size: 24px; }
+            .cv-prev { left: 8px; } .cv-next { right: 8px; }
 
             #floating-line-btn { bottom: 16px; right: 12px; padding: 10px 16px; font-size: 13px; }
             #btn-back-to-top { bottom: 72px; right: 16px; width: 38px; height: 38px; }
@@ -410,6 +486,8 @@
             .nav-btn { padding: 6px 10px; font-size: 12px; }
             .nav-btn .desktop-only { display: none; }
             .hot-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .catalog-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+            .catalog-card-title { font-size: 13px; min-height: 34px; }
             .combo-right { grid-template-columns: 1fr; }
             .process-grid { grid-template-columns: 1fr; }
         }
@@ -436,6 +514,9 @@
             </a>
             <a href="welfare.html" class="nav-btn nav-btn-outline" style="border-color:#16a34a;color:#16a34a;">
                 <span class="desktop-only">福利品專區</span>
+            </a>
+            <a href="#catalog-section" class="nav-btn nav-btn-outline">
+                <span class="desktop-only">&#128218; 主題型錄</span>
             </a>
             <a href="https://www.kinyo-gift.com/order" target="_blank" class="nav-btn nav-btn-outline">
                 <span class="desktop-only">&#128722; 企客下單</span>
@@ -522,6 +603,34 @@
             <div style="grid-column:1/-1; text-align:center; color:var(--text-gray); padding:20px;">正在載入資料...</div>
         </div>
     </section>
+
+    <!-- Themed Catalog -->
+    <section class="section" id="catalog-section">
+        <h2 class="section-title">主題型錄</h2>
+        <p class="section-desc">15 本情境選品圖鑑，從生活場景找到最合適的禮贈品</p>
+        <div id="catalog-grid" class="catalog-grid">
+            <div style="grid-column:1/-1; text-align:center; color:var(--text-gray); padding:20px;">主題型錄載入中...</div>
+        </div>
+    </section>
+
+    <!-- Catalog Lightbox Viewer -->
+    <div id="catalog-viewer" class="catalog-viewer" aria-hidden="true">
+        <button class="cv-close" onclick="closeCatalog()" aria-label="關閉">&times;</button>
+        <div class="cv-header">
+            <span id="cv-title"></span>
+            <span id="cv-page"></span>
+        </div>
+        <div class="cv-stage">
+            <button class="cv-arrow cv-prev" onclick="catalogNav(-1)" aria-label="上一頁">&#8249;</button>
+            <img id="cv-image" src="" alt="">
+            <button class="cv-arrow cv-next" onclick="catalogNav(1)" aria-label="下一頁">&#8250;</button>
+        </div>
+        <div class="cv-cta">
+            <button class="cv-line-btn" onclick="catalogLineInquiry()">
+                &#128172; LINE 詢問此型錄商品
+            </button>
+        </div>
+    </div>
 
     <!-- Budget + Category -->
     <section class="section">
@@ -915,6 +1024,148 @@
         };
 
         loadHotProducts();
+        loadCatalogs();
+    </script>
+
+    <!-- Themed Catalog Logic -->
+    <script>
+        let catalogsData = null;
+        let currentCatalogIdx = -1;
+        let currentPage = 0;
+
+        async function loadCatalogs() {
+            try {
+                const res = await fetch('data/catalogs.json?v=' + Math.floor(Date.now() / 60000));
+                if (!res.ok) throw new Error('fetch failed: ' + res.status);
+                const data = await res.json();
+                catalogsData = data.catalogs || [];
+                renderCatalogGrid();
+            } catch (e) {
+                console.warn('catalog load failed:', e.message);
+                const grid = document.getElementById('catalog-grid');
+                if (grid) grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-gray);padding:30px;">主題型錄暫時無法載入</div>';
+            }
+        }
+
+        function escapeAttr(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
+
+        function renderCatalogGrid() {
+            const grid = document.getElementById('catalog-grid');
+            if (!grid || !catalogsData) return;
+            if (catalogsData.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:var(--text-gray);padding:30px;">尚無型錄</div>';
+                return;
+            }
+            grid.innerHTML = catalogsData.map((c, idx) => {
+                const cover = `https://lh3.googleusercontent.com/d/${c.cover}=w400`;
+                const tags = (c.scenes || []).map(s => `<span class="catalog-tag">${escapeAttr(s)}</span>`).join('');
+                return `
+                    <div class="catalog-card" onclick="openCatalog(${idx})">
+                        <img class="catalog-card-img" src="${cover}" alt="${escapeAttr(c.title)}" loading="lazy">
+                        <div class="catalog-card-body">
+                            <div class="catalog-card-title">${escapeAttr(c.title)}</div>
+                            <div class="catalog-card-meta">${c.pageCount} 頁 · 點擊翻閱</div>
+                            ${tags ? `<div class="catalog-card-tags">${tags}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openCatalog(idx) {
+            if (!catalogsData || !catalogsData[idx]) return;
+            currentCatalogIdx = idx;
+            currentPage = 0;
+            const viewer = document.getElementById('catalog-viewer');
+            viewer.classList.add('is-open');
+            viewer.setAttribute('aria-hidden', 'false');
+            document.body.style.overflow = 'hidden';
+            renderViewer();
+            preloadNeighbor();
+
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'catalog_open', {
+                    catalog_id: catalogsData[idx].id,
+                    catalog_title: catalogsData[idx].title
+                });
+            }
+        }
+
+        function renderViewer() {
+            const c = catalogsData[currentCatalogIdx];
+            if (!c) return;
+            document.getElementById('cv-title').textContent = c.title;
+            document.getElementById('cv-page').textContent = `${currentPage + 1} / ${c.pageCount}`;
+            document.getElementById('cv-image').src = `https://lh3.googleusercontent.com/d/${c.pages[currentPage]}=w1400`;
+        }
+
+        function preloadNeighbor() {
+            const c = catalogsData[currentCatalogIdx];
+            if (!c) return;
+            [currentPage - 1, currentPage + 1].forEach(p => {
+                if (p >= 0 && p < c.pageCount) {
+                    const img = new Image();
+                    img.src = `https://lh3.googleusercontent.com/d/${c.pages[p]}=w1400`;
+                }
+            });
+        }
+
+        function catalogNav(dir) {
+            const c = catalogsData[currentCatalogIdx];
+            if (!c) return;
+            const newPage = currentPage + dir;
+            if (newPage < 0 || newPage >= c.pageCount) return;
+            currentPage = newPage;
+            renderViewer();
+            preloadNeighbor();
+        }
+
+        function closeCatalog() {
+            const viewer = document.getElementById('catalog-viewer');
+            viewer.classList.remove('is-open');
+            viewer.setAttribute('aria-hidden', 'true');
+            document.body.style.overflow = '';
+            currentCatalogIdx = -1;
+        }
+
+        function catalogLineInquiry() {
+            const c = catalogsData[currentCatalogIdx];
+            if (typeof gtag !== 'undefined') {
+                gtag('event', 'catalog_line_click', {
+                    catalog_id: c?.id || '',
+                    catalog_title: c?.title || ''
+                });
+            }
+            const msg = c ? `想詢問「${c.title}」型錄裡的商品` : '想詢問型錄商品';
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(msg).catch(() => {});
+            }
+            window.open('https://line.me/ti/p/qiHzrCaf_P', '_blank');
+        }
+
+        // 鍵盤導航 + 觸控滑動
+        document.addEventListener('keydown', (e) => {
+            const viewer = document.getElementById('catalog-viewer');
+            if (!viewer.classList.contains('is-open')) return;
+            if (e.key === 'ArrowLeft') catalogNav(-1);
+            else if (e.key === 'ArrowRight') catalogNav(1);
+            else if (e.key === 'Escape') closeCatalog();
+        });
+
+        let touchStartX = 0;
+        document.addEventListener('touchstart', (e) => {
+            const viewer = document.getElementById('catalog-viewer');
+            if (viewer.classList.contains('is-open')) touchStartX = e.touches[0].clientX;
+        }, { passive: true });
+        document.addEventListener('touchend', (e) => {
+            const viewer = document.getElementById('catalog-viewer');
+            if (!viewer.classList.contains('is-open') || !touchStartX) return;
+            const diff = e.changedTouches[0].clientX - touchStartX;
+            if (Math.abs(diff) > 50) catalogNav(diff < 0 ? 1 : -1);
+            touchStartX = 0;
+        }, { passive: true });
     </script>
 
     <script>
