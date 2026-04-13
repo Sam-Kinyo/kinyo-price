@@ -264,7 +264,9 @@ export async function saveProductDataToFirestore(actions) {
 }
 
 /* 呆滯品 / 福利品匯入解析
-   Excel 欄位：型號, 特價(或 出清價 / 福利價), 備註(選填), 狀態(選填)
+   支援兩種 Excel 格式：
+   1. 公司後台匯出的「產品價格查詢」格式（Row1+Row2 雙列表頭 + 銷售狀態欄）
+   2. 簡易格式：型號 / 特價 / 備註 / 狀態
 */
 export function setupSiteListUpload(kind) {
     // kind: 'deadstock' | 'welfare'
@@ -273,6 +275,7 @@ export function setupSiteListUpload(kind) {
     if (!input) return;
 
     const LABEL = kind === 'deadstock' ? '呆滯品' : '福利品';
+    const STATUS_KEYWORD = kind === 'deadstock' ? '呆滯' : '福利';
 
     input.onchange = (e) => {
         const file = e.target.files[0];
@@ -284,84 +287,160 @@ export function setupSiteListUpload(kind) {
             try {
                 const workbook = XLSX.read(evt.target.result, { type: 'binary' });
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: null });
 
-                let hModel = -1, hPrice = -1, hNote = -1, hStatus = -1;
-                // 在前 5 列掃標題
-                outer: for (let r = 0; r < Math.min(rows.length, 5); r++) {
-                    const row = rows[r] || [];
-                    for (let c = 0; c < row.length; c++) {
-                        const cell = String(row[c] || '').trim().toLowerCase();
-                        if (cell === 'model' || cell === '型號' || cell === '產品') hModel = c;
-                        if (cell.includes('特價') || cell.includes('出清價') || cell.includes('福利價') || cell.includes('專案價') || cell === 'price' || cell === 'specialprice') hPrice = c;
-                        if (cell.includes('備註') || cell.includes('note') || cell.includes('說明')) hNote = c;
-                        if (cell.includes('狀態') || cell === 'status') hStatus = c;
-                    }
-                    if (hModel !== -1 && hPrice !== -1) break outer;
-                }
+                // 偵測格式：公司後台 vs 簡易
+                const row0 = (rows[0] || []).map(c => String(c || ''));
+                const row1 = (rows[1] || []).map(c => String(c || ''));
+                const row2 = (rows[2] || []).map(c => String(c || ''));
+                const concat = (row1.join('|') + '||' + row2.join('|')).toLowerCase();
 
-                if (hModel === -1 || hPrice === -1) {
-                    alert(`⚠️ 找不到必要欄位。請確認 Excel 第一列包含「型號」和「特價」（或「出清價」/「福利價」）兩欄。`);
-                    return;
-                }
+                const isCompanyFormat = concat.includes('末售') && concat.includes('銷售') && concat.includes('條碼');
 
                 const items = [];
-                rows.forEach((row, idx) => {
-                    if (idx === 0) return; // 跳過表頭
-                    const model = String(row[hModel] || '').trim();
-                    if (!model || model === '型號' || model.toLowerCase() === 'model') return;
+                const skipped = { noPrice: 0, wrongStatus: 0, noModel: 0 };
 
-                    const priceRaw = row[hPrice];
-                    const specialPrice = parseInt(priceRaw, 10);
-                    if (!specialPrice || specialPrice <= 0) return;
+                if (isCompanyFormat) {
+                    // === 公司後台格式 ===
+                    // Row 1: 主表頭 (大類別/產品/分級/銷售狀態/網銷狀態/生產狀態/條碼/價格(merged)/箱入數(merged)/庫存(merged)/...)
+                    // Row 2: 子表頭 (廠價/中現/中票/小現/小票/末售/賣場/外箱/內箱/成品倉/專賣倉/...)
+                    let hModel = -1, hName = -1, hCategory = -1, hSalesStatus = -1, hWebStatus = -1;
+                    let hEndSale = -1, hMarket = -1, hFinished = -1, hExclusive = -1;
 
-                    const note = hNote !== -1 ? String(row[hNote] || '').trim() : '';
-                    const statusRaw = hStatus !== -1 ? String(row[hStatus] || '').trim().toLowerCase() : '';
-                    const isInactive = ['下架', '停售', 'inactive', 'off', 'n', '0'].includes(statusRaw);
+                    for (let c = 0; c < Math.max(row1.length, row2.length); c++) {
+                        const h1 = String(row1[c] || '').trim();
+                        const h2 = String(row2[c] || '').trim();
+                        const combined = (h1 + h2).replace(/\s+/g, '');
 
-                    if (isInactive) return; // 下架品跳過
+                        if (h1 === '產品' && hModel === -1) {
+                            // 產品欄跨兩格：col N 是型號, col N+1 是品名
+                            hModel = c; hName = c + 1;
+                        }
+                        if (h1.includes('大類別') || h1 === '類別') hCategory = c;
+                        if (h1.includes('銷售') && h1.includes('狀態')) hSalesStatus = c;
+                        if (h1.includes('網銷') && h1.includes('狀態')) hWebStatus = c;
+                        if (h2 === '末售' || combined === '末售') hEndSale = c;
+                        if (h2 === '賣場' || combined === '賣場') hMarket = c;
+                        if (h2 === '成品倉' || combined === '成品倉') hFinished = c;
+                        if (h2 === '專賣倉' || combined === '專賣倉') hExclusive = c;
+                    }
 
-                    items.push({ model, specialPrice, note });
-                });
+                    if (hModel === -1 || hEndSale === -1) {
+                        alert('⚠️ 偵測到公司後台格式，但找不到「產品」或「末售」欄位。請確認這是「產品價格查詢」報表。');
+                        return;
+                    }
 
-                // 顯示預覽
+                    // 資料列從 row 3 開始（row 0 結果筆數，row 1+2 雙列表頭）
+                    for (let r = 3; r < rows.length; r++) {
+                        const row = rows[r] || [];
+                        const model = String(row[hModel] || '').trim();
+                        if (!model) { skipped.noModel++; continue; }
+
+                        // 按狀態過濾：呆滯品 / 福利品
+                        const salesStatus = String(row[hSalesStatus] || '').trim();
+                        if (!salesStatus.includes(STATUS_KEYWORD)) { skipped.wrongStatus++; continue; }
+
+                        // 價格優先用末售，fallback 賣場
+                        let priceRaw = row[hEndSale];
+                        if (priceRaw === null || priceRaw === '' || priceRaw === 0) priceRaw = row[hMarket];
+                        const specialPrice = parseInt(priceRaw, 10);
+                        if (!specialPrice || specialPrice <= 0) { skipped.noPrice++; continue; }
+
+                        const inv = (parseInt(row[hFinished] || 0, 10) + parseInt(row[hExclusive] || 0, 10)) || 0;
+                        const name = hName !== -1 ? String(row[hName] || '').trim() : '';
+                        // 自動產生備註：顯示庫存（若有）
+                        const autoNote = inv > 0 ? `限量 ${inv} 件` : '';
+
+                        items.push({ model, specialPrice, note: autoNote, _name: name, _inv: inv });
+                    }
+
+                } else {
+                    // === 簡易格式（我們的範本） ===
+                    let hModel = -1, hPrice = -1, hNote = -1, hStatus = -1;
+                    outer: for (let r = 0; r < Math.min(rows.length, 5); r++) {
+                        const row = rows[r] || [];
+                        for (let c = 0; c < row.length; c++) {
+                            const cell = String(row[c] || '').trim().toLowerCase();
+                            if (cell === 'model' || cell === '型號' || cell === '產品') hModel = c;
+                            if (cell.includes('特價') || cell.includes('出清價') || cell.includes('福利價') || cell.includes('專案價') || cell === 'price' || cell === 'specialprice') hPrice = c;
+                            if (cell.includes('備註') || cell.includes('note') || cell.includes('說明')) hNote = c;
+                            if (cell.includes('狀態') || cell === 'status') hStatus = c;
+                        }
+                        if (hModel !== -1 && hPrice !== -1) break outer;
+                    }
+
+                    if (hModel === -1 || hPrice === -1) {
+                        alert('⚠️ 找不到必要欄位。請確認 Excel 第一列包含「型號」和「特價/出清價/福利價」。\n或直接使用公司後台的「產品價格查詢」報表。');
+                        return;
+                    }
+
+                    rows.forEach((row, idx) => {
+                        if (idx === 0) return;
+                        const model = String(row[hModel] || '').trim();
+                        if (!model || model === '型號' || model.toLowerCase() === 'model') { skipped.noModel++; return; }
+                        const specialPrice = parseInt(row[hPrice], 10);
+                        if (!specialPrice || specialPrice <= 0) { skipped.noPrice++; return; }
+                        const note = hNote !== -1 ? String(row[hNote] || '').trim() : '';
+                        const statusRaw = hStatus !== -1 ? String(row[hStatus] || '').trim().toLowerCase() : '';
+                        if (['下架', '停售', 'inactive', 'off', 'n', '0'].includes(statusRaw)) { skipped.wrongStatus++; return; }
+                        items.push({ model, specialPrice, note });
+                    });
+                }
+
+                // === 顯示預覽 ===
                 const previewHeader = document.getElementById('previewHeader');
                 const previewContent = document.getElementById('previewContent');
                 const previewOverlay = document.getElementById('previewOverlay');
 
-                previewHeader.textContent = `${LABEL}匯入預覽 (將覆寫整份清單)`;
-                const tableRows = items.map((it, i) => `
-                    <tr>
-                        <td style="padding:6px 10px; border-bottom:1px solid #eee;">${i + 1}</td>
-                        <td style="padding:6px 10px; border-bottom:1px solid #eee;"><b>${it.model}</b></td>
-                        <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#dc2626; font-weight:bold;">$${it.specialPrice.toLocaleString()}</td>
-                        <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#666;">${it.note || '—'}</td>
-                    </tr>
-                `).join('');
+                previewHeader.textContent = `${LABEL}匯入預覽 ${isCompanyFormat ? '(公司後台格式)' : '(簡易格式)'} — 將覆寫整份清單`;
+
+                const tableRows = items.map((it, i) => {
+                    const nameCell = it._name ? `<div style="font-size:11px; color:#666;">${it._name}</div>` : '';
+                    return `
+                        <tr>
+                            <td style="padding:6px 10px; border-bottom:1px solid #eee;">${i + 1}</td>
+                            <td style="padding:6px 10px; border-bottom:1px solid #eee;"><b>${it.model}</b>${nameCell}</td>
+                            <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#dc2626; font-weight:bold;">$${it.specialPrice.toLocaleString()}</td>
+                            <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#666;">${it.note || '—'}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                const skippedSummary = [];
+                if (skipped.wrongStatus > 0) skippedSummary.push(`${skipped.wrongStatus} 筆狀態非${LABEL}`);
+                if (skipped.noPrice > 0) skippedSummary.push(`${skipped.noPrice} 筆無價格`);
+                if (skipped.noModel > 0) skippedSummary.push(`${skipped.noModel} 筆無型號`);
 
                 previewContent.innerHTML = `
                     <div style="padding:16px;">
                         <h3 style="color:#2563eb; margin:0 0 8px;">已解析 ${items.length} 筆${LABEL}</h3>
+                        ${skippedSummary.length > 0 ? `<div style="background:#fff7ed; border:1px solid #fed7aa; padding:8px 12px; border-radius:6px; font-size:12px; color:#9a3412; margin-bottom:10px;">跳過 ${skippedSummary.join('、')}</div>` : ''}
                         <p style="color:#666; font-size:13px; margin:0 0 12px;">
                             ⚠️ 確認後將<b>覆寫整份${LABEL}清單</b>（不是追加）。網站會讀取此清單顯示商品。
+                            ${isCompanyFormat ? '<br>💡 偵測到公司後台格式：已依「銷售狀態=' + LABEL + '」過濾，價格使用「末售」欄（無則用賣場）' : ''}
                         </p>
                         <div style="max-height:420px; overflow-y:auto; border:1px solid #e5e5e5; border-radius:8px;">
                             <table style="width:100%; border-collapse:collapse; font-size:13px;">
                                 <thead style="background:#f9fafb; position:sticky; top:0;">
                                     <tr>
                                         <th style="padding:8px 10px; text-align:left;">#</th>
-                                        <th style="padding:8px 10px; text-align:left;">型號</th>
+                                        <th style="padding:8px 10px; text-align:left;">型號 / 品名</th>
                                         <th style="padding:8px 10px; text-align:left;">${kind === 'deadstock' ? '出清價' : '福利價'}</th>
                                         <th style="padding:8px 10px; text-align:left;">備註</th>
                                     </tr>
                                 </thead>
-                                <tbody>${tableRows || '<tr><td colspan="4" style="padding:20px; text-align:center; color:#999;">無資料</td></tr>'}</tbody>
+                                <tbody>${tableRows || '<tr><td colspan="4" style="padding:20px; text-align:center; color:#999;">無符合條件的資料</td></tr>'}</tbody>
                             </table>
                         </div>
                     </div>
                 `;
 
-                state.pendingSiteListItems = items;
+                // 寫入前把 _name/_inv 等臨時欄位過濾掉
+                state.pendingSiteListItems = items.map(it => ({
+                    model: it.model,
+                    specialPrice: it.specialPrice,
+                    note: it.note
+                }));
                 previewOverlay.style.display = 'flex';
 
             } catch (err) {
