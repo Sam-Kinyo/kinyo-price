@@ -3,15 +3,15 @@
    所有模組在此整合
 ======================================================= */
 import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
-import { db } from './firebase-init.js?v=c';
-import { state } from './state.js?v=c';
-import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js?v=c';
-import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js?v=c';
-import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js?v=c';
-import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js?v=c';
-import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js?v=c';
-import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore, setupSiteListUpload, saveSiteListToFirestore } from './import.js?v=c';
-import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js?v=c';
+import { db } from './firebase-init.js';
+import { state } from './state.js';
+import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePrice, canViewTier } from './helpers.js';
+import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js';
+import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js';
+import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js';
+import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js';
+import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore, setupSiteListUpload, saveSiteListToFirestore } from './import.js';
+import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js';
 
 /* =======================================================
    DOM References

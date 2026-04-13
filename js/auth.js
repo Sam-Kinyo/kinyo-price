@@ -3,11 +3,11 @@
 ======================================================= */
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 import { onAuthStateChanged, signOut, signInWithEmailAndPassword, signInWithCustomToken, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import { db, auth } from './firebase-init.js?v=c';
-import { state } from './state.js?v=c';
-import { setupQtySelectByLevel } from './search.js?v=c';
-import { updateUserDisplay, searchProducts } from './search.js?v=c';
-import { preloadDriveModelData, preloadProducts } from './data.js?v=c';
+import { db, auth } from './firebase-init.js';
+import { state } from './state.js';
+import { setupQtySelectByLevel } from './search.js';
+import { updateUserDisplay, searchProducts } from './search.js';
+import { preloadDriveModelData, preloadProducts } from './data.js';
 
 /* 權限更新 */
 export function updatePermissions() {
