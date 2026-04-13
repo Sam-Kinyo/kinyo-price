@@ -366,7 +366,8 @@
         const ProductCard = ({ item, product, onAddToCart }) => {
             const [qty, setQty] = useState(1);
             const imgUrl = getImageUrl(product);
-            const marketPrice = product ? product.marketPrice : 0;
+            // 劃掉價優先用匯入時帶的 marketPrice (= Excel 賣場欄)，沒有才 fallback Products
+            const marketPrice = (item.marketPrice && item.marketPrice > 0) ? item.marketPrice : (product ? product.marketPrice : 0);
             const specialPrice = item.specialPrice || 0;
             const discount = marketPrice > 0 ? Math.round((1 - specialPrice / marketPrice) * 100) : 0;
             const displayName = product ? product.name : item.model;

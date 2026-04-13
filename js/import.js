@@ -365,11 +365,13 @@ export function setupSiteListUpload(kind) {
 
                         const inv = (parseInt(row[hFinished] || 0, 10) + parseInt(row[hExclusive] || 0, 10)) || 0;
                         const name = hName !== -1 ? String(row[hName] || '').trim() : '';
+                        // 賣場價（劃掉顯示用）
+                        const marketPrice = hMarket !== -1 ? parseInt(parseFloat(row[hMarket]) || 0, 10) : 0;
                         // 自動產生備註：顯示庫存（若有）
                         const autoNote = inv > 0 ? `限量 ${inv} 件` : '';
 
                         items.push({
-                            model, specialPrice, note: autoNote,
+                            model, specialPrice, marketPrice, note: autoNote,
                             _name: name, _inv: inv,
                             _cost: parseFloat(row[hCost]) || 0,  // 原始廠價（顯示用）
                             _costAdjusted: costAdjusted,
@@ -426,10 +428,14 @@ export function setupSiteListUpload(kind) {
                         const capText = it._capped ? ` · <span style="color:#2563eb;">套小票上限</span>` : '';
                         metaCell = `<div style="font-size:11px; color:#64748b; margin-top:2px;">${costText}${capText}</div>`;
                     }
+                    const marketCell = it.marketPrice > 0
+                        ? `<span style="text-decoration:line-through; color:#9ca3af;">$${it.marketPrice.toLocaleString()}</span>`
+                        : '<span style="color:#9ca3af;">—</span>';
                     return `
                         <tr>
                             <td style="padding:6px 10px; border-bottom:1px solid #eee;">${i + 1}</td>
                             <td style="padding:6px 10px; border-bottom:1px solid #eee;"><b>${it.model}</b>${nameCell}</td>
+                            <td style="padding:6px 10px; border-bottom:1px solid #eee;">${marketCell}</td>
                             <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#dc2626; font-weight:bold;">$${it.specialPrice.toLocaleString()}${metaCell}</td>
                             <td style="padding:6px 10px; border-bottom:1px solid #eee; color:#666;">${it.note || '—'}</td>
                         </tr>
@@ -460,11 +466,12 @@ export function setupSiteListUpload(kind) {
                                     <tr>
                                         <th style="padding:8px 10px; text-align:left;">#</th>
                                         <th style="padding:8px 10px; text-align:left;">型號 / 品名</th>
+                                        <th style="padding:8px 10px; text-align:left;">原價（賣場）</th>
                                         <th style="padding:8px 10px; text-align:left;">${kind === 'deadstock' ? '出清價 (計算)' : '福利價 (計算)'}</th>
                                         <th style="padding:8px 10px; text-align:left;">備註</th>
                                     </tr>
                                 </thead>
-                                <tbody>${tableRows || '<tr><td colspan="4" style="padding:20px; text-align:center; color:#999;">無符合條件的資料</td></tr>'}</tbody>
+                                <tbody>${tableRows || '<tr><td colspan="5" style="padding:20px; text-align:center; color:#999;">無符合條件的資料</td></tr>'}</tbody>
                             </table>
                         </div>
                     </div>
@@ -474,6 +481,7 @@ export function setupSiteListUpload(kind) {
                 state.pendingSiteListItems = items.map(it => ({
                     model: it.model,
                     specialPrice: it.specialPrice,
+                    marketPrice: it.marketPrice || 0,
                     note: it.note
                 }));
                 previewOverlay.style.display = 'flex';
