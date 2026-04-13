@@ -69,9 +69,9 @@
 
 <form id="searchForm" class="search-box">
   <div class="search-row">
-    <label>關鍵字搜尋（分類 / 型號 / 名稱）</label>
+    <label for="keyword">關鍵字搜尋（分類 / 型號 / 名稱）</label>
     <div class="combo-search">
-        <select id="categorySelect">
+        <select id="categorySelect" aria-label="商品分類">
             <option value="">全部分類</option>
         </select>
        <input id="keyword" placeholder="支援多組搜尋 (例如: kh9660, kh195 用空白或逗號隔開)" autocomplete="off" />
@@ -79,13 +79,13 @@
   </div>
 
   <div class="search-row">
-  <label>起訂量 / 庫存篩選</label>
+  <label for="qtySelect">起訂量 / 庫存篩選</label>
   <div style="display:flex; gap:10px; align-items: stretch;">
-    
-    <select id="qtySelect" style="flex:1; min-width: 0;">
+
+    <select id="qtySelect" style="flex:1; min-width: 0;" aria-label="起訂量">
       </select>
 
-    <select id="stockFilter" style="flex:1; min-width: 0; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
+    <select id="stockFilter" aria-label="庫存篩選" style="flex:1; min-width: 0; border-color:#22c55e; background-color:#f0fdf4; color:#15803d; font-weight:bold; display:none;">
       <option value="">📦 不限庫存</option>
       <option value="ZERO" style="color:#dc2626; font-weight:bold;">❌ 缺貨 (0)</option>
       <option value="1">📦 現貨 &gt; 0</option>
@@ -100,10 +100,10 @@
 </div>
 
   <div class="search-row">
-    <label>預算區間（起訂量已選時才生效；可只填一邊）</label>
+    <label for="minPrice">預算區間（起訂量已選時才生效；可只填一邊）</label>
     <div style="display:flex; gap:10px;">
-      <input id="minPrice" type="number" placeholder="最低 (可空)">
-      <input id="maxPrice" type="number" placeholder="最高 (可空)">
+      <input id="minPrice" type="number" placeholder="最低 (可空)" aria-label="最低預算">
+      <input id="maxPrice" type="number" placeholder="最高 (可空)" aria-label="最高預算">
     </div>
   </div>
 
