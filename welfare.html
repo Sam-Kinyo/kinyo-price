@@ -140,19 +140,19 @@
 
         // ====== PRODUCT DATA LOADER ======
         let _productsCache = null;
+        let _driveImageMap = {};  // ProductImages 圖片對照表（全域，供 fallback）
         async function loadAllProducts() {
             if (_productsCache) return _productsCache;
             const { db, fs } = await getFirebase();
             const cache = [];
-            const driveMap = {};
 
             try {
                 const imgSnap = await fs.getDocs(fs.query(fs.collection(db, "ProductImages")));
                 imgSnap.forEach((d) => {
                     const data = d.data();
                     const key = normalizeKey(data.mainModel || d.id);
-                    if (data.netImages && data.netImages.length > 0 && data.netImages[0]) driveMap[key] = data.netImages[0];
-                    else if (data.mainImage) driveMap[key] = data.mainImage;
+                    if (data.netImages && data.netImages.length > 0 && data.netImages[0]) _driveImageMap[key] = data.netImages[0];
+                    else if (data.mainImage) _driveImageMap[key] = data.mainImage;
                 });
             } catch (e) { console.warn("ProductImages skipped:", e.message); }
 
@@ -160,18 +160,17 @@
                 const prodSnap = await fs.getDocs(fs.query(fs.collection(db, "Products")));
                 prodSnap.forEach((doc) => {
                     const d = doc.data();
-                    if (d.status !== 'inactive') {
-                        const driveKey = normalizeKey(d.mainModel || d.model);
-                        const driveImg = driveMap[driveKey] || "";
-                        const validImg = (d.imageUrl && d.imageUrl.startsWith('http')) ? d.imageUrl : '';
-                        cache.push({
-                            name: d.name || "", model: d.model || "",
-                            mainModel: d.mainModel || "",
-                            imageUrl: validImg || driveImg || "",
-                            marketPrice: parseFloat(d.marketPrice) || 0,
-                            inventory: parseInt(d.inventory) || 0
-                        });
-                    }
+                    // 呆滯品/福利品頁不過濾 inactive，因為這些本來就是停售品
+                    const driveKey = normalizeKey(d.mainModel || d.model);
+                    const driveImg = _driveImageMap[driveKey] || "";
+                    const validImg = (d.imageUrl && d.imageUrl.startsWith('http')) ? d.imageUrl : '';
+                    cache.push({
+                        name: d.name || "", model: d.model || "",
+                        mainModel: d.mainModel || "",
+                        imageUrl: validImg || driveImg || "",
+                        marketPrice: parseFloat(d.marketPrice) || 0,
+                        inventory: parseInt(d.inventory) || 0
+                    });
                 });
             } catch (e) { console.error("Products load failed:", e); }
 
@@ -364,7 +363,14 @@
         // ====== PRODUCT CARD ======
         const ProductCard = ({ item, product, onAddToCart }) => {
             const [qty, setQty] = useState(1);
-            const imgUrl = getImageUrl(product);
+            let imgUrl = getImageUrl(product);
+            // Fallback: 若 Products 沒圖，從 _driveImageMap (ProductImages) 直接查
+            if (imgUrl.includes('placehold.co') && item.model) {
+                const driveImg = _driveImageMap[normalizeKey(item.model)];
+                if (driveImg && driveImg.startsWith('http')) {
+                    imgUrl = `https://images.weserv.nl/?url=${encodeURIComponent(driveImg)}&w=400&output=webp`;
+                }
+            }
             // 劃掉價優先用匯入時帶的 marketPrice (= Excel 賣場欄)，沒有才 fallback Products
             const marketPrice = (item.marketPrice && item.marketPrice > 0) ? item.marketPrice : (product ? product.marketPrice : 0);
             const specialPrice = item.specialPrice || 0;
