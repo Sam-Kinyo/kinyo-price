@@ -1917,3 +1917,35 @@ exports.testQueryKH198 = functions.https.onRequest(async (req, res) => {
     }
 });
 
+// ── 圖片同步：從 kinyo.tw 抓商品首圖寫入 ProductImages ──
+exports.syncProductImages = functions
+    .region('asia-east1')
+    .runWith({ timeoutSeconds: 540, memory: '512MB' })
+    .https.onRequest(async (req, res) => {
+        res.set('Access-Control-Allow-Origin', '*');
+        res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+        // Token 驗證
+        const token = req.query.token || req.body?.token || '';
+        if (token !== process.env.SYNC_TOKEN) {
+            res.status(403).json({ error: 'Invalid token' });
+            return;
+        }
+
+        const force = req.query.force === 'true' || req.body?.force === true;
+        try {
+            const { syncImages } = require('./src/services/imageSync');
+            const results = await syncImages({ force });
+            res.status(200).json({
+                success: true,
+                message: `圖片同步完成：${results.created} 新建、${results.updated} 更新、${results.skipped} 已有圖跳過、${results.notFound} 找不到`,
+                ...results
+            });
+        } catch (e) {
+            console.error('syncProductImages error:', e);
+            res.status(500).json({ error: e.message });
+        }
+    });
+

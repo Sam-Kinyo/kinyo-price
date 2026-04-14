@@ -495,6 +495,9 @@ export function setupSiteListUpload(kind) {
     };
 }
 
+const SYNC_IMAGES_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/syncProductImages';
+const SYNC_TOKEN = 'Kinyo$ync2026!xR9mTq';
+
 export async function saveSiteListToFirestore(kind, items) {
     const btnId = kind === 'deadstock' ? 'importDeadStockBtn' : 'importWelfareBtn';
     const docId = kind === 'deadstock' ? 'deadStockList' : 'welfareList';
@@ -509,12 +512,35 @@ export async function saveSiteListToFirestore(kind, items) {
             updatedBy: state.currentUserEmail || 'unknown'
         }, { merge: false });
 
-        alert(`${LABEL}清單已成功更新！\n共 ${items.length} 筆商品。\n網站會自動顯示最新清單。`);
+        alert(`${LABEL}清單已成功更新！共 ${items.length} 筆商品。\n\n正在自動同步商品照片（約 30-60 秒）...`);
+
+        // 自動觸發圖片同步
+        triggerImageSync(LABEL);
     } catch (e) {
         console.error('save site list failed', e);
         alert(`${LABEL}寫入失敗，請檢查 Console`);
     } finally {
         if (btn) btn.disabled = false;
+    }
+}
+
+async function triggerImageSync(label) {
+    try {
+        const resp = await fetch(`${SYNC_IMAGES_URL}?token=${encodeURIComponent(SYNC_TOKEN)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ force: false })
+        });
+        const data = await resp.json();
+        if (data.success) {
+            alert(`📸 照片同步完成！\n${data.message}\n${data.notFoundList?.length > 0 ? '\n找不到圖的型號：' + data.notFoundList.join(', ') : ''}`);
+        } else {
+            console.warn('Image sync failed:', data);
+            alert(`⚠️ 照片同步失敗：${data.error || '未知錯誤'}\n${label}清單已更新，照片請稍後手動同步。`);
+        }
+    } catch (e) {
+        console.warn('Image sync error:', e);
+        alert(`⚠️ 照片同步連線失敗（清單已正常更新）。\n請稍後重新整理頁面確認照片。`);
     }
 }
 
