@@ -188,6 +188,16 @@
             return base;
         }
 
+        function formatModel(key) {
+            if (!key) return "";
+            let base = key.split('.')[0].split('_')[0].split(' ')[0].toUpperCase();
+            if (base.startsWith("WV-")) return base;
+            base = base.replace(/-/g, '');
+            let m = base.match(/^([A-Z]+)(\d+)/);
+            if (m) return m[1] + '-' + m[2];
+            return base;
+        }
+
         function findProduct(allProducts, model) {
             const targetNorm = normalizeKey(model || '');
             const target = (model || '').toLowerCase().replace(/[-_]/g, '');
@@ -376,7 +386,7 @@
             const specialPrice = item.specialPrice || 0;
             const discount = marketPrice > 0 ? Math.round((1 - specialPrice / marketPrice) * 100) : 0;
             const displayName = product ? product.name : item.model;
-            const displayModel = product ? product.model : item.model;
+            const displayModel = formatModel(product ? product.model : item.model);
 
             const handleAdd = () => {
                 onAddToCart({ model: displayModel, name: displayName, specialPrice, marketPrice, imageUrl: product?.imageUrl || '', quantity: qty, note: item.note || '', source: PAGE_CONFIG.type });
