@@ -612,41 +612,40 @@
 
         // ====== TRUST SECTION ======
         const TrustSection = () => (
-            <section className="py-12 px-4 sm:px-6 bg-white">
-                <div className="max-w-3xl mx-auto">
-                    {/* 警示標題 */}
-                    <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 sm:p-8 mb-8">
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="text-2xl">&#9888;&#65039;</span>
-                            <h2 className="text-lg sm:text-xl font-black text-amber-800">福利品定義</h2>
-                        </div>
-                        <p className="text-amber-900 font-bold text-base sm:text-lg mb-6 leading-relaxed bg-amber-100 rounded-xl px-4 py-3">
-                            此商品為福利品，<span className="text-red-600 underline decoration-2">非全新品</span>，請詳加考慮後再下單。
-                        </p>
-                        <div className="text-sm sm:text-base text-slate-700 leading-relaxed space-y-3">
-                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>經客人（拆封）補償整新費用後，<b className="text-emerald-700">主體全新</b>之商品。</span></p>
-                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>產品外包裝於運輸過程中受損，但<b className="text-emerald-700">不影響產品效能</b>之商品。</span></p>
-                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>產品外包裝因各項原因輕微退色，但<b className="text-emerald-700">不影響產品效能</b>之商品。</span></p>
-                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>商品主體輕微色澤不均但<b className="text-emerald-700">不影響商品功能</b>。</span></p>
-                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>商品主體輕微污痕但<b className="text-emerald-700">不影響商品功能</b>。</span></p>
-                        </div>
-                    </div>
-
-                    {/* 保固 + 退貨政策 */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xl">&#128737;</span>
-                                <h4 className="font-bold text-emerald-800">原廠保固一年</h4>
+            <section className="py-8 px-4 sm:px-6 bg-white border-b border-slate-100">
+                <div className="max-w-6xl mx-auto">
+                    <div className="flex flex-col lg:flex-row gap-5">
+                        {/* 左欄：福利品定義 */}
+                        <div className="flex-1 bg-amber-50 border border-amber-200 rounded-xl p-5">
+                            <div className="flex items-center gap-2 mb-3">
+                                <span className="text-xl">&#9888;&#65039;</span>
+                                <h3 className="font-black text-amber-800 text-base">福利品定義</h3>
                             </div>
-                            <p className="text-sm text-emerald-700">商品同樣享有原廠保固一年，請放心購買。</p>
-                        </div>
-                        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
-                            <div className="flex items-center gap-2 mb-2">
-                                <span className="text-xl">&#128249;</span>
-                                <h4 className="font-bold text-red-800">出貨前錄影存證</h4>
+                            <p className="text-amber-900 font-bold text-sm mb-3 bg-amber-100 rounded-lg px-3 py-2">
+                                此商品為福利品，<span className="text-red-600 underline decoration-2">非全新品</span>，請詳加考慮後再下單。
+                            </p>
+                            <div className="text-xs sm:text-sm text-slate-600 space-y-1.5">
+                                <p className="flex gap-1.5"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>經客人拆封補償整新費用後，<b className="text-emerald-700">主體全新</b>之商品</span></p>
+                                <p className="flex gap-1.5"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>外包裝運輸受損 / 輕微退色，但<b className="text-emerald-700">不影響效能</b></span></p>
+                                <p className="flex gap-1.5"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>主體輕微色澤不均 / 污痕，但<b className="text-emerald-700">不影響功能</b></span></p>
                             </div>
-                            <p className="text-sm text-red-700">出貨前皆有錄影拍照，若退貨後有<b>新增人為破壞痕跡</b>，將索求整新費用。</p>
+                        </div>
+                        {/* 右欄：保固 + 退貨 */}
+                        <div className="flex flex-col gap-3 lg:w-[320px]">
+                            <div className="flex-1 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3">
+                                <span className="text-2xl shrink-0">&#128737;</span>
+                                <div>
+                                    <h4 className="font-bold text-emerald-800 text-sm mb-1">原廠保固一年</h4>
+                                    <p className="text-xs text-emerald-700">同樣享有原廠保固，請放心購買</p>
+                                </div>
+                            </div>
+                            <div className="flex-1 bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
+                                <span className="text-2xl shrink-0">&#128249;</span>
+                                <div>
+                                    <h4 className="font-bold text-red-800 text-sm mb-1">出貨前錄影存證</h4>
+                                    <p className="text-xs text-red-700">退貨後有<b>新增人為破壞</b>，將索求整新費用</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -681,6 +680,15 @@
             </button>
         );
 
+        // ====== FILTER BAR ======
+        const PRICE_RANGES = [
+            { label: '全部', min: 0, max: Infinity },
+            { label: '$100 以下', min: 0, max: 100 },
+            { label: '$100-500', min: 100, max: 500 },
+            { label: '$500-1000', min: 500, max: 1000 },
+            { label: '$1000+', min: 1000, max: Infinity },
+        ];
+
         // ====== MAIN APP ======
         const App = () => {
             const [user, setUser] = useState(null);
@@ -694,8 +702,71 @@
             const [submitting, setSubmitting] = useState(false);
             const [orderId, setOrderId] = useState('');
             const [toast, setToast] = useState(null);
+            // 篩選 state
+            const [searchTerm, setSearchTerm] = useState('');
+            const [priceIdx, setPriceIdx] = useState(0);
+            const [sortBy, setSortBy] = useState('default');
 
             const cartCount = cart.reduce((s, c) => s + c.quantity, 0);
+
+            // 篩選 + 排序
+            const filteredItems = useMemo(() => {
+                let items = [...configItems];
+                // 關鍵字
+                if (searchTerm.trim()) {
+                    const kw = searchTerm.trim().toLowerCase().replace(/[-_\s]/g, '');
+                    items = items.filter(it => {
+                        const m = (it.model || '').toLowerCase().replace(/[-_\s]/g, '');
+                        const p = findProduct(allProducts, it.model);
+                        const n = (p ? p.name : '').toLowerCase();
+                        return m.includes(kw) || n.includes(kw);
+                    });
+                }
+                // 價格區間
+                const range = PRICE_RANGES[priceIdx];
+                if (range && range.max !== Infinity || range.min > 0) {
+                    items = items.filter(it => it.specialPrice >= range.min && it.specialPrice < (range.max === Infinity ? 999999 : range.max));
+                }
+                // 排序
+                if (sortBy === 'priceAsc') items.sort((a, b) => a.specialPrice - b.specialPrice);
+                else if (sortBy === 'priceDesc') items.sort((a, b) => b.specialPrice - a.specialPrice);
+                return items;
+            }, [configItems, allProducts, searchTerm, priceIdx, sortBy]);
+
+            const FilterBar = () => (
+                <section className="py-4 px-4 sm:px-6 bg-white sticky top-[68px] z-[99] border-b border-slate-100 shadow-sm">
+                    <div className="max-w-6xl mx-auto flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+                        {/* 搜尋 */}
+                        <div className="flex-1 relative">
+                            <input
+                                type="text" value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                placeholder="搜尋型號或品名..."
+                                className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:border-transparent outline-none"
+                            />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                        </div>
+                        {/* 價格區間 */}
+                        <div className="flex gap-1.5 flex-wrap">
+                            {PRICE_RANGES.map((r, i) => (
+                                <button key={i} onClick={() => setPriceIdx(i)}
+                                    className={`px-3 py-1.5 rounded-full text-xs font-medium transition whitespace-nowrap ${i === priceIdx ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                    {r.label}
+                                </button>
+                            ))}
+                        </div>
+                        {/* 排序 */}
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value)}
+                            className="px-3 py-2 border border-slate-200 rounded-xl text-xs text-slate-600 bg-white focus:ring-2 focus:ring-emerald-500 outline-none">
+                            <option value="default">預設排序</option>
+                            <option value="priceAsc">價格 低→高</option>
+                            <option value="priceDesc">價格 高→低</option>
+                        </select>
+                        {/* 結果數 */}
+                        <span className="text-xs text-slate-400 whitespace-nowrap hidden sm:block">{filteredItems.length} / {configItems.length} 件</span>
+                    </div>
+                </section>
+            );
 
             useEffect(() => { saveCart(cart); }, [cart]);
 
@@ -817,8 +888,9 @@
 
                     {page === 'browse' && <>
                         <HeroBanner />
-                        <ProductGrid items={configItems} products={allProducts} onAddToCart={addToCart} loading={loadingProducts}/>
                         <TrustSection />
+                        <FilterBar />
+                        <ProductGrid items={filteredItems} products={allProducts} onAddToCart={addToCart} loading={loadingProducts}/>
                     </>}
 
                     {page === 'checkout' && (
