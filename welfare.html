@@ -613,23 +613,40 @@
         // ====== TRUST SECTION ======
         const TrustSection = () => (
             <section className="py-12 px-4 sm:px-6 bg-white">
-                <div className="max-w-4xl mx-auto">
-                    <h2 className="text-xl font-bold text-center mb-8">為什麼選擇 KINYO 福利品？</h2>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-                        <div className="p-6">
-                            <div className="text-3xl mb-3">&#9989;</div>
-                            <h4 className="font-bold mb-2">品質保證</h4>
-                            <p className="text-sm text-slate-500">全新商品，經過嚴格品質檢測，安心使用</p>
+                <div className="max-w-3xl mx-auto">
+                    {/* 警示標題 */}
+                    <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-6 sm:p-8 mb-8">
+                        <div className="flex items-center gap-3 mb-4">
+                            <span className="text-2xl">&#9888;&#65039;</span>
+                            <h2 className="text-lg sm:text-xl font-black text-amber-800">福利品定義</h2>
                         </div>
-                        <div className="p-6">
-                            <div className="text-3xl mb-3">&#127873;</div>
-                            <h4 className="font-bold mb-2">企業福利首選</h4>
-                            <p className="text-sm text-slate-500">員工禮品、企業福利、活動贈品的最佳選擇</p>
+                        <p className="text-amber-900 font-bold text-base sm:text-lg mb-6 leading-relaxed bg-amber-100 rounded-xl px-4 py-3">
+                            此商品為福利品，<span className="text-red-600 underline decoration-2">非全新品</span>，請詳加考慮後再下單。
+                        </p>
+                        <div className="text-sm sm:text-base text-slate-700 leading-relaxed space-y-3">
+                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>經客人（拆封）補償整新費用後，<b className="text-emerald-700">主體全新</b>之商品。</span></p>
+                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>產品外包裝於運輸過程中受損，但<b className="text-emerald-700">不影響產品效能</b>之商品。</span></p>
+                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>產品外包裝因各項原因輕微退色，但<b className="text-emerald-700">不影響產品效能</b>之商品。</span></p>
+                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>商品主體輕微色澤不均但<b className="text-emerald-700">不影響商品功能</b>。</span></p>
+                            <p className="flex gap-2"><span className="text-emerald-500 font-bold shrink-0">&#10003;</span><span>商品主體輕微污痕但<b className="text-emerald-700">不影響商品功能</b>。</span></p>
                         </div>
-                        <div className="p-6">
-                            <div className="text-3xl mb-3">&#128170;</div>
-                            <h4 className="font-bold mb-2">原廠保固</h4>
-                            <p className="text-sm text-slate-500">享有原廠完整保固服務，售後無憂</p>
+                    </div>
+
+                    {/* 保固 + 退貨政策 */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-5">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xl">&#128737;</span>
+                                <h4 className="font-bold text-emerald-800">原廠保固一年</h4>
+                            </div>
+                            <p className="text-sm text-emerald-700">商品同樣享有原廠保固一年，請放心購買。</p>
+                        </div>
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-5">
+                            <div className="flex items-center gap-2 mb-2">
+                                <span className="text-xl">&#128249;</span>
+                                <h4 className="font-bold text-red-800">出貨前錄影存證</h4>
+                            </div>
+                            <p className="text-sm text-red-700">出貨前皆有錄影拍照，若退貨後有<b>新增人為破壞痕跡</b>，將索求整新費用。</p>
                         </div>
                     </div>
                 </div>
