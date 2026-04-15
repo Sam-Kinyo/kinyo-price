@@ -491,86 +491,6 @@
             .combo-right { grid-template-columns: 1fr; }
             .process-grid { grid-template-columns: 1fr; }
         }
-
-        /* ── New Products Carousel ───────────────────────────── */
-        .np-carousel {
-            position: relative;
-            max-width: 900px;
-            margin: 0 auto;
-        }
-        .np-viewport {
-            overflow: hidden;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-            background: #fff;
-        }
-        .np-track {
-            display: flex;
-            transition: transform .35s ease;
-            will-change: transform;
-        }
-        .np-slide {
-            flex: 0 0 100%;
-            min-width: 0;
-        }
-        .np-slide img {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
-        .np-arrow {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            border: none;
-            background: rgba(255, 255, 255, 0.92);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-            font-size: 26px;
-            line-height: 1;
-            color: var(--primary);
-            cursor: pointer;
-            z-index: 2;
-            transition: background .2s, transform .2s;
-        }
-        .np-arrow:hover {
-            background: var(--accent-light);
-            transform: translateY(-50%) scale(1.05);
-        }
-        .np-prev { left: 12px; }
-        .np-next { right: 12px; }
-        .np-dots {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 16px;
-        }
-        .np-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            border: none;
-            padding: 0;
-            background: var(--border);
-            cursor: pointer;
-            transition: background .2s, transform .2s;
-        }
-        .np-dot:hover { transform: scale(1.2); }
-        .np-dot.active { background: var(--accent); }
-        @media (max-width: 640px) {
-            .np-arrow {
-                width: 36px;
-                height: 36px;
-                font-size: 22px;
-                background: rgba(0, 0, 0, 0.45);
-                color: #fff;
-            }
-            .np-arrow:hover { background: rgba(0, 0, 0, 0.6); }
-            .np-prev { left: 6px; }
-            .np-next { right: 6px; }
-        }
     </style>
 </head>
 
@@ -690,20 +610,6 @@
         <p class="section-desc">15 本情境選品圖鑑，從生活場景找到最合適的禮贈品</p>
         <div id="catalog-grid" class="catalog-grid">
             <div style="grid-column:1/-1; text-align:center; color:var(--text-gray); padding:20px;">主題型錄載入中...</div>
-        </div>
-    </section>
-
-    <!-- New Products Carousel -->
-    <section class="section section-alt" id="new-products-section" style="display:none;">
-        <h2 class="section-title">最新產品搶先看</h2>
-        <p class="section-desc">KINYO 新品速報，第一時間掌握即將上市品項</p>
-        <div class="np-carousel">
-            <button class="np-arrow np-prev" aria-label="上一張">&#8249;</button>
-            <div class="np-viewport">
-                <div class="np-track" id="np-track"></div>
-            </div>
-            <button class="np-arrow np-next" aria-label="下一張">&#8250;</button>
-            <div class="np-dots" id="np-dots"></div>
         </div>
     </section>
 
@@ -999,44 +905,6 @@
             }
         }
 
-        async function loadNewProducts() {
-            const section = document.getElementById('new-products-section');
-            const track = document.getElementById('np-track');
-            const dots = document.getElementById('np-dots');
-            if (!section || !track || !dots) return;
-            try {
-                const snap = await getDoc(doc(db, "SiteConfig", "newProducts"));
-                if (!snap.exists()) return;
-                const data = snap.data() || {};
-                const slides = Array.isArray(data.slides) ? data.slides.filter(u => typeof u === 'string' && u.startsWith('http')) : [];
-                if (slides.length === 0) return;
-
-                track.innerHTML = slides.map((url, i) =>
-                    `<div class="np-slide"><img src="${url}" alt="新品 ${i + 1}" loading="lazy"></div>`
-                ).join('');
-                dots.innerHTML = slides.map((_, i) =>
-                    `<button class="np-dot${i === 0 ? ' active' : ''}" data-idx="${i}" aria-label="第 ${i + 1} 張"></button>`
-                ).join('');
-
-                let cur = 0;
-                const go = (idx) => {
-                    cur = (idx + slides.length) % slides.length;
-                    track.style.transform = `translateX(-${cur * 100}%)`;
-                    dots.querySelectorAll('.np-dot').forEach((el, i) =>
-                        el.classList.toggle('active', i === cur));
-                };
-                section.querySelector('.np-prev').onclick = () => go(cur - 1);
-                section.querySelector('.np-next').onclick = () => go(cur + 1);
-                dots.onclick = (e) => {
-                    const b = e.target.closest('[data-idx]');
-                    if (b) go(parseInt(b.dataset.idx));
-                };
-                section.style.display = '';
-            } catch (e) {
-                console.warn("New products load failed:", e);
-            }
-        }
-
         async function logProductClick(product) {
             try {
                 addDoc(collection(db, "ProductClicks"), {
@@ -1156,7 +1024,6 @@
         };
 
         loadHotProducts();
-        loadNewProducts();
         loadCatalogs();
     </script>
 
