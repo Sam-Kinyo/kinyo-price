@@ -1856,12 +1856,12 @@ exports.scheduledDriveSync = functions
             }
         }
 
-        // --- 每日熱門榜統計（基於 ProductClicks 過去 7 天數據）---
+        // --- 每日熱門榜統計（基於 ProductClicks 過去 30 天數據）---
         try {
-            console.log('📊 [排程] 開始統計每週熱門詢價榜...');
-            const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            console.log('📊 [排程] 開始統計熱門詢價榜（過去 30 天）...');
+            const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
             const clicksSnap = await db.collection('ProductClicks')
-                .where('clickedAt', '>=', admin.firestore.Timestamp.fromDate(sevenDaysAgo))
+                .where('clickedAt', '>=', admin.firestore.Timestamp.fromDate(thirtyDaysAgo))
                 .get();
 
             if (!clicksSnap.empty) {
@@ -1887,7 +1887,7 @@ exports.scheduledDriveSync = functions
                     console.log(`📊 [排程] 熱門榜已更新，共 ${hotArray.length} 筆`);
                 }
             } else {
-                console.log('📊 [排程] 過去 7 天無 ProductClicks 資料，跳過熱門榜更新');
+                console.log('📊 [排程] 過去 30 天無 ProductClicks 資料，跳過熱門榜更新');
             }
         } catch (hotErr) {
             console.error('[排程] 熱門榜統計失敗:', hotErr);
