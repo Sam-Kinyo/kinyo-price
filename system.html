@@ -29,6 +29,69 @@
   </div>
 </div>
 
+<!-- Gift Excel Report Form Overlay -->
+<div id="giftFormOverlay">
+  <div class="gift-form-card">
+    <div class="gift-form-header">🎁 贈品報備資料（下載前填寫，可留空）</div>
+    <div class="gift-form-body">
+      <div class="gift-form-field">
+        <label for="giftProjectName">案名</label>
+        <input type="text" id="giftProjectName" placeholder="例：XX公司年會贈品">
+      </div>
+      <div class="gift-form-field">
+        <label for="giftCustomer">客戶</label>
+        <input type="text" id="giftCustomer" placeholder="客戶名稱 / 單位">
+      </div>
+      <div class="gift-form-row">
+        <div class="gift-form-field">
+          <label for="giftBidDate">開標日</label>
+          <input type="date" id="giftBidDate">
+        </div>
+        <div class="gift-form-field">
+          <label for="giftDeliveryDate">交貨日</label>
+          <input type="date" id="giftDeliveryDate">
+        </div>
+      </div>
+      <div class="gift-form-row">
+        <div class="gift-form-field">
+          <label for="giftBudgetMin">預算下限</label>
+          <input type="number" id="giftBudgetMin" placeholder="可空">
+        </div>
+        <div class="gift-form-field">
+          <label for="giftBudgetMax">預算上限</label>
+          <input type="number" id="giftBudgetMax" placeholder="可空">
+        </div>
+      </div>
+      <div class="gift-form-row">
+        <div class="gift-form-field">
+          <label for="giftQtyMin">數量下限</label>
+          <input type="number" id="giftQtyMin" placeholder="可空">
+        </div>
+        <div class="gift-form-field">
+          <label for="giftQtyMax">數量上限</label>
+          <input type="number" id="giftQtyMax" placeholder="可空">
+        </div>
+      </div>
+      <div class="gift-form-field">
+        <label for="giftNote">備註</label>
+        <textarea id="giftNote" rows="2" placeholder="其他說明（可空）"></textarea>
+      </div>
+      <div class="gift-form-field">
+        <label for="giftLineNotify">Line通知</label>
+        <select id="giftLineNotify">
+          <option value="Y" selected>Y（通知）</option>
+          <option value="N">N（不通知）</option>
+        </select>
+      </div>
+      <p class="gift-form-hint">💡 空白欄位可上傳到 Google Drive 後，在手機 Google Sheets APP 補填。</p>
+    </div>
+    <div class="gift-form-footer">
+      <button id="giftFormCancelBtn" class="btn-secondary">取消</button>
+      <button id="giftFormConfirmBtn" class="btn-primary">下載 Excel</button>
+    </div>
+  </div>
+</div>
+
 <!-- Preview Overlay -->
 <div id="previewOverlay">
     <div class="preview-card">
@@ -130,6 +193,7 @@
   <!-- Always visible main action buttons -->
   <button id="multiLineBtn" class="toolbar-btn-pill" disabled>📱 多選 LINE</button>
   <button id="exportBtn" class="toolbar-btn-pill" disabled>📊 匯出 Excel</button>
+  <button id="exportGiftBtn" class="toolbar-btn-pill" disabled>🎁 贈品 Excel</button>
   <button id="pptToolbarBtn" class="toolbar-btn-pill" disabled>📑 生成 PPT</button>
   <button id="batchAddQuoteBtn" class="toolbar-btn-pill" disabled>➕ 候選清單</button>
 
@@ -225,6 +289,6 @@
 </button>
 
 <!-- 拆分後的 JS 模組 (單一入口) -->
-<script type="module" src="js/app.js?v=20260413c"></script>
+<script type="module" src="js/app.js?v=20260419a"></script>
 </body>
 </html>

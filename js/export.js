@@ -450,6 +450,102 @@ export function exportSelectedExcel() {
   XLSX.writeFile(wb, `KINYO_商品報價_${fileTag}_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
+/* 贈品 Excel 匯出 (商品報價 + 報備資料 雙分頁) */
+function openGiftFormOverlay() {
+    return new Promise((resolve) => {
+        const overlay = document.getElementById("giftFormOverlay");
+        const cancelBtn = document.getElementById("giftFormCancelBtn");
+        const confirmBtn = document.getElementById("giftFormConfirmBtn");
+        if (!overlay || !cancelBtn || !confirmBtn) { resolve(null); return; }
+
+        overlay.style.display = "flex";
+
+        const cleanup = (result) => {
+            overlay.style.display = "none";
+            cancelBtn.onclick = null;
+            confirmBtn.onclick = null;
+            resolve(result);
+        };
+
+        cancelBtn.onclick = () => cleanup(null);
+        confirmBtn.onclick = () => {
+            const val = (id) => (document.getElementById(id)?.value || "").trim();
+            cleanup({
+                projectName: val("giftProjectName"),
+                customer: val("giftCustomer"),
+                bidDate: val("giftBidDate"),
+                deliveryDate: val("giftDeliveryDate"),
+                budgetMin: val("giftBudgetMin"),
+                budgetMax: val("giftBudgetMax"),
+                qtyMin: val("giftQtyMin"),
+                qtyMax: val("giftQtyMax"),
+                note: val("giftNote"),
+                lineNotify: document.getElementById("giftLineNotify")?.value || "Y"
+            });
+        };
+    });
+}
+
+export async function exportGiftExcel() {
+    const checked = document.querySelectorAll(".row-check:checked");
+    if (checked.length === 0) { alert("請先勾選要匯出的商品"); return; }
+
+    const qtySelect = document.getElementById("qtySelect");
+    const qty = qtySelect.value;
+
+    if (!state.isGroupBuyUser && !qty) {
+        alert("請先選擇起訂量，才能計算贈品報價");
+        return;
+    }
+
+    const formData = await openGiftFormOverlay();
+    if (!formData) return;
+
+    const selectedModels = Array.from(checked).map(c => c.getAttribute("data-model"));
+
+    const priceRows = [["商品型號", "報價"]];
+    selectedModels.forEach(m => {
+        const item = state.currentResultList.find(p => p.model === m);
+        if (!item) return;
+        let price = "";
+        if (state.isGroupBuyUser) {
+            price = item.groupBuyPrice ?? "";
+        } else {
+            const canSeeQuote = canViewTier(state.userLevel, Number(qty));
+            const live = calcQuotePrice(item.cost, Number(qty), state.userLevel);
+            price = canSeeQuote ? (live ?? "") : "";
+        }
+        priceRows.push([item.model, price]);
+    });
+
+    const reportRows = [
+        ["欄位", "填寫"],
+        ["案名", formData.projectName],
+        ["客戶", formData.customer],
+        ["開標日", formData.bidDate],
+        ["交貨日", formData.deliveryDate],
+        ["預算下限", formData.budgetMin],
+        ["預算上限", formData.budgetMax],
+        ["數量下限", formData.qtyMin],
+        ["數量上限", formData.qtyMax],
+        ["備註", formData.note],
+        ["Line通知", formData.lineNotify]
+    ];
+
+    const wb = XLSX.utils.book_new();
+    const wsPrice = XLSX.utils.aoa_to_sheet(priceRows);
+    wsPrice["!cols"] = [{ wch: 16 }, { wch: 12 }];
+    XLSX.utils.book_append_sheet(wb, wsPrice, "商品報價");
+
+    const wsReport = XLSX.utils.aoa_to_sheet(reportRows);
+    wsReport["!cols"] = [{ wch: 12 }, { wch: 36 }];
+    XLSX.utils.book_append_sheet(wb, wsReport, "報備資料");
+
+    const tag = formData.projectName || (state.isGroupBuyUser ? "團購" : `${qty}個`);
+    const safeTag = tag.replace(/[\\/:*?"<>|]/g, "_");
+    XLSX.writeFile(wb, `KINYO_贈品報備_${safeTag}_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
 /* 大數據匯出 */
 export async function exportQuoteHistory() {
     if (!confirm("確定要匯出所有報價紀錄嗎？這可能需要一點時間。")) return;

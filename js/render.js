@@ -13,12 +13,14 @@ export function updateMultiLineBtnState() {
   
   const multiLineBtn = document.getElementById("multiLineBtn");
   const exportBtn = document.getElementById("exportBtn");
+  const exportGiftBtn = document.getElementById("exportGiftBtn");
   const pptToolbarBtn = document.getElementById("pptToolbarBtn");
   const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
-  
+
   if(multiLineBtn) multiLineBtn.disabled = !state.hasCheckedItems;
-  if(exportBtn) exportBtn.disabled = !state.hasCheckedItems; 
-  if(pptToolbarBtn) pptToolbarBtn.disabled = !state.hasCheckedItems; 
+  if(exportBtn) exportBtn.disabled = !state.hasCheckedItems;
+  if(exportGiftBtn) exportGiftBtn.disabled = !state.hasCheckedItems;
+  if(pptToolbarBtn) pptToolbarBtn.disabled = !state.hasCheckedItems;
   if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = !state.hasCheckedItems;
   const setHotBtn = document.getElementById("setHotBtn");
   if(setHotBtn && state.userLevel >= 4) setHotBtn.disabled = !state.hasCheckedItems;
@@ -77,11 +79,15 @@ export function renderResults(list) {
   const exportBtn = document.getElementById("exportBtn");
   const pptToolbarBtn = document.getElementById("pptToolbarBtn");
 
+  const exportGiftBtn = document.getElementById("exportGiftBtn");
   resultBody.innerHTML = ""; detailCard.style.display = "none"; checkAllBox.checked = false; updateMultiLineBtnState();
   if (list.length === 0) {
-    resultTable.style.display = "none"; exportBtn.disabled = true; pptToolbarBtn.disabled = true; return;
+    resultTable.style.display = "none"; exportBtn.disabled = true; pptToolbarBtn.disabled = true;
+    if (exportGiftBtn) exportGiftBtn.disabled = true;
+    return;
   }
   resultTable.style.display = "table"; exportBtn.disabled = false; pptToolbarBtn.disabled = false;
+  if (exportGiftBtn) exportGiftBtn.disabled = false;
 
   list.forEach(item => {
     const netImages = getDriveNetImages(item.model, item.mainModel) || [];

@@ -9,7 +9,7 @@ import { closeSheet, closeQuoteSheet, openQuoteSheet, shuffleArray, calcQuotePri
 import { searchProducts, applySorting, setupQtySelectByLevel, updateUserDisplay } from './search.js';
 import { renderResults, updateMultiLineBtnState, updateToolbarScrollState } from './render.js';
 import { renderQuoteList, updateQuoteToolbarBtn, downloadQuoteExcel } from './quote.js';
-import { exportSelectedPPT, exportSelectedExcel, exportQuoteHistory } from './export.js';
+import { exportSelectedPPT, exportSelectedExcel, exportGiftExcel, exportQuoteHistory } from './export.js';
 import { setupProductUpload, saveProductDataToFirestore, saveInventoryToFirestore, setupSiteListUpload, saveSiteListToFirestore } from './import.js';
 import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissions, interceptSSOLogin } from './auth.js';
 
@@ -19,6 +19,7 @@ import { setupLoginButton, setupLogoutButton, setupAuthListener, updatePermissio
 const searchForm      = document.getElementById("searchForm");
 const sortSelect      = document.getElementById("sortSelect");
 const exportBtn       = document.getElementById("exportBtn");
+const exportGiftBtn   = document.getElementById("exportGiftBtn");
 const pptToolbarBtn   = document.getElementById("pptToolbarBtn");
 const multiLineBtn    = document.getElementById("multiLineBtn");
 const batchAddQuoteBtn = document.getElementById("batchAddQuoteBtn");
@@ -93,6 +94,9 @@ searchForm.onsubmit = (e) => { e.preventDefault(); searchProducts(); };
 
 // 匯出 Excel
 exportBtn.onclick = exportSelectedExcel;
+
+// 贈品 Excel（含報備資料）
+if (exportGiftBtn) exportGiftBtn.onclick = exportGiftExcel;
 
 // 匯入產品
 if(importProductBtn) {
@@ -240,6 +244,7 @@ if(clearBtn) {
     document.getElementById("resultBody").innerHTML = "";
     document.getElementById("resultTable").style.display = "none";
     exportBtn.disabled = true;
+    if(exportGiftBtn) exportGiftBtn.disabled = true;
     if(pptToolbarBtn) pptToolbarBtn.disabled = true;
     if(multiLineBtn) multiLineBtn.disabled = true;
     if(batchAddQuoteBtn) batchAddQuoteBtn.disabled = true; 
