@@ -75,6 +75,81 @@ async function handleSpecialActions(intentParams, dependencies) {
                         messages: [flexMessage]
                     });
                     return true; // 執行完特殊意圖後跳過後續商品查詢邏輯
+                } else if (intentParams.action === 'reserve_order') {
+                    console.log(`[特急件] 進入預留訂單流程`);
+                    const reserveData = intentParams;
+
+                    if (!reserveData.orderItems || reserveData.orderItems.length === 0 || (!reserveData.customer?.company && !reserveData.customer?.name)) {
+                        const reserveTemplate = `請複製以下模板並填寫完整資訊：\n\n@KINYO挺好的 預留訂單\n\n採購公司：\n收件人：\n聯絡電話：\n送貨地址：\n預留期限：（例：2026/05/31）\n備註：\n=================\n【預留明細】請依下方格式填寫：\n型號： / 數量： / 單價：`;
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: reserveTemplate }]
+                        });
+                        return true;
+                    }
+
+                    // 生成商品明細字串與加總
+                    let itemsText = '';
+                    let totalAmount = 0;
+                    if (reserveData.orderItems && Array.isArray(reserveData.orderItems)) {
+                        reserveData.orderItems.forEach(item => {
+                            if (item.model) {
+                                const price = Number(item.unitPrice) || 0;
+                                const qty = Number(item.qty) || 1;
+                                itemsText += `${item.model} x${qty}${price > 0 ? ` @${price}` : ''}\n`;
+                                totalAmount += price * qty;
+                            }
+                        });
+                    }
+                    if (!itemsText) itemsText = '未提供商品明細';
+
+                    const safeReserveData = JSON.parse(JSON.stringify(reserveData));
+                    const tempOrderRef = await db.collection('tempOrders').add(safeReserveData);
+
+                    const deadlineDisplay = reserveData.customer?.reserveDeadline || '未提供';
+
+                    const flexMessage = {
+                        type: 'flex',
+                        altText: '預留訂單已建立，請確認',
+                        contents: {
+                            type: 'bubble',
+                            header: {
+                                type: 'box', layout: 'vertical', backgroundColor: '#6366F1',
+                                contents: [{ type: 'text', text: '📌 預留訂單已建立，請確認', color: '#ffffff', weight: 'bold' }]
+                            },
+                            body: {
+                                type: 'box', layout: 'vertical', spacing: 'sm',
+                                contents: [
+                                    { type: 'text', text: `🏢 公司: ${reserveData.customer?.company || '未提供'}`, size: 'sm' },
+                                    { type: 'text', text: `👤 收件: ${reserveData.customer?.name || '未提供'} (${reserveData.customer?.phone || '未提供'})`, size: 'sm' },
+                                    { type: 'text', text: `📍 地址: ${reserveData.customer?.address || '未提供'}`, size: 'sm', wrap: true },
+                                    { type: 'text', text: `📅 預留期限: ${deadlineDisplay}`, size: 'sm', color: '#E11D48', weight: 'bold' },
+                                    { type: 'text', text: `📝 備註: ${reserveData.customer?.remark || '無'}`, size: 'sm' },
+                                    { type: 'separator', margin: 'md' },
+                                    { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' },
+                                    { type: 'text', text: totalAmount > 0 ? `💰 總計: $${totalAmount}` : '💰 總計: 待確認', size: 'sm', weight: 'bold', color: '#E11D48' }
+                                ]
+                            },
+                            footer: {
+                                type: 'box', layout: 'horizontal', spacing: 'sm',
+                                contents: [
+                                    {
+                                        type: 'button', style: 'primary', color: '#1DB446',
+                                        action: { type: 'postback', label: '✅ 確認預留', data: `action=confirm_reserve&id=${tempOrderRef.id}` }
+                                    },
+                                    {
+                                        type: 'button', style: 'secondary',
+                                        action: { type: 'postback', label: '❌ 取消', data: `action=cancel_temp_order&id=${tempOrderRef.id}` }
+                                    }
+                                ]
+                            }
+                        }
+                    };
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [flexMessage]
+                    });
+                    return true;
                 } else if (intentParams.action === 'defective_return') {
                     console.log(`[特急件] 進入新品不良流程`);
                     const rmaData = intentParams;

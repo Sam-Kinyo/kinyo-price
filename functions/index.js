@@ -95,8 +95,14 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
             async function verifyGlobalPermission() {
                 if (isGroup) {
                     // 若是群組且是文字訊息，不論有無綁定權限，都必須有提到 @KINYO挺好的 才能處理，否則全部靜默忽略
+                    // 例外：若使用者正在進行對話式 flow (ConversationStates 有紀錄)，則放行後續訊息
                     if (event.type === 'message' && (!event.message.text || !event.message.text.includes('@KINYO挺好的'))) {
-                        throw new Error('SILENT_IGNORE'); // 中斷處理但不回傳訊息
+                        const { getState } = require('./src/services/conversationState');
+                        const ongoing = await getState(lineUid);
+                        if (!ongoing) {
+                            throw new Error('SILENT_IGNORE'); // 中斷處理但不回傳訊息
+                        }
+                        // 有進行中對話 → 放行，繼續走後續 state 處理
                     }
 
                     // 1. 群組環境：查驗 Groups 集合
@@ -319,6 +325,37 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     }
                 }
 
+                // --- 對話式 flow：優先檢查是否有進行中的對話 state ---
+                {
+                    const { getState } = require('./src/services/conversationState');
+                    const reserveFlow = require('./src/workflows/reserveConversation');
+                    const orderFlow = require('./src/workflows/orderConversation');
+                    const ongoingState = await getState(lineUid);
+                    if (ongoingState) {
+                        const convInput = userText.replace(/@KINYO挺好的\s*/g, '').trim();
+                        const userContext = { level: currentViewLevel, realLevel, userEmail };
+                        if (ongoingState.flow === 'order') {
+                            await orderFlow.handleConversationInput(ongoingState, convInput, event, lineClient, userContext);
+                        } else {
+                            // 預設、reserve_order 都走 reserve flow
+                            await reserveFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
+                        }
+                        continue;
+                    }
+
+                    // 啟動對話式預留訂單
+                    if (userText === '預留訂單' || userText === '留貨' || userText === '@KINYO挺好的 預留訂單' || userText === '@KINYO挺好的 留貨') {
+                        await reserveFlow.startReserveFlow(lineUid, groupId, replyToken, lineClient);
+                        continue;
+                    }
+
+                    // 啟動對話式訂單
+                    if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
+                        await orderFlow.startOrderFlow(lineUid, groupId, replyToken, lineClient);
+                        continue;
+                    }
+                }
+
                 // --- 新增：靜態收件資訊卡片 ---
                 if (userText === '收件資訊' || userText === '寄件地址' || userText === '@KINYO挺好的 收件資訊' || userText === '@KINYO挺好的 寄件地址') {
                     const shippingFlex = {
@@ -381,6 +418,74 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     continue;
                 }
                 // -----------------------------------
+
+                // --- 指令列表 (業務常用指令說明) ---
+                if (userText === '指令' || userText === '幫助' || userText === '指令列表' || userText === '@KINYO挺好的 指令' || userText === '@KINYO挺好的 幫助' || userText === '@KINYO挺好的 指令列表') {
+                    const commandFlexMessage = {
+                        type: 'flex',
+                        altText: 'KINYO 機器人指令列表',
+                        contents: {
+                            type: 'bubble',
+                            size: 'giga',
+                            header: {
+                                type: 'box', layout: 'vertical', backgroundColor: '#ea580c', paddingAll: '16px',
+                                contents: [
+                                    { type: 'text', text: '🤖 KINYO 挺好的 指令列表', color: '#ffffff', weight: 'bold', size: 'lg' },
+                                    { type: 'text', text: '群組內使用請加 @KINYO挺好的', color: '#ffe5cc', size: 'xs', margin: 'sm' }
+                                ]
+                            },
+                            body: {
+                                type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '16px',
+                                contents: [
+                                    { type: 'text', text: '📦 訂單與申請', weight: 'bold', size: 'sm', color: '#ea580c' },
+                                    {
+                                        type: 'box', layout: 'vertical', spacing: 'xs', margin: 'sm',
+                                        contents: [
+                                            { type: 'text', text: '• 訂單 — 一般下單模板', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 預留訂單 / 留貨 — 佔位先留貨 (期限前 7 天自動提醒)', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 借樣品 / 借樣 — 借樣品申請', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 新品不良 / 來回件 — 不良品派車', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 廠價申請 — 廠價申請表單', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 行動屋出貨 — 批次出貨 (最多 10 筆)', size: 'sm', color: '#333333', wrap: true }
+                                        ]
+                                    },
+                                    { type: 'separator', margin: 'md' },
+                                    { type: 'text', text: '🔍 查詢', weight: 'bold', size: 'sm', color: '#ea580c', margin: 'md' },
+                                    {
+                                        type: 'box', layout: 'vertical', spacing: 'xs', margin: 'sm',
+                                        contents: [
+                                            { type: 'text', text: '• 直接輸入型號 — 查單一商品 (例：KPB-2990)', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 關鍵字 + 預算 — 進階查價 (例：吹風機 預算500-700)', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 查詢訂單 — 看本群組近 5 筆訂單', size: 'sm', color: '#333333', wrap: true }
+                                        ]
+                                    },
+                                    { type: 'separator', margin: 'md' },
+                                    { type: 'text', text: '📍 其他', weight: 'bold', size: 'sm', color: '#ea580c', margin: 'md' },
+                                    {
+                                        type: 'box', layout: 'vertical', spacing: 'xs', margin: 'sm',
+                                        contents: [
+                                            { type: 'text', text: '• 收件資訊 / 寄件地址 — 顯示公司收件地址', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 維修 / 客服 — 維修客服資訊', size: 'sm', color: '#333333', wrap: true },
+                                            { type: 'text', text: '• 操作指南 / 使用教學 — 使用說明 FAQ', size: 'sm', color: '#333333', wrap: true }
+                                        ]
+                                    }
+                                ]
+                            },
+                            footer: {
+                                type: 'box', layout: 'vertical', paddingAll: '12px',
+                                contents: [
+                                    { type: 'text', text: '💡 輸入對應關鍵字即可取得完整模板', size: 'xs', color: '#888888', align: 'center', wrap: true }
+                                ]
+                            }
+                        }
+                    };
+
+                    await lineClient.replyMessage({
+                        replyToken: replyToken,
+                        messages: [commandFlexMessage]
+                    });
+                    continue;
+                }
 
                 // --- 額外處理：訂單模板回覆 ---
                 if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
@@ -540,6 +645,65 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 } else if (action === 'get_text_quote') {
                     shouldSkipSearch = true;
                     userText = "產生單一文字報價";
+                } else if (action === 'modify_order') {
+                    shouldSkipSearch = true;
+                    const orderId = params.get('orderId');
+                    try {
+                        const orderDoc = await db.collection('PendingOrders').doc(orderId).get();
+                        if (!orderDoc.exists) throw new Error('找不到該訂單，可能已處理過。');
+                        const orderData = orderDoc.data();
+                        const customerCode = orderData.customer?.customerCode;
+                        if (!customerCode) throw new Error('此訂單缺少客戶編號，無法修改，請取消後重新下單。');
+
+                        const custDoc = await db.collection('Customers').doc(customerCode).get();
+                        if (!custDoc.exists) throw new Error(`找不到客戶 ${customerCode}`);
+                        const custData = custDoc.data();
+
+                        // 重建對話 state (保留 customer，重新走後續流程)
+                        const { setState } = require('./src/services/conversationState');
+                        await setState(lineUid, {
+                            flow: 'order',
+                            step: 'waiting_shipping_choice',
+                            data: {
+                                items: [],
+                                customer: {
+                                    code: custData.code || customerCode,
+                                    shortName: custData.shortName || '',
+                                    fullName: custData.fullName || '',
+                                    phone: custData.phone || '',
+                                    address: custData.address || '',
+                                    taxId: custData.taxId || '',
+                                },
+                            },
+                            groupId: event.source.groupId || null,
+                            startedAt: new Date().toISOString(),
+                        });
+
+                        // 刪除這張舊的 PendingOrders
+                        await db.collection('PendingOrders').doc(orderId).delete();
+
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{
+                                type: 'text',
+                                text: `🔧 已進入修改模式 (客戶保留)\n━━━━━━━━━\n【${custData.code}】${custData.shortName}\n${custData.fullName}\n📞 ${custData.phone || '未提供'}\n📍 ${custData.address || '未提供'}\n━━━━━━━━━\n\n請選擇收件方式：`,
+                                quickReply: {
+                                    items: [
+                                        { type: 'action', action: { type: 'message', label: '🏢 寄到公司 (預設)', text: '寄到公司' } },
+                                        { type: 'action', action: { type: 'message', label: '✍️ 指定收件資料', text: '指定收件資料' } },
+                                        { type: 'action', action: { type: 'message', label: '❌ 取消', text: '取消' } }
+                                    ]
+                                }
+                            }]
+                        });
+                    } catch (err) {
+                        console.error('[modify_order] 失敗:', err);
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: `⚠️ 修改失敗：${err.message}` }]
+                        });
+                    }
+                    continue;
                 } else if (action === 'confirm_order' || action === 'cancel_order') {
                     shouldSkipSearch = true;
                     const orderId = params.get('orderId');
@@ -605,7 +769,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                                 const mailOptions = {
                                     from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
-                                    to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                                    to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                                     subject: `[新訂單通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 總計 ${totalDisplay.replace(/<[^>]+>/g, '')}`,
                                     html: `
                                       <h2 style="color: #333;">新訂單通知</h2>
@@ -614,6 +778,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                       <p><strong>收件人:</strong> ${orderData.customer?.name}</p>
                                       <p><strong>電話:</strong> ${orderData.customer?.phone}</p>
                                       <p><strong>地址:</strong> ${orderData.customer?.address || '未提供'}</p>
+                                      <p><strong>物流方式:</strong> ${orderData.customer?.logistics || '未指定'}</p>
                                       <p><strong>預期到貨:</strong> ${orderData.customer?.deliveryTime || '未指定'}</p>
                                       <p><strong>備註:</strong> <span style="color: #E11D48;">${orderData.customer?.remark || '無'}</span></p>
                                       <hr>
@@ -775,7 +940,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                         const mailOptions = {
                             from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
-                            to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                            to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                             subject: `[借樣品通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                             html: `
                               <h2 style="color: #F59E0B;">📦 借樣品申請通知</h2>
@@ -826,6 +991,150 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             messages: [{ type: 'text', text: `⚠️ 申請失敗: ${err.message}` }]
                         });
                     }
+                } else if (action === 'modify_reserve') {
+                    shouldSkipSearch = true;
+                    const tempId = params.get('id');
+                    try {
+                        const tempDocRef = db.collection('tempOrders').doc(tempId);
+                        const tempDoc = await tempDocRef.get();
+                        if (!tempDoc.exists) throw new Error('找不到該預留紀錄，可能已處理過。');
+                        const reserveData = tempDoc.data();
+                        const customerCode = reserveData.customer?.customerCode;
+                        if (!customerCode) throw new Error('此預留單缺少客戶編號，無法修改。');
+
+                        const custDoc = await db.collection('Customers').doc(customerCode).get();
+                        if (!custDoc.exists) throw new Error(`找不到客戶 ${customerCode}`);
+                        const custData = custDoc.data();
+
+                        const { setState } = require('./src/services/conversationState');
+                        await setState(lineUid, {
+                            flow: 'reserve_order',
+                            step: 'waiting_deadline',
+                            data: {
+                                items: [],
+                                customer: {
+                                    code: custData.code || customerCode,
+                                    shortName: custData.shortName || '',
+                                    fullName: custData.fullName || '',
+                                    phone: custData.phone || '',
+                                    address: custData.address || '',
+                                    taxId: custData.taxId || '',
+                                },
+                            },
+                            groupId: event.source.groupId || null,
+                            startedAt: new Date().toISOString(),
+                        });
+
+                        await tempDocRef.delete();
+
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{
+                                type: 'text',
+                                text: `🔧 已進入修改模式 (客戶保留)\n━━━━━━━━━\n【${custData.code}】${custData.shortName}\n${custData.fullName}\n━━━━━━━━━\n\n請輸入預留期限\n(例：2026/05/31 或 2026-05-31)`,
+                                quickReply: {
+                                    items: [{ type: 'action', action: { type: 'message', label: '❌ 取消', text: '取消' } }]
+                                }
+                            }]
+                        });
+                    } catch (err) {
+                        console.error('[modify_reserve] 失敗:', err);
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: `⚠️ 修改失敗：${err.message}` }]
+                        });
+                    }
+                    continue;
+                } else if (action === 'confirm_reserve') {
+                    shouldSkipSearch = true;
+                    const orderId = params.get('id');
+                    try {
+                        const tempDocRef = db.collection('tempOrders').doc(orderId);
+                        const tempDoc = await tempDocRef.get();
+
+                        if (!tempDoc.exists) throw new Error('找不到該預留紀錄，可能已處理過或失效。');
+                        const reserveData = tempDoc.data();
+
+                        const newReserveId = `RSV${Date.now()}`;
+                        const reserveDeadline = reserveData.customer?.reserveDeadline || null;
+
+                        let totalAmount = 0;
+                        let totalQty = 0;
+                        if (reserveData.orderItems && Array.isArray(reserveData.orderItems)) {
+                            reserveData.orderItems.forEach(item => {
+                                const price = Number(item.unitPrice) || 0;
+                                const qty = Number(item.qty) || 1;
+                                totalAmount += price * qty;
+                                totalQty += qty;
+                            });
+                        }
+
+                        await db.collection('ReservedOrders').doc(newReserveId).set({
+                            ...reserveData,
+                            reserveId: newReserveId,
+                            reserveDeadline,
+                            totalAmount,
+                            status: 'active',
+                            reminderSent: false,
+                            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                            userId: lineUid,
+                            userEmail,
+                            sourceId: event.source.groupId || event.source.userId
+                        });
+                        await tempDocRef.delete();
+
+                        let itemsHtml = '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px; margin-bottom: 20px;">';
+                        itemsHtml += '<tr style="background-color: #f2f2f2;"><th>商品型號</th><th>數量</th><th>單價</th><th>小計</th></tr>';
+                        if (reserveData.orderItems && Array.isArray(reserveData.orderItems)) {
+                            reserveData.orderItems.forEach(item => {
+                                const price = Number(item.unitPrice) || 0;
+                                const qty = Number(item.qty) || 1;
+                                itemsHtml += `<tr><td>${item.model}</td><td align="center">${qty}</td><td align="right">${price > 0 ? '$' + price : '待確認'}</td><td align="right">${price > 0 ? '$' + (price * qty) : '—'}</td></tr>`;
+                            });
+                        }
+                        itemsHtml += `<tr style="background-color: #fef3c7;"><td colspan="3" align="right"><strong>總計</strong></td><td align="right"><strong>${totalAmount > 0 ? '$' + totalAmount : '待確認'}</strong></td></tr>`;
+                        itemsHtml += '</table>';
+
+                        const { emailSettings } = require('./src/config/emailSettings');
+                        const reserveRecipients = emailSettings['#商品預留'] || ['sam.kuo@kinyo.tw', 'din@kinyo.tw'];
+
+                        const reserveMailOptions = {
+                            from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                            to: reserveRecipients,
+                            subject: `[預留訂單] ${reserveData.customer?.company || ''} ${reserveData.customer?.name || ''} - 期限 ${reserveDeadline || '未指定'}`,
+                            html: `
+                              <h2 style="color: #6366F1;">📌 預留訂單通知 (佔位先留貨)</h2>
+                              <p><strong>預留編號:</strong> ${newReserveId}</p>
+                              <p><strong>預留期限:</strong> <span style="color: #E11D48; font-size: 16px;">${reserveDeadline || '未提供'}</span></p>
+                              <hr>
+                              <p><strong>採購公司:</strong> ${reserveData.customer?.company || '未提供'}</p>
+                              <p><strong>收件人:</strong> ${reserveData.customer?.name || '未提供'}</p>
+                              <p><strong>聯絡電話:</strong> ${reserveData.customer?.phone || '未提供'}</p>
+                              <p><strong>送貨地址:</strong> ${reserveData.customer?.address || '未提供'}</p>
+                              <p><strong>備註:</strong> <span style="color: #E11D48;">${reserveData.customer?.remark || '無'}</span></p>
+                              <hr>
+                              <h3 style="color: #333;">🛒 預留商品明細：</h3>
+                              ${itemsHtml}
+                              <hr>
+                              <p style="color: #666; font-size: 13px;">※ 系統將於預留期限到期前 7 天自動寄信提醒助理準備做單出貨。</p>
+                            `
+                        };
+                        transporter.sendMail(reserveMailOptions).catch(err => console.error("預留訂單 SMTP 發信失敗:", err));
+
+                        const configDoc = await db.collection('SystemConfig').doc('OrderSettings').get();
+                        if (configDoc.exists && configDoc.data().notifyGroupId) {
+                            const targetGroupId = configDoc.data().notifyGroupId;
+                            const companyName = reserveData.customer?.company || '未提供';
+                            const notifyText = `📌 [預留訂單]\n編號：${newReserveId.substring(0, 8)}\n公司：${companyName}\n期限：${reserveDeadline || '未指定'}\n項目：共 ${totalQty} 件\n\n到期前 7 天系統會自動提醒。`;
+                            await lineClient.pushMessage({ to: targetGroupId, messages: [{ type: 'text', text: notifyText }] });
+                        }
+
+                        await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: `✅ 預留訂單已建立！\n編號：${newReserveId}\n期限：${reserveDeadline || '未指定'}` }] });
+                        console.log(`[預留訂單] 成功建立 ${newReserveId}, deadline=${reserveDeadline}`);
+                    } catch (err) {
+                        console.error('[預留訂單處理錯誤]', err);
+                        await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: `⚠️ 預留失敗: ${err.message}` }] });
+                    }
                 } else if (action === 'confirm_rma') {
                     shouldSkipSearch = true;
                     const orderId = params.get('id');
@@ -864,7 +1173,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         // 3. 發送 Email 通知
                         const mailOptions = {
                             from: process.env.GMAIL_USER || 'sam.kuo@kinyo.tw',
-                            to: [process.env.GMAIL_USER || 'sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                            to: [process.env.GMAIL_USER || 'sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                             subject: `[新品不良派車] ${rmaData.customer?.company || ''} - ${rmaData.customer?.name || ''}`,
                             html: `
                               <h2 style="color: #E11D48;">⚠️ 新品不良來回件派車單</h2>
@@ -969,7 +1278,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                             const mailOptions = {
                                 from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
-                                to: ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                                to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw', 'chinlienhsin903@gmail.com'],
                                 subject: `[行動屋批次出貨] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                                 html: `
                                   <h2 style="color: #0055aa;">📦 行動屋批次出貨單</h2>
@@ -1396,7 +1705,7 @@ ${evalQty}個：${finalPrice}
                     continue; // 執行完畢跳脫
                 }
 
-                const isSpecialAction = ['borrow_sample', 'defective_return', 'batch_order'].includes(intentParams.action);
+                const isSpecialAction = ['borrow_sample', 'defective_return', 'batch_order', 'reserve_order'].includes(intentParams.action);
                 if (isSpecialAction) {
                     await handleSpecialActions(intentParams, { lineClient, replyToken });
                     continue; // 執行完特殊意圖後跳過後續查詢邏輯
@@ -1793,69 +2102,14 @@ exports.syncGDrive = functions
     }
 });
 
-// --- 每日自動增量圖庫同步（凌晨 3 點台灣時間）---
+// --- 每日排程（凌晨 3 點台灣時間）：熱門榜統計 ---
+// 圖庫同步已改為手動觸發，呼叫 syncGDrive HTTP endpoint
 exports.scheduledDriveSync = functions
     .runWith({ timeoutSeconds: 540, memory: '1GB' })
     .region('asia-east1')
     .pubsub.schedule('0 3 * * *')
     .timeZone('Asia/Taipei')
     .onRun(async (context) => {
-        console.log('🕐 [排程] 每日增量圖庫同步開始...');
-
-        let lineClient = null;
-        try {
-            const config = getConfig();
-            if (config.channelAccessToken) {
-                lineClient = new messagingApi.MessagingApiClient({
-                    channelAccessToken: config.channelAccessToken
-                });
-            }
-        } catch (e) {
-            console.error("無法初始化 LINE Client", e);
-        }
-
-        const adminUid = process.env.ADMIN_LINE_UID;
-
-        try {
-            const result = await runStorageSync(0, null, { incremental: true });
-
-            if (result.continueFrom) {
-                // 超過 7.5 分鐘，chain 到 HTTP endpoint 繼續
-                if (lineClient && adminUid) {
-                    await lineClient.pushMessage({
-                        to: adminUid,
-                        messages: [{ type: "text", text: `⏳ [排程同步] 增量同步已達時間限制，啟動接力。\n進度：${result.continueFrom} / ${result.total}` }]
-                    }).catch(e => console.error("通知發送失敗", e));
-                }
-                fetch(`https://asia-east1-kinyo-price.cloudfunctions.net/syncGDrive?token=${process.env.SYNC_TOKEN}&startIndex=${result.continueFrom}&mode=incremental`, { signal: AbortSignal.timeout(1000) })
-                    .catch(() => {});
-            } else if (result.success) {
-                console.log('✅ [排程] 增量同步完成');
-                if (lineClient && adminUid) {
-                    await lineClient.pushMessage({
-                        to: adminUid,
-                        messages: [{ type: 'text', text: '✅ [排程同步] 每日增量圖庫同步已完成！' }]
-                    }).catch(e => console.error("通知發送失敗", e));
-                }
-            } else {
-                console.error('❌ [排程] 同步失敗:', result.error);
-                if (lineClient && adminUid) {
-                    await lineClient.pushMessage({
-                        to: adminUid,
-                        messages: [{ type: 'text', text: `❌ [排程同步] 每日增量同步失敗！\n錯誤：${result.error}` }]
-                    }).catch(e => console.error("通知發送失敗", e));
-                }
-            }
-        } catch (err) {
-            console.error("[排程] 意外錯誤:", err);
-            if (lineClient && adminUid) {
-                await lineClient.pushMessage({
-                    to: adminUid,
-                    messages: [{ type: 'text', text: `❌ [排程同步] 排程同步發生意外錯誤！\n${err.message}` }]
-                }).catch(e => console.error("通知發送失敗", e));
-            }
-        }
-
         // --- 每日熱門榜統計（基於 ProductClicks 過去 30 天數據）---
         try {
             console.log('📊 [排程] 開始統計熱門詢價榜（過去 30 天）...');
@@ -1893,6 +2147,87 @@ exports.scheduledDriveSync = functions
             console.error('[排程] 熱門榜統計失敗:', hotErr);
         }
 
+        return null;
+    });
+
+// --- 每日排程（上午 9 點台灣時間）：預留訂單 7 天到期前提醒 ---
+exports.reservedOrderReminder = functions
+    .runWith({ timeoutSeconds: 300, memory: '256MB' })
+    .region('asia-east1')
+    .pubsub.schedule('0 9 * * *')
+    .timeZone('Asia/Taipei')
+    .onRun(async (context) => {
+        try {
+            // 計算 7 天後的日期 (YYYY-MM-DD, Asia/Taipei)
+            const now = new Date();
+            const taipeiNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+            const targetDate = new Date(taipeiNow.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const targetDateStr = `${targetDate.getFullYear()}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+
+            console.log(`[預留提醒] 檢查預留期限為 ${targetDateStr} 的訂單`);
+
+            const snap = await db.collection('ReservedOrders')
+                .where('reserveDeadline', '==', targetDateStr)
+                .where('status', '==', 'active')
+                .where('reminderSent', '==', false)
+                .get();
+
+            if (snap.empty) {
+                console.log('[預留提醒] 今日無需提醒的預留訂單');
+                return null;
+            }
+
+            const { emailSettings } = require('./src/config/emailSettings');
+            const reserveRecipients = emailSettings['#商品預留'] || ['sam.kuo@kinyo.tw', 'din@kinyo.tw'];
+
+            for (const doc of snap.docs) {
+                const data = doc.data();
+                const reserveId = doc.id;
+
+                let itemsHtml = '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px;">';
+                itemsHtml += '<tr style="background-color: #f2f2f2;"><th>型號</th><th>數量</th><th>單價</th></tr>';
+                if (data.orderItems && Array.isArray(data.orderItems)) {
+                    data.orderItems.forEach(item => {
+                        const price = Number(item.unitPrice) || 0;
+                        const qty = Number(item.qty) || 1;
+                        itemsHtml += `<tr><td>${item.model}</td><td align="center">${qty}</td><td align="right">${price > 0 ? '$' + price : '待確認'}</td></tr>`;
+                    });
+                }
+                itemsHtml += '</table>';
+
+                const mailOptions = {
+                    from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                    to: reserveRecipients,
+                    subject: `⏰ [預留訂單到期提醒] ${data.customer?.company || ''} ${data.customer?.name || ''} - 7 天後到期`,
+                    html: `
+                      <h2 style="color: #E11D48;">⏰ 預留訂單即將到期提醒</h2>
+                      <p style="font-size: 16px;">以下預留訂單將於 <strong style="color: #E11D48;">${data.reserveDeadline}</strong>（7 天後）到期，請盡速準備做單出貨。</p>
+                      <hr>
+                      <p><strong>預留編號:</strong> ${reserveId}</p>
+                      <p><strong>採購公司:</strong> ${data.customer?.company || '未提供'}</p>
+                      <p><strong>收件人:</strong> ${data.customer?.name || '未提供'}</p>
+                      <p><strong>聯絡電話:</strong> ${data.customer?.phone || '未提供'}</p>
+                      <p><strong>送貨地址:</strong> ${data.customer?.address || '未提供'}</p>
+                      <p><strong>備註:</strong> ${data.customer?.remark || '無'}</p>
+                      <hr>
+                      <h3>預留商品：</h3>
+                      ${itemsHtml}
+                    `
+                };
+
+                try {
+                    await transporter.sendMail(mailOptions);
+                    await doc.ref.update({ reminderSent: true, reminderSentAt: admin.firestore.FieldValue.serverTimestamp() });
+                    console.log(`[預留提醒] 已寄出 ${reserveId}`);
+                } catch (sendErr) {
+                    console.error(`[預留提醒] ${reserveId} 寄信失敗:`, sendErr);
+                }
+            }
+
+            console.log(`[預留提醒] 處理完成，共 ${snap.size} 筆`);
+        } catch (err) {
+            console.error('[預留提醒] 排程錯誤:', err);
+        }
         return null;
     });
 

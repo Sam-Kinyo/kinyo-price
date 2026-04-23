@@ -3,7 +3,7 @@ const { transporter } = require('../utils/mailer');
 
 // --- Helper Functions ---
 const normalize = (s) => String(s).replace(/[-\s]/g, '').toUpperCase().trim();
-const APPLY_PRICE_EMAILS = [process.env.GMAIL_USER || 'sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'];
+const APPLY_PRICE_EMAILS = [process.env.GMAIL_USER || 'sam.kuo@kinyo.tw', 'din@kinyo.tw'];
 
 /**
  * 處理所有與 LINE 按鈕、卡片互動相關的 Postback 事件
@@ -203,7 +203,7 @@ async function handlePostback(event, userContext, lineClient) {
 
                     const mailOptions = {
                         from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
-                        to: ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                        to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                         subject: `[新訂單通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 總計 ${totalDisplay.replace(/<[^>]+>/g, '')}`,
                         html: `<h2 style="color: #333;">新訂單通知</h2>...[詳見原始邏輯]...` // 將在後續修正以完整保留原本 HTML
                     };
@@ -304,7 +304,7 @@ async function handlePostback(event, userContext, lineClient) {
 
             const mailOptions = {
                 from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
-                to: ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                 subject: `[借樣品通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                 html: `
                   <h2 style="color: #F59E0B;">📦 借樣品申請通知</h2>
@@ -344,6 +344,99 @@ async function handlePostback(event, userContext, lineClient) {
             await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: `⚠️ 申請失敗: ${err.message}` }] });
         }
         return;
+    } else if (action === 'confirm_reserve') {
+        const orderId = params.get('id');
+        try {
+            const tempDocRef = db.collection('tempOrders').doc(orderId);
+            const tempDoc = await tempDocRef.get();
+
+            if (!tempDoc.exists) throw new Error('找不到該預留紀錄，可能已處理過或失效。');
+            const reserveData = tempDoc.data();
+
+            const newReserveId = `RSV${Date.now()}`;
+            const reserveDeadline = reserveData.customer?.reserveDeadline || null;
+
+            // 計算預估總金額
+            let totalAmount = 0;
+            let totalQty = 0;
+            if (reserveData.orderItems && Array.isArray(reserveData.orderItems)) {
+                reserveData.orderItems.forEach(item => {
+                    const price = Number(item.unitPrice) || 0;
+                    const qty = Number(item.qty) || 1;
+                    totalAmount += price * qty;
+                    totalQty += qty;
+                });
+            }
+
+            const reserveDoc = {
+                ...reserveData,
+                reserveId: newReserveId,
+                reserveDeadline,
+                totalAmount,
+                status: 'active',
+                reminderSent: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                userId: lineUid,
+                userEmail,
+                sourceId: event.source.groupId || event.source.userId
+            };
+
+            await db.collection('ReservedOrders').doc(newReserveId).set(reserveDoc);
+            await tempDocRef.delete();
+
+            let itemsHtml = '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px; margin-bottom: 20px;">';
+            itemsHtml += '<tr style="background-color: #f2f2f2;"><th>商品型號</th><th>數量</th><th>單價</th><th>小計</th></tr>';
+            if (reserveData.orderItems && Array.isArray(reserveData.orderItems)) {
+                reserveData.orderItems.forEach(item => {
+                    const price = Number(item.unitPrice) || 0;
+                    const qty = Number(item.qty) || 1;
+                    itemsHtml += `<tr><td>${item.model}</td><td align="center">${qty}</td><td align="right">${price > 0 ? '$' + price : '待確認'}</td><td align="right">${price > 0 ? '$' + (price * qty) : '—'}</td></tr>`;
+                });
+            }
+            itemsHtml += `<tr style="background-color: #fef3c7;"><td colspan="3" align="right"><strong>總計</strong></td><td align="right"><strong>${totalAmount > 0 ? '$' + totalAmount : '待確認'}</strong></td></tr>`;
+            itemsHtml += '</table>';
+
+            const { emailSettings } = require('../config/emailSettings');
+            const reserveRecipients = emailSettings['#商品預留'] || ['sam.kuo@kinyo.tw', 'din@kinyo.tw'];
+
+            const mailOptions = {
+                from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                to: reserveRecipients,
+                subject: `[預留訂單] ${reserveData.customer?.company || ''} ${reserveData.customer?.name || ''} - 期限 ${reserveDeadline || '未指定'}`,
+                html: `
+                  <h2 style="color: #6366F1;">📌 預留訂單通知 (佔位先留貨)</h2>
+                  <p><strong>預留編號:</strong> ${newReserveId}</p>
+                  <p><strong>預留期限:</strong> <span style="color: #E11D48; font-size: 16px;">${reserveDeadline || '未提供'}</span></p>
+                  <hr>
+                  <p><strong>採購公司:</strong> ${reserveData.customer?.company || '未提供'}</p>
+                  <p><strong>收件人:</strong> ${reserveData.customer?.name || '未提供'}</p>
+                  <p><strong>聯絡電話:</strong> ${reserveData.customer?.phone || '未提供'}</p>
+                  <p><strong>送貨地址:</strong> ${reserveData.customer?.address || '未提供'}</p>
+                  <p><strong>備註:</strong> <span style="color: #E11D48;">${reserveData.customer?.remark || '無'}</span></p>
+                  <hr>
+                  <h3 style="color: #333;">🛒 預留商品明細：</h3>
+                  ${itemsHtml}
+                  <hr>
+                  <p style="color: #666; font-size: 13px;">※ 系統將於預留期限到期前 7 天自動寄信提醒助理準備做單出貨。</p>
+                `
+            };
+            transporter.sendMail(mailOptions).catch(err => console.error("預留訂單 SMTP 發信失敗:", err));
+
+            const configDoc = await db.collection('SystemConfig').doc('OrderSettings').get();
+            if (configDoc.exists && configDoc.data().notifyGroupId) {
+                const targetGroupId = configDoc.data().notifyGroupId;
+                const companyName = reserveData.customer?.company || '未提供';
+                const notifyText = `📌 [預留訂單]\n編號：${newReserveId.substring(0, 8)}\n公司：${companyName}\n期限：${reserveDeadline || '未指定'}\n項目：共 ${totalQty} 件\n\n到期前 7 天系統會自動提醒。`;
+                await lineClient.pushMessage({ to: targetGroupId, messages: [{ type: 'text', text: notifyText }] });
+            }
+
+            await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: `✅ 預留訂單已建立！\n編號：${newReserveId}\n期限：${reserveDeadline || '未指定'}` }] });
+            console.log(`[預留訂單] 成功建立 ${newReserveId}, deadline=${reserveDeadline}`);
+        } catch (err) {
+            console.error('[預留訂單處理錯誤]', err);
+            await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: `⚠️ 預留失敗: ${err.message}` }] });
+        }
+        return;
     } else if (action === 'confirm_rma') {
         const orderId = params.get('id');
         try {
@@ -376,7 +469,7 @@ async function handlePostback(event, userContext, lineClient) {
 
             const mailOptions = {
                 from: process.env.GMAIL_USER || 'sam.kuo@kinyo.tw',
-                to: [process.env.GMAIL_USER || 'sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                to: [process.env.GMAIL_USER || 'sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                 subject: `[新品不良派車] ${rmaData.customer?.company || ''} - ${rmaData.customer?.name || ''}`,
                 html: `
                   <h2 style="color: #E11D48;">⚠️ 新品不良來回件派車單</h2>
@@ -465,7 +558,7 @@ async function handlePostback(event, userContext, lineClient) {
 
                 const mailOptions = {
                     from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
-                    to: ['sam.kuo@kinyo.tw', 'iris.chen@nakay.com.tw'],
+                    to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw', 'chinlienhsin903@gmail.com'],
                     subject: `[行動屋批次出貨] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                     html: `
                       <h2 style="color: #0055aa;">📦 行動屋批次出貨單</h2>
