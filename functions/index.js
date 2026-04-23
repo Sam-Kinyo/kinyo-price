@@ -2225,6 +2225,72 @@ exports.markRMACompleted = functions.region('asia-east1').https.onRequest(async 
     }
 });
 
+// --- 預留單：標記為已完成 (不通知客戶) ---
+exports.markReserveCompleted = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const reserveId = req.query.reserveId;
+    if (!reserveId) return res.status(400).send('缺少預留單號');
+
+    const reserveRef = db.collection('ReservedOrders').doc(reserveId);
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    // GET: 顯示確認頁
+    if (req.method === 'GET') {
+        const doc = await reserveRef.get();
+        if (!doc.exists) return res.status(404).send('<h2 style="text-align:center;">找不到該預留單</h2>');
+        const data = doc.data();
+        const alreadyDone = data.status !== 'active';
+        const company = data.customer?.company || data.customer?.name || '';
+        const code = data.customer?.customerCode || '';
+        const deadline = data.reserveDeadline || '';
+        const itemCount = Array.isArray(data.orderItems) ? data.orderItems.length : 0;
+        const totalAmount = data.totalAmount || 0;
+
+        const confirmHtml = `
+            <!DOCTYPE html>
+            <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="font-family: Arial, 'Microsoft JhengHei', sans-serif; background: #f5f5f5; margin: 0;">
+            <div style="max-width: 520px; margin: 40px auto; padding: 32px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h2 style="color: #333; margin-top: 0;">確認預留單已完成</h2>
+                ${alreadyDone ? `<div style="padding: 12px; background: #fff3cd; color: #856404; border-radius: 6px; margin-bottom: 16px;">⚠️ 此預留單狀態已是「${esc(data.status)}」，不需再標記</div>` : ''}
+                <p><strong>編號：</strong>${esc(reserveId)}</p>
+                ${code ? `<p><strong>客戶編號：</strong>${esc(code)}</p>` : ''}
+                <p><strong>客戶：</strong>${esc(company)}</p>
+                ${deadline ? `<p><strong>預留期限：</strong>${esc(deadline)}</p>` : ''}
+                <p><strong>項目：</strong>${itemCount} 項 / $${totalAmount}</p>
+                <form method="POST" action="">
+                    <button type="submit" ${alreadyDone ? 'disabled' : ''} style="background-color: #28a745; color: white; padding: 15px 32px; font-size: 16px; margin-top: 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; ${alreadyDone ? 'opacity: 0.5; cursor: not-allowed;' : ''}">
+                        ✅ 標記為已完成
+                    </button>
+                </form>
+                <p style="color: #888; font-size: 12px; margin-top: 24px;">此操作不會通知客戶。完成後此預留單會從儀表板移除。</p>
+            </div>
+            </body></html>
+        `;
+        return res.send(confirmHtml);
+    }
+
+    // POST: 執行標記
+    try {
+        const doc = await reserveRef.get();
+        if (!doc.exists) return res.status(404).send('<h2>找不到該預留單</h2>');
+        const data = doc.data();
+
+        if (data.status !== 'active') {
+            return res.send(`<h2 style="text-align: center; color: #856404; background-color: #fff3cd; padding: 20px;">此預留單狀態已是「${esc(data.status)}」，不需再標記</h2>`);
+        }
+
+        await reserveRef.update({
+            status: 'completed',
+            completedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        return res.send('<h2 style="text-align: center; color: #155724; background-color: #d4edda; padding: 20px; border-radius: 8px;">✅ 預留單已標記為完成。</h2>');
+    } catch (error) {
+        console.error('預留單完成更新失敗:', error);
+        return res.status(500).send('<h2 style="text-align: center; color: red;">系統發生錯誤，請聯絡管理員</h2>');
+    }
+});
+
 // --- API 擴充：訂單異常 / 缺貨通知表單 ---
 exports.orderExceptionForm = functions.region('asia-east1').https.onRequest(async (req, res) => {
     const orderId = req.query.orderId;
@@ -2559,6 +2625,562 @@ exports.reservedOrderReminder = functions
         return null;
     });
 
+// --- 訂單取消 (GET 確認頁 / POST 執行取消) ---
+exports.orderCancel = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const token = req.query.token || req.body?.token;
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    if (!token || token !== expected) {
+        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
+    }
+    const orderId = req.query.orderId || req.body?.orderId;
+    if (!orderId) return res.status(400).send('<h2>缺少訂單編號</h2>');
+
+    const ref = db.collection('PendingOrders').doc(orderId);
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    try {
+        const doc = await ref.get();
+        if (!doc.exists) return res.status(404).send('<h2>找不到訂單</h2>');
+        const data = doc.data();
+        const c = data.customer || {};
+        const status = data.status || '';
+
+        if (['已出貨', '處理完成_已派車', 'cancelled'].includes(status)) {
+            return res.status(400).send(`<div style="font-family:sans-serif;text-align:center;padding:60px;"><h2 style="color:#856404">⚠️ 此訂單狀態為「${esc(status)}」，無法取消</h2></div>`);
+        }
+
+        if (req.method === 'POST') {
+            const reason = (req.body.cancelReason || '').trim();
+            await ref.update({
+                status: 'cancelled',
+                cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+                cancelReason: reason,
+            });
+
+            transporter.sendMail({
+                from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
+                subject: `❌ [訂單取消] ${orderId} ${c.company || ''}${c.customerCode ? ' [' + c.customerCode + ']' : ''}`,
+                html: `
+                    <h2 style="color:#E11D48">❌ 訂單已取消</h2>
+                    <p><strong>編號：</strong>${orderId}</p>
+                    <p><strong>客戶編號：</strong>${esc(c.customerCode || '未建檔')}</p>
+                    <p><strong>採購公司：</strong>${esc(c.company || '-')}</p>
+                    ${reason ? `<p><strong>取消原因：</strong><span style="color:#E11D48">${esc(reason)}</span></p>` : ''}
+                    <p style="color:#666;font-size:12px">取消時間：${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</p>
+                `
+            }).catch(e => console.error('[取消通知 SMTP]', e));
+
+            return res.send(`
+                <div style="font-family:sans-serif;text-align:center;padding:60px;background:#f8d7da;color:#721c24;border-radius:8px;max-width:600px;margin:40px auto;">
+                    <h2>❌ 訂單已取消</h2>
+                    <p>${esc(orderId)}</p>
+                    <p>已寄取消通知 email 給助理</p>
+                    <a href="javascript:window.close();" style="color:#0055aa">關閉此頁</a>
+                </div>
+            `);
+        }
+
+        // GET：確認頁
+        const type = orderId.startsWith('SMP') ? '借樣品' : orderId.startsWith('RMA') ? '派車單' : orderId.startsWith('BCH') ? '行動屋' : '訂單';
+        const itemsList = Array.isArray(data.items) ? data.items : (Array.isArray(data.orderItems) ? data.orderItems : []);
+        const itemSummary = itemsList.map(it => `${esc(it.model)} x${Number(it.qty || it.quantity || 0)}`).join(', ');
+
+        const html = `<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>取消訂單 ${esc(orderId)}</title>
+<style>
+body { font-family: 'Microsoft JhengHei', Arial, sans-serif; margin: 0; background: #f5f5f5; }
+.wrap { max-width: 560px; margin: 40px auto; padding: 32px; background: white; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+h2 { margin-top: 0; color: #E11D48; }
+.info { background: #f9f9f9; padding: 14px 16px; border-radius: 8px; margin: 16px 0; font-size: 14px; line-height: 1.8; }
+.info strong { color: #333; display: inline-block; min-width: 80px; }
+label { display: block; font-weight: bold; font-size: 13px; margin: 16px 0 6px; color: #333; }
+textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; font-family: inherit; min-height: 80px; }
+.warn { background: #fff3cd; color: #856404; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin: 16px 0; }
+.actions { display: flex; gap: 12px; margin-top: 24px; }
+.btn { flex: 1; padding: 14px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; text-align: center; color: white; }
+.btn-danger { background: #E11D48; }
+.btn-back { background: #666; }
+</style>
+</head><body>
+<div class="wrap">
+    <h2>❌ 確認取消訂單</h2>
+    <div class="info">
+        <div><strong>類型：</strong>${esc(type)}</div>
+        <div><strong>編號：</strong>${esc(orderId)}</div>
+        <div><strong>客戶：</strong>${esc(c.customerCode ? '【' + c.customerCode + '】' : '')}${esc(c.company || c.name || '-')}</div>
+        ${data.totalAmount ? `<div><strong>金額：</strong>$${data.totalAmount}</div>` : ''}
+        <div><strong>商品：</strong>${esc(itemSummary || '-')}</div>
+    </div>
+    <div class="warn">⚠️ 取消後訂單狀態會變成 cancelled，並寄 email 通知助理。此動作無法復原。</div>
+    <form method="POST" action="">
+        <input type="hidden" name="token" value="${esc(token)}">
+        <input type="hidden" name="orderId" value="${esc(orderId)}">
+        <label>取消原因 (選填)</label>
+        <textarea name="cancelReason" placeholder="例：客戶改單、倉庫缺貨、誤下單..."></textarea>
+        <div class="actions">
+            <a class="btn btn-back" href="javascript:history.back()">← 返回</a>
+            <button type="submit" class="btn btn-danger" onclick="return confirm('確定要取消此訂單嗎？')">❌ 確認取消</button>
+        </div>
+    </form>
+</div>
+</body></html>`;
+
+        res.set('Cache-Control', 'no-store');
+        res.send(html);
+    } catch (err) {
+        console.error('[orderCancel]', err);
+        res.status(500).send(`<h2>Error: ${err.message}</h2>`);
+    }
+});
+
+// --- 訂單編輯 (GET 表單 / POST 儲存或取消) ---
+exports.orderEdit = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const token = req.query.token || req.body?.token;
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    if (!token || token !== expected) {
+        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
+    }
+
+    const orderId = req.query.orderId || req.body?.orderId;
+    if (!orderId) return res.status(400).send('<h2>缺少訂單編號</h2>');
+
+    const ref = db.collection('PendingOrders').doc(orderId);
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    // POST：儲存或取消
+    if (req.method === 'POST') {
+        try {
+            const doc = await ref.get();
+            if (!doc.exists) return res.status(404).send('<h2>找不到訂單</h2>');
+            const oldData = doc.data();
+            const oldC = oldData.customer || {};
+
+            // 狀態防呆：已出貨的不能改/取消
+            const status = oldData.status || '';
+            if (['已出貨', '處理完成_已派車', 'cancelled'].includes(status)) {
+                return res.status(400).send(`<h2 style="text-align:center;padding:40px;color:#856404;background:#fff3cd;">⚠️ 訂單狀態為「${esc(status)}」，無法修改</h2>`);
+            }
+
+            const action = req.body.action;
+
+            if (action === 'cancel') {
+                await ref.update({
+                    status: 'cancelled',
+                    cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+                    cancelReason: req.body.cancelReason || '',
+                });
+                // 寄 email 通知助理
+                transporter.sendMail({
+                    from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                    to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
+                    subject: `❌ [訂單取消] ${orderId} ${oldC.company || ''}${oldC.customerCode ? ' [' + oldC.customerCode + ']' : ''}`,
+                    html: `
+                        <h2 style="color:#E11D48">❌ 訂單已取消</h2>
+                        <p><strong>編號：</strong>${orderId}</p>
+                        <p><strong>客戶：</strong>${oldC.company || '-'}</p>
+                        ${req.body.cancelReason ? `<p><strong>取消原因：</strong>${esc(req.body.cancelReason)}</p>` : ''}
+                        <p style="color:#666">此訂單已於 ${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })} 取消。</p>
+                    `
+                }).catch(e => console.error('[取消通知 SMTP]', e));
+
+                return res.send(`<div style="font-family:sans-serif;text-align:center;padding:60px;"><h2 style="color:#E11D48">❌ 訂單已取消</h2><p>${esc(orderId)}</p><p style="color:#666">已寄通知給助理</p><a href="javascript:window.close();" style="color:#0055aa">關閉此頁</a></div>`);
+            }
+
+            // action === 'save'
+            const newC = {
+                name: (req.body.name || '').trim(),
+                phone: (req.body.phone || '').trim(),
+                address: (req.body.address || '').trim(),
+                logistics: (req.body.logistics || '').trim(),
+                deliveryTime: (req.body.deliveryTime || '').trim(),
+                returnDate: (req.body.returnDate || '').trim(),
+                projectName: (req.body.projectName || '').trim(),
+                remark: (req.body.remark || '').trim(),
+            };
+
+            // 比對 diff
+            const diffs = [];
+            const fieldLabels = { name: '收件人', phone: '聯絡電話', address: '送貨地址', logistics: '物流方式', deliveryTime: '預期到貨', returnDate: '預計歸還', projectName: '借樣案名', remark: '備註' };
+            Object.keys(fieldLabels).forEach(k => {
+                const oldV = oldC[k] || '';
+                const newV = newC[k];
+                if (oldV !== newV && (oldV || newV)) {
+                    diffs.push({ label: fieldLabels[k], old: oldV, new: newV });
+                }
+            });
+
+            if (diffs.length === 0) {
+                return res.send(`<div style="font-family:sans-serif;text-align:center;padding:60px;"><h2 style="color:#856404">📝 無變更</h2><p>沒有欄位被修改</p><a href="javascript:history.back()">← 返回</a></div>`);
+            }
+
+            // 更新
+            const updates = {};
+            Object.keys(newC).forEach(k => {
+                updates[`customer.${k}`] = newC[k];
+            });
+            updates.modifiedAt = admin.firestore.FieldValue.serverTimestamp();
+            await ref.update(updates);
+
+            // 寄 email 通知助理 (含 diff)
+            const diffHtml = diffs.map(d =>
+                `<tr><td>${esc(d.label)}</td><td style="text-decoration:line-through;color:#888">${esc(d.old || '(空)')}</td><td style="color:#E11D48;font-weight:bold">${esc(d.new || '(空)')}</td></tr>`
+            ).join('');
+            transporter.sendMail({
+                from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
+                subject: `✏️ [訂單已修改] ${orderId} ${oldC.company || ''}${oldC.customerCode ? ' [' + oldC.customerCode + ']' : ''}`,
+                html: `
+                    <h2 style="color:#F59E0B">✏️ 訂單內容已修改</h2>
+                    <p><strong>編號：</strong>${orderId}</p>
+                    <p><strong>客戶：</strong>${esc(oldC.company || '-')}</p>
+                    <table border="1" cellpadding="8" style="border-collapse:collapse;margin-top:12px">
+                        <tr style="background:#f2f2f2"><th>欄位</th><th>舊值</th><th>新值</th></tr>
+                        ${diffHtml}
+                    </table>
+                    <p style="color:#666;font-size:12px;margin-top:16px">修改時間：${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}</p>
+                `
+            }).catch(e => console.error('[修改通知 SMTP]', e));
+
+            return res.send(`
+                <div style="font-family:sans-serif;text-align:center;padding:60px;background:#d4edda;color:#155724;border-radius:8px;max-width:600px;margin:40px auto;">
+                    <h2>✅ 訂單已更新</h2>
+                    <p>${esc(orderId)}</p>
+                    <p>已寄變更通知 email 給助理（共 ${diffs.length} 項變更）</p>
+                    <a href="javascript:window.close();" style="color:#0055aa">關閉此頁</a>
+                </div>
+            `);
+        } catch (err) {
+            console.error('[orderEdit POST]', err);
+            return res.status(500).send(`<h2>Error: ${err.message}</h2>`);
+        }
+    }
+
+    // GET：顯示表單
+    try {
+        const doc = await ref.get();
+        if (!doc.exists) return res.status(404).send('<h2>找不到訂單</h2>');
+        const data = doc.data();
+        const c = data.customer || {};
+        const status = data.status || '';
+
+        const isEditable = ['處理中', '處理中_借樣品', '處理中_來回件', '處理中_批次'].includes(status);
+        if (!isEditable) {
+            return res.send(`<div style="font-family:sans-serif;text-align:center;padding:60px;"><h2 style="color:#856404">⚠️ 此訂單狀態為「${esc(status)}」，無法修改</h2><a href="javascript:history.back()">← 返回</a></div>`);
+        }
+
+        const isRma = orderId.startsWith('RMA');
+        const isSample = orderId.startsWith('SMP');
+        const itemsList = Array.isArray(data.items) ? data.items : (Array.isArray(data.orderItems) ? data.orderItems : []);
+        const itemRows = itemsList.map(it => `<tr><td>${esc(it.model || '')}</td><td style="text-align:right">${Number(it.qty || it.quantity || 0)}</td>${isRma ? '' : `<td style="text-align:right">${it.unitPrice ? '$' + it.unitPrice : '-'}</td>`}</tr>`).join('');
+
+        const html = `<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>編輯訂單 ${esc(orderId)}</title>
+<style>
+body { font-family: 'Microsoft JhengHei', Arial, sans-serif; margin: 0; background: #f5f5f5; color: #222; }
+.wrap { max-width: 700px; margin: 0 auto; padding: 20px; }
+.section { background: white; padding: 24px; border-radius: 12px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+.section h2 { margin: 0 0 16px; font-size: 18px; display: flex; gap: 12px; align-items: center; }
+.readonly { background: #f9f9f9; padding: 12px; border-radius: 6px; font-size: 14px; color: #666; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-weight: bold; font-size: 13px; margin-bottom: 6px; color: #333; }
+.field input, .field select, .field textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; box-sizing: border-box; font-family: inherit; }
+.field textarea { min-height: 60px; resize: vertical; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px; border-bottom: 1px solid #eee; }
+th { background: #fafafa; text-align: left; color: #666; }
+.notice { background: #fff3cd; color: #856404; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; }
+.actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; color: white; }
+.btn-save { background: #28a745; }
+.btn-cancel-order { background: #E11D48; }
+.btn-back { background: #666; }
+.type-badge { background: #0055aa; color: white; padding: 3px 10px; border-radius: 4px; font-size: 13px; }
+</style>
+<script>
+function confirmCancel(form) {
+    const reason = prompt('取消原因 (會一併寄給助理)：');
+    if (reason === null) return false;
+    form.cancelReason.value = reason;
+    form.action_.value = 'cancel';
+    return confirm('確定要取消此訂單嗎？此動作會通知助理。');
+}
+</script>
+</head><body>
+<div class="wrap">
+
+<div class="section">
+    <h2><span class="type-badge">${esc(isRma ? '派車單' : isSample ? '借樣品' : orderId.startsWith('BCH') ? '行動屋' : '訂單')}</span> 編輯 ${esc(orderId)}</h2>
+    <div class="readonly">
+        <strong>客戶：</strong>【${esc(c.customerCode || '未建檔')}】${esc(c.company || '-')}
+    </div>
+</div>
+
+<div class="section">
+    <h2>🛒 商品明細 (不可修改)</h2>
+    <div class="notice">⚠️ 如需修改品項/數量/單價，請使用下方「取消訂單」按鈕取消後，重新用 LINE 下單。</div>
+    <table>
+        <thead><tr><th>型號</th><th style="text-align:right">數量</th>${isRma ? '' : '<th style="text-align:right">單價</th>'}</tr></thead>
+        <tbody>${itemRows || '<tr><td colspan="3" style="text-align:center;color:#888;padding:20px">無明細</td></tr>'}</tbody>
+    </table>
+    ${!isRma && data.totalAmount ? `<p style="text-align:right;margin-top:12px"><strong>總計：$${data.totalAmount}</strong> (運費 ${data.shippingFee > 0 ? '$' + data.shippingFee : '免運'})</p>` : ''}
+</div>
+
+<form method="POST" action="">
+    <input type="hidden" name="action" id="action_">
+    <input type="hidden" name="token" value="${esc(token)}">
+    <input type="hidden" name="orderId" value="${esc(orderId)}">
+    <input type="hidden" name="cancelReason" value="">
+
+    <div class="section">
+        <h2>✏️ 收件資訊</h2>
+        <div class="field"><label>收件人</label><input name="name" value="${esc(c.name || '')}"></div>
+        <div class="field"><label>聯絡電話</label><input name="phone" value="${esc(c.phone || '')}"></div>
+        <div class="field"><label>送貨地址</label><input name="address" value="${esc(c.address || '')}"></div>
+    </div>
+
+    ${!isRma ? `
+    <div class="section">
+        <h2>🚚 物流 / 時程</h2>
+        <div class="field">
+            <label>物流方式</label>
+            <select name="logistics">
+                <option value=""${!c.logistics ? ' selected' : ''}>未指定</option>
+                ${['大榮貨運', '郵局', '專車', '自取'].map(opt => `<option value="${opt}"${c.logistics === opt ? ' selected' : ''}>${opt}</option>`).join('')}
+            </select>
+        </div>
+        ${isSample ? `
+            <div class="field"><label>借樣案名</label><input name="projectName" value="${esc(c.projectName || '')}"></div>
+            <div class="field"><label>預計歸還</label><input name="returnDate" value="${esc(c.returnDate || '')}" placeholder="2026/05/31"></div>
+        ` : `
+            <div class="field"><label>預期到貨</label><input name="deliveryTime" value="${esc(c.deliveryTime || '')}" placeholder="例：5/15、下週三"></div>
+        `}
+    </div>
+    ` : ''}
+
+    <div class="section">
+        <h2>📝 備註</h2>
+        <div class="field"><textarea name="remark">${esc(c.remark || '')}</textarea></div>
+    </div>
+
+    <div class="section">
+        <div class="actions">
+            <button type="submit" class="btn btn-save" onclick="document.getElementById('action_').value='save'">💾 儲存變更</button>
+            <button type="submit" class="btn btn-cancel-order" onclick="return confirmCancel(this.form)">❌ 取消訂單</button>
+            <a class="btn btn-back" href="javascript:history.back()">← 返回</a>
+        </div>
+    </div>
+</form>
+
+</div>
+</body></html>`;
+
+        res.set('Cache-Control', 'no-store');
+        res.send(html);
+    } catch (err) {
+        console.error('[orderEdit GET]', err);
+        res.status(500).send(`<h2>Error: ${err.message}</h2>`);
+    }
+});
+
+// --- 訂單明細頁 (HTML，顯示單筆完整內容) ---
+exports.orderDetail = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const token = req.query.token;
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    if (!token || token !== expected) {
+        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
+    }
+
+    const orderId = req.query.orderId;
+    if (!orderId) return res.status(400).send('<h2>缺少訂單編號</h2>');
+
+    try {
+        const doc = await db.collection('PendingOrders').doc(orderId).get();
+        if (!doc.exists) return res.status(404).send('<h2>找不到訂單</h2>');
+        const data = doc.data();
+
+        const toDate = (ts) => {
+            if (!ts) return null;
+            if (typeof ts.toDate === 'function') return ts.toDate();
+            if (ts._seconds) return new Date(ts._seconds * 1000);
+            return null;
+        };
+        const fmtDate = (d) => {
+            if (!d) return '-';
+            const tw = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+            return `${tw.getUTCFullYear()}-${String(tw.getUTCMonth()+1).padStart(2,'0')}-${String(tw.getUTCDate()).padStart(2,'0')} ${String(tw.getUTCHours()).padStart(2,'0')}:${String(tw.getUTCMinutes()).padStart(2,'0')}`;
+        };
+        const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const getType = (id) => id.startsWith('SMP') ? '借樣品' : id.startsWith('RMA') ? '派車單' : id.startsWith('BCH') ? '行動屋' : '訂單';
+
+        const type = getType(orderId);
+        const c = data.customer || {};
+        const itemsList = Array.isArray(data.items) ? data.items : (Array.isArray(data.orderItems) ? data.orderItems : []);
+        const status = data.status || '';
+
+        // 類型決定項目欄位
+        const isRma = orderId.startsWith('RMA');
+        const isSample = orderId.startsWith('SMP');
+
+        // 計算 row 用
+        let totalQty = 0;
+        let totalAmount = 0;
+        const itemRows = itemsList.map(it => {
+            const model = esc(it.model || '');
+            const qty = Number(it.qty || it.quantity || 0);
+            const price = Number(it.unitPrice || it.price || 0);
+            const subtotal = Number(it.subtotal) || (qty * price);
+            totalQty += qty;
+            if (subtotal > 0) totalAmount += subtotal;
+            const boxNote = it.origBoxes ? `<span style="color:#888">(${it.origBoxes}${it.unit}×${it.cartonQty})</span>` : '';
+            const priceMark = it.fixedPrice ? '🔒 固定' : (it.autoPriced ? '🔒 自動' : '');
+            const reason = it.reason ? ` <span style="color:#E11D48; font-size:12px">${esc(it.reason)}</span>` : '';
+            return `<tr>
+                <td>${model}${boxNote}${reason}</td>
+                <td class="num">${qty}</td>
+                ${isRma ? '' : `<td class="num">${price > 0 ? '$' + price : '-'} <span style="font-size:11px; color:#888">${priceMark}</span></td>`}
+                ${isRma ? '' : `<td class="num">${subtotal > 0 ? '$' + subtotal : '-'}</td>`}
+            </tr>`;
+        }).join('');
+
+        const shipBtn = isRma
+            ? `https://asia-east1-kinyo-price.cloudfunctions.net/markRMACompleted?rmaId=${encodeURIComponent(orderId)}`
+            : `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${encodeURIComponent(orderId)}`;
+        const exceptionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${encodeURIComponent(orderId)}`;
+
+        const isProcessed = ['已出貨', '處理中_已發送異常通知', '處理完成_已派車'].includes(status);
+        const statusColor = isProcessed ? '#1DB446' : '#F59E0B';
+
+        const html = `<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(orderId)} - 訂單明細</title>
+<style>
+body { font-family: 'Microsoft JhengHei', Arial, sans-serif; margin: 0; background: #f5f5f5; color: #222; }
+.wrap { max-width: 900px; margin: 0 auto; padding: 20px; }
+.header { background: white; padding: 24px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+.header h1 { margin: 0; font-size: 22px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.type-badge { background: #0055aa; color: white; padding: 4px 10px; border-radius: 6px; font-size: 14px; }
+.status-badge { padding: 4px 12px; border-radius: 6px; font-size: 14px; color: white; background: ${statusColor}; }
+.meta { color: #888; font-size: 13px; margin-top: 8px; }
+
+.section { background: white; border-radius: 12px; padding: 20px 24px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+.section h2 { margin: 0 0 16px; font-size: 16px; color: #333; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 10px 16px; font-size: 14px; }
+.kv .k { color: #888; }
+.kv .v { color: #222; }
+.kv .v.highlight { color: #E11D48; font-weight: bold; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 8px; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #fafafa; font-size: 13px; color: #666; }
+td.num { text-align: right; }
+tfoot td { font-weight: bold; background: #fffbea; }
+
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.btn { display: inline-block; padding: 12px 24px; border-radius: 8px; text-decoration: none; color: white; font-weight: bold; font-size: 14px; }
+.btn-ship { background: #28a745; }
+.btn-edit { background: #0055aa; }
+.btn-cancel-order { background: #E11D48; }
+.btn-warn { background: #F59E0B; }
+.btn-back { background: #666; }
+.btn:hover { opacity: 0.9; }
+
+.note { background: #fff3cd; color: #856404; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+</style></head><body>
+<div class="wrap">
+
+<div class="header">
+    <h1>
+        <span class="type-badge">${esc(type)}</span>
+        ${esc(orderId)}
+        <span class="status-badge">${esc(status)}</span>
+    </h1>
+    <div class="meta">
+        建立時間：${fmtDate(toDate(data.createdAt))}
+        ${data.shippedAt ? ' | 出貨時間：' + fmtDate(toDate(data.shippedAt)) : ''}
+        ${data.backfilledAt ? ' | <span style="color:#888">※ 歷史資料 backfill</span>' : ''}
+    </div>
+</div>
+
+<div class="section">
+    <h2>🏢 客戶資訊</h2>
+    <div class="kv">
+        <div class="k">客戶編號</div><div class="v">${esc(c.customerCode || '未建檔')}</div>
+        <div class="k">採購公司</div><div class="v">${esc(c.company || '-')}</div>
+        <div class="k">收件人</div><div class="v">${esc(c.name || '-')}${c.hasOverride ? ' <span style="color:#E11D48">(指定)</span>' : ''}</div>
+        <div class="k">聯絡電話</div><div class="v">${esc(c.phone || '-')}</div>
+        <div class="k">送貨地址</div><div class="v ${c.hasOverride ? 'highlight' : ''}">${esc(c.address || '-')}</div>
+        ${c.projectName ? `<div class="k">借樣案名</div><div class="v highlight">${esc(c.projectName)}</div>` : ''}
+        ${c.returnDate ? `<div class="k">預計歸還</div><div class="v highlight">${esc(c.returnDate)}</div>` : ''}
+        ${c.deliveryTime ? `<div class="k">預期到貨</div><div class="v">${esc(c.deliveryTime)}</div>` : ''}
+        ${c.logistics ? `<div class="k">物流方式</div><div class="v">${esc(c.logistics)}</div>` : ''}
+        ${data.tracking ? `<div class="k">物流單號</div><div class="v" style="font-family:monospace">${esc(data.tracking)}</div>` : ''}
+        ${c.remark ? `<div class="k">備註</div><div class="v">${esc(c.remark)}</div>` : ''}
+    </div>
+</div>
+
+<div class="section">
+    <h2>🛒 ${isRma ? '不良品明細' : isSample ? '樣品明細' : '商品明細'}</h2>
+    <table>
+        <thead><tr>
+            <th>型號</th>
+            <th style="text-align:right">數量</th>
+            ${isRma ? '' : '<th style="text-align:right">單價</th><th style="text-align:right">小計</th>'}
+        </tr></thead>
+        <tbody>${itemRows || '<tr><td colspan="4" style="text-align:center; color:#888; padding:20px">無明細</td></tr>'}</tbody>
+        ${!isRma && itemsList.length > 0 ? `
+        <tfoot>
+            <tr>
+                <td colspan="${isRma ? 1 : 2}" style="text-align:right">運費</td>
+                ${isRma ? '' : `<td colspan="2" class="num">${data.shippingFee > 0 ? '$' + data.shippingFee : '免運'}</td>`}
+            </tr>
+            <tr>
+                <td colspan="${isRma ? 1 : 2}" style="text-align:right; color:#E11D48">總計</td>
+                ${isRma ? '' : `<td colspan="2" class="num" style="color:#E11D48; font-size:16px">${data.totalAmount > 0 ? '$' + data.totalAmount : '待確認'}</td>`}
+            </tr>
+        </tfoot>` : ''}
+    </table>
+    <div style="margin-top:8px; font-size:12px; color:#888">共 ${itemsList.length} 項 ${isRma ? '' : `/ ${totalQty} 件`}</div>
+</div>
+
+${data.exceptionMessage ? `
+<div class="section" style="border-left: 4px solid #F59E0B;">
+    <h2>⚠️ 異常通知</h2>
+    <div style="white-space:pre-wrap; color:#856404">${esc(data.exceptionMessage)}</div>
+    ${data.exceptionNotifiedAt ? `<div class="meta" style="margin-top:8px">通知時間：${fmtDate(toDate(data.exceptionNotifiedAt))}</div>` : ''}
+</div>` : ''}
+
+${!isProcessed ? `
+<div class="section">
+    <h2>⚡ 動作</h2>
+    <div class="actions">
+        <a class="btn btn-ship" href="${shipBtn}" target="_blank">${isRma ? '✅ 派車完成' : '✅ 出貨並填物流單號'}</a>
+        <a class="btn btn-edit" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderEdit?orderId=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}" target="_blank">✏️ 修改訂單</a>
+        <a class="btn btn-cancel-order" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderCancel?orderId=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}" target="_blank">❌ 取消訂單</a>
+        <a class="btn btn-warn" href="${exceptionUrl}" target="_blank">⚠️ 通知客戶異常</a>
+    </div>
+</div>` : `
+<div class="section" style="background: #d4edda; color: #155724;">
+    ✅ 此訂單已於 ${fmtDate(toDate(data.shippedAt)) || '-'} 完成處理
+</div>`}
+
+<div class="actions">
+    <a class="btn btn-back" href="javascript:history.back()">← 返回</a>
+</div>
+
+</div>
+</body></html>`;
+
+        res.set('Cache-Control', 'no-store');
+        res.send(html);
+    } catch (err) {
+        console.error('[orderDetail]', err);
+        res.status(500).send(`<h2>Error: ${err.message}</h2>`);
+    }
+});
+
 // --- 訂單狀況 Dashboard (HTML 頁面, 需要 token) ---
 exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (req, res) => {
     const token = req.query.token;
@@ -2571,9 +3193,10 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
         const PENDING = ['處理中', '處理中_借樣品', '處理中_來回件', '處理中_批次'];
         const PROCESSED = ['已出貨', '處理中_已發送異常通知', '處理完成_已派車'];
 
-        const [pendSnap, procSnap] = await Promise.all([
+        const [pendSnap, procSnap, reserveSnap] = await Promise.all([
             db.collection('PendingOrders').where('status', 'in', PENDING).get(),
             db.collection('PendingOrders').where('status', 'in', PROCESSED).get(),
+            db.collection('ReservedOrders').where('status', '==', 'active').get(),
         ]);
 
         const toDate = (ts) => {
@@ -2582,7 +3205,11 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
             if (ts._seconds) return new Date(ts._seconds * 1000);
             return null;
         };
-        const fmtDate = (d) => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` : '';
+        const fmtDate = (d) => {
+            if (!d) return '';
+            const tw = new Date(d.getTime() + 8 * 60 * 60 * 1000);
+            return `${tw.getUTCFullYear()}-${String(tw.getUTCMonth()+1).padStart(2,'0')}-${String(tw.getUTCDate()).padStart(2,'0')} ${String(tw.getUTCHours()).padStart(2,'0')}:${String(tw.getUTCMinutes()).padStart(2,'0')}`;
+        };
         const getType = (id) => id.startsWith('SMP') ? '借樣品' : id.startsWith('RMA') ? '派車單' : id.startsWith('BCH') ? '行動屋' : '訂單';
         const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
@@ -2610,13 +3237,59 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
         const pendingRows = rowify(pendSnap.docs, 'pending').sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
         const processedRows = rowify(procSnap.docs, 'processed').sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
 
+        // 保留訂單：計算剩餘天數（以台灣時區 00:00 為基準）
+        const twNow = new Date(now + 8 * 60 * 60 * 1000);
+        const todayUtc = Date.UTC(twNow.getUTCFullYear(), twNow.getUTCMonth(), twNow.getUTCDate());
+        const reservedRows = reserveSnap.docs.map(d => {
+            const data = d.data();
+            const id = d.id;
+            const created = toDate(data.createdAt);
+            const code = data.customer?.customerCode || '';
+            const company = data.customer?.company || data.customer?.name || '';
+            const amount = data.totalAmount || '';
+            const logistics = data.customer?.logistics || '';
+            const itemCount = Array.isArray(data.orderItems) ? data.orderItems.length : (Array.isArray(data.items) ? data.items.length : 0);
+            const deadlineStr = data.reserveDeadline || '';
+            let daysLeft = null;
+            if (deadlineStr) {
+                const [y, m, dd] = String(deadlineStr).replace(/\//g, '-').split('-').map(Number);
+                if (y && m && dd) {
+                    daysLeft = Math.round((Date.UTC(y, m - 1, dd) - todayUtc) / 86400000);
+                }
+            }
+            let cls = 'fresh';
+            if (daysLeft !== null) {
+                if (daysLeft < 0) cls = 'overdue';
+                else if (daysLeft <= 7) cls = 'warn';
+            }
+            return { id, code, company, amount, logistics, itemCount, deadlineStr, daysLeft, createdAt: created, _row: cls };
+        }).sort((a, b) => {
+            if (a.daysLeft === null && b.daysLeft === null) return 0;
+            if (a.daysLeft === null) return 1;
+            if (b.daysLeft === null) return -1;
+            return a.daysLeft - b.daysLeft;
+        });
+
+        // 計算已處理的所有月份 (台灣時區 YYYY-MM)
+        const monthSet = new Set();
+        for (const r of processedRows) {
+            if (!r.createdAt) continue;
+            const tw = new Date(r.createdAt.getTime() + 8 * 60 * 60 * 1000);
+            const ym = `${tw.getUTCFullYear()}-${String(tw.getUTCMonth() + 1).padStart(2, '0')}`;
+            monthSet.add(ym);
+        }
+        const sortedMonths = Array.from(monthSet).sort().reverse();
+        const currentTw = new Date(Date.now() + 8 * 60 * 60 * 1000);
+        const currentYm = `${currentTw.getUTCFullYear()}-${String(currentTw.getUTCMonth() + 1).padStart(2, '0')}`;
+
         const overdueCount = pendingRows.filter(r => r._row === 'overdue').length;
         const warnCount = pendingRows.filter(r => r._row === 'warn').length;
 
+        const detailUrl = (id) => `https://asia-east1-kinyo-price.cloudfunctions.net/orderDetail?orderId=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`;
         const renderPendingRow = (r) => `
             <tr class="${r._row}">
                 <td>${esc(r.type)}</td>
-                <td class="id"><a href="https://asia-east1-kinyo-price.cloudfunctions.net/${r.id.startsWith('RMA') ? 'markRMACompleted?rmaId=' : 'markOrderShipped?orderId='}${encodeURIComponent(r.id)}" target="_blank">${esc(r.id)}</a></td>
+                <td class="id"><a href="${detailUrl(r.id)}" target="_blank">${esc(r.id)}</a></td>
                 <td>${esc(r.code)}</td>
                 <td class="company">${esc(r.company)}</td>
                 <td class="num">${r.amount ? '$' + r.amount : '-'}</td>
@@ -2627,6 +3300,8 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
                 <td class="num age">${r.ageDays} 天${r._row === 'overdue' ? ' 🔴' : r._row === 'warn' ? ' 🟡' : ''}</td>
                 <td class="actions">
                     <a class="btn btn-ship" href="https://asia-east1-kinyo-price.cloudfunctions.net/${r.id.startsWith('RMA') ? 'markRMACompleted?rmaId=' : 'markOrderShipped?orderId='}${encodeURIComponent(r.id)}" target="_blank">出貨</a>
+                    <a class="btn btn-edit" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderEdit?orderId=${encodeURIComponent(r.id)}&token=${encodeURIComponent(token)}" target="_blank">修改</a>
+                    <a class="btn btn-cancel-order" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderCancel?orderId=${encodeURIComponent(r.id)}&token=${encodeURIComponent(token)}" target="_blank">取消</a>
                     <a class="btn btn-warn" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${encodeURIComponent(r.id)}" target="_blank">異常</a>
                 </td>
             </tr>
@@ -2635,7 +3310,7 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
         const renderProcessedRow = (r) => `
             <tr>
                 <td>${esc(r.type)}</td>
-                <td class="id">${esc(r.id)}</td>
+                <td class="id"><a href="${detailUrl(r.id)}" target="_blank">${esc(r.id)}</a></td>
                 <td>${esc(r.code)}</td>
                 <td class="company">${esc(r.company)}</td>
                 <td class="num">${r.amount ? '$' + r.amount : '-'}</td>
@@ -2643,6 +3318,24 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
                 <td>${esc(r.tracking || '-')}</td>
                 <td>${esc(r.status)}</td>
                 <td class="date">${fmtDate(r.createdAt)}</td>
+            </tr>
+        `;
+
+        const renderReservedRow = (r) => `
+            <tr class="${r._row}">
+                <td class="id">${esc(r.id)}</td>
+                <td>${esc(r.code)}</td>
+                <td class="company">${esc(r.company)}</td>
+                <td class="num">${r.amount ? '$' + r.amount : '-'}</td>
+                <td>${esc(r.logistics || '-')}</td>
+                <td class="num">${r.itemCount}</td>
+                <td class="date">${esc(r.deadlineStr || '-')}</td>
+                <td class="num age">${r.daysLeft === null ? '-' : r.daysLeft + ' 天'}${r._row === 'overdue' ? ' 🔴' : r._row === 'warn' ? ' 🟡' : ''}</td>
+                <td class="date">${fmtDate(r.createdAt)}</td>
+                <td class="actions">
+                    <button type="button" class="toggle-btn" data-rsv="${esc(r.id)}" onclick="markReserveDone(this)" title="點一下標記為已完成"></button>
+                    <span class="toggle-label">未完成</span>
+                </td>
             </tr>
         `;
 
@@ -2661,9 +3354,11 @@ h1 { margin: 0 0 8px; font-size: 24px; }
 .card.red { border-left: 4px solid #E11D48; }
 .card.yellow { border-left: 4px solid #F59E0B; }
 .card.green { border-left: 4px solid #1DB446; }
+.card.indigo { border-left: 4px solid #6366F1; }
 .card.red .num { color: #E11D48; }
 .card.yellow .num { color: #F59E0B; }
 .card.green .num { color: #1DB446; }
+.card.indigo .num { color: #6366F1; }
 
 .section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
 .section h2 { margin: 0 0 16px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
@@ -2686,7 +3381,15 @@ td.company { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-
 td.actions { white-space: nowrap; }
 .btn { display: inline-block; padding: 4px 10px; border-radius: 4px; text-decoration: none; color: white; font-size: 12px; margin-right: 4px; }
 .btn-ship { background: #28a745; }
+.btn-edit { background: #0055aa; }
+.btn-cancel-order { background: #E11D48; }
 .btn-warn { background: #F59E0B; }
+.toggle-btn { display: inline-block; width: 44px; height: 24px; background: #ccc; border-radius: 12px; position: relative; cursor: pointer; transition: background 0.25s; border: none; padding: 0; vertical-align: middle; }
+.toggle-btn::after { content: ''; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: left 0.25s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+.toggle-btn.on { background: #28a745; }
+.toggle-btn.on::after { left: 22px; }
+.toggle-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+.toggle-label { font-size: 12px; color: #888; margin-left: 6px; vertical-align: middle; }
 .empty { padding: 40px; text-align: center; color: #888; }
 .refresh-btn { margin-left: auto; padding: 6px 14px; background: #0055aa; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
 </style></head><body>
@@ -2698,7 +3401,23 @@ td.actions { white-space: nowrap; }
     <div class="card red"><h3>🔴 超時 (≥ 2 天)</h3><div class="num">${overdueCount}</div></div>
     <div class="card yellow"><h3>🟡 接近超時 (1-2 天)</h3><div class="num">${warnCount}</div></div>
     <div class="card"><h3>📋 待處理合計</h3><div class="num">${pendingRows.length}</div></div>
+    <div class="card indigo"><h3>📌 預留中</h3><div class="num">${reservedRows.length}</div></div>
     <div class="card green"><h3>✅ 已處理 (歷史累計)</h3><div class="num">${processedRows.length}</div></div>
+</div>
+
+<div class="section">
+    <h2>📌 預留訂單 <span style="color:#888; font-size:13px; font-weight:normal;">(${reservedRows.length} 筆，快到期的在上)</span></h2>
+    <div class="filter-bar">
+        <label>搜尋：</label>
+        <input id="rsv-q" placeholder="客戶 / 編號..." oninput="filterTable('rsv')">
+    </div>
+    ${reservedRows.length === 0 ? '<div class="empty">目前無進行中的預留訂單</div>' : `
+    <table id="rsv-table">
+        <thead><tr>
+            <th>編號</th><th>客戶編號</th><th>客戶</th><th>金額</th><th>物流</th><th>項目</th><th>預留期限</th><th>剩餘</th><th>建立時間</th><th>動作</th>
+        </tr></thead>
+        <tbody>${reservedRows.map(renderReservedRow).join('')}</tbody>
+    </table>`}
 </div>
 
 <div class="section">
@@ -2723,6 +3442,11 @@ td.actions { white-space: nowrap; }
 <div class="section">
     <h2>✅ 已處理 <span style="color:#888; font-size:13px; font-weight:normal;">(${processedRows.length} 筆，新的在上)</span></h2>
     <div class="filter-bar">
+        <label>月份：</label>
+        <select id="proc-month" onchange="pickMonth()">
+            <option value="">全部</option>
+            ${sortedMonths.map(m => `<option value="${m}"${m === currentYm ? ' selected' : ''}>${m}</option>`).join('')}
+        </select>
         <label>類型：</label>
         <select id="proc-type" onchange="filterTable('proc')">
             <option value="">全部</option><option>訂單</option><option>借樣品</option><option>派車單</option><option>行動屋</option>
@@ -2731,7 +3455,7 @@ td.actions { white-space: nowrap; }
         <select id="proc-status" onchange="filterTable('proc')">
             <option value="">全部</option><option>已出貨</option><option>處理中_已發送異常通知</option><option>處理完成_已派車</option>
         </select>
-        <label>日期從：</label>
+        <label>自訂從：</label>
         <input id="proc-from" type="date" onchange="filterTable('proc')">
         <label>到：</label>
         <input id="proc-to" type="date" onchange="filterTable('proc')">
@@ -2749,26 +3473,78 @@ td.actions { white-space: nowrap; }
 
 </div>
 <script>
+function pickMonth() {
+    const m = document.getElementById('proc-month').value;
+    const fromEl = document.getElementById('proc-from');
+    const toEl = document.getElementById('proc-to');
+    if (!m) {
+        fromEl.value = '';
+        toEl.value = '';
+    } else {
+        const [y, mo] = m.split('-');
+        const lastDay = new Date(parseInt(y), parseInt(mo), 0).getDate();
+        fromEl.value = m + '-01';
+        toEl.value = m + '-' + String(lastDay).padStart(2, '0');
+    }
+    filterTable('proc');
+}
+// 頁面載入時若 select 已有預設值 (current month)，自動套用日期範圍
+window.addEventListener('DOMContentLoaded', () => {
+    const monthSel = document.getElementById('proc-month');
+    if (monthSel && monthSel.value) pickMonth();
+});
+
+async function markReserveDone(btn) {
+    if (btn.disabled) return;
+    const rsvId = btn.dataset.rsv;
+    if (!rsvId) return;
+    btn.disabled = true;
+    btn.classList.add('on');
+    const label = btn.parentElement.querySelector('.toggle-label');
+    if (label) { label.textContent = '已完成'; label.style.color = '#28a745'; }
+    try {
+        const resp = await fetch('https://asia-east1-kinyo-price.cloudfunctions.net/markReserveCompleted?reserveId=' + encodeURIComponent(rsvId), { method: 'POST' });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        const tr = btn.closest('tr');
+        const countCard = document.querySelector('.card.indigo .num');
+        if (countCard) countCard.textContent = Math.max(0, (parseInt(countCard.textContent, 10) || 0) - 1);
+        setTimeout(() => {
+            tr.style.transition = 'opacity 0.5s';
+            tr.style.opacity = '0';
+            setTimeout(() => tr.remove(), 500);
+        }, 400);
+    } catch (e) {
+        alert('標記失敗：' + e.message + '\n請重試或聯絡管理員');
+        btn.classList.remove('on');
+        btn.disabled = false;
+        if (label) { label.textContent = '未完成'; label.style.color = ''; }
+    }
+}
+
 function filterTable(prefix) {
     const tbl = document.getElementById(prefix + '-table');
     if (!tbl) return;
-    const q = (document.getElementById(prefix + '-q').value || '').toLowerCase();
-    const typeSel = document.getElementById(prefix + '-type').value;
+    const qEl = document.getElementById(prefix + '-q');
+    const typeEl = document.getElementById(prefix + '-type');
+    const q = (qEl && qEl.value || '').toLowerCase();
+    const typeSel = typeEl ? typeEl.value : '';
     const statusSel = prefix === 'proc' ? (document.getElementById('proc-status').value || '') : '';
     const fromD = prefix === 'proc' ? (document.getElementById('proc-from').value || '') : '';
     const toD = prefix === 'proc' ? (document.getElementById('proc-to').value || '') : '';
 
     for (const tr of tbl.querySelectorAll('tbody tr')) {
         const cells = Array.from(tr.cells).map(c => c.textContent);
-        const rowType = cells[0];
         const rowText = cells.join('|').toLowerCase();
-        const rowStatus = prefix === 'proc' ? cells[7] : '';
-        const rowDate = prefix === 'proc' ? (cells[8] || '').substring(0, 10) : (cells[8] || '').substring(0, 10);
 
         let show = true;
-        if (typeSel && rowType !== typeSel) show = false;
+        if (typeSel) {
+            const rowType = cells[0];
+            if (rowType !== typeSel) show = false;
+        }
         if (q && !rowText.includes(q)) show = false;
         if (prefix === 'proc') {
+            const rowStatus = cells[7];
+            const rowDate = (cells[8] || '').substring(0, 10);
             if (statusSel && rowStatus !== statusSel) show = false;
             if (fromD && rowDate < fromD) show = false;
             if (toD && rowDate > toD) show = false;
