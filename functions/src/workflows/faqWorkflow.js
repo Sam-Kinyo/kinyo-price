@@ -56,6 +56,67 @@ function getRepairFlexMessage() {
 }
 
 /**
+ * 產生操作指南的 Flex Message 卡片
+ */
+function getUserGuideFlexMessage() {
+    return {
+        type: "flex",
+        altText: "『挺好的』操作指南",
+        contents: {
+            type: "bubble",
+            size: "giga",
+            header: {
+                type: "box",
+                layout: "vertical",
+                contents: [
+                    { type: "text", text: "🤖 『挺好的』助手操作指南", weight: "bold", size: "lg", color: "#ffffff" }
+                ],
+                backgroundColor: "#0055aa",
+                paddingAll: "15px"
+            },
+            body: {
+                type: "box",
+                layout: "vertical",
+                spacing: "lg",
+                contents: [
+                    {
+                        type: "box", layout: "vertical", spacing: "sm",
+                        contents: [
+                            { type: "text", text: "⚠️ 溫馨提示", weight: "bold", color: "#d32f2f", size: "sm" },
+                            { type: "text", text: "在群組中呼叫機器人時，記得一定要標註 @KINYO挺好的 哦！", wrap: true, size: "sm", color: "#555555" }
+                        ]
+                    },
+                    { type: "separator" },
+                    {
+                        type: "box", layout: "vertical", spacing: "sm",
+                        contents: [
+                            { type: "text", text: "🔍 1. 快速商品查價", weight: "bold", color: "#1DB446" },
+                            { type: "text", text: "輸入『商品型號(如: kh198)』『商品名稱(如: 吹風機)』或是各種口語都支援查詢。也可以輸入預算區間與數量，自動跳出商品推薦。", wrap: true, size: "sm", color: "#666666" }
+                        ]
+                    },
+                    { type: "separator" },
+                    {
+                        type: "box", layout: "vertical", spacing: "sm",
+                        contents: [
+                            { type: "text", text: "🛒 2. 自動下單與特殊申請建立", weight: "bold", color: "#E11D48" },
+                            { type: "text", text: "輸入『訂單』；『客服』；『借樣』；『維修』；『新品不良』；都會有不同的模板指引方向，快速建立。", wrap: true, size: "sm", color: "#666666" }
+                        ]
+                    },
+                    { type: "separator" },
+                    {
+                        type: "box", layout: "vertical", spacing: "sm",
+                        contents: [
+                            { type: "text", text: "📁 3. 專屬圖庫", weight: "bold", color: "#8a2be2" },
+                            { type: "text", text: "輸入『商品型號』+『商品大圖』 (如： kh198商品大圖)，機器人立刻送上連結。", wrap: true, size: "sm", color: "#666666" }
+                        ]
+                    }
+                ]
+            }
+        }
+    };
+}
+
+/**
  * 處理 FAQ 相關請求
  * @param {Object} event - LINE event object
  * @param {Object} client - LINE Messaging API client
@@ -68,10 +129,17 @@ async function handleFaqRequest(event, client, faqType) {
             replyToken: event.replyToken,
             messages: [message]
         });
+    } else if (faqType === 'user_guide') {
+        const message = getUserGuideFlexMessage();
+        await client.replyMessage({
+            replyToken: event.replyToken,
+            messages: [message]
+        });
     }
 }
 
 module.exports = {
     getRepairFlexMessage,
+    getUserGuideFlexMessage,
     handleFaqRequest
 };

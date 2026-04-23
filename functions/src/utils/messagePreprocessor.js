@@ -11,6 +11,16 @@ function analyzeAndCleanMessage(rawMessage) {
     let cleanText = rawMessage.replace(/@KINYO挺好的\s*/g, '').trim();
 
     // 2. Fast Path: 完全比對明確的靜態指令 (極端省成本與時間)
+    const exactGuideKeywords = ['教學', '使用教學', '說明書', '操作指南', '教學手冊', '指南'];
+    if (exactGuideKeywords.includes(cleanText)) {
+        return {
+            requireAi: false,
+            actionInfo: 'user_guide',
+            intentInfo: 'faq',
+            cleanText: cleanText
+        };
+    }
+
     const exactRepairKeywords = ['維修', '我要維修', '送修', '維修地址', '怎麼修', '客服'];
     if (exactRepairKeywords.includes(cleanText)) {
         return {
@@ -21,16 +31,26 @@ function analyzeAndCleanMessage(rawMessage) {
         };
     }
 
-    // 2.5 Fast Path: 純型號查價判斷 (例如: KBB-123 或 KBB123A)
-    const exactModelRegex = /^[A-Z]{2,4}-\d{3,4}[A-Za-z]*$/i; 
-    const pureModelRegex = /^[A-Z]{2,4}\d{3,4}[A-Za-z]*$/i;
+    // 2.5 Fast Path: 純型號查價判斷 (例如: KBB-123 或 KBB123A，以及支援多型號如 KBB-123 Uf168)
+    const multiModelRegex = /^([A-Z]{2,4}-?\d{3,4}[A-Za-z]*)(\s+[A-Z]{2,4}-?\d{3,4}[A-Za-z]*)*$/i;
     
-    if (exactModelRegex.test(cleanText) || pureModelRegex.test(cleanText)) {
+    if (multiModelRegex.test(cleanText)) {
         return {
             requireAi: false,
             actionInfo: null,
             intentInfo: 'query', // 直接指示系統這是一個查價意圖
             cleanText: cleanText
+        };
+    }
+
+    // 2.7 Fast Path: PPT 產生指令
+    const pptMatch = cleanText.match(/^(產生簡報|匯出簡報|產生ppt|匯出ppt)\s*(.+)$/i);
+    if (pptMatch) {
+        return {
+            requireAi: false,
+            actionInfo: 'export_ppt',
+            intentInfo: 'query',
+            cleanText: pptMatch[2].trim()
         };
     }
 
