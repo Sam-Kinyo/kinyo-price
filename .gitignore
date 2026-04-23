@@ -18,6 +18,35 @@ Thumbs.db
 # Logs and local scripts
 logs/
 functions/scripts/
+*.log
+functions.log
+functions/logs.txt
+functions/check_bucket.txt
+functions/url_*.txt
+functions/tmp_*.json
+
+# Local scratch / debug (do NOT deploy these)
+tmp_*.py
+tmp_*.txt
+tmp_*.json
+test.js
+functions/fix.js
+functions/fix_index.js
+functions/patch.js
+functions/scan_catalog.js
+functions/test_hotboard.js
+functions/injectProbe.js
+functions/repair*.js
+functions/extract.js
+functions/*.backup.*
+scripts/test_parser.js
+dhm3450.json
+
+# Generated marketing assets
+images/
+
+# Backup copies
+backend_archive/**/*_backup.py
 
 # GCP and Firebase Keys
 credentials.json
