@@ -330,12 +330,15 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     const { getState } = require('./src/services/conversationState');
                     const reserveFlow = require('./src/workflows/reserveConversation');
                     const orderFlow = require('./src/workflows/orderConversation');
+                    const sampleFlow = require('./src/workflows/sampleConversation');
                     const ongoingState = await getState(lineUid);
                     if (ongoingState) {
                         const convInput = userText.replace(/@KINYO挺好的\s*/g, '').trim();
                         const userContext = { level: currentViewLevel, realLevel, userEmail };
                         if (ongoingState.flow === 'order') {
                             await orderFlow.handleConversationInput(ongoingState, convInput, event, lineClient, userContext);
+                        } else if (ongoingState.flow === 'borrow_sample') {
+                            await sampleFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
                         } else {
                             // 預設、reserve_order 都走 reserve flow
                             await reserveFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
@@ -352,6 +355,12 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     // 啟動對話式訂單
                     if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
                         await orderFlow.startOrderFlow(lineUid, groupId, replyToken, lineClient);
+                        continue;
+                    }
+
+                    // 啟動對話式借樣品
+                    if (userText === '借樣品' || userText === '借樣' || userText === '@KINYO挺好的 借樣品' || userText === '@KINYO挺好的 借樣') {
+                        await sampleFlow.startSampleFlow(lineUid, groupId, replyToken, lineClient);
                         continue;
                     }
                 }
@@ -485,6 +494,193 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         messages: [commandFlexMessage]
                     });
                     continue;
+                }
+
+                // --- 訂單狀況追蹤 (摘要 / 待處理 / 已處理) ---
+                if (['訂單狀況', '工作進度', '待處理', '已處理',
+                    '@KINYO挺好的 訂單狀況', '@KINYO挺好的 工作進度',
+                    '@KINYO挺好的 待處理', '@KINYO挺好的 已處理'].includes(userText)) {
+                    const PENDING_STATUSES = ['處理中', '處理中_借樣品', '處理中_來回件', '處理中_批次'];
+                    const PROCESSED_STATUSES = ['已出貨', '處理中_已發送異常通知', '處理完成_已派車'];
+
+                    // helper: 解析 createdAt (Firestore Timestamp / serialized)
+                    const toDate = (ts) => {
+                        if (!ts) return null;
+                        if (typeof ts.toDate === 'function') return ts.toDate();
+                        if (ts._seconds) return new Date(ts._seconds * 1000);
+                        if (typeof ts === 'string') return new Date(ts);
+                        return null;
+                    };
+
+                    // helper: 判斷訂單類型
+                    const getType = (orderId) => {
+                        if (orderId.startsWith('SMP')) return '借樣品';
+                        if (orderId.startsWith('RMA')) return '派車單';
+                        if (orderId.startsWith('BCH')) return '行動屋';
+                        return '訂單';
+                    };
+
+                    // helper: 組 Flex bubble
+                    const buildBubble = (orderId, data, mode) => {
+                        const type = getType(orderId);
+                        const cCode = data.customer?.customerCode || '';
+                        const cName = data.customer?.company || data.customer?.name || '未提供';
+                        const amount = data.totalAmount;
+                        const created = toDate(data.createdAt);
+                        const ageDays = created ? Math.floor((Date.now() - created.getTime()) / 86400000) : 0;
+                        const dateStr = created ? `${created.getMonth() + 1}/${created.getDate()}` : '?';
+
+                        let headerColor = '#0055aa';
+                        let ageText = null;
+                        if (mode === 'pending') {
+                            if (ageDays >= 2) { headerColor = '#E11D48'; ageText = `🔴 超時 ${ageDays} 天`; }
+                            else if (ageDays >= 1) { headerColor = '#F59E0B'; ageText = `🟡 ${ageDays} 天未處理`; }
+                            else { ageText = '🟢 今日'; }
+                        } else {
+                            headerColor = '#1DB446';
+                        }
+
+                        const bodyContents = [
+                            { type: 'text', text: `${orderId.substring(0, 16)}`, size: 'xs', color: '#888888' },
+                            { type: 'text', text: `${cCode ? '【' + cCode + '】' : ''}${cName}`, weight: 'bold', size: 'sm', wrap: true }
+                        ];
+                        if (amount) bodyContents.push({ type: 'text', text: `💰 $${amount}`, size: 'sm', color: '#E11D48' });
+                        bodyContents.push({ type: 'text', text: `📅 建立：${dateStr}`, size: 'xs', color: '#666666' });
+                        if (mode === 'processed') {
+                            bodyContents.push({ type: 'text', text: `✓ ${data.status || ''}`, size: 'xs', color: '#1DB446', wrap: true });
+                            if (data.tracking) bodyContents.push({ type: 'text', text: `📋 ${data.tracking}`, size: 'xs', wrap: true });
+                            if (data.customer?.logistics) bodyContents.push({ type: 'text', text: `🚚 ${data.customer.logistics}`, size: 'xs', color: '#666666' });
+                        } else {
+                            bodyContents.push({ type: 'text', text: `⏳ ${data.status || '處理中'}`, size: 'xs', color: '#666666', wrap: true });
+                            if (data.customer?.logistics) bodyContents.push({ type: 'text', text: `🚚 ${data.customer.logistics}`, size: 'xs', color: '#666666' });
+                        }
+                        if (ageText) bodyContents.push({ type: 'text', text: ageText, size: 'sm', weight: 'bold', color: headerColor, margin: 'sm' });
+
+                        const bubble = {
+                            type: 'bubble', size: 'kilo',
+                            header: {
+                                type: 'box', layout: 'vertical', backgroundColor: headerColor, paddingAll: '12px',
+                                contents: [{ type: 'text', text: `📝 ${type}`, color: '#ffffff', weight: 'bold', size: 'sm' }]
+                            },
+                            body: { type: 'box', layout: 'vertical', spacing: 'xs', contents: bodyContents }
+                        };
+
+                        if (mode === 'pending') {
+                            const isRma = orderId.startsWith('RMA');
+                            const shipUrl = isRma
+                                ? `https://asia-east1-kinyo-price.cloudfunctions.net/markRMACompleted?rmaId=${orderId}`
+                                : `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${orderId}`;
+                            bubble.footer = {
+                                type: 'box', layout: 'vertical', spacing: 'xs',
+                                contents: [
+                                    {
+                                        type: 'button', style: 'primary', color: '#28a745', height: 'sm',
+                                        action: { type: 'uri', label: isRma ? '✅ 派車完成' : '✅ 出貨/填單號', uri: shipUrl }
+                                    },
+                                    {
+                                        type: 'button', style: 'secondary', height: 'sm',
+                                        action: { type: 'uri', label: '⚠️ 通知異常', uri: `https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${orderId}` }
+                                    }
+                                ]
+                            };
+                        }
+                        return bubble;
+                    };
+
+                    // 指令：訂單狀況 / 工作進度 → 摘要
+                    if (userText.includes('訂單狀況') || userText.includes('工作進度')) {
+                        const [pendSnap, procSnap] = await Promise.all([
+                            db.collection('PendingOrders').where('status', 'in', PENDING_STATUSES).get(),
+                            db.collection('PendingOrders').where('status', 'in', PROCESSED_STATUSES).get(),
+                        ]);
+                        const pendByType = { '訂單': 0, '借樣品': 0, '派車單': 0, '行動屋': 0 };
+                        let overdueCount = 0;
+                        pendSnap.docs.forEach(d => {
+                            pendByType[getType(d.id)] = (pendByType[getType(d.id)] || 0) + 1;
+                            const created = toDate(d.data().createdAt);
+                            if (created && (Date.now() - created.getTime()) / 86400000 >= 2) overdueCount++;
+                        });
+                        const sevenDaysAgo = Date.now() - 7 * 86400000;
+                        const procLast7 = procSnap.docs.filter(d => {
+                            const created = toDate(d.data().createdAt);
+                            return created && created.getTime() >= sevenDaysAgo;
+                        }).length;
+
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{
+                                type: 'flex',
+                                altText: '訂單狀況摘要',
+                                contents: {
+                                    type: 'bubble',
+                                    header: {
+                                        type: 'box', layout: 'vertical', backgroundColor: '#333333', paddingAll: '16px',
+                                        contents: [{ type: 'text', text: '📊 訂單狀況摘要', color: '#ffffff', weight: 'bold', size: 'lg' }]
+                                    },
+                                    body: {
+                                        type: 'box', layout: 'vertical', spacing: 'md',
+                                        contents: [
+                                            { type: 'text', text: '📋 待處理', weight: 'bold', size: 'md', color: '#E11D48' },
+                                            { type: 'text', text: `總計 ${pendSnap.size} 筆 (${overdueCount} 筆超時)`, size: 'sm', color: overdueCount > 0 ? '#E11D48' : '#666666' },
+                                            { type: 'text', text: `• 訂單 ${pendByType['訂單']} / 借樣 ${pendByType['借樣品']} / 派車 ${pendByType['派車單']} / 行動屋 ${pendByType['行動屋']}`, size: 'xs', color: '#666666' },
+                                            { type: 'separator', margin: 'md' },
+                                            { type: 'text', text: '✅ 已處理 (近 7 天)', weight: 'bold', size: 'md', color: '#1DB446', margin: 'md' },
+                                            { type: 'text', text: `${procLast7} 筆`, size: 'sm', color: '#666666' },
+                                            { type: 'separator', margin: 'md' },
+                                            { type: 'text', text: '💡 輸入「待處理」或「已處理」可看詳細清單', size: 'xs', color: '#888888', margin: 'md', wrap: true }
+                                        ]
+                                    }
+                                }
+                            }]
+                        });
+                        continue;
+                    }
+
+                    // 指令：待處理
+                    if (userText.includes('待處理')) {
+                        const snap = await db.collection('PendingOrders').where('status', 'in', PENDING_STATUSES).get();
+                        if (snap.empty) {
+                            await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '✅ 目前沒有待處理訂單' }] });
+                            continue;
+                        }
+                        const sorted = snap.docs.sort((a, b) => {
+                            const aT = toDate(a.data().createdAt)?.getTime() || 0;
+                            const bT = toDate(b.data().createdAt)?.getTime() || 0;
+                            return aT - bT; // 舊的在前 (最需要處理)
+                        }).slice(0, 10);
+                        const bubbles = sorted.map(d => buildBubble(d.id, d.data(), 'pending'));
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [
+                                { type: 'text', text: `📋 待處理 ${snap.size} 筆${snap.size > 10 ? '（顯示最舊 10 筆）' : ''}` },
+                                { type: 'flex', altText: `待處理 ${snap.size} 筆`, contents: { type: 'carousel', contents: bubbles } }
+                            ]
+                        });
+                        continue;
+                    }
+
+                    // 指令：已處理
+                    if (userText.includes('已處理')) {
+                        const snap = await db.collection('PendingOrders').where('status', 'in', PROCESSED_STATUSES).get();
+                        if (snap.empty) {
+                            await lineClient.replyMessage({ replyToken: replyToken, messages: [{ type: 'text', text: '目前沒有已處理訂單' }] });
+                            continue;
+                        }
+                        const sorted = snap.docs.sort((a, b) => {
+                            const aT = toDate(a.data().createdAt)?.getTime() || 0;
+                            const bT = toDate(b.data().createdAt)?.getTime() || 0;
+                            return bT - aT; // 新的在前
+                        }).slice(0, 10);
+                        const bubbles = sorted.map(d => buildBubble(d.id, d.data(), 'processed'));
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [
+                                { type: 'text', text: `✅ 已處理 ${snap.size} 筆${snap.size > 10 ? '（顯示最新 10 筆）' : ''}` },
+                                { type: 'flex', altText: `已處理 ${snap.size} 筆`, contents: { type: 'carousel', contents: bubbles } }
+                            ]
+                        });
+                        continue;
+                    }
                 }
 
                 // --- 額外處理：訂單模板回覆 ---
@@ -729,6 +925,41 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                 const orderData = doc.data();
                                 const functionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${orderId}`;
 
+                                // --- 歷史價記錄：把使用者輸入的單價寫入 Customers/{code}/Pricing/{model} ---
+                                // 只記錄「使用者自己打的價」，不記錄系統自動計算 (autoPriced=true)
+                                try {
+                                    const custCode = orderData.customer?.customerCode;
+                                    if (custCode && Array.isArray(orderData.items)) {
+                                        const todayStr = new Date().toISOString().substring(0, 10);
+                                        const batch = db.batch();
+                                        let recorded = 0;
+                                        for (const item of orderData.items) {
+                                            if (item.autoPriced) continue;           // 系統自動算 → 不記錄
+                                            const price = Number(item.unitPrice);
+                                            if (!price || price <= 0) continue;       // 沒價 or 待確認 → 跳過
+                                            const model = item.model;
+                                            if (!model) continue;
+                                            const docId = String(model).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                                            if (!docId) continue;
+                                            const ref = db.collection('Customers').doc(custCode).collection('Pricing').doc(docId);
+                                            batch.set(ref, {
+                                                model,
+                                                unitPrice: price,
+                                                source: 'order_history',
+                                                lastOrderDate: todayStr,
+                                                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                                            }, { merge: true });
+                                            recorded++;
+                                        }
+                                        if (recorded > 0) {
+                                            await batch.commit();
+                                            console.log(`[歷史價記錄] 訂單 ${orderId} 寫入 ${recorded} 筆至 Customers/${custCode}/Pricing`);
+                                        }
+                                    }
+                                } catch (histErr) {
+                                    console.error('[歷史價記錄] 失敗:', histErr);
+                                }
+
                                 // 解析商品陣列並生成 HTML 表格
                                 let itemsHtml = '<table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px; margin-bottom: 20px;">';
                                 itemsHtml += '<tr style="background-color: #f2f2f2;"><th>商品型號</th><th>數量</th><th>單價</th><th>小計</th></tr>';
@@ -770,10 +1001,11 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                 const mailOptions = {
                                     from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
                                     to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
-                                    subject: `[新訂單通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 總計 ${totalDisplay.replace(/<[^>]+>/g, '')}`,
+                                    subject: `[新訂單通知]${orderData.customer?.customerCode ? `[${orderData.customer.customerCode}]` : ''} ${orderData.customer?.company || ''}${orderData.customer?.name && orderData.customer.name !== orderData.customer.company ? ' ' + orderData.customer.name : ''} - 總計 ${totalDisplay.replace(/<[^>]+>/g, '')}`,
                                     html: `
                                       <h2 style="color: #333;">新訂單通知</h2>
                                       <p><strong>訂單編號:</strong> ${orderId}</p>
+                                      <p><strong>客戶編號:</strong> ${orderData.customer?.customerCode || '未建檔'}</p>
                                       <p><strong>採購公司:</strong> ${orderData.customer?.company || '未提供'}</p>
                                       <p><strong>收件人:</strong> ${orderData.customer?.name}</p>
                                       <p><strong>電話:</strong> ${orderData.customer?.phone}</p>
@@ -787,7 +1019,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                       <h3 style="color: #E11D48;">總計金額: ${totalDisplay}</h3>
                                       <hr>
                                       <br>
-                                      <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 標記為已出貨</a>
+                                      <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 出貨並填物流單號</a>
                                       <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${orderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
                                     `
                                 };
@@ -841,7 +1073,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                         const amount = orderData.totalAmount;
                                         const deliveryTime = orderData.customer?.deliveryTime || '未指定';
 
-                                        const notifyText = `⚠️ 新訂單通知\n編號：${orderId.substring(0, 8)}\n採購公司：${companyName}\n預期到貨：${deliveryTime}\n總金額：$${amount}\n\n請盡速查看 Email 處理出貨作業。`;
+                                        const customerCode = orderData.customer?.customerCode || '未建檔';
+                                        const notifyText = `⚠️ 新訂單通知\n編號：${orderId.substring(0, 8)}\n客戶編號：${customerCode}\n採購公司：${companyName}\n預期到貨：${deliveryTime}\n總金額：$${amount}\n\n請盡速查看 Email 處理出貨作業。`;
 
                                         await lineClient.pushMessage({
                                             to: targetGroupId,
@@ -941,12 +1174,14 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const mailOptions = {
                             from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
                             to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
-                            subject: `[借樣品通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
+                            subject: `[借樣品通知]${orderData.customer?.customerCode ? `[${orderData.customer.customerCode}]` : ''} ${orderData.customer?.company || ''}${orderData.customer?.name && orderData.customer.name !== orderData.customer.company ? ' ' + orderData.customer.name : ''} - 共 ${totalQty} 件`,
                             html: `
                               <h2 style="color: #F59E0B;">📦 借樣品申請通知</h2>
                               <p><strong>申請編號:</strong> ${newOrderId}</p>
-                              <p><strong>案名:</strong> <span style="color: #E11D48;">${orderData.customer?.projectName || '未提供'}</span></p>
-                              <p><strong>預計歸還:</strong> <span style="color: #E11D48;">${orderData.customer?.returnDate || '未提供'}</span></p>
+                              <p><strong>客戶編號:</strong> ${orderData.customer?.customerCode || '未建檔'}</p>
+                              ${orderData.customer?.projectName ? `<p><strong>案名:</strong> <span style="color: #E11D48;">${orderData.customer.projectName}</span></p>` : ''}
+                              <p><strong>預計歸還:</strong> <span style="color: #E11D48;">${orderData.customer?.returnDate || '無'}</span></p>
+                              <p><strong>物流方式:</strong> ${orderData.customer?.logistics || '未指定'}</p>
                               <hr>
                               <p><strong>採購公司:</strong> ${orderData.customer?.company || '未提供'}</p>
                               <p><strong>收件人:</strong> ${orderData.customer?.name}</p>
@@ -958,7 +1193,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                               <hr>
                               <br>
                               <p style="color: #666; font-size: 13px;">※ 若樣品已寄出，可點擊下方按鈕結案；若有缺貨或異常，可點擊通知客戶</p>
-                              <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 標記為已出貨/結案</a>
+                              <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 出貨並填物流單號/結案</a>
                               <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
                             `
                         };
@@ -971,7 +1206,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             const companyName = orderData.customer?.company || '未提供';
                             const projectName = orderData.customer?.projectName || '未提供';
 
-                            const notifyText = `📦 [借樣品通知]\n編號：${newOrderId.substring(0, 8)}\n公司：${companyName}\n案名：${projectName}\n項目：共 ${totalQty} 件\n\n請盡速查看 Email 處理樣品寄送作業。`;
+                            const customerCode = orderData.customer?.customerCode || '未建檔';
+                            const notifyText = `📦 [借樣品通知]\n編號：${newOrderId.substring(0, 8)}\n客戶編號：${customerCode}\n公司：${companyName}\n案名：${projectName}\n項目：共 ${totalQty} 件\n\n請盡速查看 Email 處理樣品寄送作業。`;
                             await lineClient.pushMessage({
                                 to: targetGroupId,
                                 messages: [{ type: 'text', text: notifyText }]
@@ -991,6 +1227,64 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             messages: [{ type: 'text', text: `⚠️ 申請失敗: ${err.message}` }]
                         });
                     }
+                } else if (action === 'modify_sample') {
+                    shouldSkipSearch = true;
+                    const tempId = params.get('id');
+                    try {
+                        const tempDocRef = db.collection('tempOrders').doc(tempId);
+                        const tempDoc = await tempDocRef.get();
+                        if (!tempDoc.exists) throw new Error('找不到該借樣紀錄，可能已處理過。');
+                        const sampleData = tempDoc.data();
+                        const customerCode = sampleData.customer?.customerCode;
+                        if (!customerCode) throw new Error('此借樣單缺少客戶編號，無法修改。');
+
+                        const custDoc = await db.collection('Customers').doc(customerCode).get();
+                        if (!custDoc.exists) throw new Error(`找不到客戶 ${customerCode}`);
+                        const custData = custDoc.data();
+
+                        const { setState } = require('./src/services/conversationState');
+                        await setState(lineUid, {
+                            flow: 'borrow_sample',
+                            step: 'waiting_shipping_choice',
+                            data: {
+                                items: [],
+                                customer: {
+                                    code: custData.code || customerCode,
+                                    shortName: custData.shortName || '',
+                                    fullName: custData.fullName || '',
+                                    phone: custData.phone || '',
+                                    address: custData.address || '',
+                                    taxId: custData.taxId || '',
+                                },
+                            },
+                            groupId: event.source.groupId || null,
+                            startedAt: new Date().toISOString(),
+                        });
+
+                        await tempDocRef.delete();
+
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{
+                                type: 'text',
+                                text: `🔧 已進入修改模式 (客戶保留)\n━━━━━━━━━\n【${custData.code}】${custData.shortName}\n${custData.fullName}\n━━━━━━━━━\n\n請選擇收件方式：`,
+                                quickReply: {
+                                    items: [
+                                        { type: 'action', action: { type: 'message', label: '🏢 寄到公司 (預設)', text: '寄到公司' } },
+                                        { type: 'action', action: { type: 'message', label: '✍️ 指定收件資料', text: '指定收件資料' } },
+                                        { type: 'action', action: { type: 'message', label: '❌ 取消', text: '取消' } }
+                                    ]
+                                }
+                            }]
+                        });
+                    } catch (err) {
+                        console.error('[modify_sample] 失敗:', err);
+                        await lineClient.replyMessage({
+                            replyToken: replyToken,
+                            messages: [{ type: 'text', text: `⚠️ 修改失敗：${err.message}` }]
+                        });
+                    }
+                    continue;
                 } else if (action === 'modify_reserve') {
                     shouldSkipSearch = true;
                     const tempId = params.get('id');
@@ -1101,10 +1395,11 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const reserveMailOptions = {
                             from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
                             to: reserveRecipients,
-                            subject: `[預留訂單] ${reserveData.customer?.company || ''} ${reserveData.customer?.name || ''} - 期限 ${reserveDeadline || '未指定'}`,
+                            subject: `[預留訂單]${reserveData.customer?.customerCode ? `[${reserveData.customer.customerCode}]` : ''} ${reserveData.customer?.company || ''}${reserveData.customer?.name && reserveData.customer.name !== reserveData.customer.company ? ' ' + reserveData.customer.name : ''} - 期限 ${reserveDeadline || '未指定'}`,
                             html: `
                               <h2 style="color: #6366F1;">📌 預留訂單通知 (佔位先留貨)</h2>
                               <p><strong>預留編號:</strong> ${newReserveId}</p>
+                              <p><strong>客戶編號:</strong> ${reserveData.customer?.customerCode || '未建檔'}</p>
                               <p><strong>預留期限:</strong> <span style="color: #E11D48; font-size: 16px;">${reserveDeadline || '未提供'}</span></p>
                               <hr>
                               <p><strong>採購公司:</strong> ${reserveData.customer?.company || '未提供'}</p>
@@ -1125,7 +1420,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         if (configDoc.exists && configDoc.data().notifyGroupId) {
                             const targetGroupId = configDoc.data().notifyGroupId;
                             const companyName = reserveData.customer?.company || '未提供';
-                            const notifyText = `📌 [預留訂單]\n編號：${newReserveId.substring(0, 8)}\n公司：${companyName}\n期限：${reserveDeadline || '未指定'}\n項目：共 ${totalQty} 件\n\n到期前 7 天系統會自動提醒。`;
+                            const customerCode = reserveData.customer?.customerCode || '未建檔';
+                            const notifyText = `📌 [預留訂單]\n編號：${newReserveId.substring(0, 8)}\n客戶編號：${customerCode}\n公司：${companyName}\n期限：${reserveDeadline || '未指定'}\n項目：共 ${totalQty} 件\n\n到期前 7 天系統會自動提醒。`;
                             await lineClient.pushMessage({ to: targetGroupId, messages: [{ type: 'text', text: notifyText }] });
                         }
 
@@ -1174,10 +1470,11 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const mailOptions = {
                             from: process.env.GMAIL_USER || 'sam.kuo@kinyo.tw',
                             to: [process.env.GMAIL_USER || 'sam.kuo@kinyo.tw', 'din@kinyo.tw'],
-                            subject: `[新品不良派車] ${rmaData.customer?.company || ''} - ${rmaData.customer?.name || ''}`,
+                            subject: `[新品不良派車]${rmaData.customer?.customerCode ? `[${rmaData.customer.customerCode}]` : ''} ${rmaData.customer?.company || ''}${rmaData.customer?.name && rmaData.customer.name !== rmaData.customer.company ? ' - ' + rmaData.customer.name : ''}`,
                             html: `
                               <h2 style="color: #E11D48;">⚠️ 新品不良來回件派車單</h2>
                               <p><strong>單號:</strong> ${rmaDisplayId}</p>
+                              <p><strong>客戶編號:</strong> ${rmaData.customer?.customerCode || '未建檔'}</p>
                               <p><strong>採購公司:</strong> ${rmaData.customer?.company || '未提供'}</p>
                               <p><strong>客戶姓名:</strong> ${rmaData.customer?.name}</p>
                               <p><strong>聯絡電話:</strong> ${rmaData.customer?.phone}</p>
@@ -1199,7 +1496,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const configDoc = await db.collection('SystemConfig').doc('OrderSettings').get();
                         if (configDoc.exists && configDoc.data().notifyGroupId) {
                             const targetGroupId = configDoc.data().notifyGroupId;
-                            const notifyText = `⚠️ [新品不良派車]\n公司：${rmaData.customer?.company || '未提供'}\n客戶：${rmaData.customer?.name}\n取件地址：${rmaData.customer?.address || '未提供'}\n\n請盡速查看 Email 安排物流派車。`;
+                            const notifyText = `⚠️ [新品不良派車]\n客戶編號：${rmaData.customer?.customerCode || '未建檔'}\n公司：${rmaData.customer?.company || '未提供'}\n客戶：${rmaData.customer?.name}\n取件地址：${rmaData.customer?.address || '未提供'}\n\n請盡速查看 Email 安排物流派車。`;
                             await lineClient.pushMessage({
                                 to: targetGroupId,
                                 messages: [{ type: 'text', text: notifyText }]
@@ -1292,7 +1589,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                   ${itemsHtml}
                                   <hr>
                                   <br>
-                                  <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 標記為已出貨</a>
+                                  <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 出貨並填物流單號</a>
                                   <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
                                 `
                             };
@@ -1752,68 +2049,88 @@ exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async 
     const orderId = req.query.orderId;
     if (!orderId) return res.status(400).send('缺少訂單編號');
 
-    // 防範信箱預覽機制 (Prefetch)：GET 請求只回傳確認畫面
+    const orderRef = db.collection('PendingOrders').doc(orderId);
+
+    // GET: 顯示填寫表單
     if (req.method === 'GET') {
+        const doc = await orderRef.get();
+        if (!doc.exists) return res.status(404).send('<h2 style="text-align:center;">找不到該訂單</h2>');
+        const order = doc.data();
+
         const isSample = orderId.startsWith('SMP');
         const titleText = isSample ? '確認樣品寄出' : '確認訂單出貨';
-        const targetText = isSample ? '樣品單' : '訂單';
-        
+        const logistics = order.customer?.logistics || '';
+        const existingTracking = order.tracking || '';
+        const alreadyShipped = order.status === '已出貨';
+
         const confirmHtml = `
-            <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
-                <h2 style="color: #333;">${titleText}</h2>
-                <p>即將發送出貨通知給${targetText} <strong>${orderId}</strong> 的客戶</p>
+            <!DOCTYPE html>
+            <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+            <body style="font-family: Arial, 'Microsoft JhengHei', sans-serif; background: #f5f5f5; margin: 0;">
+            <div style="max-width: 520px; margin: 40px auto; padding: 32px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+                <h2 style="color: #333; margin-top: 0;">${titleText}</h2>
+                ${alreadyShipped ? `<div style="padding: 12px; background: #fff3cd; color: #856404; border-radius: 6px; margin-bottom: 16px;">⚠️ 此訂單已標記為「已出貨」，繼續操作會覆寫物流單號</div>` : ''}
+                <p><strong>編號：</strong>${orderId}</p>
+                <p><strong>客戶：</strong>${order.customer?.company || ''} ${order.customer?.name || ''}</p>
+                ${logistics ? `<p><strong>物流方式：</strong><span style="color: #0055aa; font-weight: bold;">${logistics}</span></p>` : ''}
                 <form method="POST" action="">
-                    <button type="submit" style="background-color: #28a745; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 20px 2px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold;">
-                        ✅ 確認並發送 LINE 推播
+                    <label style="display:block; margin-top: 20px; font-weight: bold; color: #333;">
+                        物流單號 <span style="font-weight: normal; color: #888; font-size: 13px;">（自取可留空）</span>
+                    </label>
+                    <input name="tracking" value="${existingTracking.replace(/"/g, '&quot;')}" placeholder="例：HC12345678 / EX87654321" style="width: 100%; padding: 12px; font-size: 16px; margin-top: 6px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box;" />
+                    <button type="submit" style="background-color: #28a745; color: white; padding: 15px 32px; font-size: 16px; margin-top: 24px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%;">
+                        ✅ 確認出貨並推播 LINE 通知
                     </button>
                 </form>
+                <p style="color: #888; font-size: 12px; margin-top: 24px;">送出後系統會自動推播給客戶群組，並將單號存檔。</p>
             </div>
+            </body></html>
         `;
         return res.send(confirmHtml);
     }
 
+    // POST: 執行出貨
     try {
-        const orderRef = db.collection('PendingOrders').doc(orderId);
+        const tracking = String(req.body?.tracking || '').trim();
         const doc = await orderRef.get();
-
         if (!doc.exists) return res.status(404).send('<h2>找不到該訂單</h2>');
-
         const orderData = doc.data();
 
-        // 防呆：避免重複點擊重複推播
-        if (orderData.status === '已出貨') {
-            return res.send('<h2 style="text-align: center; color: #856404; background-color: #fff3cd; padding: 20px;">此訂單先前已經標記為「已出貨」囉！</h2>');
-        }
+        const wasAlreadyShipped = orderData.status === '已出貨';
 
-        // 更新資料庫狀態
-        await orderRef.update({ status: '已出貨' });
+        // 更新狀態 + 單號 (即使已出貨也允許更新單號)
+        const updates = { status: '已出貨' };
+        if (!wasAlreadyShipped) updates.shippedAt = admin.firestore.FieldValue.serverTimestamp();
+        if (tracking) updates.tracking = tracking;
+        await orderRef.update(updates);
 
         // 透過 LINE Messaging API 主動推播至原始群組/用戶
         const targetId = orderData.sourceId;
-        if (targetId) {
-            // 在新請求中重新初始化 Line SDK v9 client
+        let pushSuccess = true;
+        if (targetId && !wasAlreadyShipped) {
             const config = getConfig();
             const lineClient = new messagingApi.MessagingApiClient({
                 channelAccessToken: config.channelAccessToken
             });
 
-            // 擷取客戶名稱 (優先順序：姓名 > 公司名 > 預設值)
             const customerName = orderData.customer?.name || orderData.customer?.company || '客戶';
-
-            // 格式化訂購時間 (轉為 MM/DD 格式)
             let orderDate = '未知時間';
             if (orderData.createdAt) {
-                // 兼容 Firestore Timestamp 與一般 Date 字串
                 const dateObj = orderData.createdAt.toDate ? orderData.createdAt.toDate() : new Date(orderData.createdAt);
                 const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
                 const dd = String(dateObj.getDate()).padStart(2, '0');
                 orderDate = `${mm}/${dd}`;
             }
 
+            const logistics = orderData.customer?.logistics || '';
             const isSample = orderId.startsWith('SMP');
-            const notifyText = isSample
-                ? `📦 系統通知：樣品 (${customerName}；${orderDate}) 已安排寄出，請留意收件。`
-                : `📦 系統通知：訂單 (${customerName}；${orderDate}) 已由出貨中心安排出貨，請留意收件。`;
+
+            let notifyText = isSample
+                ? `📦 系統通知：樣品 (${customerName}；${orderDate}) 已安排寄出`
+                : `📦 系統通知：訂單 (${customerName}；${orderDate}) 已由出貨中心安排出貨`;
+            if (logistics) notifyText += `\n🚚 物流：${logistics}`;
+            if (tracking) notifyText += `\n📋 單號：${tracking}`;
+            notifyText += `\n\n請留意收件。`;
 
             try {
                 await lineClient.pushMessage({
@@ -1822,12 +2139,22 @@ exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async 
                 });
             } catch (pushErr) {
                 console.warn('[LINE Push Failed]', pushErr.response?.data || pushErr.message);
-                return res.send('<h2 style="text-align: center; color: #856404; background-color: #fff3cd; padding: 20px; border-radius: 8px;">✅ 狀態更新成功！但因群組無效或 LINE 推播配額不足，未能發送聊天室通知。</h2>');
+                pushSuccess = false;
             }
         }
 
-        // 回傳成功畫面給點擊信件的助理
-        return res.send('<h2 style="text-align: center; color: #155724; background-color: #d4edda; padding: 20px; border-radius: 8px;">✅ 狀態更新成功！已自動發送 LINE 出貨通知給客戶。</h2>');
+        // 回傳成功畫面
+        const successParts = [
+            wasAlreadyShipped ? '📝 物流單號已更新' : '✅ 狀態更新成功',
+            tracking ? `<br>📋 單號：<strong>${tracking}</strong>` : '',
+            pushSuccess ? (wasAlreadyShipped ? '' : '<br>📢 已推播 LINE 通知給客戶') : '<br>⚠️ LINE 推播失敗，請自行通知',
+        ].filter(Boolean).join('');
+
+        return res.send(`
+            <div style="font-family: Arial, 'Microsoft JhengHei', sans-serif; text-align: center; padding: 40px; background: #d4edda; color: #155724; border-radius: 8px; max-width: 520px; margin: 40px auto; font-size: 18px; line-height: 1.8;">
+                ${successParts}
+            </div>
+        `);
     } catch (error) {
         console.error('出貨更新失敗:', error);
         return res.status(500).send('<h2 style="text-align: center; color: red;">系統發生錯誤，請聯絡管理員</h2>');
@@ -2198,12 +2525,13 @@ exports.reservedOrderReminder = functions
                 const mailOptions = {
                     from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
                     to: reserveRecipients,
-                    subject: `⏰ [預留訂單到期提醒] ${data.customer?.company || ''} ${data.customer?.name || ''} - 7 天後到期`,
+                    subject: `⏰ [預留訂單到期提醒]${data.customer?.customerCode ? `[${data.customer.customerCode}]` : ''} ${data.customer?.company || ''}${data.customer?.name && data.customer.name !== data.customer.company ? ' ' + data.customer.name : ''} - 7 天後到期`,
                     html: `
                       <h2 style="color: #E11D48;">⏰ 預留訂單即將到期提醒</h2>
                       <p style="font-size: 16px;">以下預留訂單將於 <strong style="color: #E11D48;">${data.reserveDeadline}</strong>（7 天後）到期，請盡速準備做單出貨。</p>
                       <hr>
                       <p><strong>預留編號:</strong> ${reserveId}</p>
+                      <p><strong>客戶編號:</strong> ${data.customer?.customerCode || '未建檔'}</p>
                       <p><strong>採購公司:</strong> ${data.customer?.company || '未提供'}</p>
                       <p><strong>收件人:</strong> ${data.customer?.name || '未提供'}</p>
                       <p><strong>聯絡電話:</strong> ${data.customer?.phone || '未提供'}</p>
@@ -2230,6 +2558,234 @@ exports.reservedOrderReminder = functions
         }
         return null;
     });
+
+// --- 訂單狀況 Dashboard (HTML 頁面, 需要 token) ---
+exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const token = req.query.token;
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    if (!token || token !== expected) {
+        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
+    }
+
+    try {
+        const PENDING = ['處理中', '處理中_借樣品', '處理中_來回件', '處理中_批次'];
+        const PROCESSED = ['已出貨', '處理中_已發送異常通知', '處理完成_已派車'];
+
+        const [pendSnap, procSnap] = await Promise.all([
+            db.collection('PendingOrders').where('status', 'in', PENDING).get(),
+            db.collection('PendingOrders').where('status', 'in', PROCESSED).get(),
+        ]);
+
+        const toDate = (ts) => {
+            if (!ts) return null;
+            if (typeof ts.toDate === 'function') return ts.toDate();
+            if (ts._seconds) return new Date(ts._seconds * 1000);
+            return null;
+        };
+        const fmtDate = (d) => d ? `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}` : '';
+        const getType = (id) => id.startsWith('SMP') ? '借樣品' : id.startsWith('RMA') ? '派車單' : id.startsWith('BCH') ? '行動屋' : '訂單';
+        const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+        const now = Date.now();
+        const rowify = (docs, mode) => docs.map(d => {
+            const data = d.data();
+            const id = d.id;
+            const type = getType(id);
+            const created = toDate(data.createdAt);
+            const ageDays = created ? Math.floor((now - created.getTime()) / 86400000) : 0;
+            const code = data.customer?.customerCode || '';
+            const company = data.customer?.company || data.customer?.name || '';
+            const amount = data.totalAmount || '';
+            const status = data.status || '';
+            const logistics = data.customer?.logistics || '';
+            const tracking = data.tracking || '';
+            const itemCount = Array.isArray(data.items) ? data.items.length : (Array.isArray(data.orderItems) ? data.orderItems.length : 0);
+            return {
+                id, type, code, company, amount, status, logistics, tracking, itemCount,
+                createdAt: created, ageDays,
+                _row: mode === 'pending' ? (ageDays >= 2 ? 'overdue' : (ageDays >= 1 ? 'warn' : 'fresh')) : 'done'
+            };
+        });
+
+        const pendingRows = rowify(pendSnap.docs, 'pending').sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
+        const processedRows = rowify(procSnap.docs, 'processed').sort((a, b) => (b.createdAt?.getTime() || 0) - (a.createdAt?.getTime() || 0));
+
+        const overdueCount = pendingRows.filter(r => r._row === 'overdue').length;
+        const warnCount = pendingRows.filter(r => r._row === 'warn').length;
+
+        const renderPendingRow = (r) => `
+            <tr class="${r._row}">
+                <td>${esc(r.type)}</td>
+                <td class="id"><a href="https://asia-east1-kinyo-price.cloudfunctions.net/${r.id.startsWith('RMA') ? 'markRMACompleted?rmaId=' : 'markOrderShipped?orderId='}${encodeURIComponent(r.id)}" target="_blank">${esc(r.id)}</a></td>
+                <td>${esc(r.code)}</td>
+                <td class="company">${esc(r.company)}</td>
+                <td class="num">${r.amount ? '$' + r.amount : '-'}</td>
+                <td>${esc(r.logistics || '-')}</td>
+                <td class="num">${r.itemCount}</td>
+                <td>${esc(r.status)}</td>
+                <td class="date">${fmtDate(r.createdAt)}</td>
+                <td class="num age">${r.ageDays} 天${r._row === 'overdue' ? ' 🔴' : r._row === 'warn' ? ' 🟡' : ''}</td>
+                <td class="actions">
+                    <a class="btn btn-ship" href="https://asia-east1-kinyo-price.cloudfunctions.net/${r.id.startsWith('RMA') ? 'markRMACompleted?rmaId=' : 'markOrderShipped?orderId='}${encodeURIComponent(r.id)}" target="_blank">出貨</a>
+                    <a class="btn btn-warn" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${encodeURIComponent(r.id)}" target="_blank">異常</a>
+                </td>
+            </tr>
+        `;
+
+        const renderProcessedRow = (r) => `
+            <tr>
+                <td>${esc(r.type)}</td>
+                <td class="id">${esc(r.id)}</td>
+                <td>${esc(r.code)}</td>
+                <td class="company">${esc(r.company)}</td>
+                <td class="num">${r.amount ? '$' + r.amount : '-'}</td>
+                <td>${esc(r.logistics || '-')}</td>
+                <td>${esc(r.tracking || '-')}</td>
+                <td>${esc(r.status)}</td>
+                <td class="date">${fmtDate(r.createdAt)}</td>
+            </tr>
+        `;
+
+        const html = `<!DOCTYPE html>
+<html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KINYO 訂單狀況儀表板</title>
+<style>
+body { font-family: 'Microsoft JhengHei', Arial, sans-serif; margin: 0; background: #f5f5f5; color: #222; }
+.wrap { max-width: 1400px; margin: 0 auto; padding: 20px; }
+h1 { margin: 0 0 8px; font-size: 24px; }
+.subtitle { color: #888; margin-bottom: 24px; font-size: 13px; }
+.summary { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.card { background: white; padding: 16px 20px; border-radius: 12px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); flex: 1; min-width: 180px; }
+.card h3 { margin: 0 0 6px; font-size: 13px; color: #666; font-weight: normal; }
+.card .num { font-size: 28px; font-weight: bold; }
+.card.red { border-left: 4px solid #E11D48; }
+.card.yellow { border-left: 4px solid #F59E0B; }
+.card.green { border-left: 4px solid #1DB446; }
+.card.red .num { color: #E11D48; }
+.card.yellow .num { color: #F59E0B; }
+.card.green .num { color: #1DB446; }
+
+.section { background: white; border-radius: 12px; padding: 20px; margin-bottom: 24px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+.section h2 { margin: 0 0 16px; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+.filter-bar { margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font-size: 13px; }
+.filter-bar input, .filter-bar select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; }
+.filter-bar label { color: #666; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; }
+th { background: #fafafa; font-weight: bold; color: #333; font-size: 12px; position: sticky; top: 0; }
+tr.overdue { background: #fff0f3; }
+tr.warn { background: #fffaf0; }
+tr.overdue:hover, tr.warn:hover, tr:hover { background: #f0f4fa; }
+td.num { text-align: right; }
+td.id a { color: #0055aa; text-decoration: none; font-family: monospace; }
+td.id a:hover { text-decoration: underline; }
+td.date { color: #666; font-size: 12px; white-space: nowrap; }
+td.age { font-weight: bold; white-space: nowrap; }
+td.company { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+td.actions { white-space: nowrap; }
+.btn { display: inline-block; padding: 4px 10px; border-radius: 4px; text-decoration: none; color: white; font-size: 12px; margin-right: 4px; }
+.btn-ship { background: #28a745; }
+.btn-warn { background: #F59E0B; }
+.empty { padding: 40px; text-align: center; color: #888; }
+.refresh-btn { margin-left: auto; padding: 6px 14px; background: #0055aa; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+</style></head><body>
+<div class="wrap">
+<h1>📊 KINYO 訂單狀況儀表板</h1>
+<div class="subtitle">更新時間：${fmtDate(new Date())} <button class="refresh-btn" onclick="location.reload()">🔄 重新整理</button></div>
+
+<div class="summary">
+    <div class="card red"><h3>🔴 超時 (≥ 2 天)</h3><div class="num">${overdueCount}</div></div>
+    <div class="card yellow"><h3>🟡 接近超時 (1-2 天)</h3><div class="num">${warnCount}</div></div>
+    <div class="card"><h3>📋 待處理合計</h3><div class="num">${pendingRows.length}</div></div>
+    <div class="card green"><h3>✅ 已處理 (歷史累計)</h3><div class="num">${processedRows.length}</div></div>
+</div>
+
+<div class="section">
+    <h2>📋 待處理 <span style="color:#888; font-size:13px; font-weight:normal;">(${pendingRows.length} 筆，舊的在上)</span></h2>
+    <div class="filter-bar">
+        <label>類型：</label>
+        <select id="pend-type" onchange="filterTable('pend')">
+            <option value="">全部</option><option>訂單</option><option>借樣品</option><option>派車單</option><option>行動屋</option>
+        </select>
+        <label>搜尋：</label>
+        <input id="pend-q" placeholder="客戶 / 編號..." oninput="filterTable('pend')">
+    </div>
+    ${pendingRows.length === 0 ? '<div class="empty">✅ 全部處理完畢，辛苦了！</div>' : `
+    <table id="pend-table">
+        <thead><tr>
+            <th>類型</th><th>編號</th><th>客戶編號</th><th>客戶</th><th>金額</th><th>物流</th><th>項目</th><th>狀態</th><th>建立時間</th><th>天數</th><th>動作</th>
+        </tr></thead>
+        <tbody>${pendingRows.map(renderPendingRow).join('')}</tbody>
+    </table>`}
+</div>
+
+<div class="section">
+    <h2>✅ 已處理 <span style="color:#888; font-size:13px; font-weight:normal;">(${processedRows.length} 筆，新的在上)</span></h2>
+    <div class="filter-bar">
+        <label>類型：</label>
+        <select id="proc-type" onchange="filterTable('proc')">
+            <option value="">全部</option><option>訂單</option><option>借樣品</option><option>派車單</option><option>行動屋</option>
+        </select>
+        <label>狀態：</label>
+        <select id="proc-status" onchange="filterTable('proc')">
+            <option value="">全部</option><option>已出貨</option><option>處理中_已發送異常通知</option><option>處理完成_已派車</option>
+        </select>
+        <label>日期從：</label>
+        <input id="proc-from" type="date" onchange="filterTable('proc')">
+        <label>到：</label>
+        <input id="proc-to" type="date" onchange="filterTable('proc')">
+        <label>搜尋：</label>
+        <input id="proc-q" placeholder="客戶 / 編號 / 單號..." oninput="filterTable('proc')">
+    </div>
+    ${processedRows.length === 0 ? '<div class="empty">尚無已處理訂單</div>' : `
+    <table id="proc-table">
+        <thead><tr>
+            <th>類型</th><th>編號</th><th>客戶編號</th><th>客戶</th><th>金額</th><th>物流</th><th>物流單號</th><th>狀態</th><th>建立時間</th>
+        </tr></thead>
+        <tbody>${processedRows.map(renderProcessedRow).join('')}</tbody>
+    </table>`}
+</div>
+
+</div>
+<script>
+function filterTable(prefix) {
+    const tbl = document.getElementById(prefix + '-table');
+    if (!tbl) return;
+    const q = (document.getElementById(prefix + '-q').value || '').toLowerCase();
+    const typeSel = document.getElementById(prefix + '-type').value;
+    const statusSel = prefix === 'proc' ? (document.getElementById('proc-status').value || '') : '';
+    const fromD = prefix === 'proc' ? (document.getElementById('proc-from').value || '') : '';
+    const toD = prefix === 'proc' ? (document.getElementById('proc-to').value || '') : '';
+
+    for (const tr of tbl.querySelectorAll('tbody tr')) {
+        const cells = Array.from(tr.cells).map(c => c.textContent);
+        const rowType = cells[0];
+        const rowText = cells.join('|').toLowerCase();
+        const rowStatus = prefix === 'proc' ? cells[7] : '';
+        const rowDate = prefix === 'proc' ? (cells[8] || '').substring(0, 10) : (cells[8] || '').substring(0, 10);
+
+        let show = true;
+        if (typeSel && rowType !== typeSel) show = false;
+        if (q && !rowText.includes(q)) show = false;
+        if (prefix === 'proc') {
+            if (statusSel && rowStatus !== statusSel) show = false;
+            if (fromD && rowDate < fromD) show = false;
+            if (toD && rowDate > toD) show = false;
+        }
+        tr.style.display = show ? '' : 'none';
+    }
+}
+</script>
+</body></html>`;
+
+        res.set('Cache-Control', 'no-store');
+        res.send(html);
+    } catch (err) {
+        console.error('[orderDashboard]', err);
+        res.status(500).send(`<h2>Error: ${err.message}</h2>`);
+    }
+});
 
 exports.testQueryKH198 = functions.https.onRequest(async (req, res) => {
     try {

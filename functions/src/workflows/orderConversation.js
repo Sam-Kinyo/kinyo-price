@@ -21,28 +21,31 @@ const CODE_PATTERN = /^[A-Za-z]{2,4}\d{3,6}(-\d+)?$/;
 //   KHS3104 10 320
 //   KHS3104 10個
 function tryParseItem(input) {
-    // 1. 正規化：統一 x、去除貨幣符號、把單位量詞轉成空白分隔
-    //    pcs/pc 要有前後非字母邊界才吃，避免吃掉 Pco/Pce/Pcb 這類型號開頭
+    // 1. 正規化：統一 x、去除貨幣符號、保留 箱/件 當單位標記，其他量詞轉空白
     const cleaned = String(input).trim()
-        .replace(/[＊✕×*]/g, 'x')                                 // 各種星號/乘號 → x
-        .replace(/[＠]/g, '@')                                    // 全形 @
-        .replace(/元整?|NT\$?|\$/gi, '')                           // 貨幣符號
-        .replace(/[個件台箱組盒支瓶罐袋包片條顆]/g, ' ')            // 中文量詞 → 空白
-        .replace(/(?<![A-Za-z])pcs?(?![A-Za-z])/gi, ' ')          // pcs/pc (前後不是字母才算)
+        .replace(/[＊✕×*]/g, 'x')
+        .replace(/[＠]/g, '@')
+        .replace(/元整?|NT\$?|\$/gi, '')
+        .replace(/[個台組盒支瓶罐袋包片條顆]/g, ' ')               // 其他量詞 → 空白
+        .replace(/(?<![A-Za-z])pcs?(?![A-Za-z])/gi, ' ')
         .replace(/\s+/g, ' ')
         .trim();
 
-    // Pattern A: model x qty [@ price]
-    let m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s*x\s*(\d+)\s*(?:@\s*(\d+))?/i);
+    // Pattern A: model x qty [箱/件] [@ price]
+    let m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s*x\s*(\d+)\s*([箱件])?\s*(?:@\s*(\d+))?/i);
     if (m) {
-        return { model: m[1].toUpperCase(), qty: parseInt(m[2], 10), unitPrice: m[3] ? parseInt(m[3], 10) : null };
+        return { model: m[1].toUpperCase(), qty: parseInt(m[2], 10), unit: m[3] || null, unitPrice: m[4] ? parseInt(m[4], 10) : null };
     }
 
-    // Pattern B: model qty [price] (空白分隔)
-    m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s+(\d+)(?:\s+@?\s*(\d+))?/i);
+    // Pattern B: model qty [箱/件] [price]
+    m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s+(\d+)\s*([箱件])?\s*(?:\s+@?\s*(\d+))?/i);
     if (m) {
-        return { model: m[1].toUpperCase(), qty: parseInt(m[2], 10), unitPrice: m[3] ? parseInt(m[3], 10) : null };
+        return { model: m[1].toUpperCase(), qty: parseInt(m[2], 10), unit: m[3] || null, unitPrice: m[4] ? parseInt(m[4], 10) : null };
     }
+
+    // 只打型號（沒數量）→ 預設 1
+    m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s*$/);
+    if (m) return { model: m[1].toUpperCase(), qty: 1, unit: null, unitPrice: null };
 
     return null;
 }
@@ -112,6 +115,8 @@ async function handleConversationInput(state, userText, event, lineClient, userC
         await handleShippingChoiceStep(state, input, lineUid, replyToken, lineClient);
     } else if (state.step === 'waiting_items') {
         await handleItemsStep(state, input, lineUid, replyToken, lineClient);
+    } else if (state.step === 'waiting_price_conflict') {
+        await handlePriceConflictStep(state, input, lineUid, replyToken, lineClient);
     } else if (state.step === 'waiting_override_name') {
         await handleOverrideNameStep(state, input, lineUid, replyToken, lineClient);
     } else if (state.step === 'waiting_override_phone') {
@@ -321,50 +326,80 @@ async function handleItemsStep(state, input, lineUid, replyToken, lineClient) {
                 }]
             });
         }
-        state.step = 'waiting_logistics';
-        await setState(lineUid, state);
-        const itemsPreview = state.data.items.map(it =>
-            `• ${it.model} x${it.qty}${it.unitPrice ? ` @${it.unitPrice}` : ''}`
-        ).join('\n');
-        return lineClient.replyMessage({
-            replyToken,
-            messages: [{
-                type: 'text',
-                text: `🛒 目前共 ${state.data.items.length} 筆：\n${itemsPreview}\n\n請選擇物流方式：`,
-                quickReply: quickReply([
-                    { type: 'action', action: { type: 'message', label: '🚚 大榮貨運', text: '大榮貨運' } },
-                    { type: 'action', action: { type: 'message', label: '📮 郵局', text: '郵局' } },
-                    { type: 'action', action: { type: 'message', label: '🚛 專車', text: '專車' } },
-                    { type: 'action', action: { type: 'message', label: '🏃 自取', text: '自取' } },
-                    cancelBtn
-                ])
-            }]
+
+        // 檢查是否有固定價 vs 使用者輸入價衝突，需要逐一詢問
+        const conflicts = [];
+        state.data.items.forEach((it, idx) => {
+            if (it.priceConflict) {
+                conflicts.push({ itemIndex: idx, model: it.model, ...it.priceConflict });
+            }
         });
+        if (conflicts.length > 0) {
+            state.data.conflicts = conflicts;
+            state.step = 'waiting_price_conflict';
+            await setState(lineUid, state);
+            return askNextConflict(state, lineUid, replyToken, lineClient);
+        }
+
+        // 沒衝突 → 直接進物流
+        await advanceToLogistics(state, lineUid, replyToken, lineClient);
+        return;
     }
 
     const lines = input.split(/\n+/).map(l => l.trim()).filter(Boolean);
     const added = [];
     const failed = [];
-    const notFoundModels = []; // 客戶有 pricingRule 但找不到型號
+    const notFoundModels = [];
+    const customer = state.data.customer;
+    const rule = customer?.pricingRule;
     for (const line of lines) {
         const item = tryParseItem(line);
-        if (item) {
-            // 客戶有自動計價規則 & 使用者沒填單價 → 查 Products 自動算
-            const rule = state.data.customer?.pricingRule;
-            if (rule?.type === 'level_qty' && (item.unitPrice == null || item.unitPrice === 0)) {
-                const autoPrice = await lookupAutoPrice(item.model, rule.level, rule.refQty);
-                if (autoPrice) {
-                    item.unitPrice = autoPrice;
-                    item.autoPriced = true;
-                } else {
-                    notFoundModels.push(item.model);
+        if (!item) { failed.push(line); continue; }
+
+        // 箱/件 → 查 Products.cartonQty 自動換算成實際數量
+        if (item.unit === '箱' || item.unit === '件') {
+            const prod = await lookupProduct(item.model);
+            if (prod && prod.cartonQty) {
+                const boxQty = parseInt(prod.cartonQty) || 1;
+                if (boxQty > 1) {
+                    item.origBoxes = item.qty;
+                    item.cartonQty = boxQty;
+                    item.qty = item.qty * boxQty;
                 }
             }
-            state.data.items.push(item);
-            added.push(item);
-        } else {
-            failed.push(line);
         }
+
+        // 查這客戶的型號固定價
+        const fixed = await lookupCustomerFixedPrice(customer?.code, item.model);
+
+        const hasUserPrice = item.unitPrice != null && item.unitPrice !== 0;
+
+        if (fixed) {
+            if (!hasUserPrice) {
+                // 沒打價 → 套固定價
+                item.unitPrice = fixed.unitPrice;
+                item.autoPriced = true;
+                item.fixedPrice = true;
+            } else if (Number(item.unitPrice) !== Number(fixed.unitPrice)) {
+                // 使用者打了不同的價 → 標記衝突，稍後詢問
+                item.priceConflict = { fixedPrice: fixed.unitPrice, userPrice: Number(item.unitPrice), lastOrderDate: fixed.lastOrderDate };
+            } else {
+                // 使用者打了相同的價 → 也算自動價
+                item.fixedPrice = true;
+            }
+        } else if (rule?.type === 'level_qty' && !hasUserPrice) {
+            // 沒固定價但有整體規則 → 算 Level/Qty
+            const autoPrice = await lookupAutoPrice(item.model, rule.level, rule.refQty);
+            if (autoPrice) {
+                item.unitPrice = autoPrice;
+                item.autoPriced = true;
+            } else {
+                notFoundModels.push(item.model);
+            }
+        }
+
+        state.data.items.push(item);
+        added.push(item);
     }
 
     if (added.length === 0) {
@@ -381,10 +416,18 @@ async function handleItemsStep(state, input, lineUid, replyToken, lineClient) {
     await setState(lineUid, state);
 
     const addedMsg = added.map(it => {
-        const mark = it.autoPriced ? ' 🔒' : '';
-        return `• ${it.model} x${it.qty}${it.unitPrice ? ` @${it.unitPrice}` : ''}${mark}`;
+        let mark = '';
+        if (it.priceConflict) mark = ` ⚠️ (固定價 $${it.priceConflict.fixedPrice})`;
+        else if (it.fixedPrice) mark = ' 🔒 固定價';
+        else if (it.autoPriced) mark = ' 🔒 自動';
+        const boxNote = it.origBoxes ? ` (${it.origBoxes}${it.unit}×${it.cartonQty}入)` : '';
+        return `• ${it.model} x${it.qty}${boxNote}${it.unitPrice ? ` @${it.unitPrice}` : ''}${mark}`;
     }).join('\n');
     let msg = `✅ 已加入 ${added.length} 筆：\n${addedMsg}\n\n目前累積 ${state.data.items.length} 筆\n繼續輸入、或點「送出」完成`;
+    const hasConflict = added.some(it => it.priceConflict);
+    if (hasConflict) {
+        msg += `\n\n⚠️ 有型號的輸入價與固定價不同，點「送出」後系統會逐一詢問`;
+    }
     if (notFoundModels.length > 0) {
         msg += `\n\n⚠️ 找不到以下型號於商品主檔，未能自動計價 (單價待確認):\n${notFoundModels.map(m => `• ${m}`).join('\n')}`;
     }
@@ -401,33 +444,141 @@ async function handleItemsStep(state, input, lineUid, replyToken, lineClient) {
     });
 }
 
-// 根據客戶定價規則查 Products 成本並自動計算價格
-async function lookupAutoPrice(modelCode, level, refQty) {
+// 客戶+型號固定價查詢 (Customers/{code}/Pricing/{sanitizedModel})
+function sanitizeModel(m) {
+    return String(m || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+}
+async function lookupCustomerFixedPrice(customerCode, modelCode) {
+    if (!customerCode || !modelCode) return null;
+    const docId = sanitizeModel(modelCode);
+    try {
+        const doc = await db.collection('Customers').doc(customerCode).collection('Pricing').doc(docId).get();
+        if (doc.exists) {
+            const data = doc.data();
+            return { unitPrice: Number(data.unitPrice), lastOrderDate: data.lastOrderDate || null };
+        }
+    } catch (e) {
+        console.error('[lookupCustomerFixedPrice]', e);
+    }
+    return null;
+}
+
+// 查 Products 主檔 (供 cartonQty / cost / 自動計價等用)
+async function lookupProduct(modelCode) {
     if (!modelCode) return null;
     const sanitize = s => String(s || '').replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
     const target = sanitize(modelCode);
     const snap = await db.collection('Products').get();
-    let product = null;
     for (const d of snap.docs) {
         const data = d.data();
-        if (sanitize(data.model) === target) {
-            product = data;
-            break;
-        }
+        if (sanitize(data.model) === target) return data;
     }
-    // 退回 startsWith 模糊比對
-    if (!product) {
-        for (const d of snap.docs) {
-            const data = d.data();
-            const pSan = sanitize(data.model);
-            if (pSan && pSan.length >= 3 && target.startsWith(pSan)) {
-                product = data;
-                break;
-            }
-        }
+    for (const d of snap.docs) {
+        const data = d.data();
+        const pSan = sanitize(data.model);
+        if (pSan && pSan.length >= 3 && target.startsWith(pSan)) return data;
     }
+    return null;
+}
+
+// 根據客戶定價規則查成本並自動計算價格
+async function lookupAutoPrice(modelCode, level, refQty) {
+    const product = await lookupProduct(modelCode);
     if (!product || !product.cost) return null;
     return calculateLevelPrice(product.cost, level, refQty);
+}
+
+// ==========================================
+// Step: 固定價 vs 使用者輸入衝突解決 (逐一詢問)
+// ==========================================
+async function askNextConflict(state, lineUid, replyToken, lineClient) {
+    const c = state.data.conflicts[0];
+    const dateHint = c.lastOrderDate ? ` (最後交易 ${String(c.lastOrderDate).substring(0, 10)})` : '';
+    await lineClient.replyMessage({
+        replyToken,
+        messages: [{
+            type: 'text',
+            text: `⚠️ 型號 ${c.model} 價格不一致\n\n🔒 固定價 $${c.fixedPrice}${dateHint}\n✏️ 你輸入 $${c.userPrice}\n\n要用哪個？`,
+            quickReply: quickReply([
+                { type: 'action', action: { type: 'message', label: `🔒 固定 $${c.fixedPrice}`, text: '用固定價' } },
+                { type: 'action', action: { type: 'message', label: `✏️ 用 $${c.userPrice}`, text: '用我的價' } },
+                { type: 'action', action: { type: 'message', label: '❌ 刪除這筆', text: '刪除這筆' } },
+                cancelBtn
+            ])
+        }]
+    });
+}
+
+async function handlePriceConflictStep(state, input, lineUid, replyToken, lineClient) {
+    if (!state.data.conflicts || state.data.conflicts.length === 0) {
+        // 不應該發生，直接往下走
+        await advanceToLogistics(state, lineUid, replyToken, lineClient);
+        return;
+    }
+
+    const c = state.data.conflicts[0];
+    const item = state.data.items[c.itemIndex];
+
+    const useFix = /固定|\$?${c.fixedPrice}/.test(input) || input === '用固定價' || input === '固定';
+    const useUser = /我的|自訂|^用\$?${c.userPrice}/.test(input) || input === '用我的價' || input === '我的';
+    const del = input === '刪除這筆' || input === '刪除' || input === '移除';
+
+    if (useFix) {
+        item.unitPrice = c.fixedPrice;
+        item.autoPriced = true;
+        item.fixedPrice = true;
+        delete item.priceConflict;
+    } else if (useUser) {
+        // 使用者的價已經是 item.unitPrice
+        delete item.priceConflict;
+    } else if (del) {
+        state.data.items[c.itemIndex] = null; // 標記為刪除，下面 filter 移除
+    } else {
+        // 不認識的回覆 → 再問一次
+        return askNextConflict(state, lineUid, replyToken, lineClient);
+    }
+
+    state.data.conflicts.shift();
+    await setState(lineUid, state);
+
+    if (state.data.conflicts.length > 0) {
+        return askNextConflict(state, lineUid, replyToken, lineClient);
+    }
+
+    // 所有衝突解決完 → 清空 null 項目後進物流
+    state.data.items = state.data.items.filter(Boolean);
+    if (state.data.items.length === 0) {
+        await clearState(lineUid);
+        return lineClient.replyMessage({
+            replyToken,
+            messages: [{ type: 'text', text: '⚠️ 所有商品都被刪除了，訂單對話已結束。' }]
+        });
+    }
+    await advanceToLogistics(state, lineUid, replyToken, lineClient);
+}
+
+async function advanceToLogistics(state, lineUid, replyToken, lineClient) {
+    state.step = 'waiting_logistics';
+    state.data.conflicts = null;
+    await setState(lineUid, state);
+    const itemsPreview = state.data.items.map(it => {
+        const boxNote = it.origBoxes ? ` (${it.origBoxes}${it.unit}×${it.cartonQty}入)` : '';
+        return `• ${it.model} x${it.qty}${boxNote}${it.unitPrice ? ` @${it.unitPrice}` : ''}${it.fixedPrice ? ' 🔒' : ''}`;
+    }).join('\n');
+    await lineClient.replyMessage({
+        replyToken,
+        messages: [{
+            type: 'text',
+            text: `🛒 目前共 ${state.data.items.length} 筆：\n${itemsPreview}\n\n請選擇物流方式：`,
+            quickReply: quickReply([
+                { type: 'action', action: { type: 'message', label: '🚚 大榮貨運', text: '大榮貨運' } },
+                { type: 'action', action: { type: 'message', label: '📮 郵局', text: '郵局' } },
+                { type: 'action', action: { type: 'message', label: '🚛 專車', text: '專車' } },
+                { type: 'action', action: { type: 'message', label: '🏃 自取', text: '自取' } },
+                cancelBtn
+            ])
+        }]
+    });
 }
 
 // ==========================================
@@ -629,6 +780,10 @@ async function handleRemarkStep(state, input, lineUid, replyToken, lineClient, e
         unitPrice: it.unitPrice != null ? Number(it.unitPrice) : null,
         subtotal: (it.unitPrice != null && Number(it.unitPrice) > 0) ? Number(it.unitPrice) * (Number(it.qty) || 1) : 0,
         autoPriced: !!it.autoPriced,
+        fixedPrice: !!it.fixedPrice,
+        origBoxes: it.origBoxes || null,
+        cartonQty: it.cartonQty || null,
+        unit: it.unit || null,
     }));
 
     // 計算總金額 + 運費 (比照 order.js 邏輯)
@@ -673,13 +828,16 @@ async function handleRemarkStep(state, input, lineUid, replyToken, lineClient, e
     await clearState(lineUid);
 
     // Flex 確認卡
-    const itemBoxes = validItems.map(item => ({
-        type: 'box', layout: 'horizontal',
-        contents: [
-            { type: 'text', text: `${item.model} x${item.qty}${item.autoPriced ? ' 🔒' : ''}`, size: 'sm', flex: 2, wrap: true },
-            { type: 'text', text: item.subtotal > 0 ? `$${item.subtotal}` : `待確認`, size: 'sm', color: item.subtotal > 0 ? '#111111' : '#E11D48', align: 'end', flex: 1 }
-        ]
-    }));
+    const itemBoxes = validItems.map(item => {
+        const boxNote = item.origBoxes ? ` (${item.origBoxes}${item.unit}×${item.cartonQty})` : '';
+        return {
+            type: 'box', layout: 'horizontal',
+            contents: [
+                { type: 'text', text: `${item.model} x${item.qty}${boxNote}${item.fixedPrice || item.autoPriced ? ' 🔒' : ''}`, size: 'sm', flex: 2, wrap: true },
+                { type: 'text', text: item.subtotal > 0 ? `$${item.subtotal}` : `待確認`, size: 'sm', color: item.subtotal > 0 ? '#111111' : '#E11D48', align: 'end', flex: 1 }
+            ]
+        };
+    });
 
     const totalDisplay = totalAmount > 0 ? `$${totalAmount}` : '待確認';
 
