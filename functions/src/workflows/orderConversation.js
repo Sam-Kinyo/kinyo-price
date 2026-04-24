@@ -38,7 +38,7 @@ function tryParseItem(input) {
     }
 
     // Pattern B: model qty [箱/件] [price]
-    m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s+(\d+)\s*([箱件])?\s*(?:\s+@?\s*(\d+))?/i);
+    m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s+(\d+)\s*([箱件])?\s*(?:@?\s*(\d+))?/i);
     if (m) {
         return { model: m[1].toUpperCase(), qty: parseInt(m[2], 10), unit: m[3] || null, unitPrice: m[4] ? parseInt(m[4], 10) : null };
     }
@@ -728,8 +728,8 @@ async function handleLogisticsStep(state, input, lineUid, replyToken, lineClient
         replyToken,
         messages: [{
             type: 'text',
-            text: `🚚 物流方式：${matched}\n\n請輸入希望到貨時間\n(例：5/15、下週三、4月底、盡快出貨)`,
-            quickReply: quickReply([cancelBtn])
+            text: `🚚 物流方式：${matched}\n\n請輸入希望到貨時間\n(例：5/15、下週三、4月底、盡快出貨)\n\n沒有特別指定請點「跳過」`,
+            quickReply: quickReply([skipBtn, cancelBtn])
         }]
     });
 }
@@ -738,18 +738,20 @@ async function handleLogisticsStep(state, input, lineUid, replyToken, lineClient
 // Step 4: 希望到貨時間 (自由文字)
 // ==========================================
 async function handleDeliveryStep(state, input, lineUid, replyToken, lineClient) {
-    if (!input || input.length > 50) {
+    const skipped = input === '跳過' || input === '無' || input === '否';
+
+    if (!skipped && (!input || input.length > 50)) {
         return lineClient.replyMessage({
             replyToken,
             messages: [{
                 type: 'text',
-                text: '⚠️ 請輸入希望到貨時間（50 字以內）',
-                quickReply: quickReply([cancelBtn])
+                text: '⚠️ 請輸入希望到貨時間（50 字以內），或點「跳過」',
+                quickReply: quickReply([skipBtn, cancelBtn])
             }]
         });
     }
 
-    state.data.deliveryTime = input;
+    state.data.deliveryTime = skipped ? '' : input;
     state.step = 'waiting_remark';
     await setState(lineUid, state);
 
@@ -757,7 +759,7 @@ async function handleDeliveryStep(state, input, lineUid, replyToken, lineClient)
         replyToken,
         messages: [{
             type: 'text',
-            text: `⏰ 希望到貨：${input}\n\n是否要加備註？\n• 有 → 直接輸入備註內容\n• 無 → 點「跳過」`,
+            text: `⏰ 希望到貨：${skipped ? '未指定' : input}\n\n是否要加備註？\n• 有 → 直接輸入備註內容\n• 無 → 點「跳過」`,
             quickReply: quickReply([skipBtn, cancelBtn])
         }]
     });
@@ -859,7 +861,7 @@ async function handleRemarkStep(state, input, lineUid, replyToken, lineClient, e
                     { type: 'text', text: `📞 ${orderData.customer.phone || '未提供'}${state.data.override?.phone ? ' (指定)' : ''}`, size: 'sm' },
                     { type: 'text', text: `📍 ${orderData.customer.address || '未提供'}${state.data.override?.address ? ' (指定)' : ''}`, size: 'sm', wrap: true, color: state.data.override?.address ? '#E11D48' : '#111111' },
                     { type: 'text', text: `🚚 物流: ${state.data.logistics || '未指定'}`, size: 'sm', color: '#555555', margin: 'sm' },
-                    { type: 'text', text: `⏰ 到貨: ${state.data.deliveryTime}`, size: 'sm', color: '#1DB446', wrap: true, margin: 'sm' },
+                    { type: 'text', text: `⏰ 到貨: ${state.data.deliveryTime || '未指定'}`, size: 'sm', color: '#1DB446', wrap: true, margin: 'sm' },
                     { type: 'text', text: `📝 備註: ${state.data.remark || '無'}`, size: 'sm', color: '#E11D48', wrap: true, margin: 'sm' },
                     { type: 'separator', margin: 'lg' },
                     { type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm', contents: itemBoxes },

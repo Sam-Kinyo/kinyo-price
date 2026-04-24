@@ -1,4 +1,40 @@
 const { admin, db } = require('../utils/firebase');
+const { matchCustomerByCompany } = require('../services/customerMatcher');
+
+// 嘗試以 customer.company 比對 Customers 集合，若成功就回填 customerCode 等欄位
+// 回傳 { customerHint, matchLine } 供 Flex 顯示用
+async function autoFillCustomerCode(customer) {
+    if (!customer || customer.customerCode) {
+        return { customerHint: customer?.customerCode || null, matchLine: null };
+    }
+    try {
+        const result = await matchCustomerByCompany(customer.company || customer.name);
+        if (result.matched) {
+            customer.customerCode = result.code;
+            // 僅在使用者沒自己填 fullName/shortName 時才覆蓋（不覆寫原始輸入）
+            if (!customer.fullName) customer.fullName = result.fullName;
+            if (!customer.shortName) customer.shortName = result.shortName;
+            return {
+                customerHint: result.code,
+                matchLine: `🏷️ 客戶編號: ${result.code}（自動比對：${result.shortName || result.fullName}）`,
+            };
+        }
+        if (result.ambiguous) {
+            const preview = (result.candidates || []).map(c => `${c.code} ${c.shortName}`).join('、');
+            return {
+                customerHint: null,
+                matchLine: `🏷️ 客戶編號: (多筆符合，請人工確認：${preview})`,
+            };
+        }
+        return {
+            customerHint: null,
+            matchLine: `🏷️ 客戶編號: (未建檔，儀表板會以公司名稱顯示)`,
+        };
+    } catch (e) {
+        console.error('[autoFillCustomerCode]', e);
+        return { customerHint: null, matchLine: null };
+    }
+}
 
 async function handleSpecialActions(intentParams, dependencies) {
     const { lineClient, replyToken } = dependencies;
@@ -29,10 +65,31 @@ async function handleSpecialActions(intentParams, dependencies) {
                     }
                     if (!itemsText) itemsText = '未提供商品明細';
 
+                    // 自動比對客戶公司 → 回填 customerCode
+                    const sampleMatch = await autoFillCustomerCode(orderData.customer || (orderData.customer = {}));
+
                     // 全域清洗物件：強制剔除所有 undefined，防止 Firestore 報錯
                     const safeOrderData = JSON.parse(JSON.stringify(orderData));
                     // 將資料暫存至 Firestore (沿用既有 tempOrders 邏輯)
                     const tempOrderRef = await db.collection('tempOrders').add(safeOrderData);
+
+                    const sampleBody = [
+                        { type: 'text', text: `🏢 公司: ${orderData.customer?.company || '未提供'}`, size: 'sm' },
+                    ];
+                    if (sampleMatch.matchLine) {
+                        sampleBody.push({
+                            type: 'text', text: sampleMatch.matchLine, size: 'sm',
+                            color: sampleMatch.customerHint ? '#1DB446' : '#888888', wrap: true
+                        });
+                    }
+                    sampleBody.push(
+                        { type: 'text', text: `👤 收件: ${orderData.customer?.name || '未提供'} (${orderData.customer?.phone || '未提供'})`, size: 'sm' },
+                        { type: 'text', text: `📍 地址: ${orderData.customer?.address || '未提供'}`, size: 'sm' },
+                        { type: 'text', text: `📁 案名: ${orderData.customer?.projectName || '未提供'}`, size: 'sm', color: '#E11D48' },
+                        { type: 'text', text: `📅 預計歸還: ${orderData.customer?.returnDate || '未提供'}`, size: 'sm', color: '#E11D48' },
+                        { type: 'separator', margin: 'md' },
+                        { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' }
+                    );
 
                     const flexMessage = {
                         type: 'flex',
@@ -45,15 +102,7 @@ async function handleSpecialActions(intentParams, dependencies) {
                             },
                             body: {
                                 type: 'box', layout: 'vertical', spacing: 'sm',
-                                contents: [
-                                    { type: 'text', text: `🏢 公司: ${orderData.customer?.company || '未提供'}`, size: 'sm' },
-                                    { type: 'text', text: `👤 收件: ${orderData.customer?.name || '未提供'} (${orderData.customer?.phone || '未提供'})`, size: 'sm' },
-                                    { type: 'text', text: `📍 地址: ${orderData.customer?.address || '未提供'}`, size: 'sm' },
-                                    { type: 'text', text: `📁 案名: ${orderData.customer?.projectName || '未提供'}`, size: 'sm', color: '#E11D48' },
-                                    { type: 'text', text: `📅 預計歸還: ${orderData.customer?.returnDate || '未提供'}`, size: 'sm', color: '#E11D48' },
-                                    { type: 'separator', margin: 'md' },
-                                    { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' }
-                                ]
+                                contents: sampleBody
                             },
                             footer: {
                                 type: 'box', layout: 'horizontal', spacing: 'sm',
@@ -103,10 +152,32 @@ async function handleSpecialActions(intentParams, dependencies) {
                     }
                     if (!itemsText) itemsText = '未提供商品明細';
 
+                    // 自動比對客戶公司 → 回填 customerCode
+                    const reserveMatch = await autoFillCustomerCode(reserveData.customer || (reserveData.customer = {}));
+
                     const safeReserveData = JSON.parse(JSON.stringify(reserveData));
                     const tempOrderRef = await db.collection('tempOrders').add(safeReserveData);
 
                     const deadlineDisplay = reserveData.customer?.reserveDeadline || '未提供';
+
+                    const reserveBody = [
+                        { type: 'text', text: `🏢 公司: ${reserveData.customer?.company || '未提供'}`, size: 'sm' },
+                    ];
+                    if (reserveMatch.matchLine) {
+                        reserveBody.push({
+                            type: 'text', text: reserveMatch.matchLine, size: 'sm',
+                            color: reserveMatch.customerHint ? '#1DB446' : '#888888', wrap: true
+                        });
+                    }
+                    reserveBody.push(
+                        { type: 'text', text: `👤 收件: ${reserveData.customer?.name || '未提供'} (${reserveData.customer?.phone || '未提供'})`, size: 'sm' },
+                        { type: 'text', text: `📍 地址: ${reserveData.customer?.address || '未提供'}`, size: 'sm', wrap: true },
+                        { type: 'text', text: `📅 預留期限: ${deadlineDisplay}`, size: 'sm', color: '#E11D48', weight: 'bold' },
+                        { type: 'text', text: `📝 備註: ${reserveData.customer?.remark || '無'}`, size: 'sm' },
+                        { type: 'separator', margin: 'md' },
+                        { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' },
+                        { type: 'text', text: totalAmount > 0 ? `💰 總計: $${totalAmount}` : '💰 總計: 待確認', size: 'sm', weight: 'bold', color: '#E11D48' }
+                    );
 
                     const flexMessage = {
                         type: 'flex',
@@ -119,16 +190,7 @@ async function handleSpecialActions(intentParams, dependencies) {
                             },
                             body: {
                                 type: 'box', layout: 'vertical', spacing: 'sm',
-                                contents: [
-                                    { type: 'text', text: `🏢 公司: ${reserveData.customer?.company || '未提供'}`, size: 'sm' },
-                                    { type: 'text', text: `👤 收件: ${reserveData.customer?.name || '未提供'} (${reserveData.customer?.phone || '未提供'})`, size: 'sm' },
-                                    { type: 'text', text: `📍 地址: ${reserveData.customer?.address || '未提供'}`, size: 'sm', wrap: true },
-                                    { type: 'text', text: `📅 預留期限: ${deadlineDisplay}`, size: 'sm', color: '#E11D48', weight: 'bold' },
-                                    { type: 'text', text: `📝 備註: ${reserveData.customer?.remark || '無'}`, size: 'sm' },
-                                    { type: 'separator', margin: 'md' },
-                                    { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' },
-                                    { type: 'text', text: totalAmount > 0 ? `💰 總計: $${totalAmount}` : '💰 總計: 待確認', size: 'sm', weight: 'bold', color: '#E11D48' }
-                                ]
+                                contents: reserveBody
                             },
                             footer: {
                                 type: 'box', layout: 'horizontal', spacing: 'sm',
@@ -174,9 +236,29 @@ async function handleSpecialActions(intentParams, dependencies) {
                     }
                     if (!itemsText) itemsText = '未提供明細';
 
+                    // 自動比對客戶公司 → 回填 customerCode
+                    const rmaMatch = await autoFillCustomerCode(rmaData.customer || (rmaData.customer = {}));
+
                     // 全域清洗物件：強制剔除所有 undefined，防止 Firestore 報錯
                     const safeRmaData = JSON.parse(JSON.stringify(rmaData));
                     const tempOrderRef = await db.collection('tempOrders').add(safeRmaData);
+
+                    const rmaBody = [
+                        { type: 'text', text: `🏢 公司: ${rmaData.customer?.company || '未提供'}`, size: 'sm' },
+                    ];
+                    if (rmaMatch.matchLine) {
+                        rmaBody.push({
+                            type: 'text', text: rmaMatch.matchLine, size: 'sm',
+                            color: rmaMatch.customerHint ? '#1DB446' : '#888888', wrap: true
+                        });
+                    }
+                    rmaBody.push(
+                        { type: 'text', text: `👤 客戶: ${rmaData.customer?.name || '未提供'} (${rmaData.customer?.phone || '未提供'})`, size: 'sm' },
+                        { type: 'text', text: `📍 取件地址: ${rmaData.customer?.address || '未提供'}`, size: 'sm', color: '#E11D48', weight: 'bold' },
+                        { type: 'text', text: `📝 備註: ${rmaData.customer?.remark || '無'}`, size: 'sm' },
+                        { type: 'separator', margin: 'md' },
+                        { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' }
+                    );
 
                     const flexMessage = {
                         type: 'flex',
@@ -189,14 +271,7 @@ async function handleSpecialActions(intentParams, dependencies) {
                             },
                             body: {
                                 type: 'box', layout: 'vertical', spacing: 'sm',
-                                contents: [
-                                    { type: 'text', text: `🏢 公司: ${rmaData.customer?.company || '未提供'}`, size: 'sm' },
-                                    { type: 'text', text: `👤 客戶: ${rmaData.customer?.name || '未提供'} (${rmaData.customer?.phone || '未提供'})`, size: 'sm' },
-                                    { type: 'text', text: `📍 取件地址: ${rmaData.customer?.address || '未提供'}`, size: 'sm', color: '#E11D48', weight: 'bold' },
-                                    { type: 'text', text: `📝 備註: ${rmaData.customer?.remark || '無'}`, size: 'sm' },
-                                    { type: 'separator', margin: 'md' },
-                                    { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' }
-                                ]
+                                contents: rmaBody
                             },
                             footer: {
                                 type: 'box', layout: 'horizontal', spacing: 'sm',

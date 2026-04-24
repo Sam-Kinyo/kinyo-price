@@ -164,6 +164,27 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 }
             }
 
+            // --- 前置攔截：豪哥私訊文字回覆 (AdminReplyState) ---
+            // 僅針對 1-on-1 私訊的純文字訊息。若豪哥先前按過「✏️ 自己輸入」且在 30 分鐘 TTL 內，本則文字就當作答案，不走後續一般流程。
+            if (!isGroup
+                && event.type === 'message'
+                && event.message.type === 'text'
+                && lineUid === process.env.ADMIN_LINE_UID) {
+                try {
+                    const adminQ = require('./src/services/adminQuestion');
+                    const handled = await adminQ.tryHandleAdminTextReply({
+                        lineUid,
+                        text: event.message.text.trim(),
+                        lineClient,
+                        replyToken
+                    });
+                    if (handled) continue;
+                } catch (adminErr) {
+                    console.error('[AdminReplyState 前置攔截]', adminErr);
+                    // 失敗就當沒處理，讓後續流程接手
+                }
+            }
+
             try {
                 // --- 例外處理：優先放行管理員的 #綁定群組 指令，避免陷入死結 ---
                 if (event.type === 'message' && event.message.type === 'text') {
@@ -331,12 +352,15 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     const reserveFlow = require('./src/workflows/reserveConversation');
                     const orderFlow = require('./src/workflows/orderConversation');
                     const sampleFlow = require('./src/workflows/sampleConversation');
+                    const quoteSheetFlow = require('./src/workflows/quoteSheetConversation');
                     const ongoingState = await getState(lineUid);
                     if (ongoingState) {
                         const convInput = userText.replace(/@KINYO挺好的\s*/g, '').trim();
                         const userContext = { level: currentViewLevel, realLevel, userEmail };
                         if (ongoingState.flow === 'order') {
                             await orderFlow.handleConversationInput(ongoingState, convInput, event, lineClient, userContext);
+                        } else if (ongoingState.flow === 'quote_sheet') {
+                            await quoteSheetFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
                         } else if (ongoingState.flow === 'borrow_sample') {
                             await sampleFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
                         } else {
@@ -361,6 +385,20 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     // 啟動對話式借樣品
                     if (userText === '借樣品' || userText === '借樣' || userText === '@KINYO挺好的 借樣品' || userText === '@KINYO挺好的 借樣') {
                         await sampleFlow.startSampleFlow(lineUid, groupId, replyToken, lineClient);
+                        continue;
+                    }
+
+                    // 啟動對話式報價單 (僅管理員)
+                    if (userText === '報價單' || userText === '@KINYO挺好的 報價單') {
+                        const adminUid = process.env.ADMIN_LINE_UID;
+                        if (!adminUid || lineUid !== adminUid) {
+                            await lineClient.replyMessage({
+                                replyToken,
+                                messages: [{ type: 'text', text: '⛔ 「報價單」功能僅限系統管理員使用' }]
+                            });
+                            continue;
+                        }
+                        await quoteSheetFlow.startQuoteSheetFlow(lineUid, groupId, replyToken, lineClient);
                         continue;
                     }
                 }
@@ -820,7 +858,29 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                 const params = new URLSearchParams(postbackData);
                 const action = params.get('action');
 
-                if (action === 'export_ppt') {
+                if (action === 'admin_answer') {
+                    const qid = params.get('qid');
+                    const mode = params.get('mode');
+                    const adminQ = require('./src/services/adminQuestion');
+                    try {
+                        if (mode === 'text') {
+                            await adminQ.handleTextModeRequest({ questionId: qid, lineClient, replyToken });
+                        } else {
+                            const optionIdx = parseInt(params.get('idx'), 10);
+                            if (isNaN(optionIdx)) {
+                                await lineClient.replyMessage({ replyToken, messages: [{ type: 'text', text: '⚠️ 選項參數錯誤。' }] });
+                            } else {
+                                await adminQ.handleOptionAnswer({ questionId: qid, optionIdx, lineClient, replyToken });
+                            }
+                        }
+                    } catch (e) {
+                        console.error('[admin_answer postback]', e);
+                        try {
+                            await lineClient.replyMessage({ replyToken, messages: [{ type: 'text', text: `⚠️ 回覆失敗：${e.message}` }] });
+                        } catch (_) { /* replyToken 可能已過期 */ }
+                    }
+                    continue;
+                } else if (action === 'export_ppt') {
                     const pptModel = params.get('model') || '';
                     let pptQty = parseInt(params.get('qty'));
                     pptQty = (isNaN(pptQty) || pptQty <= 0) ? 50 : pptQty;
@@ -1020,7 +1080,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                       <hr>
                                       <br>
                                       <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 出貨並填物流單號</a>
-                                      <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${orderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
+                                      <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${orderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">⚠️ 訂單異常 / 通知客戶</a>
+                                      <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard?token=${process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN'}" style="display:inline-block; padding:14px 28px; color:white; background-color:#6366F1; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">📊 打開訂單 Dashboard</a>
                                     `
                                 };
                                 // 非同步寄信，不阻塞 Transaction
@@ -1194,7 +1255,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                               <br>
                               <p style="color: #666; font-size: 13px;">※ 若樣品已寄出，可點擊下方按鈕結案；若有缺貨或異常，可點擊通知客戶</p>
                               <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 出貨並填物流單號/結案</a>
-                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
+                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">⚠️ 訂單異常 / 通知客戶</a>
+                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard?token=${process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN'}" style="display:inline-block; padding:14px 28px; color:white; background-color:#6366F1; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">📊 打開訂單 Dashboard</a>
                             `
                         };
                         transporter.sendMail(mailOptions).catch(err => console.error("借樣品 SMTP 發信失敗:", err));
@@ -1412,6 +1474,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                               ${itemsHtml}
                               <hr>
                               <p style="color: #666; font-size: 13px;">※ 系統將於預留期限到期前 7 天自動寄信提醒助理準備做單出貨。</p>
+                              <br>
+                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard?token=${process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN'}" style="display:inline-block; padding:14px 28px; color:white; background-color:#6366F1; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">📊 打開訂單 Dashboard</a>
                             `
                         };
                         transporter.sendMail(reserveMailOptions).catch(err => console.error("預留訂單 SMTP 發信失敗:", err));
@@ -1487,7 +1551,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                               <hr>
                               <br>
                               <p style="color: #666; font-size: 13px;">※ 若不良品已安排派件，可點擊下方按鈕結案並通知客戶</p>
-                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/markRMACompleted?rmaId=${rmaDisplayId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#1DB446; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">✅ 標記為處理完成_已派車</a>
+                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/markRMACompleted?rmaId=${rmaDisplayId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#1DB446; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 標記為處理完成_已派車</a>
+                              <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard?token=${process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN'}" style="display:inline-block; padding:14px 28px; color:white; background-color:#6366F1; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">📊 打開訂單 Dashboard</a>
                             `
                         };
                         transporter.sendMail(mailOptions).catch(err => console.error("RMA SMTP 發信失敗:", err));
@@ -1590,7 +1655,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                   <hr>
                                   <br>
                                   <a href="${functionUrl}" style="display:inline-block; padding:14px 28px; color:white; background-color:#28a745; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">✅ 出貨並填物流單號</a>
-                                  <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">⚠️ 訂單異常 / 通知客戶</a>
+                                  <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${newOrderId}" style="display:inline-block; padding:14px 28px; color:white; background-color:#F59E0B; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px; margin-right: 10px;">⚠️ 訂單異常 / 通知客戶</a>
+                                  <a href="https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard?token=${process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN'}" style="display:inline-block; padding:14px 28px; color:white; background-color:#6366F1; text-decoration:none; border-radius:6px; font-weight:bold; font-size:16px;">📊 打開訂單 Dashboard</a>
                                 `
                             };
                             transporter.sendMail(mailOptions).catch(err => console.error("批次 SMTP 發信失敗:", err));
@@ -2291,6 +2357,36 @@ exports.markReserveCompleted = functions.region('asia-east1').https.onRequest(as
     }
 });
 
+// --- API：恢復預留單（撤銷「已完成」標記）---
+exports.reopenReserve = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const reserveId = req.query.reserveId;
+    if (!reserveId) return res.status(400).send('缺少預留單號');
+
+    const reserveRef = db.collection('ReservedOrders').doc(reserveId);
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    try {
+        const doc = await reserveRef.get();
+        if (!doc.exists) return res.status(404).send('<h2 style="text-align:center;">找不到該預留單</h2>');
+        const data = doc.data();
+
+        if (data.status === 'active') {
+            return res.send(`<h2 style="text-align:center;color:#856404;background:#fff3cd;padding:20px;border-radius:8px;">此預留單已是「active」狀態，無需恢復</h2>`);
+        }
+
+        await reserveRef.update({
+            status: 'active',
+            reopenedAt: admin.firestore.FieldValue.serverTimestamp(),
+            completedAt: admin.firestore.FieldValue.delete(),
+        });
+
+        return res.send(`<h2 style="text-align:center;color:#155724;background:#d4edda;padding:20px;border-radius:8px;">✅ 預留單 ${esc(reserveId)} 已恢復為進行中</h2>`);
+    } catch (error) {
+        console.error('[reopenReserve]', error);
+        return res.status(500).send('<h2 style="text-align:center;color:red;">系統錯誤，請聯絡管理員</h2>');
+    }
+});
+
 // --- API 擴充：訂單異常 / 缺貨通知表單 ---
 exports.orderExceptionForm = functions.region('asia-east1').https.onRequest(async (req, res) => {
     const orderId = req.query.orderId;
@@ -2304,6 +2400,8 @@ exports.orderExceptionForm = functions.region('asia-east1').https.onRequest(asyn
 
         const orderData = doc.data();
         const customerName = orderData.customer?.name || orderData.customer?.company || '客戶';
+        const logistics = orderData.customer?.logistics || '';
+        const existingTracking = orderData.tracking || '';
 
         const formHtml = `
             <!DOCTYPE html>
@@ -2319,7 +2417,10 @@ exports.orderExceptionForm = functions.region('asia-east1').https.onRequest(asyn
                     .info-box { background-color: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
                     .form-group { margin-bottom: 20px; }
                     label { display: block; margin-bottom: 8px; font-weight: bold; }
-                    textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; font-family: inherit; }
+                    textarea { width: 100%; height: 150px; padding: 10px; border: 1px solid #ccc; border-radius: 4px; resize: vertical; font-family: inherit; box-sizing: border-box; }
+                    input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
+                    .tracking-group { background-color: #fff7ed; border: 1px solid #fed7aa; padding: 14px; border-radius: 6px; margin-bottom: 20px; }
+                    .tracking-group label { color: #9a3412; }
                     .submit-btn { background-color: #E11D48; color: white; border: none; padding: 12px 24px; font-size: 16px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; transition: background-color 0.2s; }
                     .submit-btn:hover { background-color: #be123c; }
                     .note { font-size: 13px; color: #666; margin-top: 10px; }
@@ -2330,14 +2431,22 @@ exports.orderExceptionForm = functions.region('asia-east1').https.onRequest(asyn
                     <h2>⚠️ 訂單異常 / 通知客戶</h2>
                     <div class="info-box">
                         <p style="margin:0 0 5px 0;"><strong>訂單編號：</strong> ${escapeHtml(orderId)}</p>
-                        <p style="margin:0;"><strong>客戶名稱：</strong> ${escapeHtml(customerName)}</p>
+                        <p style="margin:0 0 5px 0;"><strong>客戶名稱：</strong> ${escapeHtml(customerName)}</p>
+                        ${logistics ? `<p style="margin:0;"><strong>物流方式：</strong><span style="color:#0055aa;font-weight:bold;"> ${escapeHtml(logistics)}</span></p>` : ''}
                     </div>
-                    
+
                     <form action="https://asia-east1-kinyo-price.cloudfunctions.net/submitOrderException" method="POST">
                         <input type="hidden" name="orderId" value="${escapeHtml(orderId)}">
+
+                        <div class="form-group tracking-group">
+                            <label for="tracking">📋 物流單號（分批 / 少樣寄出時填入；完全缺貨可留空）</label>
+                            <input type="text" id="tracking" name="tracking" value="${escapeHtml(existingTracking)}" placeholder="例：HC12345678 / EX87654321 (多筆可用逗號或換行分隔)">
+                            <p class="note">※ 若本次有實際寄出部分商品，請填入已出的物流單號；通知訊息會附上這組單號。</p>
+                        </div>
+
                         <div class="form-group">
                             <label for="reason">缺貨明細 / 留言給客戶：</label>
-                            <textarea id="reason" name="reason" placeholder="請輸入要通知客戶的內容，例：\n您好，訂單中的「AB-1234」目前缺貨，我們將先寄出部分商品，缺貨的部分預計下週一補寄給您，若有問題請回覆我們。" required></textarea>
+                            <textarea id="reason" name="reason" placeholder="請輸入要通知客戶的內容，例：&#10;您好，訂單中的「AB-1234」目前缺貨，我們將先寄出部分商品，缺貨的部分預計下週一補寄給您，若有問題請回覆我們。" required></textarea>
                             <p class="note">※ 送出後，系統將會直接透過 LINE Bot 推播這段訊息給該名客戶。</p>
                         </div>
                         <button type="submit" class="submit-btn" onclick="return confirm('確定要發送通知給客戶嗎？');">✅ 發送出貨與異常通知</button>
@@ -2361,6 +2470,7 @@ exports.submitOrderException = functions.region('asia-east1').https.onRequest(as
     }
 
     const { orderId, reason } = req.body;
+    const tracking = String(req.body?.tracking || '').trim();
     if (!orderId || !reason) {
         return res.status(400).send('<h2>缺少必要欄位</h2>');
     }
@@ -2372,13 +2482,20 @@ exports.submitOrderException = functions.region('asia-east1').https.onRequest(as
         if (!doc.exists) return res.status(404).send('<h2>找不到該訂單</h2>');
 
         const orderData = doc.data();
-        
+        const logistics = orderData.customer?.logistics || '';
+
         // 更新資料庫狀態紀錄
-        await orderRef.update({ 
+        const updates = {
             exceptionMessage: reason,
             exceptionNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
-            status: '處理中_已發送異常通知'
-        });
+            status: '處理中_已發送異常通知',
+        };
+        // 若有填物流單號（分批/少樣寄出），一併存入
+        if (tracking) {
+            updates.tracking = tracking;
+            updates.partialShippedAt = admin.firestore.FieldValue.serverTimestamp();
+        }
+        await orderRef.update(updates);
 
         // 透過 LINE Messaging API 發送推播
         const targetId = orderData.sourceId;
@@ -2388,7 +2505,12 @@ exports.submitOrderException = functions.region('asia-east1').https.onRequest(as
                 channelAccessToken: config.channelAccessToken
             });
 
-            const notifyText = `⚠️ 單據狀況通知 (單號：${orderId})\n\n工作人員留給您的訊息：\n\n${reason.trim()}`;
+            let notifyText = `⚠️ 單據狀況通知 (單號：${orderId})\n\n工作人員留給您的訊息：\n\n${reason.trim()}`;
+            if (tracking) {
+                notifyText += `\n\n📦 本次已安排部分寄出`;
+                if (logistics) notifyText += `\n🚚 物流：${logistics}`;
+                notifyText += `\n📋 單號：${tracking}`;
+            }
 
             try {
                 await lineClient.pushMessage({
@@ -2400,6 +2522,7 @@ exports.submitOrderException = functions.region('asia-east1').https.onRequest(as
                 return res.send(`
                     <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
                         <h2 style="color: #856404; background-color: #fff3cd; padding: 20px; border-radius: 8px;">✅ 狀態更新成功！但因群組設定或推播配額不足，未能即時發送 LINE 通知。</h2>
+                        ${tracking ? `<p style="color:#555">📋 單號已記錄：<strong>${escapeHtml(tracking)}</strong></p>` : ''}
                         <a href="javascript:window.close();" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px;">關閉視窗</a>
                     </div>
                 `);
@@ -2409,6 +2532,7 @@ exports.submitOrderException = functions.region('asia-east1').https.onRequest(as
         return res.send(`
             <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
                 <h2 style="color: #155724; background-color: #d4edda; padding: 20px; border-radius: 8px;">✅ 已成功向客戶發送通知！</h2>
+                ${tracking ? `<p style="color:#555; margin-top:16px;">📋 物流單號已記錄：<strong>${escapeHtml(tracking)}</strong></p>` : ''}
                 <a href="javascript:window.close();" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px;">關閉視窗</a>
             </div>
         `);
@@ -2997,7 +3121,9 @@ exports.orderDetail = functions.region('asia-east1').https.onRequest(async (req,
     if (!orderId) return res.status(400).send('<h2>缺少訂單編號</h2>');
 
     try {
-        const doc = await db.collection('PendingOrders').doc(orderId).get();
+        const isReserve = orderId.startsWith('RSV');
+        const collectionName = isReserve ? 'ReservedOrders' : 'PendingOrders';
+        const doc = await db.collection(collectionName).doc(orderId).get();
         if (!doc.exists) return res.status(404).send('<h2>找不到訂單</h2>');
         const data = doc.data();
 
@@ -3013,7 +3139,7 @@ exports.orderDetail = functions.region('asia-east1').https.onRequest(async (req,
             return `${tw.getUTCFullYear()}-${String(tw.getUTCMonth()+1).padStart(2,'0')}-${String(tw.getUTCDate()).padStart(2,'0')} ${String(tw.getUTCHours()).padStart(2,'0')}:${String(tw.getUTCMinutes()).padStart(2,'0')}`;
         };
         const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-        const getType = (id) => id.startsWith('SMP') ? '借樣品' : id.startsWith('RMA') ? '派車單' : id.startsWith('BCH') ? '行動屋' : '訂單';
+        const getType = (id) => id.startsWith('SMP') ? '借樣品' : id.startsWith('RMA') ? '派車單' : id.startsWith('BCH') ? '行動屋' : id.startsWith('RSV') ? '預留' : '訂單';
 
         const type = getType(orderId);
         const c = data.customer || {};
@@ -3050,8 +3176,11 @@ exports.orderDetail = functions.region('asia-east1').https.onRequest(async (req,
             : `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${encodeURIComponent(orderId)}`;
         const exceptionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/orderExceptionForm?orderId=${encodeURIComponent(orderId)}`;
 
-        const isProcessed = ['已出貨', '處理中_已發送異常通知', '處理完成_已派車'].includes(status);
-        const statusColor = isProcessed ? '#1DB446' : '#F59E0B';
+        const isProcessed = isReserve
+            ? status !== 'active'
+            : ['已出貨', '處理中_已發送異常通知', '處理完成_已派車'].includes(status);
+        const displayStatus = isReserve ? (status === 'active' ? '預留中' : status === 'completed' ? '已完成' : status) : status;
+        const statusColor = isReserve && status === 'active' ? '#6366F1' : (isProcessed ? '#1DB446' : '#F59E0B');
 
         const html = `<!DOCTYPE html>
 <html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -3093,13 +3222,14 @@ tfoot td { font-weight: bold; background: #fffbea; }
 
 <div class="header">
     <h1>
-        <span class="type-badge">${esc(type)}</span>
+        <span class="type-badge"${isReserve ? ' style="background:#6366F1"' : ''}>${esc(type)}</span>
         ${esc(orderId)}
-        <span class="status-badge">${esc(status)}</span>
+        <span class="status-badge">${esc(displayStatus)}</span>
     </h1>
     <div class="meta">
         建立時間：${fmtDate(toDate(data.createdAt))}
         ${data.shippedAt ? ' | 出貨時間：' + fmtDate(toDate(data.shippedAt)) : ''}
+        ${isReserve && data.reserveDeadline ? ' | <span style="color:#E11D48">預留期限：' + esc(data.reserveDeadline) + '</span>' : ''}
         ${data.backfilledAt ? ' | <span style="color:#888">※ 歷史資料 backfill</span>' : ''}
     </div>
 </div>
@@ -3152,7 +3282,13 @@ ${data.exceptionMessage ? `
     ${data.exceptionNotifiedAt ? `<div class="meta" style="margin-top:8px">通知時間：${fmtDate(toDate(data.exceptionNotifiedAt))}</div>` : ''}
 </div>` : ''}
 
-${!isProcessed ? `
+${isReserve ? (isProcessed ? `
+<div class="section" style="background: #d4edda; color: #155724;">
+    ✅ 此預留訂單已完成
+</div>` : `
+<div class="section" style="background: #eef2ff; color: #4338ca;">
+    📌 此為預留訂單，請回儀表板點擊「未完成」開關標記為已完成
+</div>`) : (!isProcessed ? `
 <div class="section">
     <h2>⚡ 動作</h2>
     <div class="actions">
@@ -3164,7 +3300,7 @@ ${!isProcessed ? `
 </div>` : `
 <div class="section" style="background: #d4edda; color: #155724;">
     ✅ 此訂單已於 ${fmtDate(toDate(data.shippedAt)) || '-'} 完成處理
-</div>`}
+</div>`)}
 
 <div class="actions">
     <a class="btn btn-back" href="javascript:history.back()">← 返回</a>
@@ -3178,6 +3314,108 @@ ${!isProcessed ? `
     } catch (err) {
         console.error('[orderDetail]', err);
         res.status(500).send(`<h2>Error: ${err.message}</h2>`);
+    }
+});
+
+// --- 助理詢問豪哥：建立問題並推 Flex 給豪哥 ---
+exports.submitAdminQuestion = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    const token = req.query.token || (req.body && req.body.token);
+    if (token !== expected) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+
+    try {
+        const body = req.body || {};
+        const { orderId, orderCollection, questionType, description, options, askerName } = body;
+        if (!orderId || !questionType || !description || !Array.isArray(options)) {
+            return res.status(400).json({ ok: false, error: '缺少必填欄位 (orderId, questionType, description, options[])' });
+        }
+        const cleanOptions = options.map(s => String(s || '').trim()).filter(s => s.length > 0).slice(0, 4);
+        if (cleanOptions.length === 0) {
+            return res.status(400).json({ ok: false, error: '至少要有一個選項' });
+        }
+
+        const config = getConfig();
+        if (!config.channelAccessToken) {
+            return res.status(500).json({ ok: false, error: 'LINE 設定遺失' });
+        }
+        const lineClient = new messagingApi.MessagingApiClient({ channelAccessToken: config.channelAccessToken });
+
+        const { createQuestion } = require('./src/services/adminQuestion');
+        const questionId = await createQuestion({
+            orderId,
+            orderCollection: orderCollection || 'PendingOrders',
+            questionType,
+            description,
+            options: cleanOptions,
+            askerName: askerName || 'DinDin',
+            lineClient,
+            dashboardToken: expected
+        });
+
+        return res.status(200).json({ ok: true, questionId });
+    } catch (err) {
+        console.error('[submitAdminQuestion]', err);
+        return res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// --- Dashboard 輪詢多筆訂單的最新問題狀態 ---
+exports.checkAdminAnswers = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    const token = req.query.token || (req.body && req.body.token);
+    if (token !== expected) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+
+    try {
+        const body = req.body || {};
+        const orderIds = Array.isArray(body.orderIds) ? body.orderIds : [];
+        const { getLatestQuestionsForOrders } = require('./src/services/adminQuestion');
+        const questions = await getLatestQuestionsForOrders(orderIds);
+        return res.status(200).json({ ok: true, questions });
+    } catch (err) {
+        console.error('[checkAdminAnswers]', err);
+        return res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
+// --- DinDin 標記問題為已處理 ---
+exports.markQuestionDone = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    const token = req.query.token || (req.body && req.body.token);
+    if (token !== expected) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+
+    try {
+        const body = req.body || {};
+        const { questionId } = body;
+        if (!questionId) {
+            return res.status(400).json({ ok: false, error: 'questionId required' });
+        }
+        const { markQuestionDone } = require('./src/services/adminQuestion');
+        await markQuestionDone(questionId);
+        return res.status(200).json({ ok: true });
+    } catch (err) {
+        console.error('[markQuestionDone]', err);
+        return res.status(500).json({ ok: false, error: err.message });
     }
 });
 
@@ -3298,6 +3536,9 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
                 <td>${esc(r.status)}</td>
                 <td class="date">${fmtDate(r.createdAt)}</td>
                 <td class="num age">${r.ageDays} 天${r._row === 'overdue' ? ' 🔴' : r._row === 'warn' ? ' 🟡' : ''}</td>
+                <td class="admin-q" data-order-id="${esc(r.id)}">
+                    <button class="btn-ask" onclick="openAskModal('${esc(r.id)}')">📋 請豪哥決定</button>
+                </td>
                 <td class="actions">
                     <a class="btn btn-ship" href="https://asia-east1-kinyo-price.cloudfunctions.net/${r.id.startsWith('RMA') ? 'markRMACompleted?rmaId=' : 'markOrderShipped?orderId='}${encodeURIComponent(r.id)}" target="_blank">出貨</a>
                     <a class="btn btn-edit" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderEdit?orderId=${encodeURIComponent(r.id)}&token=${encodeURIComponent(token)}" target="_blank">修改</a>
@@ -3323,7 +3564,7 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
 
         const renderReservedRow = (r) => `
             <tr class="${r._row}">
-                <td class="id">${esc(r.id)}</td>
+                <td class="id"><a href="${detailUrl(r.id)}" target="_blank">${esc(r.id)}</a></td>
                 <td>${esc(r.code)}</td>
                 <td class="company">${esc(r.company)}</td>
                 <td class="num">${r.amount ? '$' + r.amount : '-'}</td>
@@ -3392,6 +3633,39 @@ td.actions { white-space: nowrap; }
 .toggle-label { font-size: 12px; color: #888; margin-left: 6px; vertical-align: middle; }
 .empty { padding: 40px; text-align: center; color: #888; }
 .refresh-btn { margin-left: auto; padding: 6px 14px; background: #0055aa; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; }
+
+/* === 問豪哥 (AdminQuestion) === */
+td.admin-q { min-width: 140px; vertical-align: middle; }
+.btn-ask { background: #6366F1; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold; }
+.btn-ask:hover { background: #4F46E5; }
+td.admin-q.pending { background: #fff9db !important; }
+td.admin-q.pending .status-label { color: #92400e; font-weight: bold; font-size: 12px; display: inline-block; }
+td.admin-q.answered { background: #d1fae5 !important; animation: pulseGreen 2.2s ease-in-out infinite; }
+td.admin-q.answered .status-label { color: #065f46; font-weight: bold; font-size: 12px; }
+td.admin-q.answered .answer-text { font-size: 11px; margin-top: 4px; color: #065f46; white-space: normal; word-break: break-word; max-width: 180px; line-height: 1.35; }
+.btn-done { background: #10B981; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-top: 5px; }
+.btn-done:hover { background: #059669; }
+.btn-done:disabled { opacity: 0.6; cursor: not-allowed; }
+@keyframes pulseGreen { 0%, 100% { background: #d1fae5; } 50% { background: #a7f3d0; } }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 9998; padding: 20px; }
+.modal-content { background: white; border-radius: 12px; padding: 24px 28px; width: 100%; max-width: 520px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto; }
+.modal-content h2 { margin: 0 0 18px; font-size: 18px; color: #1F2937; }
+.modal-content label.block-label { display: block; margin: 14px 0 6px; font-size: 13px; font-weight: bold; color: #374151; }
+.modal-content .qtype-group { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.modal-content .qtype-group label { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; cursor: pointer; }
+.modal-content textarea { width: 100%; padding: 8px 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 14px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+.modal-content textarea:focus, .modal-content input[type=text]:focus { outline: 2px solid #6366F1; outline-offset: -1px; border-color: #6366F1; }
+.modal-content .ask-option { display: block; width: 100%; padding: 7px 10px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 13px; margin-bottom: 6px; box-sizing: border-box; }
+.modal-content .hint { font-size: 11px; color: #6B7280; margin-top: 4px; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 22px; }
+.btn-cancel { background: #E5E7EB; color: #374151; border: none; padding: 9px 18px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+.btn-cancel:hover { background: #D1D5DB; }
+.btn-submit { background: #6366F1; color: white; border: none; padding: 9px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; }
+.btn-submit:hover { background: #4F46E5; }
+.btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+.submit-error { color: #E11D48; font-size: 12px; margin-top: 8px; }
 </style></head><body>
 <div class="wrap">
 <h1>📊 KINYO 訂單狀況儀表板</h1>
@@ -3433,7 +3707,7 @@ td.actions { white-space: nowrap; }
     ${pendingRows.length === 0 ? '<div class="empty">✅ 全部處理完畢，辛苦了！</div>' : `
     <table id="pend-table">
         <thead><tr>
-            <th>類型</th><th>編號</th><th>客戶編號</th><th>客戶</th><th>金額</th><th>物流</th><th>項目</th><th>狀態</th><th>建立時間</th><th>天數</th><th>動作</th>
+            <th>類型</th><th>編號</th><th>客戶編號</th><th>客戶</th><th>金額</th><th>物流</th><th>項目</th><th>狀態</th><th>建立時間</th><th>天數</th><th>問豪哥</th><th>動作</th>
         </tr></thead>
         <tbody>${pendingRows.map(renderPendingRow).join('')}</tbody>
     </table>`}
@@ -3472,6 +3746,38 @@ td.actions { white-space: nowrap; }
 </div>
 
 </div>
+
+<!-- 請豪哥決定 Modal -->
+<div id="ask-modal" class="modal-overlay" style="display:none" onclick="closeAskModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h2>📋 請豪哥決定 &mdash; <span id="ask-order-id" style="color:#6366F1; font-family:monospace"></span></h2>
+
+        <label class="block-label">問題類型</label>
+        <div class="qtype-group">
+            <label><input type="radio" name="qtype" value="缺貨要掉貨" checked> 缺貨要掉貨</label>
+            <label><input type="radio" name="qtype" value="價格/折扣確認"> 價格/折扣確認</label>
+            <label><input type="radio" name="qtype" value="客戶特殊要求"> 客戶特殊要求</label>
+            <label><input type="radio" name="qtype" value="其他"> 其他</label>
+        </div>
+
+        <label class="block-label">補充說明（必填）</label>
+        <textarea id="ask-desc" rows="3" placeholder="例：KX-200 要 20 個但只剩 8 個，客戶這週急用"></textarea>
+
+        <label class="block-label">選項（自己填，最多 4 個，至少 1 個）</label>
+        <input type="text" class="ask-option" placeholder="選項 1（例：先送 8 個，7 天後補 12 個）">
+        <input type="text" class="ask-option" placeholder="選項 2（例：改推 KX-210 x 20）">
+        <input type="text" class="ask-option" placeholder="選項 3（選填）">
+        <input type="text" class="ask-option" placeholder="選項 4（選填）">
+        <div class="hint">💡 LINE 按鈕顯示上限 40 字，超過會截斷「...」，完整內容仍會存進系統。豪哥也可以選「✏️ 自己輸入」打字回覆。</div>
+
+        <div class="submit-error" id="ask-error"></div>
+        <div class="modal-actions">
+            <button type="button" class="btn-cancel" onclick="closeAskModal()">取消</button>
+            <button type="button" class="btn-submit" id="ask-submit-btn" onclick="submitAskQuestion()">送出給豪哥</button>
+        </div>
+    </div>
+</div>
+
 <script>
 function pickMonth() {
     const m = document.getElementById('proc-month').value;
@@ -3494,6 +3800,85 @@ window.addEventListener('DOMContentLoaded', () => {
     if (monthSel && monthSel.value) pickMonth();
 });
 
+let pendingUndo = null; // { rsvId, tr, finalizeTimer, intervalTimer }
+
+function finalizeReserveRemoval() {
+    if (!pendingUndo) return;
+    const { tr, finalizeTimer, intervalTimer } = pendingUndo;
+    clearTimeout(finalizeTimer);
+    clearInterval(intervalTimer);
+    const countCard = document.querySelector('.card.indigo .num');
+    if (countCard) countCard.textContent = Math.max(0, (parseInt(countCard.textContent, 10) || 0) - 1);
+    if (tr) {
+        tr.style.transition = 'opacity 0.5s';
+        tr.style.opacity = '0';
+        setTimeout(() => tr.remove(), 500);
+    }
+    const toast = document.getElementById('undo-toast');
+    if (toast) toast.remove();
+    pendingUndo = null;
+}
+
+async function undoReserveCompleted() {
+    if (!pendingUndo) return;
+    const { rsvId, tr, finalizeTimer, intervalTimer } = pendingUndo;
+    clearTimeout(finalizeTimer);
+    clearInterval(intervalTimer);
+    const toast = document.getElementById('undo-toast');
+    if (toast) toast.remove();
+    pendingUndo = null;
+
+    try {
+        const body = new URLSearchParams({ reserveId: rsvId });
+        const resp = await fetch('https://asia-east1-kinyo-price.cloudfunctions.net/reopenReserve?reserveId=' + encodeURIComponent(rsvId), { method: 'POST', body });
+        if (!resp.ok) throw new Error('HTTP ' + resp.status);
+        // 還原按鈕狀態
+        if (tr) {
+            const b = tr.querySelector('.toggle-btn');
+            const lbl = tr.querySelector('.toggle-label');
+            if (b) { b.classList.remove('on'); b.disabled = false; }
+            if (lbl) { lbl.textContent = '未完成'; lbl.style.color = ''; }
+        }
+    } catch (e) {
+        console.error('[undoReserveCompleted]', e);
+        alert('撤銷失敗：' + e.message + ' (請重新整理頁面確認狀態)');
+    }
+}
+
+function showUndoToast(rsvId, tr) {
+    // 若已有待撤銷的 toast，先把前一筆 finalize 掉
+    if (pendingUndo) finalizeReserveRemoval();
+
+    const toast = document.createElement('div');
+    toast.id = 'undo-toast';
+    toast.style.cssText = 'position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:14px 20px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,0.25);display:flex;align-items:center;gap:18px;z-index:9999;font-size:14px;min-width:280px;';
+    const msg = document.createElement('span');
+    msg.textContent = '✅ ' + rsvId + ' 已標記完成';
+    const undoBtn = document.createElement('button');
+    undoBtn.textContent = '撤銷';
+    undoBtn.style.cssText = 'background:transparent;color:#90caf9;border:1px solid #90caf9;padding:4px 14px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:13px;';
+    undoBtn.onclick = undoReserveCompleted;
+    const timerEl = document.createElement('span');
+    timerEl.id = 'undo-timer';
+    timerEl.style.cssText = 'color:#bbb;font-size:12px;min-width:24px;text-align:right;';
+    timerEl.textContent = '6s';
+    toast.appendChild(msg);
+    toast.appendChild(undoBtn);
+    toast.appendChild(timerEl);
+    document.body.appendChild(toast);
+
+    let remaining = 6;
+    const intervalTimer = setInterval(() => {
+        remaining--;
+        if (remaining >= 0) timerEl.textContent = remaining + 's';
+        if (remaining <= 0) clearInterval(intervalTimer);
+    }, 1000);
+
+    const finalizeTimer = setTimeout(finalizeReserveRemoval, 6000);
+
+    pendingUndo = { rsvId, tr, finalizeTimer, intervalTimer };
+}
+
 async function markReserveDone(btn) {
     if (btn.disabled) return;
     const rsvId = btn.dataset.rsv;
@@ -3502,19 +3887,17 @@ async function markReserveDone(btn) {
     btn.classList.add('on');
     const label = btn.parentElement.querySelector('.toggle-label');
     if (label) { label.textContent = '已完成'; label.style.color = '#28a745'; }
+    const tr = btn.closest('tr');
     try {
-        const resp = await fetch('https://asia-east1-kinyo-price.cloudfunctions.net/markReserveCompleted?reserveId=' + encodeURIComponent(rsvId), { method: 'POST' });
-        if (!resp.ok) throw new Error('HTTP ' + resp.status);
-        const tr = btn.closest('tr');
-        const countCard = document.querySelector('.card.indigo .num');
-        if (countCard) countCard.textContent = Math.max(0, (parseInt(countCard.textContent, 10) || 0) - 1);
-        setTimeout(() => {
-            tr.style.transition = 'opacity 0.5s';
-            tr.style.opacity = '0';
-            setTimeout(() => tr.remove(), 500);
-        }, 400);
+        const body = new URLSearchParams({ reserveId: rsvId });
+        const resp = await fetch('https://asia-east1-kinyo-price.cloudfunctions.net/markReserveCompleted?reserveId=' + encodeURIComponent(rsvId), { method: 'POST', body });
+        const text = await resp.text().catch(() => '');
+        console.log('[markReserveDone]', resp.status, text.slice(0, 200));
+        if (!resp.ok) throw new Error('HTTP ' + resp.status + ' ' + text.slice(0, 120));
+        showUndoToast(rsvId, tr);
     } catch (e) {
-        alert('標記失敗：' + e.message + '\n請重試或聯絡管理員');
+        console.error('[markReserveDone] failed', e);
+        alert('標記失敗：' + e.message + ' (請開 DevTools F12 Console 看詳細錯誤)');
         btn.classList.remove('on');
         btn.disabled = false;
         if (label) { label.textContent = '未完成'; label.style.color = ''; }
@@ -3552,6 +3935,185 @@ function filterTable(prefix) {
         tr.style.display = show ? '' : 'none';
     }
 }
+
+// ================ 請豪哥決定 (AdminQuestion) ================
+const ADMIN_Q_TOKEN = '${encodeURIComponent(token)}';
+const ADMIN_Q_SUBMIT_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/submitAdminQuestion?token=' + ADMIN_Q_TOKEN;
+const ADMIN_Q_CHECK_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/checkAdminAnswers?token=' + ADMIN_Q_TOKEN;
+const ADMIN_Q_DONE_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/markQuestionDone?token=' + ADMIN_Q_TOKEN;
+let currentAskOrderId = null;
+
+function openAskModal(orderId) {
+    currentAskOrderId = orderId;
+    document.getElementById('ask-order-id').textContent = orderId;
+    document.getElementById('ask-desc').value = '';
+    document.getElementById('ask-error').textContent = '';
+    document.querySelectorAll('.ask-option').forEach(function(i) { i.value = ''; });
+    const defaultRadio = document.querySelector('input[name=qtype][value="缺貨要掉貨"]');
+    if (defaultRadio) defaultRadio.checked = true;
+    const submitBtn = document.getElementById('ask-submit-btn');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '送出給豪哥';
+    document.getElementById('ask-modal').style.display = 'flex';
+    const descEl = document.getElementById('ask-desc');
+    if (descEl) setTimeout(function(){ descEl.focus(); }, 50);
+}
+
+function closeAskModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('ask-modal').style.display = 'none';
+    currentAskOrderId = null;
+}
+
+async function submitAskQuestion() {
+    const errEl = document.getElementById('ask-error');
+    errEl.textContent = '';
+    const btn = document.getElementById('ask-submit-btn');
+    const qtypeEl = document.querySelector('input[name=qtype]:checked');
+    if (!qtypeEl) { errEl.textContent = '請選擇問題類型'; return; }
+    const qtype = qtypeEl.value;
+    const desc = document.getElementById('ask-desc').value.trim();
+    const options = Array.from(document.querySelectorAll('.ask-option'))
+        .map(function(i) { return i.value.trim(); })
+        .filter(function(v) { return v.length > 0; });
+    if (!desc) { errEl.textContent = '請填補充說明'; return; }
+    if (options.length === 0) { errEl.textContent = '至少要填一個選項'; return; }
+    if (!currentAskOrderId) { errEl.textContent = '訂單編號遺失，請重新打開'; return; }
+
+    btn.disabled = true;
+    btn.textContent = '送出中…';
+    try {
+        const isReserve = currentAskOrderId.indexOf('RSV') === 0;
+        const resp = await fetch(ADMIN_Q_SUBMIT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                orderId: currentAskOrderId,
+                orderCollection: isReserve ? 'ReservedOrders' : 'PendingOrders',
+                questionType: qtype,
+                description: desc,
+                options: options,
+                askerName: 'DinDin'
+            })
+        });
+        const data = await resp.json().catch(function() { return {}; });
+        if (!resp.ok || !data.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+        document.getElementById('ask-modal').style.display = 'none';
+        currentAskOrderId = null;
+        pollAdminQuestions();
+    } catch (e) {
+        console.error('[submitAskQuestion]', e);
+        errEl.textContent = '送出失敗：' + e.message;
+        btn.disabled = false;
+        btn.textContent = '送出給豪哥';
+    }
+}
+
+function renderAskButton(cell) {
+    const orderId = cell.dataset.orderId;
+    cell.innerHTML = '';
+    const b = document.createElement('button');
+    b.className = 'btn-ask';
+    b.type = 'button';
+    b.textContent = '📋 請豪哥決定';
+    b.onclick = function() { openAskModal(orderId); };
+    cell.appendChild(b);
+}
+
+function escInline(s) {
+    const d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+}
+
+function updateAdminCell(cell, q) {
+    const newStatus = q ? q.status : 'none';
+    const newAnswer = q && q.answer ? q.answer : '';
+    if (cell.dataset.currentStatus === newStatus && cell.dataset.currentAnswer === newAnswer) return;
+
+    cell.dataset.currentStatus = newStatus;
+    cell.dataset.currentAnswer = newAnswer;
+    cell.classList.remove('pending', 'answered');
+
+    if (newStatus === 'none') {
+        renderAskButton(cell);
+        return;
+    }
+    if (newStatus === 'pending') {
+        cell.classList.add('pending');
+        const qtype = q && q.questionType ? q.questionType : '';
+        cell.innerHTML = '<span class="status-label">⏳ 等豪哥回覆</span>' +
+            (qtype ? '<div style="font-size:10px; color:#92400e; margin-top:3px">' + escInline(qtype) + '</div>' : '');
+    } else if (newStatus === 'answered') {
+        cell.classList.add('answered');
+        const qid = q && q.questionId ? q.questionId : '';
+        cell.innerHTML = '<div class="status-label">🔔 豪哥已回覆</div>' +
+            '<div class="answer-text">' + escInline(newAnswer || '(無內容)') + '</div>' +
+            '<button type="button" class="btn-done" data-qid="' + escInline(qid) + '" onclick="markDone(this)">標記已處理</button>';
+    }
+}
+
+async function markDone(btn) {
+    const qid = btn.dataset.qid;
+    if (!qid) return;
+    btn.disabled = true;
+    btn.textContent = '處理中…';
+    try {
+        const resp = await fetch(ADMIN_Q_DONE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ questionId: qid })
+        });
+        const data = await resp.json().catch(function() { return {}; });
+        if (!resp.ok || !data.ok) throw new Error(data.error || ('HTTP ' + resp.status));
+        pollAdminQuestions();
+    } catch (e) {
+        console.error('[markDone]', e);
+        alert('標記失敗：' + e.message);
+        btn.disabled = false;
+        btn.textContent = '標記已處理';
+    }
+}
+
+async function pollAdminQuestions() {
+    const cells = document.querySelectorAll('td.admin-q');
+    if (cells.length === 0) return;
+    const orderIds = Array.from(cells)
+        .map(function(c) { return c.dataset.orderId; })
+        .filter(Boolean);
+    if (orderIds.length === 0) return;
+    try {
+        const resp = await fetch(ADMIN_Q_CHECK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderIds: orderIds })
+        });
+        const data = await resp.json().catch(function() { return {}; });
+        if (!data || !data.ok) return;
+        const questions = data.questions || {};
+        cells.forEach(function(cell) {
+            const orderId = cell.dataset.orderId;
+            updateAdminCell(cell, questions[orderId] || null);
+        });
+    } catch (e) {
+        console.warn('[pollAdminQuestions] 暫時失敗:', e && e.message);
+    }
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+    pollAdminQuestions();
+    setInterval(pollAdminQuestions, 10000);
+    // ESC 關閉 modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const m = document.getElementById('ask-modal');
+            if (m && m.style.display !== 'none') {
+                m.style.display = 'none';
+                currentAskOrderId = null;
+            }
+        }
+    });
+});
 </script>
 </body></html>`;
 

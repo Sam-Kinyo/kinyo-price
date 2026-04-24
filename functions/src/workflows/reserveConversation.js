@@ -43,7 +43,7 @@ function tryParseItem(input) {
     if (m) {
         return { model: m[1].toUpperCase(), qty: parseInt(m[2], 10), unitPrice: m[3] ? parseInt(m[3], 10) : null };
     }
-    m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s+(\d+)(?:\s+@?\s*(\d+))?/i);
+    m = cleaned.match(/^([A-Za-z][A-Za-z0-9\-]+)\s+(\d+)\s*(?:@?\s*(\d+))?/i);
     if (m) {
         return { model: m[1].toUpperCase(), qty: parseInt(m[2], 10), unitPrice: m[3] ? parseInt(m[3], 10) : null };
     }

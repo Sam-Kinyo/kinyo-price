@@ -1,5 +1,6 @@
 const { admin, db } = require('../utils/firebase');
 const { calculateLevelPrice } = require('../utils/priceCalculator');
+const { matchCustomerByCompany } = require('./customerMatcher');
 
 async function processOrder(intentParams, userContext, event, lineClient) {
     console.log(`[訂單處理] 開始處理下單意圖`);
@@ -151,12 +152,39 @@ async function processOrder(intentParams, userContext, event, lineClient) {
         totalAmount += shippingFee;
     }
 
+    // 自動比對客戶公司 → 回填 customerCode（若使用者沒在模板裡自己填）
+    intentParams.customer = intentParams.customer || {};
+    let customerMatchLine = null;
+    let customerMatchHit = false;
+    if (!intentParams.customer.customerCode) {
+        try {
+            const matchResult = await matchCustomerByCompany(intentParams.customer.company || intentParams.customer.name);
+            if (matchResult.matched) {
+                intentParams.customer.customerCode = matchResult.code;
+                if (!intentParams.customer.fullName) intentParams.customer.fullName = matchResult.fullName;
+                if (!intentParams.customer.shortName) intentParams.customer.shortName = matchResult.shortName;
+                customerMatchHit = true;
+                customerMatchLine = `🏷️ 客戶編號: ${matchResult.code}（自動比對：${matchResult.shortName || matchResult.fullName}）`;
+            } else if (matchResult.ambiguous) {
+                const preview = (matchResult.candidates || []).map(c => `${c.code} ${c.shortName}`).join('、');
+                customerMatchLine = `🏷️ 客戶編號: (多筆符合，請人工確認：${preview})`;
+            } else {
+                customerMatchLine = `🏷️ 客戶編號: (未建檔，儀表板會以公司名稱顯示)`;
+            }
+        } catch (e) {
+            console.error('[processOrder customerMatch]', e);
+        }
+    } else {
+        customerMatchHit = true;
+        customerMatchLine = `🏷️ 客戶編號: ${intentParams.customer.customerCode}`;
+    }
+
     const orderData = {
         orderId: orderId,
         userId: lineUid,
         userEmail: userEmail,
         orderLevel: currentViewLevel,
-        customer: intentParams.customer || {},
+        customer: intentParams.customer,
         items: validOrderItems,
         totalAmount: totalAmount,
         shippingFee: shippingFee,
@@ -195,6 +223,7 @@ async function processOrder(intentParams, userContext, event, lineClient) {
                 type: 'box', layout: 'vertical',
                 contents: [
                     { type: 'text', text: `🏢 公司: ${intentParams.customer?.company || '未提供'}`, size: 'sm', color: '#555555', weight: 'bold' },
+                    ...(customerMatchLine ? [{ type: 'text', text: customerMatchLine, size: 'sm', color: customerMatchHit ? '#1DB446' : '#888888', wrap: true }] : []),
                     { type: 'text', text: `👤 收件: ${intentParams.customer?.name || '未提供'} (${intentParams.customer?.phone || '未提供'})`, size: 'sm', color: '#555555' },
                     { type: 'text', text: `📍 地址: ${intentParams.customer?.address || '未提供'}`, size: 'sm', color: '#555555', wrap: true },
                     { type: 'text', text: `⏰ 到貨: ${intentParams.customer?.deliveryTime || '未指定'}`, size: 'sm', color: '#1DB446', wrap: true, margin: 'sm' },

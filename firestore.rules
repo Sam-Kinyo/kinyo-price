@@ -29,6 +29,13 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow update: if request.auth != null;
     }
+    // AdminQuestions / AdminReplyState：僅由 Cloud Functions (admin SDK) 存取，前端不可直接讀寫
+    match /AdminQuestions/{questionId} {
+      allow read, write: if false;
+    }
+    match /AdminReplyState/{uid} {
+      allow read, write: if false;
+    }
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
