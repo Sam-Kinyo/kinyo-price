@@ -1,8 +1,53 @@
 const { admin, db } = require('../utils/firebase');
+const { transporter } = require('../utils/mailer');
 
 const ADMIN_LINE_UID = process.env.ADMIN_LINE_UID;
 const REPLY_STATE_TTL_MS = 30 * 60 * 1000;
 const MAX_OPTIONS = 4;
+const ANSWER_NOTIFY_EMAIL = 'din@kinyo.tw';
+
+async function sendAnswerEmail({ qData, answer, answerType }) {
+    try {
+        const askerName = qData.askerName || 'DinDin';
+        const orderId = qData.orderId || '';
+        const questionType = qData.questionType || '';
+        const description = qData.description || '';
+        const answerLabel = answerType === 'option' ? '選擇' : '自由輸入';
+        const escape = (s) => String(s == null ? '' : s)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        const summary = await getOrderSummary(orderId, qData.orderCollection);
+        const customerCode = summary?.customerCode || '';
+        const company = summary?.company || '';
+        const name = summary?.name || '';
+        const customerLabel = [
+            customerCode ? `[${customerCode}]` : '',
+            company,
+            name && name !== company ? name : ''
+        ].filter(Boolean).join(' ');
+
+        const mailOptions = {
+            from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
+            to: ANSWER_NOTIFY_EMAIL,
+            subject: `[${askerName} 問答]${customerLabel ? ' ' + customerLabel : ''} - 訂單 #${orderId} 已回覆：${questionType}`,
+            html: `
+                <h2 style="color: #2563EB;">✓ 已回覆 ${escape(askerName)} 的問題</h2>
+                <p><strong>訂單編號：</strong>${escape(orderId)}</p>
+                ${customerCode ? `<p><strong>客戶編號：</strong>${escape(customerCode)}</p>` : ''}
+                ${company ? `<p><strong>客戶：</strong>${escape(company)}${name && name !== company ? ' / ' + escape(name) : ''}</p>` : ''}
+                <p><strong>問題類型：</strong>${escape(questionType)}</p>
+                <p><strong>問題內容：</strong>${escape(description)}</p>
+                <hr>
+                <p><strong>回覆方式：</strong>${answerLabel}</p>
+                <p><strong>答案：</strong><span style="color: #E11D48; font-weight: bold;">${escape(answer)}</span></p>
+            `
+        };
+
+        await transporter.sendMail(mailOptions);
+    } catch (err) {
+        console.error('[AdminQuestion] 答案通知信發送失敗:', err);
+    }
+}
 
 function truncate(str, max) {
     if (!str) return '';
@@ -330,6 +375,8 @@ async function handleOptionAnswer({ questionId, optionIdx, lineClient, replyToke
 
     await clearReplyState();
 
+    sendAnswerEmail({ qData: data, answer: option, answerType: 'option' });
+
     await lineClient.replyMessage({
         replyToken,
         messages: [{
@@ -399,6 +446,8 @@ async function tryHandleAdminTextReply({ lineUid, text, lineClient, replyToken }
         answeredAt: admin.firestore.FieldValue.serverTimestamp()
     });
     await stateRef.delete().catch(() => {});
+
+    sendAnswerEmail({ qData, answer: text, answerType: 'text' });
 
     await lineClient.replyMessage({
         replyToken,

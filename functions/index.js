@@ -353,6 +353,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     const orderFlow = require('./src/workflows/orderConversation');
                     const sampleFlow = require('./src/workflows/sampleConversation');
                     const quoteSheetFlow = require('./src/workflows/quoteSheetConversation');
+                    const defectiveReturnFlow = require('./src/workflows/defectiveReturnConversation');
                     const ongoingState = await getState(lineUid);
                     if (ongoingState) {
                         const convInput = userText.replace(/@KINYO挺好的\s*/g, '').trim();
@@ -363,111 +364,194 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             await quoteSheetFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
                         } else if (ongoingState.flow === 'borrow_sample') {
                             await sampleFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
+                        } else if (ongoingState.flow === 'defective_return') {
+                            await defectiveReturnFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
                         } else {
                             // 預設、reserve_order 都走 reserve flow
                             await reserveFlow.handleConversationInput(ongoingState, convInput, event, lineClient);
                         }
                         continue;
                     }
-
-                    // 啟動對話式預留訂單
-                    if (userText === '預留訂單' || userText === '留貨' || userText === '@KINYO挺好的 預留訂單' || userText === '@KINYO挺好的 留貨') {
-                        await reserveFlow.startReserveFlow(lineUid, groupId, replyToken, lineClient);
-                        continue;
-                    }
-
-                    // 啟動對話式訂單
-                    if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
-                        await orderFlow.startOrderFlow(lineUid, groupId, replyToken, lineClient);
-                        continue;
-                    }
-
-                    // 啟動對話式借樣品
-                    if (userText === '借樣品' || userText === '借樣' || userText === '@KINYO挺好的 借樣品' || userText === '@KINYO挺好的 借樣') {
-                        await sampleFlow.startSampleFlow(lineUid, groupId, replyToken, lineClient);
-                        continue;
-                    }
-
-                    // 啟動對話式報價單 (僅管理員)
-                    if (userText === '報價單' || userText === '@KINYO挺好的 報價單') {
-                        const adminUid = process.env.ADMIN_LINE_UID;
-                        if (!adminUid || lineUid !== adminUid) {
-                            await lineClient.replyMessage({
-                                replyToken,
-                                messages: [{ type: 'text', text: '⛔ 「報價單」功能僅限系統管理員使用' }]
-                            });
-                            continue;
-                        }
-                        await quoteSheetFlow.startQuoteSheetFlow(lineUid, groupId, replyToken, lineClient);
-                        continue;
-                    }
                 }
 
-                // --- 新增：靜態收件資訊卡片 ---
-                if (userText === '收件資訊' || userText === '寄件地址' || userText === '@KINYO挺好的 收件資訊' || userText === '@KINYO挺好的 寄件地址') {
-                    const shippingFlex = {
-                        type: 'flex',
-                        altText: '收件資訊',
-                        contents: {
-                            type: 'bubble',
-                            header: {
-                                type: 'box', layout: 'vertical', backgroundColor: '#1E3A8A',
-                                contents: [{ type: 'text', text: '📦 標準收件資訊', color: '#ffffff', weight: 'bold', size: 'lg' }]
-                            },
-                            body: {
-                                type: 'box', layout: 'vertical', spacing: 'md',
-                                contents: [
-                                    { type: 'text', text: '請將包裹或樣品寄至以下地址：', size: 'sm', color: '#666666' },
-                                    {
-                                        type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm',
+                // --- 指令 Registry：完全相等才觸發（取代舊的 conversation starters / shipping / help / order-status / template / 查詢訂單） ---
+                {
+                    const cleanCmdText = userText.replace(/@KINYO挺好的\s*/g, '').trim();
+                    const { lookupCommand, findFuzzyMatch } = require('./src/config/commandRegistry');
+                    const registryAction = lookupCommand(cleanCmdText);
+
+                    if (registryAction) {
+                        if (registryAction === 'borrow_sample') {
+                            const sampleFlow = require('./src/workflows/sampleConversation');
+                            await sampleFlow.startSampleFlow(lineUid, groupId, replyToken, lineClient);
+                            continue;
+                        }
+                        if (registryAction === 'order') {
+                            const orderFlow = require('./src/workflows/orderConversation');
+                            await orderFlow.startOrderFlow(lineUid, groupId, replyToken, lineClient);
+                            continue;
+                        }
+                        if (registryAction === 'reserve_order') {
+                            const reserveFlow = require('./src/workflows/reserveConversation');
+                            await reserveFlow.startReserveFlow(lineUid, groupId, replyToken, lineClient);
+                            continue;
+                        }
+                        if (registryAction === 'defective_return') {
+                            const defectiveReturnFlow = require('./src/workflows/defectiveReturnConversation');
+                            await defectiveReturnFlow.startDefectiveReturnFlow(lineUid, groupId, replyToken, lineClient);
+                            continue;
+                        }
+                        if (registryAction === 'quote_sheet') {
+                            const adminUid = process.env.ADMIN_LINE_UID;
+                            if (!adminUid || lineUid !== adminUid) {
+                                await lineClient.replyMessage({
+                                    replyToken,
+                                    messages: [{ type: 'text', text: '⛔ 「報價單」功能僅限系統管理員使用' }]
+                                });
+                                continue;
+                            }
+                            const quoteSheetFlow = require('./src/workflows/quoteSheetConversation');
+                            await quoteSheetFlow.startQuoteSheetFlow(lineUid, groupId, replyToken, lineClient);
+                            continue;
+                        }
+                        if (registryAction === 'repair_info' || registryAction === 'user_guide') {
+                            const { handleFaqRequest } = require('./src/workflows/faqWorkflow');
+                            await handleFaqRequest(event, lineClient, registryAction === 'user_guide' ? 'user_guide' : 'repair');
+                            continue;
+                        }
+                        if (registryAction === 'shipping_info') {
+                            const shippingFlex = {
+                                type: 'flex',
+                                altText: '收件資訊',
+                                contents: {
+                                    type: 'bubble',
+                                    header: {
+                                        type: 'box', layout: 'vertical', backgroundColor: '#1E3A8A',
+                                        contents: [{ type: 'text', text: '📦 標準收件資訊', color: '#ffffff', weight: 'bold', size: 'lg' }]
+                                    },
+                                    body: {
+                                        type: 'box', layout: 'vertical', spacing: 'md',
                                         contents: [
+                                            { type: 'text', text: '請將包裹或樣品寄至以下地址：', size: 'sm', color: '#666666' },
                                             {
-                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                type: 'box', layout: 'vertical', margin: 'lg', spacing: 'sm',
                                                 contents: [
-                                                    { type: 'text', text: '地址', color: '#aaaaaa', size: 'sm', flex: 2 },
-                                                    { type: 'text', text: '新竹市東區經國路一段187號', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                    {
+                                                        type: 'box', layout: 'baseline', spacing: 'sm',
+                                                        contents: [
+                                                            { type: 'text', text: '地址', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                            { type: 'text', text: '新竹市東區經國路一段187號', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                        ]
+                                                    },
+                                                    {
+                                                        type: 'box', layout: 'baseline', spacing: 'sm',
+                                                        contents: [
+                                                            { type: 'text', text: '收件人', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                            { type: 'text', text: '郭庭豪', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                        ]
+                                                    },
+                                                    {
+                                                        type: 'box', layout: 'baseline', spacing: 'sm',
+                                                        contents: [
+                                                            { type: 'text', text: '市話', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                            { type: 'text', text: '03-5396966 #266', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                        ]
+                                                    },
+                                                    {
+                                                        type: 'box', layout: 'baseline', spacing: 'sm',
+                                                        contents: [
+                                                            { type: 'text', text: '手機', color: '#aaaaaa', size: 'sm', flex: 2 },
+                                                            { type: 'text', text: '0976-966333', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                        ]
+                                                    }
                                                 ]
                                             },
+                                            { type: 'separator', margin: 'lg' },
+                                            { type: 'text', text: '⚠️ 寄件時請務必於外箱或託運單註明：', size: 'xs', color: '#EF4444', margin: 'lg', wrap: true },
+                                            { type: 'text', text: '1. 寄件人名稱\n2. 內容物明細', size: 'sm', color: '#333333', wrap: true }
+                                        ]
+                                    }
+                                }
+                            };
+                            await lineClient.replyMessage({ replyToken, messages: [shippingFlex] });
+                            continue;
+                        }
+                        if (registryAction === 'help') {
+                            const commandFlexMessage = {
+                                type: 'flex',
+                                altText: 'KINYO 機器人指令列表',
+                                contents: {
+                                    type: 'bubble',
+                                    size: 'giga',
+                                    header: {
+                                        type: 'box', layout: 'vertical', backgroundColor: '#ea580c', paddingAll: '16px',
+                                        contents: [
+                                            { type: 'text', text: '🤖 KINYO 挺好的 指令列表', color: '#ffffff', weight: 'bold', size: 'lg' },
+                                            { type: 'text', text: '群組內使用請加 @KINYO挺好的', color: '#ffe5cc', size: 'xs', margin: 'sm' }
+                                        ]
+                                    },
+                                    body: {
+                                        type: 'box', layout: 'vertical', spacing: 'md', paddingAll: '16px',
+                                        contents: [
+                                            { type: 'text', text: '📦 訂單與申請', weight: 'bold', size: 'sm', color: '#ea580c' },
                                             {
-                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                type: 'box', layout: 'vertical', spacing: 'xs', margin: 'sm',
                                                 contents: [
-                                                    { type: 'text', text: '收件人', color: '#aaaaaa', size: 'sm', flex: 2 },
-                                                    { type: 'text', text: '郭庭豪', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                    { type: 'text', text: '• 訂單 / 下單 — 一般下單對話流程', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 預留 / 預留訂單 / 留貨 — 佔位先留貨', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 借樣品 / 樣品 / 借樣 — 借樣品申請', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 來回件 / 新品不良 — 不良品派車', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 報價單 — 報價單對話流程（僅管理員）', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 行動屋出貨 — 批次出貨 (最多 10 筆)', size: 'sm', color: '#333333', wrap: true }
                                                 ]
                                             },
+                                            { type: 'separator', margin: 'md' },
+                                            { type: 'text', text: '🔍 查詢', weight: 'bold', size: 'sm', color: '#ea580c', margin: 'md' },
                                             {
-                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                type: 'box', layout: 'vertical', spacing: 'xs', margin: 'sm',
                                                 contents: [
-                                                    { type: 'text', text: '市話', color: '#aaaaaa', size: 'sm', flex: 2 },
-                                                    { type: 'text', text: '03-5396966 #266', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                    { type: 'text', text: '• 直接輸入型號 — 查單一商品 (例：KPB-2990)', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 關鍵字 + 預算 — 進階查價 (例：吹風機 預算500-700)', size: 'sm', color: '#333333', wrap: true }
                                                 ]
                                             },
+                                            { type: 'separator', margin: 'md' },
+                                            { type: 'text', text: '📍 其他', weight: 'bold', size: 'sm', color: '#ea580c', margin: 'md' },
                                             {
-                                                type: 'box', layout: 'baseline', spacing: 'sm',
+                                                type: 'box', layout: 'vertical', spacing: 'xs', margin: 'sm',
                                                 contents: [
-                                                    { type: 'text', text: '手機', color: '#aaaaaa', size: 'sm', flex: 2 },
-                                                    { type: 'text', text: '0976-966333', wrap: true, color: "#333333", size: "sm", flex: 6 }
+                                                    { type: 'text', text: '• 寄件地址 / 收件資訊 / 寄回資訊 / 商品寄回 — 公司收件地址', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 客服 / 維修 / 維修地址 — 維修客服資訊', size: 'sm', color: '#333333', wrap: true },
+                                                    { type: 'text', text: '• 教學 / 使用教學 — 使用說明 FAQ', size: 'sm', color: '#333333', wrap: true }
                                                 ]
                                             }
                                         ]
                                     },
-                                    { type: 'separator', margin: 'lg' },
-                                    { type: 'text', text: '⚠️ 寄件時請務必於外箱或託運單註明：', size: 'xs', color: '#EF4444', margin: 'lg', wrap: true },
-                                    { type: 'text', text: '1. 寄件人名稱\n2. 內容物明細', size: 'sm', color: '#333333', wrap: true }
-                                ]
-                            }
+                                    footer: {
+                                        type: 'box', layout: 'vertical', paddingAll: '12px',
+                                        contents: [
+                                            { type: 'text', text: '💡 完全打對指令才會觸發；模糊版本（如「我想借樣品」）會收到提示', size: 'xs', color: '#888888', align: 'center', wrap: true }
+                                        ]
+                                    }
+                                }
+                            };
+                            await lineClient.replyMessage({ replyToken, messages: [commandFlexMessage] });
+                            continue;
                         }
-                    };
-                    await lineClient.replyMessage({
-                        replyToken: replyToken,
-                        messages: [shippingFlex]
-                    });
-                    continue;
-                }
-                // -----------------------------------
+                    }
 
-                // --- 指令列表 (業務常用指令說明) ---
-                if (userText === '指令' || userText === '幫助' || userText === '指令列表' || userText === '@KINYO挺好的 指令' || userText === '@KINYO挺好的 幫助' || userText === '@KINYO挺好的 指令列表') {
+                    // 模糊版本提示（用戶打了「我想借樣品」這種，不是完全相等）
+                    const fuzzyKw = findFuzzyMatch(cleanCmdText);
+                    if (fuzzyKw) {
+                        await lineClient.replyMessage({
+                            replyToken,
+                            messages: [{ type: 'text', text: `❓ 你是不是想用「${fuzzyKw}」？\n請直接輸入該指令觸發。` }]
+                        });
+                        continue;
+                    }
+                }
+
+                // === 已移除（搬到 registry dispatch 或砍除）：舊的 shipping flex / help flex / 訂單狀況 / 訂單模板 / 查詢訂單 ===
+                if (false && (userText === '指令' || userText === '幫助' || userText === '指令列表' || userText === '@KINYO挺好的 指令' || userText === '@KINYO挺好的 幫助' || userText === '@KINYO挺好的 指令列表')) {
                     const commandFlexMessage = {
                         type: 'flex',
                         altText: 'KINYO 機器人指令列表',
@@ -534,8 +618,8 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     continue;
                 }
 
-                // --- 訂單狀況追蹤 (摘要 / 待處理 / 已處理) ---
-                if (['訂單狀況', '工作進度', '待處理', '已處理',
+                // --- [已停用] 訂單狀況追蹤 — 改由 Dashboard 查看 ---
+                if (false && ['訂單狀況', '工作進度', '待處理', '已處理',
                     '@KINYO挺好的 訂單狀況', '@KINYO挺好的 工作進度',
                     '@KINYO挺好的 待處理', '@KINYO挺好的 已處理'].includes(userText)) {
                     const PENDING_STATUSES = ['處理中', '處理中_借樣品', '處理中_來回件', '處理中_批次'];
@@ -721,22 +805,10 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                     }
                 }
 
-                // --- 額外處理：訂單模板回覆 ---
-                if (userText === '訂單' || userText === '@KINYO挺好的 訂單') {
-                    const orderTemplate = `@KINYO挺好的 下單\n\n採購公司：\n收件人：\n聯絡電話：\n送貨地址：\n預期到貨：\n備註：\n=================\n【訂購明細】請依下方格式填寫：\n型號： / 數量： / 單價：  (單價沒有可空白)\n型號： / 數量： / 單價：`;
+                // --- [已停用] 訂單模板：由 registry dispatch 的 'order' action 直接啟動對話流程 ---
 
-                    await lineClient.replyMessage({
-                        replyToken: replyToken,
-                        messages: [{
-                            type: 'text',
-                            text: `請複製以下模板填寫並送出：\n\n${orderTemplate}`
-                        }]
-                    });
-                    continue; // 回傳後即結束本次請求處理
-                }
-
-                // --- 查詢訂單關鍵字攔截 ---
-                if (userText === '查詢訂單' || userText === '@KINYO挺好的 查詢訂單') {
+                // --- [已停用] 查詢訂單：改由 Dashboard 查看 ---
+                if (false && (userText === '查詢訂單' || userText === '@KINYO挺好的 查詢訂單')) {
                     // 1. 從 Firestore 撈取該群組最近 5 筆訂單
                     const ordersSnapshot = await db.collection('PendingOrders')
                         .where('sourceId', '==', groupId)
@@ -1059,7 +1131,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                 const totalDisplay = orderData.totalAmount > 0 ? `$${orderData.totalAmount}` : '<span style="color:red;">待確認 (依實際出貨單為準)</span>';
 
                                 const mailOptions = {
-                                    from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
+                                    from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                                     to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                                     subject: `[新訂單通知]${orderData.customer?.customerCode ? `[${orderData.customer.customerCode}]` : ''} ${orderData.customer?.company || ''}${orderData.customer?.name && orderData.customer.name !== orderData.customer.company ? ' ' + orderData.customer.name : ''} - 總計 ${totalDisplay.replace(/<[^>]+>/g, '')}`,
                                     html: `
@@ -1116,7 +1188,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                                   `;
 
                                   const restockMailOptions = {
-                                    from: '系統通知信箱 <sam.kuo@kinyo.tw>',
+                                    from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                                     to: process.env.RESTOCK_NOTIFY_EMAILS || 'crystal.lin@nakay.com.tw, iris@nakay.com.tw, irene.tien@nakay.com.tw, chloe@nakay.com.tw, kelly@nakay.com.tw, sam.kuo@kinyo.tw',
                                     subject: '【大單備貨警示】型號庫存消耗通知',
                                     html: restockEmailHtml
@@ -1233,7 +1305,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const functionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${newOrderId}`;
 
                         const mailOptions = {
-                            from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                            from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                             to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                             subject: `[借樣品通知]${orderData.customer?.customerCode ? `[${orderData.customer.customerCode}]` : ''} ${orderData.customer?.company || ''}${orderData.customer?.name && orderData.customer.name !== orderData.customer.company ? ' ' + orderData.customer.name : ''} - 共 ${totalQty} 件`,
                             html: `
@@ -1455,7 +1527,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const reserveRecipients = emailSettings['#商品預留'] || ['sam.kuo@kinyo.tw', 'din@kinyo.tw'];
 
                         const reserveMailOptions = {
-                            from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                            from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                             to: reserveRecipients,
                             subject: `[預留訂單]${reserveData.customer?.customerCode ? `[${reserveData.customer.customerCode}]` : ''} ${reserveData.customer?.company || ''}${reserveData.customer?.name && reserveData.customer.name !== reserveData.customer.company ? ' ' + reserveData.customer.name : ''} - 期限 ${reserveDeadline || '未指定'}`,
                             html: `
@@ -1639,7 +1711,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                             const functionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${newOrderId}`;
 
                             const mailOptions = {
-                                from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
+                                from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                                 to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw', 'chinlienhsin903@gmail.com'],
                                 subject: `[行動屋批次出貨] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                                 html: `
@@ -1756,7 +1828,7 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
 
                     // 2. 透過 Nodemailer 發信
                     const mailOptions = {
-                        from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
+                        from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                         to: APPLY_PRICE_EMAILS,
                         subject: `【廠價申請】${data.department} + ${data.customer} + ${data.model}`,
                         html: emailHtml
@@ -2112,6 +2184,10 @@ ${evalQty}個：${finalPrice}
 
 // --- API 擴充：信件出貨按鈕回呼 ---
 exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
+    const user = await requireAuthorizedEmail(req, res);
+    if (!user) return;
+
     const orderId = req.query.orderId;
     if (!orderId) return res.status(400).send('缺少訂單編號');
 
@@ -2389,6 +2465,10 @@ exports.reopenReserve = functions.region('asia-east1').https.onRequest(async (re
 
 // --- API 擴充：訂單異常 / 缺貨通知表單 ---
 exports.orderExceptionForm = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
+    const user = await requireAuthorizedEmail(req, res);
+    if (!user) return;
+
     const orderId = req.query.orderId;
     if (!orderId) return res.status(400).send('缺少訂單編號');
 
@@ -2713,7 +2793,7 @@ exports.reservedOrderReminder = functions
                 itemsHtml += '</table>';
 
                 const mailOptions = {
-                    from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                    from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                     to: reserveRecipients,
                     subject: `⏰ [預留訂單到期提醒]${data.customer?.customerCode ? `[${data.customer.customerCode}]` : ''} ${data.customer?.company || ''}${data.customer?.name && data.customer.name !== data.customer.company ? ' ' + data.customer.name : ''} - 7 天後到期`,
                     html: `
@@ -2751,11 +2831,11 @@ exports.reservedOrderReminder = functions
 
 // --- 訂單取消 (GET 確認頁 / POST 執行取消) ---
 exports.orderCancel = functions.region('asia-east1').https.onRequest(async (req, res) => {
-    const token = req.query.token || req.body?.token;
-    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
-    if (!token || token !== expected) {
-        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
-    }
+    const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
+    const user = await requireAuthorizedEmail(req, res);
+    if (!user) return;
+    const token = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+
     const orderId = req.query.orderId || req.body?.orderId;
     if (!orderId) return res.status(400).send('<h2>缺少訂單編號</h2>');
 
@@ -2782,7 +2862,7 @@ exports.orderCancel = functions.region('asia-east1').https.onRequest(async (req,
             });
 
             transporter.sendMail({
-                from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                 to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                 subject: `❌ [訂單取消] ${orderId} ${c.company || ''}${c.customerCode ? ' [' + c.customerCode + ']' : ''}`,
                 html: `
@@ -2861,11 +2941,10 @@ textarea { width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radiu
 
 // --- 訂單編輯 (GET 表單 / POST 儲存或取消) ---
 exports.orderEdit = functions.region('asia-east1').https.onRequest(async (req, res) => {
-    const token = req.query.token || req.body?.token;
-    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
-    if (!token || token !== expected) {
-        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
-    }
+    const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
+    const user = await requireAuthorizedEmail(req, res);
+    if (!user) return;
+    const token = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
 
     const orderId = req.query.orderId || req.body?.orderId;
     if (!orderId) return res.status(400).send('<h2>缺少訂單編號</h2>');
@@ -2897,7 +2976,7 @@ exports.orderEdit = functions.region('asia-east1').https.onRequest(async (req, r
                 });
                 // 寄 email 通知助理
                 transporter.sendMail({
-                    from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                    from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                     to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                     subject: `❌ [訂單取消] ${orderId} ${oldC.company || ''}${oldC.customerCode ? ' [' + oldC.customerCode + ']' : ''}`,
                     html: `
@@ -2952,7 +3031,7 @@ exports.orderEdit = functions.region('asia-east1').https.onRequest(async (req, r
                 `<tr><td>${esc(d.label)}</td><td style="text-decoration:line-through;color:#888">${esc(d.old || '(空)')}</td><td style="color:#E11D48;font-weight:bold">${esc(d.new || '(空)')}</td></tr>`
             ).join('');
             transporter.sendMail({
-                from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                 to: process.env.ORDER_NOTIFY_EMAILS ? process.env.ORDER_NOTIFY_EMAILS.split(',') : ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                 subject: `✏️ [訂單已修改] ${orderId} ${oldC.company || ''}${oldC.customerCode ? ' [' + oldC.customerCode + ']' : ''}`,
                 html: `
@@ -3111,11 +3190,10 @@ function confirmCancel(form) {
 
 // --- 訂單明細頁 (HTML，顯示單筆完整內容) ---
 exports.orderDetail = functions.region('asia-east1').https.onRequest(async (req, res) => {
-    const token = req.query.token;
-    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
-    if (!token || token !== expected) {
-        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
-    }
+    const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
+    const user = await requireAuthorizedEmail(req, res);
+    if (!user) return;
+    const token = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
 
     const orderId = req.query.orderId;
     if (!orderId) return res.status(400).send('<h2>缺少訂單編號</h2>');
@@ -3421,11 +3499,13 @@ exports.markQuestionDone = functions.region('asia-east1').https.onRequest(async 
 
 // --- 訂單狀況 Dashboard (HTML 頁面, 需要 token) ---
 exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (req, res) => {
-    const token = req.query.token;
-    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
-    if (!token || token !== expected) {
-        return res.status(401).send('<h2>⛔ Unauthorized</h2>');
-    }
+    const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
+    const user = await requireAuthorizedEmail(req, res);
+    if (!user) return;
+
+    // M2M token：給 dashboard JS 內呼叫 submitAdminQuestion / checkAdminAnswers / markQuestionDone（DinDin 共用）使用
+    // 也順便填入 orderDetail/orderEdit/orderCancel 連結的 token 欄位（雖然這些已改成 Google Auth，token 會被忽略，但兼容舊連結格式）
+    const token = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
 
     try {
         const PENDING = ['處理中', '處理中_借樣品', '處理中_來回件', '處理中_批次'];
@@ -3668,7 +3748,13 @@ td.admin-q.answered .answer-text { font-size: 11px; margin-top: 4px; color: #065
 .submit-error { color: #E11D48; font-size: 12px; margin-top: 8px; }
 </style></head><body>
 <div class="wrap">
-<h1>📊 KINYO 訂單狀況儀表板</h1>
+<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+    <h1 style="margin:0;">📊 KINYO 訂單狀況儀表板</h1>
+    <div style="display:flex;align-items:center;gap:12px;font-size:13px;color:#666;">
+        <span>👤 ${user.email}</span>
+        <a href="https://asia-east1-kinyo-price.cloudfunctions.net/dashboardLogout" style="background:#fee2e2;color:#991b1b;padding:6px 12px;border-radius:6px;text-decoration:none;font-weight:bold;">🚪 登出</a>
+    </div>
+</div>
 <div class="subtitle">更新時間：${fmtDate(new Date())} <button class="refresh-btn" onclick="location.reload()">🔄 重新整理</button></div>
 
 <div class="summary">
@@ -4177,4 +4263,224 @@ exports.syncProductImages = functions
             res.status(500).json({ error: e.message });
         }
     });
+
+// ──────────────────────────────────────────────────────────
+// Dashboard Logout：清掉 __session cookie，跳轉到 login 頁順便也清前端 Firebase Auth state
+// ──────────────────────────────────────────────────────────
+exports.dashboardLogout = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    // 清 cookie：用 Max-Age=0
+    res.set('Set-Cookie', '__session=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0');
+    // 跳轉到登入頁，帶 logout=1 讓前端也呼叫 signOut
+    res.redirect(302, 'https://asia-east1-kinyo-price.cloudfunctions.net/dashboardLogin?logout=1');
+});
+
+// ──────────────────────────────────────────────────────────
+// Dashboard Session Endpoint：用 idToken 換 __session cookie（Firebase 推薦的 server-side session 模式）
+// 用 __session 作為 cookie 名稱是因為 Firebase Hosting 只放行這個 cookie；雖然 cloudfunctions.net 直連沒這限制，
+// 但用同個名字保險起見，未來若改走 Hosting rewrite 也不用再動。
+// ──────────────────────────────────────────────────────────
+exports.dashboardSetSession = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (req.method === 'OPTIONS') {
+        res.set('Access-Control-Allow-Origin', req.headers.origin || '*');
+        res.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+        res.set('Access-Control-Allow-Headers', 'Content-Type');
+        res.set('Access-Control-Allow-Credentials', 'true');
+        return res.status(204).send('');
+    }
+    if (req.method !== 'POST') {
+        return res.status(405).json({ ok: false, error: 'POST only' });
+    }
+    res.set('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.set('Access-Control-Allow-Credentials', 'true');
+
+    const idToken = req.body?.idToken;
+    if (!idToken || typeof idToken !== 'string') {
+        return res.status(400).json({ ok: false, error: 'idToken required in body' });
+    }
+
+    try {
+        const expiresIn = 60 * 60 * 1000; // 1 小時
+        const decoded = await admin.auth().verifyIdToken(idToken);
+        // 即時檢查 email 白名單，避免發 session 給未授權帳號
+        const { getAllowedEmails } = require('./src/middlewares/dashboardAuth');
+        const allowed = getAllowedEmails();
+        const email = (decoded.email || '').toLowerCase();
+        if (!allowed.has(email)) {
+            return res.status(403).json({ ok: false, error: `Email ${email} 未授權` });
+        }
+        const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
+        const cookieValue = `__session=${sessionCookie}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${expiresIn / 1000}`;
+        res.set('Set-Cookie', cookieValue);
+        return res.status(200).json({ ok: true, email });
+    } catch (err) {
+        console.error('[dashboardSetSession]', err);
+        return res.status(401).json({ ok: false, error: err.message });
+    }
+});
+
+// ──────────────────────────────────────────────────────────
+// Dashboard Login Page (Firebase Auth + Google)
+// ──────────────────────────────────────────────────────────
+exports.dashboardLogin = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const returnTo = req.query.returnTo || 'https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard';
+    const reason = req.query.reason || '';
+    const wantLogout = req.query.logout === '1';
+
+    const html = `<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KINYO Dashboard 登入</title>
+<style>
+* { box-sizing: border-box; }
+body { font-family: 'Noto Sans TC', -apple-system, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.card { background: #fff; padding: 40px 30px; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,.15); width: 100%; max-width: 400px; text-align: center; }
+.logo { font-size: 32px; margin-bottom: 8px; }
+h1 { color: #1f2937; font-size: 22px; margin: 0 0 8px; }
+.sub { color: #6b7280; font-size: 14px; margin-bottom: 24px; }
+.status { color: #6b7280; font-size: 13px; margin: 12px 0; min-height: 20px; }
+.status.expired { color: #f59e0b; }
+.status.error { color: #ef4444; }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 28px; background: #fff; color: #3c4043; border: 1px solid #dadce0; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: all .2s; min-width: 240px; }
+.btn:hover { box-shadow: 0 2px 4px rgba(0,0,0,.1); border-color: #c8c8c8; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn svg { width: 18px; height: 18px; }
+.user { background: #f3f4f6; border-radius: 8px; padding: 12px; margin: 12px 0; font-size: 13px; }
+.user .email { color: #374151; font-weight: 500; }
+.btn-secondary { background: transparent; color: #6b7280; border: none; font-size: 13px; padding: 6px 12px; cursor: pointer; }
+.btn-secondary:hover { color: #374151; }
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="logo">🔐</div>
+    <h1>KINYO Dashboard</h1>
+    <p class="sub">請使用 KINYO Google 帳號登入</p>
+    <p id="status" class="status"></p>
+    <div id="userBox" class="user" style="display:none">
+        <div class="email" id="userEmail"></div>
+        <div id="userHint" style="font-size:12px;color:#9ca3af;margin-top:4px"></div>
+    </div>
+    <button id="signInBtn" class="btn" style="display:none">
+        <svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        使用 Google 登入
+    </button>
+    <button id="logoutBtn" class="btn-secondary" style="display:none">切換帳號</button>
+</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyDtp6rwV7KmIOedLQ9793BnXbBquopP9kM",
+    authDomain: "kinyo-price.firebaseapp.com",
+    projectId: "kinyo-price",
+    storageBucket: "kinyo-price.firebasestorage.app",
+    messagingSenderId: "122464645678",
+    appId: "1:122464645678:web:c0febbc6297a8ada5ea5bf"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+await setPersistence(auth, browserLocalPersistence);
+const provider = new GoogleAuthProvider();
+provider.setCustomParameters({ prompt: 'select_account' });
+
+const statusEl = document.getElementById('status');
+const signInBtn = document.getElementById('signInBtn');
+const logoutBtn = document.getElementById('logoutBtn');
+const userBox = document.getElementById('userBox');
+const userEmailEl = document.getElementById('userEmail');
+const userHintEl = document.getElementById('userHint');
+
+const params = new URLSearchParams(location.search);
+const returnTo = params.get('returnTo') || 'https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard';
+const reason = params.get('reason');
+const wantLogout = params.get('logout') === '1';
+
+if (reason === 'expired') {
+    statusEl.textContent = '⏰ 登入狀態已過期，請重新登入';
+    statusEl.classList.add('expired');
+}
+
+async function createServerSession(idToken) {
+    const resp = await fetch('https://asia-east1-kinyo-price.cloudfunctions.net/dashboardSetSession', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) throw new Error(data.error || \`HTTP \${resp.status}\`);
+    return data;
+}
+
+if (wantLogout) {
+    await signOut(auth);
+    history.replaceState({}, '', location.pathname);
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        userEmailEl.textContent = user.email || '(無 email)';
+        userBox.style.display = 'block';
+        logoutBtn.style.display = 'inline-block';
+        userHintEl.textContent = '正在驗證權限...';
+        try {
+            statusEl.textContent = '⏳ 建立 session...';
+            const idToken = await user.getIdToken(true);
+            await createServerSession(idToken);
+            statusEl.textContent = '✅ 登入成功，正在跳轉...';
+            statusEl.classList.remove('expired', 'error');
+            setTimeout(() => location.replace(returnTo), 300);
+        } catch (err) {
+            console.error('createServerSession error:', err);
+            statusEl.textContent = '❌ Session 建立失敗：' + err.message;
+            statusEl.classList.add('error');
+            // Fallback: 用 URL 帶 idToken（一次性，server 端會 verifyIdToken）
+            try {
+                const idToken = await user.getIdToken();
+                const sep = returnTo.includes('?') ? '&' : '?';
+                setTimeout(() => location.replace(returnTo + sep + 'idToken=' + encodeURIComponent(idToken)), 1500);
+            } catch (e) {
+                statusEl.textContent = '❌ 完全無法登入：' + e.message;
+            }
+        }
+    } else {
+        userBox.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        signInBtn.style.display = 'inline-flex';
+    }
+});
+
+signInBtn.addEventListener('click', async () => {
+    signInBtn.disabled = true;
+    statusEl.textContent = '正在開啟 Google 登入視窗...';
+    statusEl.classList.remove('expired', 'error');
+    try {
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged 會接手後續 (建立 session + 跳轉)
+    } catch (err) {
+        statusEl.textContent = '❌ 登入失敗：' + (err.code || '') + ' ' + err.message;
+        statusEl.classList.add('error');
+        signInBtn.disabled = false;
+    }
+});
+
+logoutBtn.addEventListener('click', async () => {
+    await signOut(auth);
+    clearIdTokenCookie();
+    location.reload();
+});
+</script>
+</body>
+</html>`;
+
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('Cache-Control', 'no-store');
+    res.status(200).send(html);
+});
 

@@ -202,7 +202,7 @@ async function handlePostback(event, userContext, lineClient) {
                     const totalDisplay = orderData.totalAmount > 0 ? `$${orderData.totalAmount}` : '<span style="color:red;">待確認 (依實際出貨單為準)</span>';
 
                     const mailOptions = {
-                        from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
+                        from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                         to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                         subject: `[新訂單通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 總計 ${totalDisplay.replace(/<[^>]+>/g, '')}`,
                         html: `<h2 style="color: #333;">新訂單通知</h2>...[詳見原始邏輯]...` // 將在後續修正以完整保留原本 HTML
@@ -303,7 +303,7 @@ async function handlePostback(event, userContext, lineClient) {
             const functionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${newOrderId}`;
 
             const mailOptions = {
-                from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                 to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw'],
                 subject: `[借樣品通知] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                 html: `
@@ -400,7 +400,7 @@ async function handlePostback(event, userContext, lineClient) {
             const reserveRecipients = emailSettings['#商品預留'] || ['sam.kuo@kinyo.tw', 'din@kinyo.tw'];
 
             const mailOptions = {
-                from: 'KINYO 系統通知 <sam.kuo@kinyo.tw>',
+                from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                 to: reserveRecipients,
                 subject: `[預留訂單] ${reserveData.customer?.company || ''} ${reserveData.customer?.name || ''} - 期限 ${reserveDeadline || '未指定'}`,
                 html: `
@@ -557,7 +557,7 @@ async function handlePostback(event, userContext, lineClient) {
                 const functionUrl = `https://asia-east1-kinyo-price.cloudfunctions.net/markOrderShipped?orderId=${newOrderId}`;
 
                 const mailOptions = {
-                    from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
+                    from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
                     to: ['sam.kuo@kinyo.tw', 'din@kinyo.tw', 'chinlienhsin903@gmail.com'],
                     subject: `[行動屋批次出貨] ${orderData.customer?.company || ''} ${orderData.customer?.name} - 共 ${totalQty} 件`,
                     html: `
@@ -652,7 +652,7 @@ async function handlePostback(event, userContext, lineClient) {
         `;
 
         const mailOptions = {
-            from: 'KINYO 報價系統 <sam.kuo@kinyo.tw>',
+            from: '特販(系統通知)-郭庭豪 <sam.kuo@kinyo.tw>',
             to: APPLY_PRICE_EMAILS,
             subject: `【廠價申請】${data.department} + ${data.customer} + ${data.model}`,
             html: emailHtml
