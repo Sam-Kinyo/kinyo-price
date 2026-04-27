@@ -2203,6 +2203,20 @@ ${evalQty}個：${finalPrice}
     }
 });
 
+// 注入到各 action form 的 success 頁面尾巴：
+// 若是從 dashboard 開新分頁進來，reload dashboard 一次。
+// 不自動關閉本分頁；助理仍透過既有的「關閉此頁」連結手動關。
+const REFRESH_OPENER_SCRIPT = `
+<script>
+(function(){
+    try {
+        if (window.opener && !window.opener.closed) {
+            window.opener.location.reload();
+        }
+    } catch (e) { /* opener 已關 / 跨 origin 都當作沒事 */ }
+})();
+</script>`;
+
 // --- API 擴充：信件出貨按鈕回呼 ---
 exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async (req, res) => {
     const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
@@ -2316,8 +2330,9 @@ exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async 
         return res.send(`
             <div style="font-family: Arial, 'Microsoft JhengHei', sans-serif; text-align: center; padding: 40px; background: #d4edda; color: #155724; border-radius: 8px; max-width: 520px; margin: 40px auto; font-size: 18px; line-height: 1.8;">
                 ${successParts}
+                <div style="margin-top: 24px;"><a href="javascript:window.close();" style="display:inline-block; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px; font-size:14px;">關閉此頁</a></div>
             </div>
-        `);
+        ` + REFRESH_OPENER_SCRIPT);
     } catch (error) {
         console.error('出貨更新失敗:', error);
         return res.status(500).send('<h2 style="text-align: center; color: red;">系統發生錯誤，請聯絡管理員</h2>');
@@ -2441,7 +2456,7 @@ exports.markRMACompleted = functions.region('asia-east1').https.onRequest(async 
             pushOk ? (wasAlreadyDone ? '' : '<br>📢 已推播 LINE 通知給客戶') : '<br>⚠️ LINE 推播失敗，請自行通知'
         ].filter(Boolean).join('');
 
-        return res.send(`<div style="font-family:Arial,'Microsoft JhengHei',sans-serif; text-align:center; padding:40px; background:#d4edda; color:#155724; border-radius:8px; max-width:520px; margin:40px auto; font-size:18px; line-height:1.8;">${parts}</div>`);
+        return res.send(`<div style="font-family:Arial,'Microsoft JhengHei',sans-serif; text-align:center; padding:40px; background:#d4edda; color:#155724; border-radius:8px; max-width:520px; margin:40px auto; font-size:18px; line-height:1.8;">${parts}<div style="margin-top:24px;"><a href="javascript:window.close();" style="display:inline-block; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px; font-size:14px;">關閉此頁</a></div></div>` + REFRESH_OPENER_SCRIPT);
     } catch (error) {
         console.error('RMA 結案更新失敗:', error);
         return res.status(500).send(`<h2 style="text-align:center; color:red;">系統發生錯誤：${error.message}</h2>`);
@@ -2686,7 +2701,7 @@ exports.submitOrderException = functions.region('asia-east1').https.onRequest(as
                         ${tracking ? `<p style="color:#555">📋 單號已記錄：<strong>${escapeHtml(tracking)}</strong></p>` : ''}
                         <a href="javascript:window.close();" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px;">關閉視窗</a>
                     </div>
-                `);
+                ` + REFRESH_OPENER_SCRIPT);
             }
         }
 
@@ -2696,7 +2711,7 @@ exports.submitOrderException = functions.region('asia-east1').https.onRequest(as
                 ${tracking ? `<p style="color:#555; margin-top:16px;">📋 物流單號已記錄：<strong>${escapeHtml(tracking)}</strong></p>` : ''}
                 <a href="javascript:window.close();" style="display:inline-block; margin-top:20px; padding:10px 20px; background-color:#6c757d; color:white; text-decoration:none; border-radius:5px;">關閉視窗</a>
             </div>
-        `);
+        ` + REFRESH_OPENER_SCRIPT);
     } catch (error) {
         console.error('送出異常通知失敗:', error);
         return res.status(500).send('<h2>系統發生錯誤，請聯絡管理員</h2>');
@@ -2963,7 +2978,7 @@ exports.orderCancel = functions.region('asia-east1').https.onRequest(async (req,
                     <p>已寄取消通知 email 給助理</p>
                     <a href="javascript:window.close();" style="color:#0055aa">關閉此頁</a>
                 </div>
-            `);
+            ` + REFRESH_OPENER_SCRIPT);
         }
 
         // GET：確認頁
@@ -3069,7 +3084,7 @@ exports.orderEdit = functions.region('asia-east1').https.onRequest(async (req, r
                     `
                 }).catch(e => console.error('[取消通知 SMTP]', e));
 
-                return res.send(`<div style="font-family:sans-serif;text-align:center;padding:60px;"><h2 style="color:#E11D48">❌ 訂單已取消</h2><p>${esc(orderId)}</p><p style="color:#666">已寄通知給助理</p><a href="javascript:window.close();" style="color:#0055aa">關閉此頁</a></div>`);
+                return res.send(`<div style="font-family:sans-serif;text-align:center;padding:60px;"><h2 style="color:#E11D48">❌ 訂單已取消</h2><p>${esc(orderId)}</p><p style="color:#666">已寄通知給助理</p><a href="javascript:window.close();" style="color:#0055aa">關閉此頁</a></div>` + REFRESH_OPENER_SCRIPT);
             }
 
             // action === 'save'
@@ -3134,7 +3149,7 @@ exports.orderEdit = functions.region('asia-east1').https.onRequest(async (req, r
                     <p>已寄變更通知 email 給助理（共 ${diffs.length} 項變更）</p>
                     <a href="javascript:window.close();" style="color:#0055aa">關閉此頁</a>
                 </div>
-            `);
+            ` + REFRESH_OPENER_SCRIPT);
         } catch (err) {
             console.error('[orderEdit POST]', err);
             return res.status(500).send(`<h2>Error: ${err.message}</h2>`);
@@ -3341,6 +3356,59 @@ exports.orderDetail = functions.region('asia-east1').https.onRequest(async (req,
         const displayStatus = isReserve ? (status === 'active' ? '預留中' : status === 'completed' ? '已完成' : status) : status;
         const statusColor = isReserve && status === 'active' ? '#6366F1' : (isProcessed ? '#1DB446' : '#F59E0B');
 
+        // 取得「同 dashboard 群」的前後筆 ID，提供左右浮動按鈕快速切換
+        const PENDING_STATUSES = ['處理中', '處理中_借樣品', '處理中_來回件', '處理中_批次'];
+        const PROCESSED_STATUSES = ['已出貨', '處理中_已發送異常通知', '處理完成_已派車'];
+        let prevId = null, nextId = null, currentIdx = -1, groupSize = 0;
+        let group = null;
+        if (isReserve && status === 'active') group = 'reserved';
+        else if (!isReserve && PENDING_STATUSES.includes(status)) group = 'pending';
+        else if (!isReserve && PROCESSED_STATUSES.includes(status)) group = 'processed';
+
+        if (group) {
+            try {
+                let groupSnap;
+                if (group === 'pending') {
+                    groupSnap = await db.collection('PendingOrders').where('status', 'in', PENDING_STATUSES).get();
+                } else if (group === 'processed') {
+                    groupSnap = await db.collection('PendingOrders').where('status', 'in', PROCESSED_STATUSES).get();
+                } else {
+                    groupSnap = await db.collection('ReservedOrders').where('status', '==', 'active').get();
+                }
+                const twNow = new Date(Date.now() + 8 * 60 * 60 * 1000);
+                const todayUtc = Date.UTC(twNow.getUTCFullYear(), twNow.getUTCMonth(), twNow.getUTCDate());
+                const items = groupSnap.docs.map(d => {
+                    const dd = d.data();
+                    const createdMs = dd.createdAt?.toMillis?.() || 0;
+                    let daysLeft = null;
+                    if (group === 'reserved' && dd.reserveDeadline) {
+                        const [y, m, day] = String(dd.reserveDeadline).replace(/\//g, '-').split('-').map(Number);
+                        if (y && m && day) daysLeft = Math.round((Date.UTC(y, m - 1, day) - todayUtc) / 86400000);
+                    }
+                    return { id: d.id, createdMs, daysLeft };
+                });
+                if (group === 'pending') {
+                    items.sort((a, b) => a.createdMs - b.createdMs);
+                } else if (group === 'processed') {
+                    items.sort((a, b) => b.createdMs - a.createdMs);
+                } else {
+                    items.sort((a, b) => {
+                        if (a.daysLeft === null && b.daysLeft === null) return 0;
+                        if (a.daysLeft === null) return 1;
+                        if (b.daysLeft === null) return -1;
+                        return a.daysLeft - b.daysLeft;
+                    });
+                }
+                groupSize = items.length;
+                currentIdx = items.findIndex(x => x.id === orderId);
+                if (currentIdx > 0) prevId = items[currentIdx - 1].id;
+                if (currentIdx >= 0 && currentIdx < items.length - 1) nextId = items[currentIdx + 1].id;
+            } catch (siblingErr) {
+                console.warn('[orderDetail siblings]', siblingErr.message);
+            }
+        }
+        const detailHref = (id) => `https://asia-east1-kinyo-price.cloudfunctions.net/orderDetail?orderId=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`;
+
         const html = `<!DOCTYPE html>
 <html lang="zh-TW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(orderId)} - 訂單明細</title>
@@ -3376,7 +3444,40 @@ tfoot td { font-weight: bold; background: #fffbea; }
 .btn:hover { opacity: 0.9; }
 
 .note { background: #fff3cd; color: #856404; padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+
+/* 左右浮動的「上一單 / 下一單」按鈕 */
+.nav-side { position: fixed; top: 50%; transform: translateY(-50%); z-index: 100; }
+.nav-side.left { left: 16px; }
+.nav-side.right { right: 16px; }
+.nav-btn-side { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 64px; height: 96px; background: #0055aa; color: white; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.18); font-weight: bold; transition: transform 0.15s, background 0.15s; }
+.nav-btn-side:hover { background: #003d7a; transform: scale(1.06); }
+.nav-btn-side.disabled { background: #d1d5db; color: #6b7280; cursor: not-allowed; pointer-events: none; box-shadow: none; }
+.nav-btn-side .arrow { font-size: 32px; line-height: 1; }
+.nav-btn-side .label { font-size: 12px; margin-top: 4px; letter-spacing: 1px; }
+.nav-counter { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.65); color: white; padding: 4px 12px; border-radius: 999px; font-size: 12px; z-index: 100; }
+@media (max-width: 1100px) {
+    .nav-side.left { left: 8px; }
+    .nav-side.right { right: 8px; }
+    .nav-btn-side { width: 48px; height: 72px; }
+    .nav-btn-side .arrow { font-size: 24px; }
+    .nav-btn-side .label { font-size: 10px; }
+}
 </style></head><body>
+
+${group ? `
+<div class="nav-side left">
+    ${prevId
+        ? `<a class="nav-btn-side" href="${detailHref(prevId)}" title="上一單 (←)"><span class="arrow">‹</span><span class="label">上一單</span></a>`
+        : `<div class="nav-btn-side disabled" title="沒有上一筆"><span class="arrow">‹</span><span class="label">沒有了</span></div>`}
+</div>
+<div class="nav-side right">
+    ${nextId
+        ? `<a class="nav-btn-side" href="${detailHref(nextId)}" title="下一單 (→)"><span class="arrow">›</span><span class="label">下一單</span></a>`
+        : `<div class="nav-btn-side disabled" title="沒有下一筆"><span class="arrow">›</span><span class="label">沒有了</span></div>`}
+</div>
+${currentIdx >= 0 && groupSize > 0 ? `<div class="nav-counter">${currentIdx + 1} / ${groupSize}　${group === 'pending' ? '待處理' : group === 'processed' ? '已處理' : '預留中'}</div>` : ''}
+` : ''}
+
 <div class="wrap">
 
 <div class="header">
@@ -3462,10 +3563,38 @@ ${isReserve ? (isProcessed ? `
 </div>`)}
 
 <div class="actions">
-    <a class="btn btn-back" href="javascript:history.back()">← 返回</a>
+    <a class="btn btn-back" href="https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard" onclick="return goBackSmart()">← 返回</a>
 </div>
 
 </div>
+<script>
+(function(){
+    const PREV_URL = ${prevId ? `'${detailHref(prevId)}'` : 'null'};
+    const NEXT_URL = ${nextId ? `'${detailHref(nextId)}'` : 'null'};
+    document.addEventListener('keydown', function(e){
+        const t = e.target.tagName;
+        if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return;
+        if (e.key === 'ArrowLeft' && PREV_URL) { e.preventDefault(); location.href = PREV_URL; }
+        else if (e.key === 'ArrowRight' && NEXT_URL) { e.preventDefault(); location.href = NEXT_URL; }
+    });
+})();
+function goBackSmart() {
+    // 從 dashboard 用 target="_blank" 開過來的分頁沒有 history，history.back() 沒效。
+    // 1) 若有 opener (從 dashboard 來) → 關掉本分頁，使用者回到 dashboard 那一頁
+    //    若 window.close() 被擋（例如非 JS 開出的分頁），500ms 後 fallback 跳 dashboard
+    // 2) 沒 opener → 直接讓 <a href="orderDashboard"> 預設動作執行
+    try {
+        if (window.opener && !window.opener.closed) {
+            window.close();
+            setTimeout(function(){
+                location.href = 'https://asia-east1-kinyo-price.cloudfunctions.net/orderDashboard';
+            }, 400);
+            return false;
+        }
+    } catch (e) { /* fallback 走 href */ }
+    return true;
+}
+</script>
 </body></html>`;
 
         res.set('Cache-Control', 'no-store');
@@ -3578,6 +3707,35 @@ exports.markQuestionDone = functions.region('asia-east1').https.onRequest(async 
     }
 });
 
+// --- Dashboard 輪詢 signal：取「待處理 / 預留中」最大 createdAt，dashboard JS 比對是否有新單 ---
+exports.dashboardSignal = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+    const expected = process.env.DASHBOARD_TOKEN || 'KinyoDash2026!pQ7wN';
+    if (req.query.token !== expected) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+
+    try {
+        // 只看 createdAt 最大值；不過濾 status 以避免 composite index 需求。
+        // 已出貨 / 取消等狀態變化是經 dashboard 動作觸發的，已由 REFRESH_OPENER_SCRIPT 管。
+        // 這個 endpoint 主要是用來偵測 LINE Bot 直接寫入的新單。
+        const [pendingSnap, reservedSnap] = await Promise.all([
+            db.collection('PendingOrders').orderBy('createdAt', 'desc').limit(1).get(),
+            db.collection('ReservedOrders').orderBy('createdAt', 'desc').limit(1).get(),
+        ]);
+        const pendMs = pendingSnap.empty ? 0 : (pendingSnap.docs[0].data().createdAt?.toMillis?.() || 0);
+        const rsvMs = reservedSnap.empty ? 0 : (reservedSnap.docs[0].data().createdAt?.toMillis?.() || 0);
+        res.set('Cache-Control', 'no-store');
+        return res.status(200).json({ ok: true, latestMs: Math.max(pendMs, rsvMs) });
+    } catch (err) {
+        console.error('[dashboardSignal]', err);
+        return res.status(500).json({ ok: false, error: err.message });
+    }
+});
+
 // --- 訂單狀況 Dashboard (HTML 頁面, 需要 token) ---
 exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (req, res) => {
     const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
@@ -3683,6 +3841,15 @@ exports.orderDashboard = functions.region('asia-east1').https.onRequest(async (r
 
         const overdueCount = pendingRows.filter(r => r._row === 'overdue').length;
         const warnCount = pendingRows.filter(r => r._row === 'warn').length;
+
+        // dashboardSignal polling 基準：含 pending / processed / reserved 全部已載入的 createdAt 最大值
+        // (signal endpoint 不過濾 status，所以這邊也盡量涵蓋多一點，避免第一次 polling 誤觸 reload)
+        const initialLatestMs = Math.max(
+            0,
+            ...pendingRows.map(r => r.createdAt?.getTime?.() || 0),
+            ...processedRows.map(r => r.createdAt?.getTime?.() || 0),
+            ...reservedRows.map(r => r.createdAt?.getTime?.() || 0),
+        );
 
         const detailUrl = (id) => `https://asia-east1-kinyo-price.cloudfunctions.net/orderDetail?orderId=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}`;
         const renderPendingRow = (r) => `
@@ -4108,6 +4275,9 @@ const ADMIN_Q_TOKEN = '${encodeURIComponent(token)}';
 const ADMIN_Q_SUBMIT_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/submitAdminQuestion?token=' + ADMIN_Q_TOKEN;
 const ADMIN_Q_CHECK_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/checkAdminAnswers?token=' + ADMIN_Q_TOKEN;
 const ADMIN_Q_DONE_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/markQuestionDone?token=' + ADMIN_Q_TOKEN;
+const DASHBOARD_SIGNAL_URL = 'https://asia-east1-kinyo-price.cloudfunctions.net/dashboardSignal?token=' + ADMIN_Q_TOKEN;
+const DASHBOARD_INITIAL_LATEST_MS = ${initialLatestMs};
+let dashLastSeenMs = DASHBOARD_INITIAL_LATEST_MS;
 let currentAskOrderId = null;
 
 function openAskModal(orderId) {
@@ -4267,9 +4437,22 @@ async function pollAdminQuestions() {
     }
 }
 
+async function pollDashboardSignal() {
+    if (document.hidden) return; // 分頁背景時暫停輪詢，省 reads
+    try {
+        const resp = await fetch(DASHBOARD_SIGNAL_URL, { cache: 'no-store' });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        if (data && typeof data.latestMs === 'number' && data.latestMs > dashLastSeenMs) {
+            location.reload();
+        }
+    } catch (e) { /* 網路錯誤，下次再試 */ }
+}
+
 window.addEventListener('DOMContentLoaded', function() {
     pollAdminQuestions();
     setInterval(pollAdminQuestions, 10000);
+    setInterval(pollDashboardSignal, 30000);
     // ESC 關閉 modal
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
