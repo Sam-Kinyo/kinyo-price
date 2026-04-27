@@ -3,7 +3,8 @@
  * 來回件 / 新品不良 對話式 flow
  *
  * 狀態機：
- *   (start) → waiting_customer → waiting_items → waiting_remark → (完成，送 Flex 確認卡)
+ *   (start) → waiting_customer → waiting_pickup_address → waiting_return_address →
+ *   waiting_items → waiting_remark → (完成，送 Flex 確認卡)
  *   任何階段輸入「取消」都會中止並清 state
  */
 
@@ -11,6 +12,29 @@ const { db } = require('../utils/firebase');
 const { setState, clearState, TTL_MINUTES } = require('../services/conversationState');
 
 const CODE_PATTERN = /^[A-Za-z]{2,4}\d{3,6}(-\d+)?$/;
+
+// 解析「姓名 / 電話 / 地址」三段資料
+// 支援換行、/、／、,、，分隔；地址可包含 / 不會被誤切（取最後一段以後合併）
+function tryParseContact(input) {
+    const raw = String(input).trim();
+    if (!raw) return null;
+    // 優先使用換行切（最不會誤判）
+    let parts = raw.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
+    if (parts.length < 3) {
+        parts = raw.split(/[\/／|｜]/).map(s => s.trim()).filter(Boolean);
+    }
+    if (parts.length < 3) {
+        parts = raw.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+    }
+    if (parts.length < 3) return null;
+    const name = parts[0];
+    const phone = parts[1];
+    const address = parts.slice(2).join(' ').trim();
+    if (name.length < 2) return { error: '姓名太短' };
+    if (!/\d/.test(phone) || phone.length < 6) return { error: '電話格式不對（要含數字、至少 6 碼）' };
+    if (address.length < 5) return { error: '地址太短' };
+    return { name, phone, address };
+}
 
 // 商品行格式：`型號 x 數量 / 故障原因`，故障原因可省略
 function tryParseDefectiveItem(input) {
@@ -104,6 +128,10 @@ async function handleConversationInput(state, userText, event, lineClient) {
 
     if (state.step === 'waiting_customer') {
         await handleCustomerStep(state, input, lineUid, replyToken, lineClient);
+    } else if (state.step === 'waiting_pickup_address') {
+        await handlePickupAddressStep(state, input, lineUid, replyToken, lineClient);
+    } else if (state.step === 'waiting_return_address') {
+        await handleReturnAddressStep(state, input, lineUid, replyToken, lineClient);
     } else if (state.step === 'waiting_items') {
         await handleItemsStep(state, input, lineUid, replyToken, lineClient);
     } else if (state.step === 'waiting_remark') {
@@ -125,7 +153,7 @@ async function handleCustomerStep(state, input, lineUid, replyToken, lineClient)
         const code = input.toUpperCase();
         const doc = await db.collection('Customers').doc(code).get();
         if (doc.exists) {
-            return advanceToItems(state, doc.data(), lineUid, replyToken, lineClient);
+            return advanceToPickupAddress(state, doc.data(), lineUid, replyToken, lineClient);
         }
         return lineClient.replyMessage({
             replyToken,
@@ -154,7 +182,7 @@ async function handleCustomerStep(state, input, lineUid, replyToken, lineClient)
     }
 
     if (matches.length === 1) {
-        return advanceToItems(state, matches[0], lineUid, replyToken, lineClient);
+        return advanceToPickupAddress(state, matches[0], lineUid, replyToken, lineClient);
     }
 
     if (matches.length > 5) {
@@ -187,7 +215,7 @@ async function handleCustomerStep(state, input, lineUid, replyToken, lineClient)
     });
 }
 
-async function advanceToItems(state, customerData, lineUid, replyToken, lineClient) {
+async function advanceToPickupAddress(state, customerData, lineUid, replyToken, lineClient) {
     const customer = {
         code: customerData.code || customerData.id || '',
         shortName: customerData.shortName || '',
@@ -197,6 +225,125 @@ async function advanceToItems(state, customerData, lineUid, replyToken, lineClie
         taxId: customerData.taxId || '',
     };
     state.data.customer = customer;
+    state.step = 'waiting_pickup_address';
+    await setState(lineUid, state);
+
+    const hasFullCustomer = customer.shortName && customer.phone && customer.address;
+    const sameAsCustomer = hasFullCustomer ? [{
+        type: 'action',
+        action: { type: 'message', label: '📍 同客戶資料', text: '同客戶資料' }
+    }] : [];
+
+    const example = `例：\n王小明\n0912345678\n台南市永康區正強街39號`;
+
+    await lineClient.replyMessage({
+        replyToken,
+        messages: [{
+            type: 'text',
+            text: `✅ 已識別\n━━━━━━━━━\n【${customer.code}】${customer.shortName}\n${customer.fullName}\n📞 ${customer.phone || '未提供'}\n📍 客戶地址：${customer.address || '未提供'}\n━━━━━━━━━\n\n請輸入🚚 **取貨地點資訊**（不良品取件處）\n格式（三行）：\n姓名\n電話\n地址\n\n${example}\n\n${hasFullCustomer ? '若同客戶資料可點下方按鈕' : ''}`,
+            quickReply: quickReply([...sameAsCustomer, cancelBtn])
+        }]
+    });
+}
+
+function makeContactFromCustomer(customer) {
+    return {
+        name: customer.shortName || customer.fullName || '',
+        phone: customer.phone || '',
+        address: customer.address || ''
+    };
+}
+
+function isValidContact(c) {
+    return c && c.name && c.phone && c.address;
+}
+
+// ==========================================
+// Step 2a: 取貨地點（姓名 / 電話 / 地址）
+// ==========================================
+async function handlePickupAddressStep(state, input, lineUid, replyToken, lineClient) {
+    let contact;
+    if (input === '同客戶資料' || input === '同客戶地址') {
+        contact = makeContactFromCustomer(state.data.customer);
+        if (!isValidContact(contact)) {
+            return lineClient.replyMessage({
+                replyToken,
+                messages: [{ type: 'text', text: '⚠️ 客戶資料不完整（缺姓名/電話/地址其一），請手動輸入。', quickReply: quickReply([cancelBtn]) }]
+            });
+        }
+    } else {
+        const parsed = tryParseContact(input);
+        if (!parsed || parsed.error) {
+            return lineClient.replyMessage({
+                replyToken,
+                messages: [{
+                    type: 'text',
+                    text: `⚠️ ${parsed?.error || '無法解析'}\n請依格式輸入（三行）：\n姓名\n電話\n地址`,
+                    quickReply: quickReply([cancelBtn])
+                }]
+            });
+        }
+        contact = parsed;
+    }
+
+    state.data.pickupContact = contact;
+    // 向後兼容
+    state.data.pickupAddress = contact.address;
+    state.step = 'waiting_return_address';
+    await setState(lineUid, state);
+
+    const customer = state.data.customer;
+    const hasFullCustomer = customer.shortName && customer.phone && customer.address;
+    const quickBtns = [
+        { type: 'action', action: { type: 'message', label: '📍 同取貨資料', text: '同取貨資料' } }
+    ];
+    if (hasFullCustomer && customer.address !== contact.address) {
+        quickBtns.push({ type: 'action', action: { type: 'message', label: '📍 同客戶資料', text: '同客戶資料' } });
+    }
+    quickBtns.push(cancelBtn);
+
+    await lineClient.replyMessage({
+        replyToken,
+        messages: [{
+            type: 'text',
+            text: `🚚 取貨資訊：\n  ${contact.name} / ${contact.phone}\n  ${contact.address}\n━━━━━━━━━\n\n請輸入📦 **換貨地點資訊**（送回新品給客戶處）\n格式（三行）：\n姓名\n電話\n地址\n\n若同上可點下方按鈕`,
+            quickReply: quickReply(quickBtns)
+        }]
+    });
+}
+
+// ==========================================
+// Step 2b: 換貨地點
+// ==========================================
+async function handleReturnAddressStep(state, input, lineUid, replyToken, lineClient) {
+    let contact;
+    if (input === '同取貨資料' || input === '同取貨地點') {
+        contact = { ...state.data.pickupContact };
+    } else if (input === '同客戶資料' || input === '同客戶地址') {
+        contact = makeContactFromCustomer(state.data.customer);
+        if (!isValidContact(contact)) {
+            return lineClient.replyMessage({
+                replyToken,
+                messages: [{ type: 'text', text: '⚠️ 客戶資料不完整，請手動輸入。', quickReply: quickReply([cancelBtn]) }]
+            });
+        }
+    } else {
+        const parsed = tryParseContact(input);
+        if (!parsed || parsed.error) {
+            return lineClient.replyMessage({
+                replyToken,
+                messages: [{
+                    type: 'text',
+                    text: `⚠️ ${parsed?.error || '無法解析'}\n請依格式輸入（三行）：\n姓名\n電話\n地址`,
+                    quickReply: quickReply([cancelBtn])
+                }]
+            });
+        }
+        contact = parsed;
+    }
+
+    state.data.returnContact = contact;
+    state.data.returnAddress = contact.address;
     state.step = 'waiting_items';
     await setState(lineUid, state);
 
@@ -204,7 +351,7 @@ async function advanceToItems(state, customerData, lineUid, replyToken, lineClie
         replyToken,
         messages: [{
             type: 'text',
-            text: `✅ 已識別\n━━━━━━━━━\n【${customer.code}】${customer.shortName}\n${customer.fullName}\n📞 ${customer.phone || '未提供'}\n📍 取件地址：${customer.address || '未提供'}\n━━━━━━━━━\n\n請輸入不良品明細（一行一個）\n格式：型號 x 數量 / 故障原因\n例：KHS3104 x2 / 按鈕失靈`,
+            text: `📦 換貨資訊：\n  ${contact.name} / ${contact.phone}\n  ${contact.address}\n━━━━━━━━━\n\n請輸入不良品明細（一行一個）\n格式：型號 x 數量 / 故障原因\n例：KHS3104 x2 / 按鈕失靈`,
             quickReply: quickReply([cancelBtn])
         }]
     });
@@ -303,14 +450,22 @@ async function handleRemarkStep(state, input, lineUid, replyToken, lineClient) {
 
     const customer = state.data.customer;
 
-    // 寫入 tempOrders（與 specialActionWorkflow 的 defective_return 同 schema）
+    const pickupContact = state.data.pickupContact || makeContactFromCustomer(customer);
+    const returnContact = state.data.returnContact || pickupContact;
+
+    // 寫入 tempOrders（與 specialActionWorkflow 的 defective_return 同 schema，但拆出取貨/換貨聯絡資訊）
     const tempData = {
         action: 'defective_return',
         customer: {
             company: customer.fullName || customer.shortName,
             name: customer.shortName,
             phone: customer.phone,
-            address: customer.address,
+            address: pickupContact.address,    // 為了向後兼容，address 沿用取貨地址
+            pickupContact: pickupContact,
+            returnContact: returnContact,
+            // 扁平欄位（之前版本相容）
+            pickupAddress: pickupContact.address,
+            returnAddress: returnContact.address,
             remark: remark,
             customerCode: customer.code,
             customerShortName: customer.shortName,
@@ -345,9 +500,15 @@ async function handleRemarkStep(state, input, lineUid, replyToken, lineClient) {
                 contents: [
                     { type: 'text', text: `🏷️ 客戶: 【${customer.code}】${customer.shortName}`, size: 'sm', weight: 'bold' },
                     { type: 'text', text: `🏢 ${customer.fullName}`, size: 'xs', color: '#666666', wrap: true },
-                    { type: 'text', text: `📞 ${customer.phone || '未提供'}`, size: 'sm' },
-                    { type: 'text', text: `📍 取件地址: ${customer.address || '未提供'}`, size: 'sm', color: '#E11D48', weight: 'bold', wrap: true },
-                    { type: 'text', text: `📝 備註: ${remark || '無'}`, size: 'sm', wrap: true },
+                    { type: 'separator', margin: 'sm' },
+                    { type: 'text', text: '🚚 取貨資訊', size: 'sm', color: '#E11D48', weight: 'bold' },
+                    { type: 'text', text: `${pickupContact.name} / ${pickupContact.phone}`, size: 'sm', wrap: true },
+                    { type: 'text', text: pickupContact.address, size: 'sm', wrap: true, color: '#666666' },
+                    { type: 'separator', margin: 'sm' },
+                    { type: 'text', text: '📦 換貨資訊', size: 'sm', color: '#1DB446', weight: 'bold' },
+                    { type: 'text', text: `${returnContact.name} / ${returnContact.phone}`, size: 'sm', wrap: true },
+                    { type: 'text', text: returnContact.address, size: 'sm', wrap: true, color: '#666666' },
+                    { type: 'text', text: `📝 備註: ${remark || '無'}`, size: 'sm', wrap: true, margin: 'md' },
                     { type: 'separator', margin: 'md' },
                     { type: 'text', text: itemsText, size: 'sm', wrap: true, margin: 'md' }
                 ]

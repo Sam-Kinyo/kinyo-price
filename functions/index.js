@@ -1614,7 +1614,22 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                               <p><strong>採購公司:</strong> ${rmaData.customer?.company || '未提供'}</p>
                               <p><strong>客戶姓名:</strong> ${rmaData.customer?.name}</p>
                               <p><strong>聯絡電話:</strong> ${rmaData.customer?.phone}</p>
-                              <p><strong>取件/換貨地址:</strong> <span style="color: #E11D48; font-weight: bold;">${rmaData.customer?.address || '未提供'}</span></p>
+                              <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px; margin: 12px 0;">
+                                <tr style="background-color: #fee2e2;">
+                                  <th colspan="2" style="text-align: left; color: #E11D48;">🚚 取貨資訊（不良品取件）</th>
+                                </tr>
+                                <tr><td style="width:90px;"><strong>姓名</strong></td><td>${rmaData.customer?.pickupContact?.name || rmaData.customer?.name || '未提供'}</td></tr>
+                                <tr><td><strong>電話</strong></td><td>${rmaData.customer?.pickupContact?.phone || rmaData.customer?.phone || '未提供'}</td></tr>
+                                <tr><td><strong>地址</strong></td><td style="color:#E11D48;font-weight:bold;">${rmaData.customer?.pickupContact?.address || rmaData.customer?.pickupAddress || rmaData.customer?.address || '未提供'}</td></tr>
+                              </table>
+                              <table border="1" cellpadding="8" cellspacing="0" style="border-collapse: collapse; width: 100%; max-width: 600px; margin: 12px 0;">
+                                <tr style="background-color: #d1fae5;">
+                                  <th colspan="2" style="text-align: left; color: #1DB446;">📦 換貨資訊（送回新品）</th>
+                                </tr>
+                                <tr><td style="width:90px;"><strong>姓名</strong></td><td>${rmaData.customer?.returnContact?.name || rmaData.customer?.pickupContact?.name || rmaData.customer?.name || '未提供'}</td></tr>
+                                <tr><td><strong>電話</strong></td><td>${rmaData.customer?.returnContact?.phone || rmaData.customer?.pickupContact?.phone || rmaData.customer?.phone || '未提供'}</td></tr>
+                                <tr><td><strong>地址</strong></td><td style="color:#1DB446;font-weight:bold;">${rmaData.customer?.returnContact?.address || rmaData.customer?.returnAddress || rmaData.customer?.pickupAddress || rmaData.customer?.address || '未提供'}</td></tr>
+                              </table>
                               <p><strong>備註:</strong> ${rmaData.customer?.remark || '無'}</p>
                               <hr>
                               <h3 style="color: #333;">📦 不良品明細與原因：</h3>
@@ -1633,7 +1648,13 @@ exports.lineWebhook = functions.region('asia-east1').https.onRequest(async (req,
                         const configDoc = await db.collection('SystemConfig').doc('OrderSettings').get();
                         if (configDoc.exists && configDoc.data().notifyGroupId) {
                             const targetGroupId = configDoc.data().notifyGroupId;
-                            const notifyText = `⚠️ [新品不良派車]\n客戶編號：${rmaData.customer?.customerCode || '未建檔'}\n公司：${rmaData.customer?.company || '未提供'}\n客戶：${rmaData.customer?.name}\n取件地址：${rmaData.customer?.address || '未提供'}\n\n請盡速查看 Email 安排物流派車。`;
+                            const _pickupC = rmaData.customer?.pickupContact || {
+                                name: rmaData.customer?.name,
+                                phone: rmaData.customer?.phone,
+                                address: rmaData.customer?.pickupAddress || rmaData.customer?.address
+                            };
+                            const _returnC = rmaData.customer?.returnContact || _pickupC;
+                            const notifyText = `⚠️ [新品不良派車]\n客戶編號：${rmaData.customer?.customerCode || '未建檔'}\n公司：${rmaData.customer?.company || '未提供'}\n\n🚚 取貨：${_pickupC.name || ''} / ${_pickupC.phone || ''}\n${_pickupC.address || '未提供'}\n\n📦 換貨：${_returnC.name || ''} / ${_returnC.phone || ''}\n${_returnC.address || '未提供'}\n\n請盡速查看 Email 安排物流派車。`;
                             await lineClient.pushMessage({
                                 to: targetGroupId,
                                 messages: [{ type: 'text', text: notifyText }]
@@ -2303,67 +2324,127 @@ exports.markOrderShipped = functions.region('asia-east1').https.onRequest(async 
     }
 });
 
-// --- API 擴充：新品不良來回件派車單結案按鈕回呼 ---
+// --- API 擴充：新品不良來回件派車單結案按鈕回呼（有取貨/換貨單號表單） ---
 exports.markRMACompleted = functions.region('asia-east1').https.onRequest(async (req, res) => {
+    const { requireAuthorizedEmail } = require('./src/middlewares/dashboardAuth');
+    const user = await requireAuthorizedEmail(req, res);
+    if (!user) return;
+
     const rmaId = req.query.rmaId;
     if (!rmaId) return res.status(400).send('缺少不良品派車單號');
 
-    // 防範信箱預覽機制 (Prefetch)：GET 請求只回傳確認畫面
+    const orderRef = db.collection('PendingOrders').doc(rmaId);
+    const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+    // GET：顯示填寫表單
     if (req.method === 'GET') {
-        const confirmHtml = `
-            <div style="font-family: Arial, sans-serif; text-align: center; padding: 40px;">
-                <h2 style="color: #333;">確認新品不良派車</h2>
-                <p>即將發送派件通知給單號 <strong>${rmaId}</strong> 的客戶群組</p>
-                <form method="POST" action="">
-                    <button type="submit" style="background-color: #1DB446; color: white; padding: 15px 32px; text-align: center; text-decoration: none; display: inline-block; font-size: 16px; margin: 20px 2px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold;">
-                        ✅ 確認並發送 LINE 推播
-                    </button>
-                </form>
-            </div>
-        `;
-        return res.send(confirmHtml);
+        const doc = await orderRef.get();
+        if (!doc.exists) return res.status(404).send('<h2 style="text-align:center;">找不到該筆不良品申請紀錄</h2>');
+        const order = doc.data();
+        const alreadyDone = order.status === '處理完成_已派車';
+
+        const pickupC = order.customer?.pickupContact || {
+            name: order.customer?.name || '',
+            phone: order.customer?.phone || '',
+            address: order.customer?.pickupAddress || order.customer?.address || ''
+        };
+        const returnC = order.customer?.returnContact || pickupC;
+        const existingPickupTracking = order.pickupTracking || '';
+        const existingReturnTracking = order.returnTracking || order.tracking || '';
+
+        let itemsHtml = '';
+        (order.items || []).forEach(it => {
+            itemsHtml += `<li>${esc(it.model)} × ${it.quantity}　<span style="color:#E11D48;">⚠️ ${esc(it.reason || '未說明')}</span></li>`;
+        });
+
+        const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family: Arial, 'Microsoft JhengHei', sans-serif; background:#f5f5f5; margin:0;">
+<div style="max-width:560px; margin:40px auto; padding:32px; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,.08);">
+    <h2 style="color:#E11D48; margin-top:0;">⚠️ 新品不良派車結案</h2>
+    ${alreadyDone ? `<div style="padding:12px; background:#fff3cd; color:#856404; border-radius:6px; margin-bottom:16px;">⚠️ 此派車單已標記為「處理完成_已派車」，繼續操作會覆寫單號</div>` : ''}
+    <p><strong>編號：</strong>${esc(rmaId)}</p>
+    <p><strong>客戶：</strong>${esc(order.customer?.company || '')} ${esc(order.customer?.name || '')}</p>
+    <div style="background:#fef2f2; padding:12px; border-radius:8px; margin:12px 0;">
+        <div style="color:#E11D48; font-weight:bold; margin-bottom:6px;">🚚 取貨資訊（不良品取件）</div>
+        <div>${esc(pickupC.name || '未提供')} / ${esc(pickupC.phone || '未提供')}</div>
+        <div style="color:#666; font-size:13px;">${esc(pickupC.address || '未提供')}</div>
+    </div>
+    <div style="background:#f0fdf4; padding:12px; border-radius:8px; margin:12px 0;">
+        <div style="color:#1DB446; font-weight:bold; margin-bottom:6px;">📦 換貨資訊（送回新品）</div>
+        <div>${esc(returnC.name || '未提供')} / ${esc(returnC.phone || '未提供')}</div>
+        <div style="color:#666; font-size:13px;">${esc(returnC.address || '未提供')}</div>
+    </div>
+    ${itemsHtml ? `<p><strong>不良品明細：</strong></p><ul>${itemsHtml}</ul>` : ''}
+    <form method="POST" action="" style="margin-top:24px;">
+        <label style="display:block; font-weight:bold; color:#333; margin-bottom:6px;">
+            🚚 取貨單號 <span style="font-weight:normal; color:#888; font-size:13px;">（從客戶端取回不良品的物流單號）</span>
+        </label>
+        <input name="pickupTracking" value="${esc(existingPickupTracking)}" placeholder="例：HC12345678" style="width:100%; padding:12px; font-size:16px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;" />
+
+        <label style="display:block; font-weight:bold; color:#333; margin-top:18px; margin-bottom:6px;">
+            📦 換貨單號 <span style="font-weight:normal; color:#888; font-size:13px;">（送回新品給客戶的物流單號）</span>
+        </label>
+        <input name="returnTracking" value="${esc(existingReturnTracking)}" placeholder="例：EX87654321" style="width:100%; padding:12px; font-size:16px; border:1px solid #ccc; border-radius:6px; box-sizing:border-box;" />
+
+        <button type="submit" style="background-color:#1DB446; color:#fff; padding:15px 32px; font-size:16px; margin-top:24px; border:none; border-radius:8px; font-weight:bold; cursor:pointer; width:100%;">
+            ✅ 確認派車並推播 LINE 通知
+        </button>
+    </form>
+    <p style="color:#888; font-size:12px; margin-top:24px;">送出後系統會推播給客戶群組（含單號），並標記為「處理完成_已派車」。</p>
+</div>
+</body></html>`;
+        return res.send(html);
     }
 
+    // POST：執行結案
     try {
-        const orderRef = db.collection('PendingOrders').doc(rmaId);
+        const pickupTracking = String(req.body?.pickupTracking || '').trim();
+        const returnTracking = String(req.body?.returnTracking || '').trim();
+
         const doc = await orderRef.get();
-
         if (!doc.exists) return res.status(404).send('<h2>找不到該筆不良品申請紀錄</h2>');
-
         const orderData = doc.data();
+        const wasAlreadyDone = orderData.status === '處理完成_已派車';
 
-        // 防呆：避免重複點擊重複推播
-        if (orderData.status === '處理完成_已派車') {
-            return res.send('<h2 style="text-align: center; color: #856404; background-color: #fff3cd; padding: 20px;">此派車單先前已經標記為「處理完成_已派車」囉！</h2>');
+        const updates = { status: '處理完成_已派車' };
+        if (!wasAlreadyDone) updates.completedAt = admin.firestore.FieldValue.serverTimestamp();
+        if (pickupTracking) updates.pickupTracking = pickupTracking;
+        if (returnTracking) {
+            updates.returnTracking = returnTracking;
+            updates.tracking = returnTracking; // 向後兼容
         }
+        await orderRef.update(updates);
 
-        // 更新資料庫狀態
-        await orderRef.update({ status: '處理完成_已派車' });
-
-        // 透過 LINE Messaging API 主動推播至原始群組/用戶
+        // LINE 推播給客戶群組
         const targetId = orderData.sourceId;
-        if (targetId) {
-            // 在新請求中重新初始化 Line SDK v9 client
+        let pushOk = true;
+        if (targetId && !wasAlreadyDone) {
             const config = getConfig();
-            const lineClient = new messagingApi.MessagingApiClient({
-                channelAccessToken: config.channelAccessToken
-            });
-
-            // 抓取客戶名稱，若無則為空
-            const customerName = orderData.customer?.name || '';
-            const notifyText = `📦 系統通知：新品不良單 (${customerName}) 已經由總部處理完畢並安排派車！`;
-
-            await lineClient.pushMessage({
-                to: targetId,
-                messages: [{ type: 'text', text: notifyText }]
-            });
+            const lineClient = new messagingApi.MessagingApiClient({ channelAccessToken: config.channelAccessToken });
+            const customerName = orderData.customer?.name || orderData.customer?.company || '客戶';
+            let notifyText = `📦 系統通知：新品不良單 (${customerName}) 已由總部處理完畢並安排派車！`;
+            if (pickupTracking) notifyText += `\n🚚 取貨單號：${pickupTracking}`;
+            if (returnTracking) notifyText += `\n📦 換貨單號：${returnTracking}`;
+            try {
+                await lineClient.pushMessage({ to: targetId, messages: [{ type: 'text', text: notifyText }] });
+            } catch (pushErr) {
+                console.warn('[RMA Push Failed]', pushErr.response?.data || pushErr.message);
+                pushOk = false;
+            }
         }
 
-        // 回傳成功畫面給點擊信件的助理
-        return res.send('<h2 style="text-align: center; color: #155724; background-color: #d4edda; padding: 20px; border-radius: 8px;">✅ 狀態更新成功！已自動發送 LINE 派件通知給客戶群組。</h2>');
+        const parts = [
+            wasAlreadyDone ? '📝 單號已更新' : '✅ 狀態更新成功',
+            pickupTracking ? `<br>🚚 取貨單號：<strong>${esc(pickupTracking)}</strong>` : '',
+            returnTracking ? `<br>📦 換貨單號：<strong>${esc(returnTracking)}</strong>` : '',
+            pushOk ? (wasAlreadyDone ? '' : '<br>📢 已推播 LINE 通知給客戶') : '<br>⚠️ LINE 推播失敗，請自行通知'
+        ].filter(Boolean).join('');
+
+        return res.send(`<div style="font-family:Arial,'Microsoft JhengHei',sans-serif; text-align:center; padding:40px; background:#d4edda; color:#155724; border-radius:8px; max-width:520px; margin:40px auto; font-size:18px; line-height:1.8;">${parts}</div>`);
     } catch (error) {
         console.error('RMA 結案更新失敗:', error);
-        return res.status(500).send('<h2 style="text-align: center; color: red;">系統發生錯誤，請聯絡管理員</h2>');
+        return res.status(500).send(`<h2 style="text-align:center; color:red;">系統發生錯誤：${error.message}</h2>`);
     }
 });
 
