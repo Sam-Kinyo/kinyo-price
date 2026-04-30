@@ -1,43 +1,103 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // === Helper Functions ===
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function userEmail() {
+      return request.auth.token.email.lower();
+    }
+    function isAdmin() {
+      return isSignedIn()
+        && request.auth.token.email != null
+        && exists(/databases/$(database)/documents/Users/$(userEmail()))
+        && get(/databases/$(database)/documents/Users/$(userEmail())).data.level == 4;
+    }
+
+    // === 公開查價相關 (公開讀取) ===
     match /Products/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn();
     }
     match /ProductImages/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn();
     }
     match /SiteConfig/{docId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn();
     }
+
+    // === 紀錄類 (登入即可寫，讀限制) ===
     match /ProductClicks/{docId} {
-      allow read: if request.auth != null;
+      allow read: if isSignedIn();
       allow create: if true;
     }
     match /SyncMetadata/{docId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSignedIn();
     }
+    match /QuoteHistory/{docId} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin();
+    }
+
+    // === 客戶/訂單 ===
     match /Customers/{uid} {
-      allow read, write: if request.auth != null && request.auth.uid == uid;
-      allow read: if request.auth != null;
+      allow read, write: if isSignedIn() && request.auth.uid == uid;
+      allow read: if isSignedIn();
     }
     match /CustomerOrders/{orderId} {
-      allow create: if request.auth != null;
-      allow read: if request.auth != null;
-      allow update: if request.auth != null;
+      allow create, read, update: if isSignedIn();
     }
-    // AdminQuestions / AdminReplyState：僅由 Cloud Functions (admin SDK) 存取，前端不可直接讀寫
+
+    // === Users：自己讀自己；admin 可全讀；寫入只走後端 ===
+    match /Users/{email} {
+      allow read: if isSignedIn() && (userEmail() == email || isAdmin());
+      allow write: if false;
+    }
+
+    // === OEM 客戶專屬產品 (本次新增) ===
+    // 讀取：admin 全讀；OEM owner 只讀自己的
+    // 寫入：禁止前端，必須透過 Admin SDK (本地批量上傳腳本)
+    match /OEMProducts/{docId} {
+      allow read: if isAdmin()
+                  || (resource != null
+                      && isSignedIn()
+                      && request.auth.token.email != null
+                      && userEmail() == resource.data.ownerEmail);
+      allow write: if false;
+    }
+
+    // === 後端專用 collections (前端禁讀寫，僅 Admin SDK) ===
     match /AdminQuestions/{questionId} {
       allow read, write: if false;
     }
     match /AdminReplyState/{uid} {
       allow read, write: if false;
     }
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    match /Groups/{groupId} {
+      allow read, write: if false;
     }
+    match /SystemConfig/{docId} {
+      allow read, write: if false;
+    }
+    match /PendingOrders/{orderId} {
+      allow read, write: if false;
+    }
+    match /tempOrders/{orderId} {
+      allow read, write: if false;
+    }
+    match /ReservedOrders/{orderId} {
+      allow read, write: if false;
+    }
+    match /SpecialRequests/{requestId} {
+      allow read, write: if false;
+    }
+
+    // 預設 deny：未明確規範的 collection 一律拒絕
+    // (移除原本的 catch-all match /{document=**} { allow ... if request.auth != null }
+    //  那條規則會讓任何登入帳號讀寫所有未列出的 collection，是安全漏洞)
   }
 }

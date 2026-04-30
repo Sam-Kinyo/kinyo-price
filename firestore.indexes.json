@@ -1,0 +1,14 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "OEMProducts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerEmail", "order": "ASCENDING" },
+        { "fieldPath": "deleted", "order": "ASCENDING" },
+        { "fieldPath": "model", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

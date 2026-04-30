@@ -133,12 +133,19 @@ export function setupAuthListener() {
         const userDoc = await getDoc(doc(db, "Users", state.currentUserEmail.toLowerCase()));
         if (userDoc.exists()) {
             const userData = userDoc.data();
+
+            // OEM 客戶：直接 redirect 到專屬頁面，不載入一般查價系統的資料
+            if (userData.oemMode === true) {
+                window.location.replace("oem.html");
+                return;
+            }
+
             state.originalUserLevel = userData.level ?? 0;
             state.userLevel = state.originalUserLevel;
             if (userData.groupBuy === true) {
                 state.isGroupBuyUser = true;
             }
-            
+
             if (userData.vipColumn) {
                 state.currentUserVipConfig = {
                     column: userData.vipColumn,

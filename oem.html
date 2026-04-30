@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<title>KINYO OEM 庫存查詢</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="icon" href="https://images.weserv.nl/?url=https://drive.google.com/uc?id=1MHSa8sqH4-V620qWcOyP_SVJNxfgam2F&output=jpg" type="image/jpeg">
+<link rel="stylesheet" href="css/system.css" />
+<style>
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif; background: #f5f6f8; color: #222; }
+  .oem-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 24px; background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 2px rgba(0,0,0,.04);
+  }
+  .oem-header .brand { display: flex; align-items: center; gap: 12px; }
+  .oem-header .brand h1 { font-size: 18px; margin: 0; color: #1f2937; }
+  .oem-header .brand .sub { color: #6b7280; font-size: 13px; }
+  .oem-header .right { display: flex; align-items: center; gap: 12px; }
+  .oem-header .customer { font-weight: 600; color: #2563eb; }
+  .oem-header button { padding: 6px 14px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; }
+  .oem-header button:hover { background: #f3f4f6; }
+  .oem-container { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .oem-toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .oem-toolbar input {
+    flex: 1; padding: 10px 14px; font-size: 15px;
+    border: 1px solid #d1d5db; border-radius: 8px; background: #fff;
+  }
+  .oem-toolbar input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.15); }
+  .oem-stats { color: #6b7280; font-size: 13px; }
+  .oem-table-wrap { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; }
+  table.oem-table { width: 100%; border-collapse: collapse; }
+  table.oem-table thead { background: #f9fafb; }
+  table.oem-table th, table.oem-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f3f4f6; font-size: 14px; }
+  table.oem-table th { font-weight: 600; color: #374151; font-size: 13px; }
+  table.oem-table td.stock { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  table.oem-table td.stock.low { color: #dc2626; }
+  table.oem-table td.stock.zero { color: #9ca3af; }
+  table.oem-table tbody tr:hover { background: #fafafa; }
+  table.oem-table td.updated { color: #9ca3af; font-size: 12px; }
+  .oem-empty { padding: 48px 16px; text-align: center; color: #9ca3af; }
+  #oemError { color: #dc2626; padding: 12px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; margin-bottom: 16px; display: none; }
+  @media (max-width: 640px) {
+    .oem-header { padding: 12px 14px; flex-direction: column; gap: 8px; align-items: stretch; }
+    table.oem-table td.updated { display: none; }
+    table.oem-table th:nth-child(4) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 登入 Overlay (沿用 system.css 樣式) -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <h2>KINYO OEM 庫存查詢</h2>
+    <p style="color:#666;margin-bottom:20px;">請輸入您的 OEM 帳號</p>
+    <form id="loginForm" onsubmit="return false;" autocomplete="on">
+      <input type="text" id="loginEmail" class="login-input" placeholder="帳號（或完整 email）" autocomplete="username">
+      <input type="password" id="loginPassword" class="login-input" placeholder="密碼" autocomplete="current-password">
+      <button type="submit" id="doLoginBtn" class="login-btn">登入</button>
+    </form>
+    <div id="loginError" class="login-error"></div>
+  </div>
+</div>
+
+<!-- OEM 主畫面 -->
+<div id="oemMain" style="display:none;">
+  <header class="oem-header">
+    <div class="brand">
+      <h1>OEM 庫存查詢</h1>
+      <span class="sub">KINYO</span>
+    </div>
+    <div class="right">
+      <span class="customer" id="oemCustomerName">—</span>
+      <button id="logoutBtn">登出</button>
+    </div>
+  </header>
+
+  <main class="oem-container">
+    <div id="oemError"></div>
+    <div class="oem-toolbar">
+      <input type="search" id="oemSearch" placeholder="搜尋型號或品名..." autocomplete="off">
+      <span class="oem-stats" id="oemStats">—</span>
+    </div>
+    <div class="oem-table-wrap">
+      <table class="oem-table">
+        <thead>
+          <tr>
+            <th style="width:25%;">型號</th>
+            <th>品名</th>
+            <th style="width:15%; text-align:right;">庫存</th>
+            <th style="width:18%;">最後更新</th>
+          </tr>
+        </thead>
+        <tbody id="oemTableBody">
+          <tr><td colspan="4" class="oem-empty">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script type="module" src="js/oem.js?v=20260430b"></script>
+</body>
+</html>
